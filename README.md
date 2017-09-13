@@ -34,10 +34,10 @@ accuracy, rate, and speed with which threats are detected.
 
 
 Galahad facilitates the construction, deployment, management, and
-interfacing of role-based virtues. Star Lab’s virtues, shown in Figure
-1, consist primarily of two components: Valor, a nested hypervisor and
-Unity, a virtual machine running a small, hardened, de-privileged
-Linux operating system (OS). Valor includes protections, sensors, and
+interfacing of role-based virtues. Star Lab’s virtues, consist
+primarily of two components: Valor, a nested hypervisor and Unity, a
+virtual machine running a small, hardened, de-privileged Linux
+operating system (OS). Valor includes protections, sensors, and
 virtual machine (VM) image authentication, but most importantly it
 facilitates the regular, recurring live migration of Unity VMs. This
 moving target defense approach deters hypervisor and peer VM threats
@@ -49,11 +49,11 @@ points required by the adversary to be successful.
 Unity includes additional protections to address external and insider
 threats while also incorporating a compatibility layer for supporting
 legacy Windows applications and adjustable sensors. Limiting Unity to
-Linux (versus using Linux and Figure 1: Galahad Virtue Construct
-Windows) allows Star Lab to more greatly reduce the overall attack
-surface of the virtue, improve performance, and streamline
-development. Additionally, executing Windows applications on Linux
-increases the uncertainty, complexity, and cost to the adversary.
+Linux (versus using Linux and Windows) allows Star Lab to more greatly
+reduce the overall attack surface of the virtue, improve performance,
+and streamline development. Additionally, executing Windows
+applications on Linux increases the uncertainty, complexity, and cost
+to the adversary.
 
 Sensing and logging take place throughout the Galahad software stack,
 without requiring modifications to the applications under
@@ -86,7 +86,7 @@ installed within a single Unity instance, which in turn executes
 within a single instance of Valor.  Galahad maintains a 1:1 Unity to
 Valor relationship.
 
-4 **Defensible virtualized construct** Galahad’s Unity and Valor are
+4. **Defensible virtualized construct** Galahad’s Unity and Valor are
 built with only required functionality, configured to reduce the
 attack surface, and regularly migrated, addressing external, internal,
 peer, and infrastructure threats.
