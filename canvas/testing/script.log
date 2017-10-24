@@ -1,0 +1,30 @@
+nohup: ignoring input
+2017-10-16 12:35:54,453 Xpra gtk2 client version 2.1.2-r16903 64-bit
+2017-10-16 12:35:54,453  running on Linux Ubuntu 16.04 xenial
+2017-10-16 12:35:55,171 GStreamer version 1.8.3 for Python 2.7.12 64-bit
+2017-10-16 12:35:55,505 PyOpenGL warning: missing accelerate module
+2017-10-16 12:35:55,505 PyOpenGL warning: missing array format handlers: numeric, vbo, vbooffset
+2017-10-16 12:35:55,505 OpenGL Version: 3.0 Mesa 17.0.7
+2017-10-16 12:35:55,506 OpenGL support is missing:
+2017-10-16 12:35:55,506  PyOpenGL version 3.0.2 is too old and buggy
+2017-10-16 12:35:55,528  keyboard settings: rules=evdev, model=pc105, layout=us
+2017-10-16 12:35:55,529  desktop size is 1440x900 with 1 screen:
+2017-10-16 12:35:55,529   :0.0 (381x238 mm - DPI: 96x96) workarea: 1375x876 at 65x24
+2017-10-16 12:35:55,529     monitor 1
+2017-10-16 12:35:55,560 Warning: invalid frame extents value '[0, 0, 0, 0, 0, 0, 28, 0]'
+2017-10-16 12:35:55,560  this is probably a bug in 'Compiz'
+2017-10-16 12:35:55,560  using '[0, 0, 28, 0]' instead
+Warning: cannot use the system proxy for 'start' subcommand,
+ failed to connect to '/run/xpra/system':
+ [Errno 2] No such file or directory
+Entering daemon mode; any further errors will be reported to:
+  /run/user/1000/xpra/:459000123.log
+2017-10-16 12:36:00,928 Xpra X11 server version 2.1.2-r16903 64-bit
+2017-10-16 12:36:00,928  running on Linux Ubuntu 16.04 xenial
+2017-10-16 12:36:00,928 enabled remote logging
+2017-10-16 12:36:01,975 sound output using pulseaudio device:[0m
+2017-10-16 12:36:01,975 sound output  'Built-in Audio Analog Stereo'[0m
+2017-10-16 12:36:02,996 sound output using audio codec opus[0m
+2017-10-16 12:36:02,996 sound output using container format ogg[0m
+2017-10-16 12:37:13,700 server requested disconnect: server shutdown
+2017-10-16 12:37:13,704 sound output stopping[0m
