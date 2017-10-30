@@ -13,6 +13,7 @@ class Application:
 	def __init__(self):
 		pass
 
+	# CREATE NEW APPLICATION INSTANCE
 	def create(self, name):
 		db = dataset.connect('sqlite:///canvas.db')
 		table = db['application']
@@ -29,12 +30,14 @@ class Application:
 		table.insert(d)
 		return self.APPID	
 
+	# RETURN SPECIFIED APPLICATION OBJECT
 	def get(self, userToken, applicationId):
 		db = dataset.connect('sqlite:///canvas.db')
 		table = db['application']
 		app = table.find_one(APPID=applicationId)
 		return json.dumps(app)
 
+	# LIST ALL APPLICATIONS VISIBLE TO USER
 	def list(self, userToken):
 		apps = []
 		db = dataset.connect('sqlite:///canvas.db')

@@ -14,15 +14,7 @@ class User:
 
 	def rolelist(self, userToken):
 		return 254		# return set of Role
-		"""
-		roles = []
-		#parse userToken for username
-		username = 'kelli'
-		for role in self.get(userToken, username)['AUTHORIZEDIDS']:
-			roles.append(Role.get(userToken, role)
-		return roles
-		# fix roles with json
-		"""
+		# implement Role.list() so that returns username filtered list 
 
 	def virtuelist(self, userToken, username=None):
 		return 254		# return set of Virtue

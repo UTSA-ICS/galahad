@@ -3,15 +3,21 @@ import	json
 import	time
 import	datetime
 
+import	thread
+import	time
+import	shlex
+from	subprocess				import Popen, PIPE
+
 from	Role					import Role
+from	Application				import Application
 
 class Virtue:
 	VIRTID = ''				# Required - False		# Type -> String
 	USERNAME = ''			# Required - True		# Type -> String
 	ROLEID = ''				# Required - True		# Type -> String
-	APPLICATIONIDS = ''		# Required - True		# Type -> set of String
-	RESOURCEIDS = ''		# Required - True		# Type -> set of String
-	TRANSDUCERIDS = ''		# Required - True		# Type -> set of String
+	APPLICATIONIDS = []		# Required - True		# Type -> set of String
+	RESOURCEIDS = []		# Required - True		# Type -> set of String
+	TRANSDUCERIDS = []		# Required - True		# Type -> set of String
 	STATE = ''				# Required - True		# Type -> String (enum)
 													#		  [CREATING, STOPPED, LAUNCHING,
 													#		   RUNNING, PAUSING, PAUSED,
@@ -22,6 +28,14 @@ class Virtue:
 	def __init__(self):
 		pass
 
+	# MULTITHREADING FUNCTION FOR PROCESS LAUNCH WITHIN VIRTUE INSTANCE
+	def launch_proc(self, instr):
+		print(instr)
+		args = shlex.split(instr)
+		p = Popen(args, shell=False, stdout=PIPE, stdin=PIPE)
+		return 0
+
+	# RETRIEVES ALL VIRTUES WITH ATTACHED ROLEID
 	def getvirtuefromrole(self, userToken, roleId):
 		db = dataset.connect('sqlite:///canvas.db')
 		table = db['virtue']
@@ -58,6 +72,15 @@ class Virtue:
 			'IPADDRESS'			: d['IPADDRESS'],
 		}
 
+	# UPDATE RESOURCEIDS LIST IN GIVEN VIRTUE
+	def updateres(self, userToken, reslist, virt):
+		# return 254
+		db = dataset.connect('sqlite:///canvas.db')
+		table = db['virtue']	
+		table.update({
+			'VIRTID'			: virt['VIRTID'],
+			'RESOURCEIDS'		: reslist
+		}, ['VIRTID'])
 
 	"""
 	API Defined
@@ -72,14 +95,14 @@ class Virtue:
 	def create(self, userToken, roleId):
 		db = dataset.connect('sqlite:///canvas.db')
 		table = db['virtue']
-		self.VIRTID 		= roleId + str(int(time.time()))
+		self.VIRTID 		= str(int(time.time()))[-4:]
 		self.USERNAME		= 'kelli'	# userToken.USERNAME
 		self.ROLEID			= roleId
 		self.APPLICATIONIDS = []
 		self.RESOURCEIDS	= []
 		self.TRANSDUCERIDS	= []
 		self.STATE			= 'CREATING'
-		self.IPADDRESS		= '10.20.20.180' # WILL BE AWS IP
+		self.IPADDRESS		= '10.20.20.179' # WILL BE AWS IP
 
 		d = {
 			'VIRTID'			: self.VIRTID,
@@ -105,11 +128,23 @@ class Virtue:
 		return 254
 
 	def applicationlaunch(self, userToken, virtId, appId):
-		return 254
+		# return 254
+		virt = json.loads(self.get(userToken, virtId))
+		app = json.loads(Application.get(Application(), userToken, appId))
+		instr = "xpra start ssh/" + str(virt['USERNAME'])			\
+								  + "@" + str(virt['IPADDRESS'])	\
+								  + "/" + str(virt['VIRTID'])		\
+								  + " --start-child=" 				\
+								  + str(app['NAME'])
+		thread.start_new_thread(self.launch_proc, (instr,))
 
 	def applicationstop(self, userToken, virtId, appId):
-		return 254
-
+		# return 254
+		virt = json.loads(self.get(userToken, virtId))
+		instr = "xpra stop ssh/" + str(virt['USERNAME'])			\
+								 + "@" + str(virt['IPADDRESS'])		\
+								 + "/" + str(virt['VIRTID'])
+		thread.start_new_thread(self.launch_proc, (instr,))
 
 if __name__ == "__main__":
 		role = Role()
@@ -125,7 +160,13 @@ if __name__ == "__main__":
 		)
 		role.add('xterm')
 		role.add('firefox')
-		
+
+		app = Application()
 		virtue = Virtue()
-		print(role.get('kelli', role.ROLEID))
-		print(virtue.create('kelli', role.ROLEID))
+		print(app.create('xterm'))
+		print(app.NAME)
+		virtue.create('kelli', str(2))
+		virtue.applicationlaunch('kelli', virtue.VIRTID, app.APPID)
+		time.sleep(15)
+		virtue.applicationstop('kelli', virtue.VIRTID, app.APPID)
+		time.sleep(5)
