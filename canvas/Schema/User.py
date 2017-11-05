@@ -1,3 +1,9 @@
+import	dataset
+import	json
+
+from	Virtue					import Virtue
+from	UserToken				import UserToken
+
 class User:
 	USERNAME = None				# Required - True		# Type -> String
 	AUTHORIZEDROLEIDS = None	# Required - True		# Type -> set of String
@@ -17,8 +23,11 @@ class User:
 		# implement Role.list() so that returns username filtered list 
 
 	def virtuelist(self, userToken, username=None):
-		return 254		# return set of Virtue
-		# use func getvirtuefromrole(userToken, roleId)
+		# return 254		# return set of Virtue
+		if username==None:
+			username = UserToken().getusername(userToken)
+		virts = Virtue().getvirtuesfromuser(username)
+		return virts
 
 	def list(self, userToken):
 		#return 254		# return list of User
@@ -64,3 +73,5 @@ class User:
 		}
 		table.update(d, ['USERNAME'])
 		return json.dumps(d)
+
+if __name__ == "__main__":	print(User().virtuelist('kelli'))

@@ -35,12 +35,14 @@ class Virtue:
 		p = Popen(args, shell=False, stdout=PIPE, stdin=PIPE)
 		return 0
 
-	# RETRIEVES ALL VIRTUES WITH ATTACHED ROLEID
-	def getvirtuefromrole(self, userToken, roleId):
-		db = dataset.connect('sqlite:///canvas.db')
+	def getvirtuesfromuser(self, username):
+		db = dataset.connect('sqlite:////home/kelli/galahad/canvas/Schema/canvas.db')
 		table = db['virtue']
-		virt = table.find_one(ROLEID=roleId)
-		return json.dumps(convertfromdb(virt))
+		virts = table.find(USERNAME=username)
+		virtlist = []
+		for virt in virts:
+			virtlist.append(virt)
+		return virtlist
 
 	def converttostring(self, dlist):
 		return ','.join(str(x) for x in dlist)
