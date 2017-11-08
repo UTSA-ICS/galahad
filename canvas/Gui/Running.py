@@ -13,7 +13,11 @@ class Running(BaseWidget):
 		self._virtueList = ControlList('Running Virtues')
 		self._textArea = ControlTextArea(' ')
 
-		self.formset = ['_virtueList','||','_textArea']
+		self._stop = ControlButton('Stop')
+		self._stop.value = self.__stop
+
+		self.formset = ['_virtueList','||', 
+							('_textArea','=','_stop','=',' ',)]
 
 		self._virtueList.horizontal_headers = ['VirtueId','State']
 		self._virtueList.readonly = True
@@ -26,12 +30,15 @@ class Running(BaseWidget):
 		for v in self._vlist:
 			self._virtueList += [v['VIRTID'],v['STATE']]
 
+		self._virtue = None
+
 	def __clicked(self,row,column):
 	
 		val = self._virtueList.get_value(0,row)
 	
 		for v in self._vlist:
 			if v['VIRTID'] == val:
+				self._virtue = v
 				self._textArea.value =  "" 	+ \
 					"VIRTID			: " + str(v['VIRTID']) + \
 					"\nROLEID			: "	+ str(v['ROLEID']) + \
@@ -39,11 +46,13 @@ class Running(BaseWidget):
 					"\nSTATE			: " + str(v['STATE'])
 				break
 
-		"""
-		if self._virtueList.horizontal_headers[column] == 'ID':
-			self._virtueList.set_value(column,
-								   row,
-								   'clicked')
-		"""
+	def __stop(self):
+		if self._virtue == None:
+			self._textArea.value = "Error: No Virtue Selected"
+		else:
+			self._textArea.value = self._virtue
+			for app in self._virtue['APPLICATIONIDS']:
+				self._textArea.append(app + ' stopped\n')
+
 
 if __name__ == "__main__":	pyforms.start_app( Running )

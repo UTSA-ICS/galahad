@@ -133,11 +133,9 @@ class Virtue:
 		# return 254
 		virt = json.loads(self.get(userToken, virtId))
 		app = json.loads(Application.get(Application(), userToken, appId))
-		instr = "xpra start ssh/" + str(virt['USERNAME'])			\
-								  + "@" + str(virt['IPADDRESS'])	\
-								  + "/" + str(virt['VIRTID'])		\
-								  + " --start-child=" 				\
-								  + str(app['NAME'])
+		instr = "xpra attach ssh/" + str(virt['USERNAME'])			\
+								   + "@" + str(virt['IPADDRESS'])	\
+								   + "/" + str(virt['VIRTID'])
 		thread.start_new_thread(self.launch_proc, (instr,))
 
 	def applicationstop(self, userToken, virtId, appId):

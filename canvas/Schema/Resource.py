@@ -18,6 +18,8 @@ class Resource:
 
 	def converttolist(self, string):
 		return [str(x) for x in string.split(",")]
+
+	# need create function
 	
 	"""
 	API Defined
