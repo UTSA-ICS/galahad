@@ -1,1 +1,12 @@
+*.pyc
+*~
+*.o
+*.ko
+*.swp
+*.bin
+tags
+GPATH
+GSYMS
+GTAGS
+TAGS
 
