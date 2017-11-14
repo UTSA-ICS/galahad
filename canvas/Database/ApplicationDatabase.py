@@ -9,7 +9,7 @@ class ApplicationDatabase:
 		self._version = None
 		self._os = None
 		self._userToken = None
-		self._db = dataset.connect('sqlite:///canvas.db')
+		self._db = dataset.connect('sqlite:////home/kelli/galahad/canvas/Database/canvas.db')
 		self._table = self._db['APPLICATION']
 
 	def set_user(self, userToken):

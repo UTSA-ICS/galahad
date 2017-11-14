@@ -9,3 +9,4 @@ import	pyforms
 
 import	sys
 sys.path.insert(0, '../Schema')
+sys.path.insert(0, '../Database')

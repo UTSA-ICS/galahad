@@ -11,7 +11,7 @@ class RoleDatabase:
 		self._startingTransducerIds = None
 		self._version = None	
 		self._userToken = None
-		self._db = dataset.connect('sqlite:///canvas.db')
+		self._db = dataset.connect('sqlite:////home/kelli/galahad/canvas/Database/canvas.db')
 		self._table = self._db['ROLE']
 
 	def set_user(self, userToken):

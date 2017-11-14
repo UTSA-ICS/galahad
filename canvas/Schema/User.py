@@ -1,8 +1,11 @@
 import	dataset
 import	json
 
+from	__init__				import *
 from	Virtue					import Virtue
 from	UserToken				import UserToken
+
+from	VirtueDatabase			import VirtueDatabase
 
 class User:
 	USERNAME = None				# Required - True		# Type -> String
@@ -27,7 +30,9 @@ class User:
 		if username==None:
 			username = UserToken().getusername(userToken)
 		virts = Virtue().getvirtuesfromuser(username)
-		return virts
+		virt = VirtueDatabase()
+		virt.set_user(username)
+		return virt.find_all()
 
 	def list(self, userToken):
 		#return 254		# return list of User

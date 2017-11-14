@@ -11,6 +11,9 @@ from	subprocess				import Popen, PIPE
 from	Role					import Role
 from	Application				import Application
 
+from	__init__				import *
+from	VirtueDatabase			import VirtueDatabase
+
 class Virtue:
 	VIRTID = ''				# Required - False		# Type -> String
 	USERNAME = ''			# Required - True		# Type -> String
@@ -36,13 +39,9 @@ class Virtue:
 		return 0
 
 	def getvirtuesfromuser(self, username):
-		db = dataset.connect('sqlite:////home/kelli/galahad/canvas/Schema/canvas.db')
-		table = db['virtue']
-		virts = table.find(USERNAME=username)
-		virtlist = []
-		for virt in virts:
-			virtlist.append(virt)
-		return virtlist
+		virt = VirtueDatabase()
+		virt.set_user(username)
+		return virt.find_all()
 
 	def converttostring(self, dlist):
 		return ','.join(str(x) for x in dlist)
@@ -88,85 +87,65 @@ class Virtue:
 	API Defined
 	"""
 
+	# Gets information about a specified Virtue by ID.
+	# Type -> Virtue
 	def get(self, userToken, virtId):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['virtue']
-		virt = table.find_one(VIRTID=virtId)
-		return json.dumps(virt)
+		virt = VirtueDatabase()
+		return virt.find_one(virtId)
 
+	# Creates a new Virtue with the given properties. Also enables any Transducers on the Virtue
+	# that are supposed to be enabled on startup.
+	# Type -> Virtue
 	def create(self, userToken, roleId):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['virtue']
-		self.VIRTID 		= str(int(time.time()))[-4:]
-		self.USERNAME		= 'kelli'	# userToken.USERNAME
-		self.ROLEID			= roleId
-		self.APPLICATIONIDS = []
-		self.RESOURCEIDS	= []
-		self.TRANSDUCERIDS	= []
-		self.STATE			= 'CREATING'
-		self.IPADDRESS		= '10.20.20.179' # WILL BE AWS IP
+		virt = VirtueDatabase()
+		# get username from UserToken - for now use 'kelli'
+		virt.set_user('kelli')
+		virt.set_state('CREATING')
+		# virtue create app - set appId
+		virt.set_values({
+			'ROLEID'			: roleId,
+			'RESOURCEIDS'		: 'resids',
+			'TRANSDUCERIDS'		: 'transids',
+		})
+		return virt.find_one(virt.insert())
 
-		d = {
-			'VIRTID'			: self.VIRTID,
-			'USERNAME'			: self.USERNAME,
-			'ROLEID'			: self.ROLEID,
-			'APPLICATIONIDS'	: self.APPLICATIONIDS,
-			'RESOURCEIDS'		: self.RESOURCEIDS,
-			'TRANSDUCERIDS'		: self.TRANSDUCERIDS,
-			'STATE'				: self.STATE,
-			'IPADDRESS'			: self.IPADDRESS,
-		}
-
-		table.insert(self.converttodb(d))
-		return json.dumps(d)
-
+	# Launches a Virtue
+	# Type -> Virtue
 	def launch(self, userToken, virtId):
 		return 254
 
+	# Stops a running Virtue.
+	# Type -> Virtue
 	def stop(self, userToken, virtId):
 		return 254
 
+	# Destroys a Virtue. Releases all resources.
+	# Exit code only
 	def destroy(self, userToken, virtId):
 		return 254
 
+	# Launches an Application in a running Virtue.
+	# Type -> object. Information about the launched Application. Format is implementation-specific.
 	def applicationlaunch(self, userToken, virtId, appId):
 		# return 254
-		virt = json.loads(self.get(userToken, virtId))
+		virt = self.get(userToken, virtId)
+		# convert displayId to (virtId + '0' + id)[:10]
 		app = json.loads(Application.get(Application(), userToken, appId))
 		instr = "xpra attach ssh/" + str(virt['USERNAME'])			\
 								   + "@" + str(virt['IPADDRESS'])	\
 								   + "/" + str(virt['VIRTID'])
 		thread.start_new_thread(self.launch_proc, (instr,))
 
+	# Stops a running Application in the indicated Virtue.
+	# Exit code only
 	def applicationstop(self, userToken, virtId, appId):
 		# return 254
-		virt = json.loads(self.get(userToken, virtId))
+		virt = self.get(userToken, virtId)
 		instr = "xpra stop ssh/" + str(virt['USERNAME'])			\
 								 + "@" + str(virt['IPADDRESS'])		\
 								 + "/" + str(virt['VIRTID'])
 		thread.start_new_thread(self.launch_proc, (instr,))
 
 if __name__ == "__main__":
-		role = Role()
-		role.create('kelli', json.dumps(
-			{
-				'ROLEID'				: None,
-				'NAME'					: 'Database Administrator',
-				'VERSION'				: None,
-				'APPLICATIONIDS'		: [],
-				'STARTINGRESOURCEIDS'	: [],
-				'STARTINGTRANSDUCERIDS'	: [],
-			})
-		)
-		role.add('xterm')
-		role.add('firefox')
-
-		app = Application()
-		virtue = Virtue()
-		print(app.create('xterm'))
-		print(app.NAME)
-		virtue.create('kelli', str(2))
-		virtue.applicationlaunch('kelli', virtue.VIRTID, app.APPID)
-		time.sleep(15)
-		virtue.applicationstop('kelli', virtue.VIRTID, app.APPID)
-		time.sleep(5)
+		virt = Virtue()
+		print(virt.create('kelli','roleid'))
