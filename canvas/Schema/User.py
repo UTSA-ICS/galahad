@@ -15,16 +15,28 @@ class User:
 	def __init__(self):
 		pass
 
+	# Logs in a User with a username and password
+	# Return -> The UserToken to be used for subsequent authorization
+	# calls.
+	# Type -> UserToken
 	def login(self, username, credentials, forceLogoutOfOtherSessians):
 		return 254 		# return UserToken
 
+	# Logs out the User identified by the given UserToken.
+	# Type -> return code
 	def logout(self, userToken, username=None):
 		return 254
 
+	# Lists the Roles available to the given User.
+	# Return -> A set of Roles to the given User.
+	# Type -> set of Role
 	def rolelist(self, userToken):
 		return 254		# return set of Role
 		# implement Role.list() so that returns username filtered list 
 
+	# Lists the current Virtue instantiations for the given User.
+	# Return -> A set of Virtues for the given User.
+	# Type -> set of Virtue
 	def virtuelist(self, userToken, username=None):
 		# return 254		# return set of Virtue
 		if username==None:

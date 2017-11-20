@@ -18,6 +18,7 @@ class ApplicationDatabase:
 	def set_values(self, values_json):
 		self._name = values_json['NAME']
 		self._os = values_json['OS']
+
 		self._version = str(datetime.date.today())
 		self._applicationId = self._name + str(int(time.time()))
 
@@ -29,7 +30,7 @@ class ApplicationDatabase:
 			'OS'		: self._os,
 			'USERTOKEN'	: self._userToken,
 		}
-		self._table.insert(d)
+		self._table.upsert(d,['APPID'])
 		return self._applicationId
 
 	def find_one(self, applicationId):
@@ -37,7 +38,12 @@ class ApplicationDatabase:
 									APPID=applicationId)
 
 	def find_all(self):
-		return self._table.find(USERTOKEN=self._userToken)
+		# verify userToken admin access
+		apps = []
+		data = self._table.all()
+		for app in data:
+			apps.append(app)
+		return apps
 
 if __name__ == "__main__":
 	app = ApplicationDatabase()

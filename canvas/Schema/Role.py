@@ -3,7 +3,9 @@ import	json
 import	time
 import	datetime
 
+from	__init__				import *
 from	Application				import Application
+from	RoleDatabase			import RoleDatabase
 
 class Role:
 	ROLEID = ''					# Required - False		# Type -> String
@@ -59,53 +61,43 @@ class Role:
 	"""
 	API Defined
 	"""
+
+	# User
+	# Gets information about the indicated Role.
+	# Type -> Role
 	def get(self, userToken, roleId):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['role']
-		role = table.find_one(ROLEID=roleId)
-		
-		return json.dumps(self.convertfromdb(role))
+		role = RoleDatabase()
+		role.set_user(userToken)
+		return role.find_one(roleId)
 
+	# Admin
+	# Creates a new Role with the given parameters.
+	# Type -> Role
 	def create(self, userToken, role):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['role']
-		roled = json.loads(role)
-		if roled['ROLEID'] is None:
-			roled['ROLEID'] = roled['NAME'].replace(" ","") + str(int(time.time()))
-		if roled['VERSION'] is None:
-			roled['VERSION'] = str(datetime.datetime.now())
-		self.ROLEID 				= roled['ROLEID']
-		self.NAME					= roled['NAME']
-		self.VERSION				= roled['VERSION']
-		self.APPLICATIONIDS			= roled['APPLICATIONIDS']
-		self.STARTINGRESOURCEIDS	= roled['STARTINGRESOURCEIDS']
-		self.STARTINGTRANSDUCERIDS	= roled['STARTINGTRANSDUCERIDS']
+		roled = RoleDatabase()
+		roled.set_user(userToken)
+		roled.set_values({
+			'NAME'						: role['NAME'],
+			'APPLICATIONIDS'			: role['APPLICATIONIDS'],
+			'STARTINGRESOURCEIDS'		: role['STARTINGRESOURCEIDS'],
+			'STARTINGTRANSDUCERIDS'		: role['STARTINGTRANSDUCERIDS'],
+		})
+		roleId = roled.insert()
+		return roled.find_one(roleId)
 
-		table.insert(self.converttodb(roled))
-		return json.dumps(roled)
-
+	# Admin
+	# List all Roles currently available in the system.
 	def list(self):
-		roles = []
-		db = dataset.connect('sqlite:///canvas.db')
-		result = db['role'].all()
-		for role in result:
-			roles.append(json.dumps(self.convertfromdb(role)))
-		return roles
+		role = RoleDatabase()
+		return role.find_all()
 
 
 if __name__ == "__main__":
 	role = Role()
-	role.create('kelli', json.dumps(
-		{
-			'ROLEID'				: None,
-			'NAME'					: 'Database Administrator',
-			'VERSION'				: None,
-			'APPLICATIONIDS'		: [],
-			'STARTINGRESOURCEIDS'	: [],
-			'STARTINGTRANSDUCERIDS'	: [],
-		})
-	)
-	role.add('xterm')
-	role.add('firefox')
-	print(role.get('kelli', role.ROLEID))
-	print(role.list())
+	returned = role.create('kelli', {
+		'NAME'						: 'Database Administrator',
+		'APPLICATIONIDS'			: '',
+		'STARTINGRESOURCEIDS'		: '',
+		'STARTINGTRANSDUCERIDS'		: '',
+	})
+	print returned

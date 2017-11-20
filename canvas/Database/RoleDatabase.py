@@ -44,7 +44,11 @@ class RoleDatabase:
 									ROLEID=roleId)
 
 	def find_all(self):
-		return self._table.find(USERTOKEN=self._userToken)
+		roles = []
+		data = self._table.all()
+		for role in data:
+			roles.append(role)
+		return roles
 
 if __name__ == "__main__":
 	from ApplicationDatabase		import ApplicationDatabase

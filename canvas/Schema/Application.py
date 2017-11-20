@@ -3,6 +3,9 @@ import	json
 import	time
 import	datetime
 
+from	__init__				import *
+from	ApplicationDatabase		import ApplicationDatabase
+
 class Application:
 	APPID = ''		# Required - False		# Type -> String
 	NAME = ''		# Required - True		# Type -> String
@@ -13,35 +16,38 @@ class Application:
 	def __init__(self):
 		pass
 
-	# CREATE NEW APPLICATION INSTANCE
-	def create(self, name):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['application']
-		self.NAME = name
-		self.APPID = self.NAME + str(int(time.time()))
-		self.VERSION = str(datetime.datetime.now())
-		self.OS = 'LINUX'
-		d = {
-			'APPID'		:	self.APPID,
-			'NAME'		:	self.NAME,
-			'VERSION'	:	self.VERSION,
-			'OS'		:	self.OS,
-		}
-		table.insert(d)
-		return self.APPID	
+	# Create new Application instance.
+	# Type -> applicationId
+	def create(self, userToken, name):
+		app = ApplicationDatabase()
+		app.set_user(userToken)
+		app.set_values({
+			'NAME'			: name,
+			'OS'			: 'LINUX',		# determine here
+		})
+		return app.insert()
 
-	# RETURN SPECIFIED APPLICATION OBJECT
+
+
+	"""
+	API Defined
+	"""
+
+	# User
+	# Gets information about the indicated application.
+	# Type -> Application
 	def get(self, userToken, applicationId):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['application']
-		app = table.find_one(APPID=applicationId)
-		return json.dumps(app)
+		app = ApplicationDatabase()
+		app.set_user(userToken)
+		return app.find_one(applicationId)
 
-	# LIST ALL APPLICATIONS VISIBLE TO USER
+	# Admin
+	# Lists all applications currently available in the system.
+	# Type -> list of Application
 	def list(self, userToken):
-		apps = []
-		db = dataset.connect('sqlite:///canvas.db')
-		result = db['application'].all()
-		for app in result:
-			apps.append(json.dumps(app))
-		return apps
+		app = ApplicationDatabase()
+		return app.find_all()
+
+if __name__ == "__main__":
+	app = Application()
+	print app.list('kelli')
