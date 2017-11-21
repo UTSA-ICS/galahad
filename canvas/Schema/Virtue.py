@@ -43,36 +43,6 @@ class Virtue:
 		virt.set_user(username)
 		return virt.find_all()
 
-	def converttostring(self, dlist):
-		return ','.join(str(x) for x in dlist)
-
-	def converttolist(self, string):
-		return [str(x) for x in string.split(",")]
-
-	def converttodb(self, d):
-		return {
-			'VIRTID'			: d['VIRTID'],
-			'USERNAME'			: d['USERNAME'],
-			'ROLEID'			: d['ROLEID'],
-			'APPLICATIONIDS'	: self.converttostring(d['APPLICATIONIDS']),
-			'RESOURCEIDS'		: self.converttostring(d['RESOURCEIDS']),
-			'TRANSDUCERIDS'		: self.converttostring(d['TRANSDUCERIDS']),
-			'STATE'				: d['STATE'],
-			'IPADDRESS'			: d['IPADDRESS'],
-		}
-
-	def convertfromdb(self, d):
-		return {
-			'VIRTID'			: d['VIRTID'],
-			'USERNAME'			: d['USERNAME'],
-			'ROLEID'			: d['ROLEID'],
-			'APPLICATIONIDS'	: self.converttolist(d['APPLICATIONIDS']),
-			'RESOURCEIDS'		: self.converttolist(d['RESOURCEIDS']),
-			'TRANSDUCERIDS'		: self.converttolist(d['TRANSDUCERIDS']),
-			'STATE'				: d['STATE'],
-			'IPADDRESS'			: d['IPADDRESS'],
-		}
-
 	# UPDATE RESOURCEIDS LIST IN GIVEN VIRTUE
 	def updateres(self, userToken, reslist, virt):
 		# return 254
@@ -87,14 +57,18 @@ class Virtue:
 	API Defined
 	"""
 
+	# User
 	# Gets information about a specified Virtue by ID.
+	# Return -> Information about the indicated Virtue.
 	# Type -> Virtue
 	def get(self, userToken, virtId):
 		virt = VirtueDatabase()
 		return virt.find_one(virtId)
 
-	# Creates a new Virtue with the given properties. Also enables any Transducers on the Virtue
-	# that are supposed to be enabled on startup.
+	# User
+	# Creates a new Virtue with the given properties. Also enables any 
+	# Transducers on the Virtue that are supposed to be enabled on startup.
+	# Return -> Information about the created Virtue.
 	# Type -> Virtue
 	def create(self, userToken, roleId):
 		virt = VirtueDatabase()
@@ -109,23 +83,31 @@ class Virtue:
 		})
 		return virt.find_one(virt.insert())
 
+	# User
 	# Launches a Virtue
+	# Return -> Information about the launched Virtue.
 	# Type -> Virtue
 	def launch(self, userToken, virtId):
 		return 254
 
+	# User
 	# Stops a running Virtue.
+	# Return -> Information about the stopped Virtue.
 	# Type -> Virtue
 	def stop(self, userToken, virtId):
 		return 254
 
+	# User
 	# Destroys a Virtue. Releases all resources.
 	# Exit code only
 	def destroy(self, userToken, virtId):
 		return 254
 
+	# User
 	# Launches an Application in a running Virtue.
-	# Type -> object. Information about the launched Application. Format is implementation-specific.
+	# Return -> Information about the launched Application. Format is
+	# implementation-specific.
+	# Type -> object
 	def applicationlaunch(self, userToken, virtId, appId):
 		# return 254
 		virt = self.get(userToken, virtId)
@@ -136,6 +118,7 @@ class Virtue:
 								   + "/" + str(virt['VIRTID'])
 		thread.start_new_thread(self.launch_proc, (instr,))
 
+	# User
 	# Stops a running Application in the indicated Virtue.
 	# Exit code only
 	def applicationstop(self, userToken, virtId, appId):

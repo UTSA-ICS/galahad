@@ -35,6 +35,7 @@ class Application:
 
 	# User
 	# Gets information about the indicated application.
+	# Return -> The Application with the given ID.
 	# Type -> Application
 	def get(self, userToken, applicationId):
 		app = ApplicationDatabase()
@@ -43,6 +44,7 @@ class Application:
 
 	# Admin
 	# Lists all applications currently available in the system.
+	# Return -> All the Applications, with IDs.
 	# Type -> list of Application
 	def list(self, userToken):
 		app = ApplicationDatabase()

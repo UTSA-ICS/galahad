@@ -19,44 +19,6 @@ class Role:
 	def __init__(self):
 		pass
 
-	def add(self, name):
-		app = Application()
-		apps = self.APPLICATIONIDS
-		apps.append(app.create(name))
-		self.APPLICATIONIDS = apps
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['role']
-		table.update({
-			'ROLEID'			: self.ROLEID,
-			'APPLICATIONIDS'	: self.converttostring(self.APPLICATIONIDS),
-		}, ['ROLEID'])
-		return 0
-
-	def converttostring(self, dlist):
-		return ','.join(str(x) for x in dlist)
-	
-	def converttolist(self, string):
-		return [str(x) for x in string.split(",")]
-
-	def converttodb(self, d):
-		return {
-			'ROLEID'				:	d['ROLEID'],
-			'NAME'					:	d['NAME'],
-			'VERSION'				:	d['VERSION'],
-			'APPLICATIONIDS'		:	self.converttostring(d['APPLICATIONIDS']),
-			'STARTINGRESOURCEIDS'	:	self.converttostring(d['STARTINGRESOURCEIDS']),
-			'STARTINGTRANSDUCERIDS'	:	self.converttostring(d['STARTINGTRANSDUCERIDS']),
-		}
-
-	def convertfromdb(self, d):
-		return {
-			'ROLEID'				:	d['ROLEID'],
-			'NAME'					:	d['NAME'],
-			'VERSION'				:	d['VERSION'],
-			'APPLICATIONIDS'		:	self.converttolist(d['APPLICATIONIDS']),
-			'STARTINGRESOURCEIDS'	:	self.converttolist(d['STARTINGRESOURCEIDS']),
-			'STARTINGTRANSDUCERIDS'	:	self.converttolist(d['STARTINGTRANSDUCERIDS']),
-		}
 
 	"""
 	API Defined
@@ -64,6 +26,7 @@ class Role:
 
 	# User
 	# Gets information about the indicated Role.
+	# Return -> Information about the indicated Role.
 	# Type -> Role
 	def get(self, userToken, roleId):
 		role = RoleDatabase()
@@ -72,6 +35,7 @@ class Role:
 
 	# Admin
 	# Creates a new Role with the given parameters.
+	# Return -> The newly created Role, with ID.
 	# Type -> Role
 	def create(self, userToken, role):
 		roled = RoleDatabase()
@@ -87,6 +51,8 @@ class Role:
 
 	# Admin
 	# List all Roles currently available in the system.
+	# Return -> All the Roles, with IDs.
+	# Type -> list of Role
 	def list(self):
 		role = RoleDatabase()
 		return role.find_all()

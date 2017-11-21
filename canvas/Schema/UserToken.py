@@ -9,27 +9,13 @@ class UserToken:
 	def __init__(self):
 		pass
 
-	def list(self):
+	"""
+	API Defined
+	"""
+
+	# Admin
+	# Lists all UserTokens currently present in the system.
+	# Return -> All the UserTokens.
+	# Type -> set of UserToken
+	def list(self, userToken):
 		return 254
-
-	# TEMPORARY FOR TESTING ONLY
-	def create(self):
-		db = dataset.connect('sqlite:///canvas.db')
-		table = db['userToken']
-		d = {
-			'USERNAME'		:	'kelli',
-			'TOKEN'			:	'kelli',
-			'EXPIRATION'	:	'never',
-		}
-		table.insert(d)
-
-	def getusername(self,token):
-		db = dataset.connect('sqlite:////home/kelli/galahad/canvas/Schema/canvas.db')
-		table = db['userToken']
-		userToken = table.find_one(TOKEN=token)
-		return userToken['USERNAME']
-
-if __name__ == "__main__":
-		ut = UserToken()
-		ut.create()
-		print(ut.getusername('kelli'))

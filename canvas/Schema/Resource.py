@@ -25,14 +25,20 @@ class Resource:
 	API Defined
 	"""
 
-	# GET FUNCTION - RETURNS FULL RESOURCE OBJECT FROM RESID
+	# Admin
+	# Gets information about the indicated Resource.
+	# Return -> Information about the indicated Resource.
+	# Type -> Resource
 	def get(self, userToken, resid):
 		db = dataset.connect('sqlite:///canvas.db')
 		table = db['resource']
 		res = table.find_one(RESID=resid)
 		return json.dumps(res)
 
-	# LIST ALL RESOURCE OBJECTS AVAILABLE TO A USER
+	# Admin
+	# Lists all Resources currently available in the system.
+	# Return -> All the Resources, with IDs.
+	# Type -> set of Resource
 	def list(self, userToken):
 		ress = []
 		db = dataset.connect('sqlite:///canvas.db')
@@ -41,7 +47,11 @@ class Resource:
 			ress.append(json.dumps(res))
 		return ress
 
-	# ADD CREATED RESOURCE WITH RESID TO APPROPRIATE VIRTUE WITH VIRTID
+	# Admin
+	# Attaches the indicated Resource to the indicated Virtue. Does not
+	# chance the underlying Role.
+	# Return -> The updated Virtue definition.
+	# Type -> Virtue.
 	def attach(self, userToken, resId, virtId):
 		# return 254
 		virt = json.loads(Virtue.get(Virtue(), userToken, virtId))
@@ -49,7 +59,11 @@ class Resource:
 		reslist.append(resId)
 		Virtue.updateres(Virtue(), userToken, self.converttostring(reslist), virt)
 
-	# REMOVE AS ABOVE
+	# Admin
+	# Detaches the indicated Resource from the indicated Virtue. Does not
+	# chance the underlying Role.
+	# Return -> The updated Virtue definition.
+	# Type -> Virtue
 	def detach(self, userToken, resId, virtId):
 		# return 254
 		virt = json.loads(Virtue.get(Virtue(), userToken, virtId))
