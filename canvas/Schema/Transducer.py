@@ -1,4 +1,5 @@
 from	__init__					import *
+from	Virtue						import Virtue
 from	TransducerDatabase			import TransducerDatabase
 
 class Transducer:
@@ -11,6 +12,11 @@ class Transducer:
 	REQACCESS = ''		# Required - False	# Type -> set of Strings (enum)
 											#		  [NETWORK, DISK,
 											#		   MEMORY]
+	"""
+	Currently using local databases for testing until the REST server
+	is functional. <- In Progress
+	"""
+
 
 	def __init__(self):
 		pass
@@ -20,7 +26,10 @@ class Transducer:
 	# Return -> All the Transducers, with IDs.
 	# Type -> list of Transducer
 	def list(self, userToken):
-		return 254
+		# return 254
+		transducer = TransducerDatabase()
+		transducer.set_user(userToken)
+		return transducer.find_all()
 
 	# Security
 	# Gets information about the indicated Transducer. Does not include
@@ -28,13 +37,19 @@ class Transducer:
 	# Return -> Information about the indicated Transducer.
 	# Type -> Transducer
 	def get(self, userToken, transducerId):
-		return 254
+		#return 254
+		transducer = TransducerDatabase()
+		transducer.set_user(userToken)
+		return transducer.find_one(transducerId)
 
 	# Security
 	# Enables the indicated Transducer in the indicated Virtue.
 	# Error code only
 	def enable(self, userToken, transducerId, virtueId, configuration):
-		return 254
+		#return 254
+		transducer = self.get(userToken, transducerId)
+		virtue = Virtue().get(userToken, virtueId)
+		print (str(virtue['TRANSDUCERIDS']) + ',' + transducerId)
 
 	# Security
 	# Disables the indicated Transducer in the indicated Virtue.
@@ -67,3 +82,8 @@ class Transducer:
 	# Type -> list of Transducer
 	def listenabled(self, userToken, virtueId):
 		return 254
+
+if __name__ == '__main__':
+	transducer = Transducer()
+	virtue = Virtue().create('kelli', 'roleid')
+	transducer.enable('kelli', 'temp', virtue['VIRTID'], '')
