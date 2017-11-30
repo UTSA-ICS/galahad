@@ -1,16 +1,15 @@
 import	dataset
 
+from	__init__				import *
+
 class UserToken:
 	USERNAME = None			# Required - True		# Type -> String
 	TOKEN = None			# Required - True		# Type -> String (uuid)
 	EXPIRATION = None		# Required - True		# Type -> String (date - time)
 
 
-	def __init__(self, username, token, expiration):
-		self.USERNAME = username
-		self.TOKEN = token
-		self.EXPIRATION = expiration
-
+	def __init__(self):
+		pass
 
 	"""
 	API Defined
