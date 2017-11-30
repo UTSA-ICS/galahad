@@ -8,10 +8,43 @@ from urlparse import urlparse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
+import motor
+
+#import dataset
+#db = dataset.connect('mysql://root:test123@localhost/galahad')
+#virtues = db['virtues']
+#users = db['users']
+
+#import MySQLdb
+#db = MySQLdb.connect(
+#    host="localhost",
+#    user="root",
+#    passwd="test123",
+#    db="galahad"
+#)
+
+#curs = db.cursor()
+
+#print(db)
+
+#curs.execute(INSERT INTO virtues
+#	VALUES(
+#		'83452f53-9f9a-4ba4-9001-bc1329b5dfda', 'test user', 'role 1', '("app1", "app2", "app3")', '("rsrc1", "rsrc2", "rsrc3")', '("none")', "RUNNING", '127.0.0.1'
+#	);
+#)
+
+#db.begin()
+#try:
+#	db['virtues'].insert(dict(id='83452f53-9f9a-4ba4-9001-bc1329b5dfda', username='test user', roleId='1', applicationIds='("a", "b", "c")', resourceIds='("1", "2", "3")', transducerIds='("none")', state='RUNNING', ipAddress='127.0.0.1'))
+#	db.commit()
+#except:
+#	db.rollback()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'onelogindemopytoolkit'
-app.config['SAML_PATH'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'saml')
+#app.config['SAML_PATH'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'saml')
+# Using the relative path for ease
+app.config['SAML_PATH'] = './saml'
 
 
 def init_saml_auth(req):
