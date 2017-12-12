@@ -44,12 +44,6 @@ import motor
 #except:
 #	db.rollback()
 
-import pymongo
-from pymongo import MongoClient
-
-mclient = MongoClient()
-db = client.virtue
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'onelogindemopytoolkit'
 #app.config['SAML_PATH'] = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'saml')
