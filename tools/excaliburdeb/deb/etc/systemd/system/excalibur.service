@@ -1,0 +1,11 @@
+[Unit]
+Description=Job that runs the Excalibur Service Webserver
+
+[Service]
+Type=simple
+Environment=HOME=/var/opt/excalibur
+WorkingDirectory=/var/opt/excalibur
+ExecStart=/var/opt/excalibur/excalibur.py
+
+[Install]
+WantedBy=multi-user.target
