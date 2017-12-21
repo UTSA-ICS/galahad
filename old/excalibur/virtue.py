@@ -1,3 +1,4 @@
+import web
 import json
 import boto.ec2
 import errorcodes
@@ -153,3 +154,20 @@ def virtue_destroy(args):
 		return errorcodes.get_response_error(
 			errorcodes.serverDestroyError,
 			'Error destroying virtueId: ' + str(virtueId))
+
+class VirtueHandler:
+	def GET(self):
+		args = web.input()
+		if 'command' not in args:
+			return errorcodes.get_response_error(
+				errorcodes.invalidOrMissingParameters,
+				'Missing command argument') + '\n'
+
+		command = args['command']
+		command_func = 'virtue_' + command
+		if command_func in globals():
+			return globals()[command_func](args) + '\n'
+		else:
+			return errorcodes.get_response_error(
+				errorcodes.invalidOrMissingParameters,
+				'Invalid command: ' + command) + '\n'

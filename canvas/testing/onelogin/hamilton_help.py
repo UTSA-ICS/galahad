@@ -11,8 +11,7 @@ creds = {'client_id':client_id, 'client_secret':client_secret, 'shard':shard}
 
 class OneLogin(object):
 	def __init__(self, shard='US'):
-		#self.base_url = 'https://api.us.onelogin.com'			#
-		self.base_url = 'http://hamilton:8000'
+		self.base_url = 'https://api.us.onelogin.com'			#
 
 	def set_attributes(self, kwargs):
 		for kwarg_key, kwarg_value in kwargs.iteritems():
