@@ -68,11 +68,13 @@ if __name__ == "__main__":
 	virt.set_user('kelli')
 	virt.set_state('CREATING')
 	virt.set_ip('kelli-test-xpra2')
-	virt.set_values({'ROLEID':'roleid','RESOURCEIDS':'resid','TRANSDUCERIDS':''})
+	virt.set_values({'ROLEID':'roleid','RESOURCEIDS':'resid','TRANSDUCERIDS':'("1","2")'})
 	virtId = virt.insert()
-	print virt.find_one(virtId)
+	#print virt.find_one(virtId)
 
 	virt.set_state('PAUSED')
 	virt.set_appid('appid')
 	virtId = virt.insert()
-	print virt.find_one(virtId)
+	setof = virt.find_one(virtId)['TRANSDUCERIDS']
+	print setof
+	print [str(x) for x in setof.split(",")]

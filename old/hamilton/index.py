@@ -8,10 +8,6 @@ from urlparse import urlparse
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
-
-from __init__ import *
-from client import OneLoginClient
-
 import motor
 
 #import dataset
@@ -55,6 +51,7 @@ def init_saml_auth(req):
     auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config['SAML_PATH'])
     return auth
 
+
 def prepare_flask_request(request):
     # If server is behind proxys or balancers use the HTTP_X_FORWARDED fields
     url_data = urlparse(request.url)
@@ -69,6 +66,7 @@ def prepare_flask_request(request):
         # 'lowercase_urlencoding': True,
         'query_string': request.query_string
     }
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
