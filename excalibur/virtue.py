@@ -11,6 +11,9 @@ aws_subnet_id='subnet-0b97b651'
 aws_key_name = 'valor-dev'
 aws_tag_key = 'Project'
 aws_tag_value = 'Virtue'
+aws_security_group = 'sg-3c8ccf4f'
+aws_vpc = 'vpc-5fcac526'
+aws_instance_profile_name = 'Virtue-Tester'
 
 aws_state_to_virtue_state = {
 	'pending': 'CREATING',
@@ -88,20 +91,23 @@ def virtue_create(args):
 
 	conn = boto.ec2.connect_to_region('us-east-1')
         interface = boto.ec2.networkinterface.NetworkInterfaceSpecification(subnet_id=aws_subnet_id,
-                                                                    #groups=['sg-0365c56d'],
+                                                                    groups=[aws_security_group],
                                                                     associate_public_ip_address=True)
         interfaces = boto.ec2.networkinterface.NetworkInterfaceCollection(interface)
 	res = conn.run_instances(aws_image_id,
 		                 key_name=aws_key_name,
 		                 instance_type=aws_instance_type,
-                                 network_interfaces=interfaces )
+                                 network_interfaces=interfaces,
+				instance_profile_name=aws_instance_profile_name
+				 )
 
 	instance = res.instances[0]
 	instance.add_tag(aws_tag_key, value=aws_tag_value)
-	instance.add_tag('Name', value=instance.id)
+	instance.add_tag('Name', value="ExcaliburTest:"+instance.id)
 	virtue.id = instance.id
         
         instance.update()
+	
         while instance.state == "pending":
                 time.sleep(1)
                 instance.update()
