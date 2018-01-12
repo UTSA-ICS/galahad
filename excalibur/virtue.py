@@ -2,6 +2,7 @@ import json
 import boto.ec2
 import errorcodes
 import time
+import web
 
 
 aws_image_id = 'ami-da05a4a0' # see https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#LaunchInstanceWizard:
@@ -153,3 +154,20 @@ def virtue_destroy(args):
 		return errorcodes.get_response_error(
 			errorcodes.serverDestroyError,
 			'Error destroying virtueId: ' + str(virtueId))
+
+class VirtueHandler:
+	def GET(self):
+		args = web.input()
+		if 'command' not in args:
+			return errorcodes.get_response_error(
+				errorcodes.invalidOrMissingParameters,
+				'Missing command argument') + '\n'
+
+		command = args['command']
+		command_func = 'virtue_' + command
+		if command_func in globals():
+			return globals()[command_func](args) + '\n'
+		else:
+			return errorcodes.get_response_error(
+				errorcodes.invalidOrMissingParameters,
+				'Invalid command: ' + command) + '\n'

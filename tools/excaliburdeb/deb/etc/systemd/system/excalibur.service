@@ -6,6 +6,7 @@ Type=simple
 Environment=HOME=/var/opt/excalibur
 WorkingDirectory=/var/opt/excalibur
 ExecStart=/var/opt/excalibur/excalibur.py
+User=excalibur
 
 [Install]
 WantedBy=multi-user.target
