@@ -1,0 +1,185 @@
+html {
+  display: flex;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+}
+webview {
+  flex: 1;
+}
+
+.app {
+  display: flex;
+  position: absolute;
+  left: 25%;
+  top: 25%;
+  width: 50%;
+  height: 50%;
+  padding: 6px;
+  margin-top: -6px; /* offset padding */
+  margin-left: -6px; /* offset padding */
+  resize: both;
+  overflow: hidden;
+}
+.wrapper {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* to hide dock. absolute gets weird. */
+  flex: 1;
+}
+
+.hi {
+  color: #E91E63;
+}
+.hi-bg {
+  background-color: #E91E63;
+}
+.hi-border {
+  border-color: #E91E63;
+}
+.med {
+  color: #FF9800;
+}
+.med-bg {
+  background-color: #FF9800;
+}
+.med-border {
+  border-color: #FF9800;
+}
+.low {
+  color: #009688;
+}
+.low-bg {
+  background-color: #009688;
+}
+.low-border {
+  border-color: #009688;
+}
+
+.dock-wrapper {
+  position: fixed;
+  right: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.dock,
+.options {
+  list-style-type: none;
+  background-color: rgba(255,255,255, 0.75);
+  padding: 0;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border: 4px solid white;
+  box-shadow:  0 0 7px 4px rgba(0,0,0,0.5);
+  text-align: center;
+}
+.dock li {
+  padding: 10px;
+  margin: 10px 10px 0 10px;
+  border-radius: 100%;
+}
+.dock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.options {
+  visibility: hidden;
+  position: absolute;
+  right: 93px;
+  margin-top: -116px;
+  background-color: rgba(0,0,0, 0.85);
+  border-color: black;
+  display: flex;
+}
+.options::after {
+  content: " ";
+  position: absolute;
+  top: 50%;
+  left: 100%; /* To the right of the tooltip */
+  margin-top: -15px;
+  border-width: 15px;
+  border-style: solid;
+  border-color: transparent transparent transparent black;
+}
+
+.icon-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 85px;
+  height: 85px;
+}
+
+.circle-bg {
+  padding: 5px;
+  margin: 10px;
+  background-color: #3E2723;
+  border-radius: 100%;
+  border: 3px solid;
+  opacity: 0.5;
+}
+.circle-bg:hover {
+  opacity: 1.0;
+  cursor: pointer;
+}
+.circle-bg:active {
+  opacity: 0.75;
+}
+
+.subicon {
+  margin-top: 5px;
+}
+.minimized {
+  position: absolute;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+.min-mark {
+  margin: 0 4px 7px 5px;
+}
+.min-mark:hover {
+  cursor: pointer;
+}
+
+/* App windows */
+.win-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px 10px 10px;
+}
+.win-ctrl {
+  margin-left: 10px;
+  padding: 10px;
+  /* border-radius: 100%; */
+  opacity: 0.5;
+}
+.win-ctrl:hover {
+  cursor: pointer;
+  background-color: rgba(255,255,255, 0.5);
+  opacity: 1;
+}
+.win-ctrl:active {
+  opacity: 0.75;
+}
+.win-close:hover {
+  background-color: #E91E63;
+  color: white;
+  font-size: 1.5rem;
+  padding: 5px 6px;
+  border: 1px solid rgba(0,0,0,0.15);
+}

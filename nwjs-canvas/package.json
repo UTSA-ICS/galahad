@@ -1,0 +1,11 @@
+{
+	"name": "Canvas",
+	"main": "index.html",
+	"window": {
+		"frame": false,
+		"transparent": true,
+		"icon": "./assets/img/virtue.png",
+		"fullscreen": true
+	},
+	"dependencies": {}
+}
