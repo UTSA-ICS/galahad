@@ -8,10 +8,27 @@
 		<link rel="stylesheet" href="./assets/css/index.css">
 	</head>
 	<body style="background-color:rgba(0,0,0,0);">
-		<!-- <div id="app-space" style="flex: 1;"  ondrop="drop(event)" ondragover="allowDrop(event)">
 
-		</div> -->
-		<div class="dock-wrapper">
+		<div id="login" class="fadeIn animated">
+			<div class="greeting">
+				<div>Welcome to VirtUE!</div>
+				<img src="./assets/img/virtue.png" alt="VirtUE icon">
+			</div>
+			<div class="form-group">
+				<label for="userId">User ID: </label>
+				<input type="text" name="userId" id="userId" >
+			</div>
+			<div class="form-group">
+				<label for="password">Password: </label>
+				<input type="password" name="password" id="password" >
+			</div>
+			<div style="text-align: right; margin: 10px; display: flex;">
+				<div id="loginMsg"></div>
+				<input class="submit" type="submit" value="Log In" onclick="login();">
+			</div>
+		</div>
+
+		<div id="dockWrapper" class="fadeInRight animated" style="display: none;">
 			<ul class="dock">
 	      <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
 	        <i class="fab fa-firefox fa-4x"></i>
@@ -32,7 +49,7 @@
 					</div>
 	      </li>
 				<div id="minimized_firefox" class="minimized"></div>
-				
+
 				<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
 	        <i class="far fa-file-edit fa-4x"></i>
 					<div style="margin-top: 5px;">Notepad</div>

@@ -1,5 +1,30 @@
 'use strict';
 
+function login() {
+  let msg = '';
+  let color = 'hi';
+  let id = document.getElementById('userId').value;
+  let pw = document.getElementById('password').value;
+  let loginMsg = document.getElementById('loginMsg');
+  let login = document.getElementById('login');
+  let dockWrapper = document.getElementById('dockWrapper');
+
+  if(id === ''){
+    msg = 'Please enter your ID';
+  } else if (pw === '') {
+    msg = 'Please enter your password';
+  } else if (id === 'test' && pw === 'test123') {
+    login.classList.remove('fadeIn');
+    login.classList.add('fadeOut');
+    dockWrapper.style.display = 'flex';
+    color = 'low';
+  }
+
+  loginMsg.innerHTML = msg;
+  loginMsg.classList = ''; // Clear out old color
+  loginMsg.classList.add(color);
+}
+
 function showOptions(target) {
   return target.lastElementChild.style.visibility = "visible";
 }
