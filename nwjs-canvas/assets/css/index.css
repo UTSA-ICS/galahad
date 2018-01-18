@@ -16,10 +16,13 @@ body {
   display: flex;
   font-size: 2rem;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0 10px;
 }
 .greeting img {
   height: 100px;
+  border-radius: 100%;
+  border: 1px solid;
 }
 .submit {
   background-color: #009688;
@@ -70,6 +73,7 @@ webview {
   flex-direction: column;
   position: relative; /* to hide dock. absolute gets weird. */
   flex: 1;
+  box-shadow:  0 0 7px 4px rgba(0,0,0,0.5);
 }
 
 .hi {
@@ -116,14 +120,15 @@ webview {
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
   border: 4px solid white;
-  box-shadow:  0 0 7px 4px rgba(0,0,0,0.5);
   text-align: center;
+  box-shadow:  0 0 7px 4px rgba(0,0,0,0.5);
 }
 #login {
   margin: auto;
   padding: 15px;
   border-radius: 5px;
   text-align: left;
+  background-color: rgba(255,255,255, 0.95);
 }
 .form-group {
   margin: 10px;
@@ -137,6 +142,7 @@ webview {
   margin-right: 10px;
 }
 .form-group input {
+  padding: 0  10px;
   font-size: 1.5rem;
 }
 .dock li {

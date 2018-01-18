@@ -16,8 +16,14 @@ function login() {
   } else if (id === 'test' && pw === 'test123') {
     login.classList.remove('fadeIn');
     login.classList.add('fadeOut');
+    setTimeout( function() {
+      login.parentElement.removeChild(login);
+    }, 300);
     dockWrapper.style.display = 'flex';
+    msg = 'Welcome';
     color = 'low';
+  } else {
+    msg = 'ID and/or Password Incorrect';
   }
 
   loginMsg.innerHTML = msg;
@@ -32,7 +38,7 @@ function hideOptions(target) {
   return target.lastElementChild.style.visibility = "hidden";
 }
 
-function openApp(name, danger) {
+function openApp(name, danger, port) {
   let dangerIcon = '';
   if(danger === 'low') {
     dangerIcon = 'fas fa-shield-check';
@@ -58,6 +64,7 @@ function openApp(name, danger) {
         <div style="margin-left: -10px;">
           <i class="` + dangerIcon + ` fa-2x"></i>
         </div>
+        <div style="flex: 1; padding-left: 10px;">` + name.charAt(0).toUpperCase() + name.slice(1,) + `</div>
         <div style="margin-right: -10px;">
           <i class="far fa-minus win-ctrl"
             onclick="minimizeApp(this);"
@@ -73,7 +80,7 @@ function openApp(name, danger) {
           ></i>
         </div>
       </div>
-      <webview src="http://localhost:2000/" allowtransparency></webview>
+      <webview src="http://localhost:` + port + `/" allowtransparency></webview>
     </div>
   `;
 
@@ -113,7 +120,6 @@ function minimizeApp(target) {
 
   // Get App Name and Danger Level
   let info = app.id.split('_');
-  console.error('info: ', info);
   let name = info[0];
   let danger = info[1];
   let iconType = 'fas';

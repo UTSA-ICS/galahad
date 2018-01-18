@@ -30,64 +30,72 @@
 
 		<div id="dockWrapper" class="fadeInRight animated" style="display: none;">
 			<ul class="dock">
-	      <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-	        <i class="fab fa-firefox fa-4x"></i>
-					<div style="margin-top: 5px;">Browser</div>
-					<div class="options">
-						<div class="hi icon-pair circle-bg" onclick="openApp('firefox', 'hi');">
-							<i class="fab fa-firefox fa-4x"></i>
-							<i class="fas fa-exclamation-triangle subicon"></i>
+				<div style="display: flex;">
+					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+		        <i class="fab fa-firefox fa-4x"></i>
+						<div style="margin-top: 5px;">Browser</div>
+						<div class="options">
+							<div class="hi icon-pair circle-bg" onclick="openApp('firefox', 'hi', '2000');">
+								<i class="fab fa-firefox fa-4x"></i>
+								<i class="fas fa-exclamation-triangle subicon"></i>
+							</div>
+							<div class="med icon-pair circle-bg" onclick="openApp('firefox', 'med', '2000');">
+								<i class="fab fa-firefox fa-4x"></i>
+								<i class="fas fa-question-circle subicon"></i>
+							</div>
+							<div class="low icon-pair circle-bg" onclick="openApp('firefox', 'low', '2000');">
+								<i class="fab fa-firefox fa-4x"></i>
+								<i class="fas fa-shield-check subicon"></i>
+							</div>
 						</div>
-						<div class="med icon-pair circle-bg" onclick="openApp('firefox', 'med');">
-							<i class="fab fa-firefox fa-4x"></i>
-							<i class="fas fa-question-circle subicon"></i>
-						</div>
-						<div class="low icon-pair circle-bg" onclick="openApp('firefox', 'low');">
-							<i class="fab fa-firefox fa-4x"></i>
-							<i class="fas fa-shield-check subicon"></i>
-						</div>
-					</div>
-	      </li>
-				<div id="minimized_firefox" class="minimized"></div>
+		      </li>
+					<div id="minimized_firefox" class="minimized"></div>
+				</div>
 
-				<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-	        <i class="far fa-file-edit fa-4x"></i>
-					<div style="margin-top: 5px;">Notepad</div>
+				<div style="display: flex;">
+					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+		        <i class="far fa-file-edit fa-4x"></i>
+						<div style="margin-top: 5px;">Notepad</div>
+						<div class="options">
+							<div class="hi icon-pair circle-bg">
+								<i class="far fa-file-edit fa-4x" onclick="openApp('notepad', 'hi', '3000');"></i>
+								<i class="fas fa-exclamation-triangle subicon"></i>
+							</div>
+							<div class="med icon-pair circle-bg">
+								<i class="far fa-file-edit fa-4x" onclick="openApp('notepad', 'med', '3000');"></i>
+								<i class="fas fa-question-circle subicon"></i>
+							</div>
+							<div class="low icon-pair circle-bg">
+								<i class="far fa-file-edit fa-4x" onclick="openApp('notepad', 'low', '3000');"></i>
+								<i class="fas fa-shield-check subicon"></i>
+							</div>
+						</div>
+		      </li>
 					<div id="minimized_notepad" class="minimized"></div>
-					<div class="options">
-						<div class="hi icon-pair circle-bg">
-							<i class="far fa-file-edit fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-exclamation-triangle subicon"></i>
+				</div>
+
+				<div style="display: flex;">
+					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+		        <i class="far fa-file-word fa-4x"></i>
+						<div style="margin-top: 5px;">Word</div>
+						<div class="options">
+							<div class="hi icon-pair circle-bg">
+								<i class="fas fa-file-word fa-4x" onclick="openApp('word', 'hi', '4000');"></i>
+								<i class="fas fa-exclamation-triangle subicon"></i>
+							</div>
+							<div class="med icon-pair circle-bg">
+								<i class="fas fa-file-word fa-4x" onclick="openApp('word', 'med', '4000');"></i>
+								<i class="fas fa-question-circle subicon"></i>
+							</div>
+							<div class="low icon-pair circle-bg">
+								<i class="fas fa-file-word fa-4x" onclick="openApp('word', 'low', '4000');"></i>
+								<i class="fas fa-shield-check subicon"></i>
+							</div>
 						</div>
-						<div class="med icon-pair circle-bg">
-							<i class="far fa-file-edit fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-question-circle subicon"></i>
-						</div>
-						<div class="low icon-pair circle-bg">
-							<i class="far fa-file-edit fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-shield-check subicon"></i>
-						</div>
-					</div>
-	      </li>
-				<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-	        <i class="far fa-file-word fa-4x"></i>
-					<div style="margin-top: 5px;">Word</div>
+		      </li>
 					<div id="minimized_word" class="minimized"></div>
-					<div class="options">
-						<div class="hi icon-pair circle-bg">
-							<i class="fas fa-file-word fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-exclamation-triangle subicon"></i>
-						</div>
-						<div class="med icon-pair circle-bg">
-							<i class="fas fa-file-word fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-question-circle subicon"></i>
-						</div>
-						<div class="low icon-pair circle-bg">
-							<i class="fas fa-file-word fa-4x" onclick="openApp('firefox');"></i>
-							<i class="fas fa-shield-check subicon"></i>
-						</div>
-					</div>
-	      </li>
+				</div>
+
 	    </ul>
 		</div>
 
