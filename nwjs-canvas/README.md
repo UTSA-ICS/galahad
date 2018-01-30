@@ -11,6 +11,10 @@ CD to your NW.js app and run:
 
 Where `~/The/path/to/your/NW.js/nw file` is followed by a bunch of `--flags` and a `.`
 
+##To test with aws instance
+YOU MUST copy valor-dev.pem into the directory of nwjs-canvas as `key,pem`
+
+
 ## From main window console:
 
 `window.open('chrome://inspect/#apps')`
