@@ -2,6 +2,7 @@
 
 Get [NW.js](https://nwjs.io) by clicking one of the blue buttons at the top.
 I use the **SDK**.
+sudo npm install child_process fs
 
 ## To start app with appropriate flags:
 CD to your NW.js app and run:

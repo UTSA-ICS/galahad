@@ -1,10 +1,40 @@
 'use strict';
 
+var exec = require('child_process').exec;
+var fs = require('fs')
+var debug = require('debug')('connector')
+
+var config = {
+      username:'ubuntu',
+      //password:'derp',
+      host:'54.91.72.220',
+      port:22,
+      dstHost:'127.0.0.1',
+      dstPort:2023,
+      localHost:'0.0.0.0', //Must be 0.0.0.0 to allow world to connect 127.0.0.1 for only local machine
+      localPort: 2000,
+      //privateKey:fs.readFileSync('key.pem')
+      privateKey:'key.pem',
+      //keepAlive:true,
+      //debug:console.log
+    };
+
+function execTunnel(options) {
+
+  debug('trying: ssh -i '+config.privateKey+' ' +config.username+'@'+config.host+' -p '+config.port+' -4 -L '+config.localPort+':'+config.dstHost+':'+config.dstPort+' -N');
+  exec('ssh -i '+config.privateKey+' ' +config.username+'@'+config.host+' -p '+config.port+' -4 -L '+config.localPort+':'+config.dstHost+':'+config.dstPort+' -N', (error, stdout, stderr) => {
+      if (error) {
+        debug(`exec error: ${error}`);
+        return;
+      }
+    debug(`stdout: ${stdout}`);
+      debug(`stderr: ${stderr}`);
+      });
+}
+
+
 const Client = require('ssh2').Client;
 const net = require('net');
-
-//console.warn('UTILS:  ', Client.utils);
-
 // 3. forward out
 function forwardConnection(conn, options) {
   console.warn('forwarding client to VirtUE');
@@ -73,5 +103,4 @@ function openTunnel(options) {
 //   });
 // });
 
-
-module.exports.openTunnel = openTunnel;
+module.exports.tryTunnel = execTunnel;

@@ -1,5 +1,7 @@
 'use strict';
 
+const connector = require('./assets/js/connect');
+
 function login() {
   let msg = '';
   let color = 'hi';
@@ -29,6 +31,8 @@ function login() {
   loginMsg.innerHTML = msg;
   loginMsg.classList = ''; // Clear out old color
   loginMsg.classList.add(color);
+
+
 }
 
 function showOptions(target) {
@@ -39,6 +43,7 @@ function hideOptions(target) {
 }
 
 function openApp(name, danger, port) {
+  connector.tryTunnel("derp")
   let dangerIcon = '';
   if(danger === 'low') {
     dangerIcon = 'fas fa-shield-check';
