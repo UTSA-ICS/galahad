@@ -9,6 +9,8 @@
 	},
 	"dependencies": {
 		"child_process": "^1.0.2",
-		"fs": "0.0.1-security"
+		"debug": "^3.1.0",
+		"fs": "0.0.1-security",
+		"ssh2": "^0.5.5"
 	}
 }

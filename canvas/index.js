@@ -2,7 +2,9 @@
 
 const connector = require('./assets/js/connect');
 
-function login() {
+function login(e) {
+  console.error('login e: ', e);
+
   let msg = '';
   let color = 'hi';
   let id = document.getElementById('userId').value;
@@ -11,21 +13,26 @@ function login() {
   let login = document.getElementById('login');
   let dockWrapper = document.getElementById('dockWrapper');
 
-  if(id === ''){
-    msg = 'Please enter your ID';
-  } else if (pw === '') {
-    msg = 'Please enter your password';
-  } else if (id === 'test' && pw === 'test123') {
-    login.classList.remove('fadeIn');
-    login.classList.add('fadeOut');
-    setTimeout( function() {
-      login.parentElement.removeChild(login);
-    }, 300);
-    dockWrapper.style.display = 'flex';
-    msg = 'Welcome';
-    color = 'low';
-  } else {
-    msg = 'ID and/or Password Incorrect';
+  // Ignore unless user pressed enter in pwd field OR clicked submit button
+  if (e.type === 'keypress' && e.charCode === 13 || e.type === 'click') {
+    if(id === ''){
+      msg = 'Please enter your ID';
+    } else if (pw === '') {
+      msg = 'Please enter your password';
+    // TODO Handle real auth
+    } else if (id === 'test' && pw === 'test123') {
+      // Authenticated
+      login.classList.remove('fadeIn');
+      login.classList.add('fadeOut');
+      setTimeout( function() {
+        login.parentElement.removeChild(login);
+      }, 300);
+      dockWrapper.style.display = 'flex';
+      msg = 'Welcome';
+      color = 'low';
+    } else {
+      msg = 'ID and/or Password Incorrect';
+    }
   }
 
   loginMsg.innerHTML = msg;
@@ -65,6 +72,7 @@ function openApp(name, danger, port) {
         ondrag="drag(event)"
         ondragend="dragend(event)"
         draggable="true"
+        onclick="bringToFront('` + view.id + `')"
       >
         <div style="margin-left: -10px;">
           <i class="` + dangerIcon + ` fa-2x"></i>
@@ -198,4 +206,20 @@ function dragend(e) {
   // Keep the user's drag changes
   win.style.left = e.clientX + offsetLeft + 'px';
   win.style.top = e.clientY + offsetTop + 'px';
+}
+
+// Focus clicked window
+function bringToFront(appId) {
+  let apps = document.querySelectorAll('.app');
+  console.warn('apps: ', apps);
+  console.warn(typeof apps);
+  apps.forEach((a) => {
+    console.warn('a: ', a);
+    console.warn(a.id + " = " + appId + " ???");
+    if(a.id === appId) {
+      return a.style.zIndex = 1;
+    } else {
+      return a.style.zIndex = 0;
+    }
+  });
 }
