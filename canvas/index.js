@@ -195,7 +195,7 @@ function minimizeApp(target) {
     wrapper.classList.add('min-mark-wrapper');
     wrapper.setAttribute("onclick", "unminimizeApp(this, '" + app.id + "')");
     let node = document.createElement('I');
-    node.classList.add(iconType, iconGlyph, 'min-mark', role + '-bg');
+    node.classList.add(iconType, iconGlyph, 'min-mark', role);
     wrapper.appendChild(node);
     let elId = 'minimized_' + role;
     document.getElementById(elId).appendChild(wrapper);

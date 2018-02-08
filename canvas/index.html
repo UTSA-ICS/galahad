@@ -50,11 +50,11 @@
 						</div>
 		      </li>
 					<div id="minimized_admin_drawer" class="minimizedWrapper" style="display: none;">
-						<div class="minimizedActuator admin-bg" onclick="toggleMinimizedDrawer('admin');">
-							<div id="minimized_admin_count"></div>
+						<div class="minimizedActuator admin" onclick="toggleMinimizedDrawer('admin');">
+							<div id="minimized_admin_count" class="count"></div>
 							<i id="minimized_admin_close" class="fas fa-chevron-right" style="display: none;"></i>
 						</div>
-						<div id="minimized_admin" class="minimized admin-bg" style="display: none;"></div>
+						<div id="minimized_admin" class="minimized" style="display: none;"></div>
 					</div>
 				</div>
 
@@ -77,7 +77,13 @@
 							</div>
 						</div>
 		      </li>
-					<div id="minimized_editor" class="minimized"></div>
+					<div id="minimized_editor_drawer" class="minimizedWrapper" style="display: none;">
+						<div class="minimizedActuator editor" onclick="toggleMinimizedDrawer('editor');">
+							<div id="minimized_editor_count" class="count"></div>
+							<i id="minimized_editor_close" class="fas fa-chevron-right" style="display: none;"></i>
+						</div>
+						<div id="minimized_editor" class="minimized" style="display: none;"></div>
+					</div>
 				</div>
 
 				<div class="optionsWrapper">
@@ -99,7 +105,13 @@
 							</div>
 						</div>
 		      </li>
-					<div id="minimized_viewer" class="minimized"></div>
+					<div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
+						<div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
+							<div id="minimized_viewer_count" class="count"></div>
+							<i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
+						</div>
+						<div id="minimized_viewer" class="minimized" style="display: none;"></div>
+					</div>
 				</div>
 
 	    </ul>
