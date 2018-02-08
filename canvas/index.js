@@ -6,7 +6,7 @@ function login(e) {
   console.error('login e: ', e);
 
   let msg = '';
-  let color = 'hi';
+  let color = 'admin';
   let id = document.getElementById('userId').value;
   let pw = document.getElementById('password').value;
   let loginMsg = document.getElementById('loginMsg');
@@ -29,7 +29,7 @@ function login(e) {
       }, 300);
       dockWrapper.style.display = 'flex';
       msg = 'Welcome';
-      color = 'low';
+      color = 'viewer';
     } else {
       msg = 'ID and/or Password Incorrect';
     }
@@ -49,33 +49,32 @@ function hideOptions(target) {
   return target.lastElementChild.style.visibility = "hidden";
 }
 
-function openApp(name, danger, port) {
+function openApp(name, role, port) {
   connector.tryTunnel("derp")
-  let dangerIcon = '';
-  if(danger === 'low') {
-    dangerIcon = 'fas fa-shield-check';
-  } else if (danger === 'med') {
-    dangerIcon = 'fas fa-question-circle';
-  } else { // hi
-    dangerIcon = 'fas fa-exclamation-triangle';
+  let roleIcon = '';
+  if(role === 'viewer') {
+    roleIcon = 'far fa-eye';
+  } else if (role === 'editor') {
+    roleIcon = 'far fa-file-edit';
+  } else { // admin
+    roleIcon = 'fab fa-black-tie';
   }
   let view = document.createElement('div');
-  view.id = name + '_' + danger;
+  view.id = name + '_' + role;
   view.classList.add('app');
   // view.draggable = 'true';
   // view.setAttribute("ondrag", "drag(event)");
   view.innerHTML = `
-    <div class="wrapper ` + danger + `-bg">
+    <div class="wrapper ` + role + `-bg" onclick="bringToFront('` + view.id + `')">
       <div
         class="win-bar"
         ondragstart="dragstart(event)"
         ondrag="drag(event)"
         ondragend="dragend(event)"
         draggable="true"
-        onclick="bringToFront('` + view.id + `')"
       >
         <div style="margin-left: -10px;">
-          <i class="` + dangerIcon + ` fa-2x"></i>
+          <i class="` + roleIcon + ` fa-2x"></i>
         </div>
         <div style="flex: 1; padding-left: 10px;">` + name.charAt(0).toUpperCase() + name.slice(1,) + `</div>
         <div style="margin-right: -10px;">
@@ -128,37 +127,86 @@ function closeApp(target) {
   let app = target.parentElement.parentElement.parentElement.parentElement;
   return app.parentElement.removeChild(app);
 }
+function toggleMinimizedDrawer(role) {
+  console.warn('toggleMinimizedDrawer role: ', role);
+  // Open and Close minimized app drawer
+  let drawer = document.getElementById('minimized_' + role);
+  let count = document.getElementById('minimized_' + role + '_count');
+  let close = document.getElementById('minimized_' + role + '_close');
+  if (drawer.style.display === 'none') {
+    drawer.style.display = 'flex';
+    count.style.display = 'none';
+    close.style.display = 'block';
+  } else {
+    drawer.style.display = 'none';
+    count.style.display = 'block';
+    close.style.display = 'none';
+  }
+
+}
+let counts = {
+  admin: 0,
+  editor: 0,
+  viewer: 0
+}
+
 function minimizeApp(target) {
   let app = target.parentElement.parentElement.parentElement.parentElement;
-
-  // Get App Name and Danger Level
+  console.warn('app: ', app);
+  // Get App Name and Role
   let info = app.id.split('_');
+  console.warn('info: ', info);
   let name = info[0];
-  let danger = info[1];
+  let role = info[1];
   let iconType = 'fas';
   let iconGlyph = 'fa-circle';
 
-  // NOTE abstract into generic icon function later?
-  if(danger === 'low') {
-    iconType = 'fas';
-    iconGlyph = 'fa-shield-check';
-  } else if(danger === 'med') {
-    iconType = 'fas';
-    iconGlyph = 'fa-question-circle';
-  } else {
-    iconType = 'fas';
-    iconGlyph = 'fa-exclamation-triangle';
+  // Assign app icons
+  switch (name) {
+    case 'firefox':
+      iconType = 'fab';
+      iconGlyph = 'fa-firefox';
+      break;
+
+    case 'notepad':
+      iconType = 'far';
+      iconGlyph = 'fa-file-edit';
+      break;
+
+    case 'word':
+      iconType = 'fas';
+      iconGlyph = 'fa-file-word';
+      break;
+
+    default:
+      iconType = 'fas';
+      iconGlyph = 'fa-question-circle';
   }
 
   app.classList.add('fadeOutRight', 'animated');
+
   setTimeout( function() {
+    // show the minimized apps drawer
+    let drawer = document.getElementById('minimized_' + role + '_drawer');
+    drawer.style.display = 'flex';
+
     app.style.display = "none";
+    let wrapper = document.createElement('div');
+    wrapper.classList.add('min-mark-wrapper');
+    wrapper.setAttribute("onclick", "unminimizeApp(this, '" + app.id + "')");
     let node = document.createElement('I');
-    node.classList.add(iconType, iconGlyph, 'min-mark', danger);
-    node.setAttribute("onclick", "unminimizeApp(this, '" + app.id + "')");
-    document.getElementById('minimized_' + name ).appendChild(node);
+    node.classList.add(iconType, iconGlyph, 'min-mark', role);
+    wrapper.appendChild(node);
+    let elId = 'minimized_' + role;
+    document.getElementById(elId).appendChild(wrapper);
   }, 300);
+
+  // Update counts
+  counts[role] += 1;
+  document.getElementById('minimized_' + role + '_count').innerText = counts[role];
+
 }
+
 function unminimizeApp(target, appID) {
   // remove the minimized app marker from the dock
   target.parentElement.removeChild(target);
@@ -168,6 +216,24 @@ function unminimizeApp(target, appID) {
   app.style.display = 'flex';
   app.classList.remove('fadeOutRight');
   app.classList.add('fadeInRight');
+
+  // Close minimized app drawer
+  let role = appID.split('_')[1];
+  document.getElementById('minimized_' + role).style.display = 'none';
+  // Update minimized app count
+  counts[role] -= 1;
+  let el = document.getElementById('minimized_' + role + '_count');
+  el.innerText = counts[role];
+  el.style.display = "block";
+  document.getElementById('minimized_' + role + '_close').style.display = 'none';
+
+  if (counts[role] === 0) { // There are no apps in the drawer
+    // show the minimized apps drawer
+    let drawer = document.getElementById('minimized_' + role + '_drawer');
+    drawer.style.display = 'none';
+  } else {
+    return;
+  }
 }
 
 // Drag and Drop
@@ -183,8 +249,8 @@ function dragstart(e) {
   let style = window.getComputedStyle(win, null);
   offsetLeft = parseInt(style.left, 10) - e.clientX;
   offsetTop = parseInt(style.top, 10) - e.clientY;
-
 }
+
 function drag(e) {
   // Get the app window/element
   let win = e.target.parentElement.parentElement;
@@ -211,11 +277,7 @@ function dragend(e) {
 // Focus clicked window
 function bringToFront(appId) {
   let apps = document.querySelectorAll('.app');
-  console.warn('apps: ', apps);
-  console.warn(typeof apps);
   apps.forEach((a) => {
-    console.warn('a: ', a);
-    console.warn(a.id + " = " + appId + " ???");
     if(a.id === appId) {
       return a.style.zIndex = 1;
     } else {
