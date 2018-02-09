@@ -243,6 +243,9 @@ let offsetTop = 0;
 function dragstart(e) {
   // Get the app window/element
   let win = e.target.parentElement.parentElement;
+  // Bring the window being dragged to the front
+  console.warn('WIN: ', win);
+  bringToFront(win.id);
 
   // figure out offset from mouse to upper left corner
   // of element we want to drag
