@@ -62,17 +62,13 @@ function openApp(name, role, port) {
   let view = document.createElement('div');
   view.id = name + '_' + role;
   view.classList.add('app');
-  // view.draggable = 'true';
-  // view.setAttribute("ondrag", "drag(event)");
+  view.draggable = 'true';
+  view.setAttribute("ondrag", "drag(event)");
+  view.setAttribute("ondragstart", "dragstart(event)");
+  view.setAttribute("ondragend", "dragend(event)");
   view.innerHTML = `
     <div class="wrapper ` + role + `-bg" onclick="bringToFront('` + view.id + `')">
-      <div
-        class="win-bar"
-        ondragstart="dragstart(event)"
-        ondrag="drag(event)"
-        ondragend="dragend(event)"
-        draggable="true"
-      >
+      <div class="win-bar">
         <div style="margin-left: -10px;">
           <i class="` + roleIcon + ` fa-2x"></i>
         </div>
@@ -239,10 +235,14 @@ function unminimizeApp(target, appID) {
 // Drag and Drop
 let offsetLeft = 0;
 let offsetTop = 0;
+let win;
 
 function dragstart(e) {
   // Get the app window/element
-  let win = e.target.parentElement.parentElement;
+  win = e.target;
+
+  // Bring window to front
+  bringToFront(win.id);
 
   // figure out offset from mouse to upper left corner
   // of element we want to drag
@@ -252,24 +252,21 @@ function dragstart(e) {
 }
 
 function drag(e) {
-  // Get the app window/element
-  let win = e.target.parentElement.parentElement;
+
+  // Hide the non-dragging element
+  win.style.opacity = 0;
 
   // Set element style to move to where user drags
   win.style.left = e.clientX + offsetLeft + 'px';
   win.style.top = e.clientY + offsetTop + 'px';
-
-  // console.error('client X,Y', e.clientX, e.clientY);
-  // console.error('offset X,Y', offsetLeft, offsetTop);
-  // console.error('window X,Y', win.style.left, win.style.top);
 }
 
 function dragend(e) {
-  // Get the app window/element
-  let win = e.target.parentElement.parentElement;
+  // Make the app visible again
+  win.style.opacity = 1;
 
   // Keep window from snapping back to original position
-  // Keep the user's drag changes
+  // and keep the user's drag changes
   win.style.left = e.clientX + offsetLeft + 'px';
   win.style.top = e.clientY + offsetTop + 'px';
 }
