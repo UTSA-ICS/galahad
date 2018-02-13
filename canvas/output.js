@@ -1,42 +1,6 @@
 'use strict';
+// SSH -L
 var connector = require('./assets/js/connect');
-function login(e) {
-    console.error('login e: ', e);
-    var msg = '';
-    var color = 'admin';
-    var id = document.getElementById('userId').innerText;
-    var pw = document.getElementById('password').innerText;
-    var loginMsg = document.getElementById('loginMsg');
-    var login = document.getElementById('login');
-    var dockWrapper = document.getElementById('dockWrapper');
-    // Ignore unless user pressed enter in pwd field OR clicked submit button
-    if (e.type === 'keypress' && e.charCode === 13 || e.type === 'click') {
-        if (id === '') {
-            msg = 'Please enter your ID';
-        }
-        else if (pw === '') {
-            msg = 'Please enter your password';
-            // TODO Handle real auth
-        }
-        else if (id === 'test' && pw === 'test123') {
-            // Authenticated
-            login.classList.remove('fadeIn');
-            login.classList.add('fadeOut');
-            setTimeout(function () {
-                login.parentElement.removeChild(login);
-            }, 300);
-            dockWrapper.style.display = 'flex';
-            msg = 'Welcome';
-            color = 'viewer';
-        }
-        else {
-            msg = 'ID and/or Password Incorrect';
-        }
-    }
-    loginMsg.innerHTML = msg;
-    loginMsg.className = ''; // Clear out old color
-    loginMsg.classList.add(color);
-}
 function showOptions(target) {
     return target.lastElementChild.style.visibility = "visible";
 }
@@ -63,7 +27,7 @@ function openApp(name, role, port) {
     view.setAttribute("ondragstart", "dragstart(event)");
     view.setAttribute("ondragend", "dragend(event)");
     view.innerHTML = "\n    <div class=\"wrapper " + role + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port + "/\" allowtransparency></webview>\n    </div>\n  ";
-    document.body.appendChild(view);
+    document.getElementById('appArea').appendChild(view);
 }
 function toggleMaximizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
@@ -161,7 +125,7 @@ function minimizeApp(target) {
     }, 300);
     // Update counts
     counts[role] += 1;
-    document.getElementById('minimized_' + role + '_count').innerText = counts[role];
+    document.getElementById('minimized_' + role + '_count').innerText = counts[role].toString();
 }
 function unminimizeApp(target, appID) {
     // remove the minimized app marker from the dock
@@ -193,47 +157,83 @@ function unminimizeApp(target, appID) {
 // Drag and Drop
 var offsetLeft = 0;
 var offsetTop = 0;
-var win;
 function dragstart(e) {
     // Get the app window/element
-    win = e.target;
+    var win = e.target;
     // Bring window to front
     bringToFront(win.id);
     // figure out offset from mouse to upper left corner
     // of element we want to drag
     var style = window.getComputedStyle(win, null);
-    offsetLeft = Number(style.left) - e.clientX;
-    offsetTop = Number(style.top) - e.clientY;
+    var l = Number(style.left.slice(0, style.left.length - 2));
+    var t = Number(style.top.slice(0, style.top.length - 2));
+    offsetLeft = l - e.clientX;
+    offsetTop = t - e.clientY;
 }
 function drag(e) {
+    var win = e.target;
     // Hide the non-dragging element
-    win.style.opacity = 0;
-    //Compute left and top values
+    win.style.visibility = "hidden";
+}
+function dragend(e) {
+    var win = e.target;
+    // Make the app visible again
+    win.style.visibility = "visible";
+    // Keep window from snapping back to original position
+    // and keep the user's drag changes
     var left = e.clientX + offsetLeft;
     var top = e.clientY + offsetTop;
-    // Set element style to move to where user drags
     win.style.left = left.toString().concat('px');
     win.style.top = top.toString().concat('px');
 }
-function dragend(e) {
-    // Make the app visible again
-    win.style.opacity = 1;
-    // Keep window from snapping back to original position
-    // and keep the user's drag changes
-    win.style.left = e.clientX + offsetLeft + 'px';
-    win.style.top = e.clientY + offsetTop + 'px';
-}
 // Focus clicked window
 function bringToFront(appId) {
-    var apps = document.querySelectorAll('.app');
-    for (var _i = 0, apps_1 = apps; _i < apps_1.length; _i++) {
-        var a = apps_1[_i];
+    // Must convert NodeList to Array
+    var appList = document.querySelectorAll('.app'), apps = [].slice.call(appList);
+    apps.map(function (a) {
         if (a.id === appId) {
             return a.style.zIndex = 1;
         }
         else {
             return a.style.zIndex = 0;
         }
+    });
+}
+function login(e) {
+    var msg = '';
+    var color = 'admin';
+    var id = document.getElementById('userId').value;
+    var pw = document.getElementById('password').value;
+    var loginMsg = document.getElementById('loginMsg');
+    var login = document.getElementById('login');
+    var dockWrapper = document.getElementById('dockWrapper');
+    // Ignore unless user pressed enter in pwd field OR clicked submit button
+    if (e.type === 'keypress' && e.charCode === 13 || e.type === 'click') {
+        if (id === '') {
+            msg = 'Please enter your ID';
+        }
+        else if (pw === '') {
+            msg = 'Please enter your password';
+            // TODO Handle real auth
+        }
+        else {
+            if (id === 'test' && pw === 'test123') {
+                // Authenticated
+                login.classList.remove('fadeIn');
+                login.classList.add('fadeOut');
+                setTimeout(function () {
+                    login.parentElement.removeChild(login);
+                }, 300);
+                dockWrapper.style.display = 'flex';
+                msg = 'Welcome';
+                color = 'viewer';
+            }
+            else {
+                msg = 'ID and/or Password Incorrect';
+            }
+        }
     }
-    ;
+    loginMsg.innerHTML = msg;
+    loginMsg.className = ''; // Clear out old color
+    loginMsg.classList.add(color);
 }

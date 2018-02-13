@@ -8,6 +8,9 @@ yarn-error.log*
 /test/e2e/reports/
 selenium-debug.log
 
+# Typescript
+*.d.ts
+
 # Editor directories and files
 .idea
 .vscode

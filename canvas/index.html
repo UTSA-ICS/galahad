@@ -9,14 +9,16 @@
 	</head>
 	<body style="background-color:rgba(0,0,0,0);">
 
-		<!-- <div id="login" class="fadeIn animated">
+		<div id="appArea"></div>
+		
+		<div id="login" class="fadeIn animated">
 			<div class="greeting">
 				<div>Welcome to VirtUE!</div>
 				<img src="./assets/img/virtue.png" alt="VirtUE icon">
 			</div>
 			<div class="form-group">
 				<label for="userId">User ID: </label>
-				<input type="text" name="userId" id="userId" >
+				<input type="text" name="userId" id="userId" value="">
 			</div>
 			<div class="form-group">
 				<label for="password">Password: </label>
@@ -26,9 +28,9 @@
 				<div id="loginMsg"></div>
 				<input class="submit" type="submit" value="Log In" onclick="login(event);">
 			</div>
-		</div> -->
+		</div>
 
-		<div id="dockWrapper" class="fadeInRight animated">
+		<div id="dockWrapper" class="fadeInRight animated" style="display: none;">
 			<ul class="dock">
 				<div class="optionsWrapper">
 					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
@@ -110,5 +112,5 @@
 
 	</body>
 
-	<script src="./index.js" charset="utf-8"></script>
+	<script src="./output.js" charset="utf-8"></script>
 </html>
