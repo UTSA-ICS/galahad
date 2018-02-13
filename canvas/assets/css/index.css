@@ -110,6 +110,7 @@ webview {
   height: 100%;
   display: flex;
   align-items: center;
+  z-index: 999;
 }
 .dock,
 .options,

@@ -7,10 +7,20 @@
 		"icon": "./assets/img/virtue.png",
 		"fullscreen": true
 	},
+	"scripts": {
+		"gulp": "gulp watch"
+	},
 	"dependencies": {
 		"child_process": "^1.0.2",
 		"debug": "^3.1.0",
 		"fs": "0.0.1-security",
 		"ssh2": "^0.5.5"
+	},
+	"devDependencies": {
+		"@types/node": "^9.4.5",
+		"gulp": "^3.9.1",
+		"gulp-typescript": "^4.0.1",
+		"merge2": "^1.2.1",
+		"typescript": "^2.7.1"
 	}
 }
