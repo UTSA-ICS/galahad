@@ -11,7 +11,7 @@ function hideOptions(target: any) {
 }
 
 function openApp(name: string, role: string, port: string) {
-  connector.tryTunnel("derp")
+  
   let roleIcon = '';
   if(role === 'viewer') {
     roleIcon = 'far fa-eye';

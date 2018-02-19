@@ -1,4 +1,38 @@
 'use strict';
+var exec = require('child_process').exec;
+var fs = require('fs');
+var debug = require('debug')('connector');
+var Client = require('ssh2').Client;
+var config = {
+    username: "ubuntu",
+    //password:"derp",
+    host: "ec2-54-91-72-220.compute-1.amazonaws.com",
+    port: 22,
+    dstHost: "127.0.0.1",
+    dstPort: 2023,
+    localHost: "0.0.0.0",
+    localPort: 2000,
+    //privateKey:fs.readFileSync('key.pem')
+    privateKey: "key.pem"
+};
+function execTunnel(options) {
+    var str = "ssh -i " + config.privateKey + " " + config.username + "@" + config.host + " -p " + config.port + " -4 -L " + config.localPort + ":" + config.dstHost + ":" + config.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
+    console.warn('execTunnel str: ', str);
+    debug('trying to connect with: ', str);
+    exec(str, function (error, stdout, stderr) {
+        console.warn('stdout: ', stdout);
+        console.warn('stderr: ', stderr);
+        console.warn('error: ', error);
+        if (error) {
+            debug("exec error: " + error);
+            return;
+        }
+        debug("stdout: " + stdout);
+        debug("stderr: " + stderr);
+    });
+}
+// Connect to AWS Xpra
+execTunnel("derp");
 // SSH -L
 var connector = require('./assets/js/connect');
 function showOptions(target) {
@@ -8,7 +42,6 @@ function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
 function openApp(name, role, port) {
-    connector.tryTunnel("derp");
     var roleIcon = '';
     if (role === 'viewer') {
         roleIcon = 'far fa-eye';
