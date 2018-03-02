@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block body %}
+  <section class="section">
+    <div class="inner">
+      {% if current_user %}
+        <p>You are logged in as <strong>{{ current_user.name }}</strong></p>
+        <div class="account_actions">
+          <a href="{{ url_for('account.logout') }}" class="btn">Log Out</a>
+          <a href="{{ url_for('client.list_clients') }}" class="btn">Apps</a>
+          <a href="{{ url_for('connect.list_connects') }}" class="btn">Connects</a>
+        </div>
+      {% else %}
+        <p>You need to log in to play with Authlib.</p>
+        <div class="account_actions">
+          <a href="{{ url_for('account.login') }}" class="btn">Log In</a>
+          <a href="{{ url_for('account.signup') }}" class="btn">Sign Up</a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+  <section class="section">
+    <div class="inner">
+      <p>This is a playground for <a href="https://authlib.org">Authlib</a>. It contains OAuth clients and an OAuth 2
+        server. It is an <a href="https://github.com/authlib/playground">open source</a> project.</p>
+      <p>To keep this playground sustainable, I need your support. Here are some ways for
+        donation:</p>
+      <div class="donation">
+        <h3>PayPal</h3>
+        <p>Donate via <a href="https://www.paypal.me/lepture">PayPal.me/lepture</a>.</p>
+      </div>
+      <div class="donation">
+        <h3>Stripe</h3>
+        <p>Support me via <a href="https://typlog.com/donate?reason=authlib/playground">Stripe</a>.</p>
+      </div>
+      <div class="donation">
+        <h3>Alipay & Weixin</h3>
+        <p>You can find my QR code on <a href="https://typlog.com/donate">Donation Page</a>.</p>
+      </div>
+      <p><strong>Please leave a message, I'll add your name into supporters' file.</strong></p>
+    </div>
+  </section>
+  <footer class="section">
+    <div class="inner">
+      <p>A <a href="https://hsiaoming.com/">Hsiaoming</a>'s project.
+        Supported by these <a href="https://github.com/authlib/playground/blob/master/SUPPORTERS.md">awesome people</a>.
+      </p>
+    </div>
+  </footer>
+{% endblock %}
