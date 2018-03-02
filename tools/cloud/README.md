@@ -43,23 +43,24 @@ deleted at the same time.
 `aws_get_mfa.sh newprofilename <srcprofile>`
 
 This script is an informal tool to generate temporary credentials for MFA 
-enabled accounts.  
+enabled accounts, and will likely make a dev's life much easier.   
 
 The temporary accounts can be used on the aws python cli with 
-`--profile=<profilename>`
+`<regular aws command> --profile=<profilename>`
 
 It also helpfully generates a boto configuration file so that you can generate
 credentials for services like excalibur while testing.  A better solution like
-boto2.51 or greater with automatic instance-profile credential retrieval 
-should be used for the real system.
+boto3 with automatic instance-profile credential retrieval should be used for
+ the real system.
 
 ### To Use
 * It is ideal to create the original account info with `aws configure` after
  installing the aws python cli.  
-* Then you must edit the `.aws/credentials` file to include a line like
-`mfa_serial = arn:aws:iam::602130734730:mfa/kyle including the arn of the mfa
- device.  You can find this in the 'security credentials' page of the IAM 
-service on AWS.
+* Then you must edit the `.aws/credentials` file, specifically the profile
+for the account you want to use to generate temporary mfa credentials, to 
+include a line like `mfa_serial = arn:aws:iam::602130734730:mfa/kyle` 
+including the arn of the mfa device.  You can find this arn in the 'security 
+credentials' page of the IAM service on AWS (E.G. https://console.aws.amazon.com/iam/home?region=us-east-1#/users/username?section=security_credentials).
 * Then run `aws_get_mfa.sh newprofilename <srcprofile>`.  If you don't provide
  srcprofile, then it will use the default.  If you do provide it then it will
  use the configured information for that profile.  Only REAL, non-temporary
@@ -83,4 +84,19 @@ other tasks it takes on during the project.  It should be modified to suit the
 
   * It is currently used, in combination with an instance-profile/Role to allow our
 boto3 codebase to automatically obtain credentials and perform actions without
-explicit configuration in our codebase or pre-placed credentials.
+explicit configuration in our codebase or pre-placed credentials
+
+## Debugging AWS Authorization Errors
+When someone gets an error at the AWS Python CLI or AWS Web Console it will look of the form:
+
+`A client error (UnauthorizedOperation) occurred: You are not authorized to perform this operation. Encoded authorization failure message: "EjE8j1AEXAMPLEDOwukwv5KbOS2j0jiZTslESOmbSFnqY91ElGRRQpIweQ5CQDQmaS7DBMfJDqwpZAmORTOKHgeNZdcChNCDacLE6YGEAlVyTI8yoc8Ukcb8A8q4i3ap4D0XlG4A5Izf4HGJ6VHoOYPExvwVcDyC7y8C6nDKiQxgM8nJDaxELFcgjOa4RxfsDcpPe5mONAhMc6uxV00HLV5c_dpA6Q6IJR..."`
+
+In order to debug the problem you will need:
+* Rights to the sts AWS service (by being admin you OBE this requirement)
+* Access to the IAM policies managing [them](https://console.aws.amazon.com/iam/home?region=us-east-1#/policies)
+* The encoded error message gobbledy-gook above
+* Ideally a helper bash script like aws_decode_error.sh located adjacent to this file.
+
+Run `aws_decode_error.sh <encoded_error_message>`.  It will spit out a pretty printed json file or the problem.  You will still need to parse the results.
+
+If the `'explicitDeny'` field is `true`, then some part of your policy explicitly denied the action for whatever reason and you should look at `'matchedStatements'` to find out why you explicitly denied it and modify the statements or policy as desired. If `'explicitDeny'` is `false`, then you should add appropriately locked down permissions for the action held in the `'action'` field and with conditional statements that are appropriately secure based on your decision.  Existing examples of statements can be found in the policy files adjacent to this README.
