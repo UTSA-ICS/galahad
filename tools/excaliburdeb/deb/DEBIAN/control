@@ -7,5 +7,5 @@ Package: virtue-excalibur
 Architecture: all
 Maintainer: @starlab
 Priority : optional
-Depends: python, python-boto, python-webpy
+Depends: python, python-boto3, python-webpy
 Description: Excalibur Webservice
