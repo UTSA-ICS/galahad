@@ -2,7 +2,9 @@
 
 Basic notes for the VirtUE project's assembler.
 
-Make sure you review the Cloud-Init reference materials: http://cloudinit.readthedocs.io/en/latest
+Make sure you review the Cloud-Init reference materials:
+  - [Cloud-Init site](http://cloudinit.readthedocs.io/en/latest)
+  - [AWS CLI and Cloud-Init](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-cloud-init)
 
 
 ## Requirements
@@ -38,7 +40,7 @@ cd <DIR_FOR_THIS_GIT_REPO>/assembler
 ./rebase-img.sh
 ```
 
-Now one must create the Cloud-Init ISO file that will configure the Unity base image. The file `user-data` contains the details for setting up the image. Make changes as you see fit. The `meta-data` file currently sets the instance and hostname for the system. These are placeholders for what will likely be replaced by more complex management software / scripts in the final architecture.
+Now one must create the Cloud-Init ISO file that will configure the Unity base image. The file `user-data` contains the details for setting up the image. Make changes as you see fit. The `meta-data` file currently sets the instance and hostname for the system. These are placeholders for what will likely be replaced by more complex management software / scripts in the final architecture (see AWS CLI link from introduction section).
 
 Note, there are two users created by default with Cloud-Init: 1) username: `ubuntu`, password: whatever is in the `password:` directive atop the file, and 2) username: `virtue`, password: `virtue`. These can be changed, removed, or replaced as necessary. Furthermore, it is possible to switch to SSH based authentication (see Cloud-Init references materials).
 
@@ -56,8 +58,15 @@ You should see a QEMU / KVM window appear with boot output. Depending on how the
 
 Once the image is fully booted, you can log in with the credentials listed above or with the SSH keys you provision. Note. the `spin-up-kvm-img.sh` script initially sets up port forwarding on localhost port 5555 to ssh port 22 on the guest. Use or change as you see fit.
 
-Once booted and logged in, you should be able to monitor the Cloud-Init provisioning process using its provided mechanisms or using the output logging file that is setup in the `user-data` script. Initially the file is located at `/var/log/cloud-init-output.log`. If left in place, it will log the output of the Cloud-Init script.
+```
+ssh ubuntu@127.0.0.1 -p 5555
+```
 
+Once booted and logged into the Unity VM, you should be able to monitor the Cloud-Init provisioning process using its provided mechanisms or using the output logging file that is setup in the `user-data` script. Initially the file is located at `/var/log/cloud-init-output.log`. If left in place, it will log the output of the Cloud-Init script.
+
+```
+tail -n 100 /var/log/cloud-init-output.log
+```
 
 ## Cleaning an Image
 
@@ -67,4 +76,3 @@ Whenever you need to make changes to the Cloud-Init script and start afresh, you
 cd <DIR_FOR_THIS_GIT_REPO>/assembler
 ./rebase-img.sh
 ```
-
