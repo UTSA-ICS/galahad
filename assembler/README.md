@@ -33,7 +33,7 @@ mkdir ~/virtue
 cp <PATH_TO_GOLDEN_IMG_DIR>/unity-base.img ~/virtue/unity-base.img
 ```
 
-Once the IMG and ISO working directory is set and it contains a copy of the Unity golden / base image, make a copy of the base image with the included script `./rebase-img.sh`. No input arguments are expected.
+Once the IMG and ISO working directory is set and it contains a copy of the Unity golden / base image, make a copy of the base image with the included script `rebase-img.sh`. No input arguments are expected.
 
 ```
 cd <DIR_FOR_THIS_GIT_REPO>/assembler
@@ -56,9 +56,10 @@ Assuming the Cloud-Init ISO creation script returned with error, there will be a
 
 You should see a QEMU / KVM window appear with boot output. Depending on how the original image was generated, you may need to hit the keyboard to get the boot started.
 
-Once the image is fully booted, you can log in with the credentials listed above or with the SSH keys you provision. Note. the `spin-up-kvm-img.sh` script initially sets up port forwarding on localhost port 5555 to ssh port 22 on the guest. Use or change as you see fit.
+Once the image is fully booted, you can log in with the credentials listed above or with the SSH keys you provision. Note. the spin-up script initially sets port forwarding on localhost port 5555 to ssh port 22 on the guest. Use or change as you see fit.
 
 ```
+# SSH'ing into Unity guest using default account
 ssh ubuntu@127.0.0.1 -p 5555
 ```
 
