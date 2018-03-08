@@ -1,0 +1,17 @@
+#!/bin/bash
+
+HOST=${1:-localhost}
+PORT=${2:-5555}
+
+echo "Getting the kernel release from the running cloud-image at ${HOST}:${PORT}"
+VERSION=$(ssh -o "ControlMaster=yes" -p ${PORT} ubuntu@${HOST} uname -r)
+export VERSION
+echo "Found kernel release '${VERSION}'"
+
+echo "Getting the distro codename from the running cloud-image at ${HOST}:${PORT}"
+CODENAME=$(ssh -o "ControlMaster=yes" -p ${PORT} ubuntu@${HOST} "source /etc/lsb-release && echo \${DISTRIB_CODENAME}")
+export CODENAME
+echo "Found distro codename '${CODENAME}'"
+
+echo "Firing up a docker container to build the kernel..."
+./containerize.sh ./helpers/build-kernel

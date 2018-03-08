@@ -1,0 +1,46 @@
+#!/bin/bash
+
+die() {
+	echo "$*" 1>&2
+	exit 1
+}
+
+rm -rf kernel-source || die "Could not remove kernel-source directory"
+mkdir -p kernel-source || die "Could not create kernel-source directory"
+chmod 777 kernel-source
+pushd kernel-source
+
+echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${CODENAME} main restricted" > /etc/apt/sources.list
+echo "deb-src [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${CODENAME} main restricted" >> /etc/apt/sources.list
+echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-updates main restricted" >> /etc/apt/sources.list
+echo "deb-src [arch=amd64] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-updates main restricted" >> /etc/apt/sources.list
+echo "deb http://security.ubuntu.com/ubuntu/ ${CODENAME}-security main restricted" >> /etc/apt/sources.list
+echo "deb-src http://security.ubuntu.com/ubuntu/ ${CODENAME}-security main restricted" >> /etc/apt/sources.list
+rm -r /etc/apt/sources.list.d/*
+apt update
+
+echo "Fetching the kernel source for ${VERSION}"
+apt source linux-image-${VERSION} || die "Could not download kernel source"
+
+apt build-dep --yes linux-image-${VERSION}
+
+echo "Configuring the kernel"
+pushd linux-$(echo ${VERSION} | awk -F- '{print $1}')
+
+echo "Updating the changelog to append our +unity1 local version modifier"
+head -n1 debian.master/changelog | sed "s/linux (\(.*\))\(.*\)/linux (\1+unity1)\2/" > changelog.new
+tail -n+2 debian.master/changelog >> changelog.new
+mv changelog.new debian.master/changelog
+
+chmod a+x debian/rules
+chmod a+x debian/scripts/*
+chmod a+x debian/scripts/misc/*
+
+fakeroot debian/rules clean
+
+cat ../../security.config >> debian.master/config/amd64/config.common.amd64
+fakeroot debian/rules updatesconfigs
+
+fakeroot debian/rules binary-headers binary-generic binary-perarch skipmodule=true skipabi=true skipretpoline=true
+
+popd
