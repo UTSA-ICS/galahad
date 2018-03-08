@@ -12,3 +12,5 @@ TAGS
 flask-authlib/conf/*
 flask-authlib/venv/*
 flask-authlib/website/sqlite.db
+
+kernel-source
