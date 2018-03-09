@@ -2,8 +2,9 @@
 
 case $1 in
 	start)
-		UNITY=${2:-artful-server-cloudimg-amd64.img}
-		start-stop-daemon -b --start --pidfile /tmp/unity --make-pidfile --startas /usr/bin/kvm -- \
+		UNITY=${2:-$(pwd)/artful-server-cloudimg-amd64.img}
+		kvm \
+			-cdrom $(pwd)/cloud-seed.iso \
 			-m 1024 \
 			-smp 1 \
 			-vnc :10 \
@@ -11,11 +12,5 @@ case $1 in
 			-device e1000,netdev=user.0 \
 			-netdev user,id=user.0,hostfwd=tcp::5555-:22 \
 			-drive file=${UNITY},if=virtio,cache=writeback,index=0
-		;;
-	stop)
-		start-stop-daemon --stop --pidfile /tmp/unity --remove-pidfile
-		;;
-	status)
-		start-stop-daemon --status --pidfile /tmp/unity
 		;;
 esac
