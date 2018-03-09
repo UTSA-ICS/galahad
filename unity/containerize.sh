@@ -49,6 +49,7 @@ exec docker run \
     ${SSH_AUTH_SOCK:+-e SSH_AUTH_SOCK="/tmp/ssh-agent/${SSH_AUTH_NAME}"} \
     -v ${HOME}/.ssh:/source/.ssh \
     -v "${PWD}":/source:rw \
+	-v "${LSM}":/lsm \
     ${SSH_AUTH_SOCK:+-v "${SSH_AUTH_DIR}":/tmp/ssh-agent} \
     ${EXTRA_CONTAINER_ARGS} \
     -${termint}i --rm -- \

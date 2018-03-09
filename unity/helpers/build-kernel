@@ -38,7 +38,19 @@ chmod a+x debian/scripts/misc/*
 
 fakeroot debian/rules clean
 
+echo "Applying patches to the kernel source"
+for PATCH in $(find /lsm -type f -name "*.patch"); do
+	echo "Applying ${PATCH}"
+	patch -p1 < ${PATCH}
+done
+
+echo "Applying security config changes to the kernel config"
 cat ../../security.config >> debian.master/config/amd64/config.common.amd64
+if [[ -e /lsm/lsm.config ]]; then
+	echo "Found LSM-specific config changes to apply to the kernel config"
+	cat /lsm/lsm.config >> debian.master/config/amd64/config.common.amd64
+fi
+
 fakeroot debian/rules updatesconfigs
 
 fakeroot debian/rules binary-headers binary-generic binary-perarch skipmodule=true skipabi=true skipretpoline=true
