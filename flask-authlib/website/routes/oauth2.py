@@ -43,6 +43,8 @@ def authorize():
 
 @bp.route('/token', methods=['POST'])
 def issue_token():
+    print('WAT    : issue_token()')
+    print('WAT    : %s' % request.args)
     return authorization.create_token_response()
 
 

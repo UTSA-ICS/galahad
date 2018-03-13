@@ -71,11 +71,13 @@ class ImplicitGrant(_ImplicitGrant):
 
 class PasswordGrant(_PasswordGrant):
     def authenticate_user(self, username, password):
+        print('WAT    : username=%s, password=%s' % (username, password))
         user = User.query.filter_by(email=username).first()
         if user.check_password(password):
             return user
 
     def create_access_token(self, token, client, user):
+        print('WAT    : create_access_token')
         item = OAuth2Token(
             client_id=client.client_id,
             user_id=user.id,

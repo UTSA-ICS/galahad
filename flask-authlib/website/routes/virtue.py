@@ -10,6 +10,9 @@ from ..forms.client import (
 import json
 import boto3.ec2
 import time
+from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
+
+
 bp = Blueprint('virtue', __name__)
 
 import boto3
@@ -35,6 +38,7 @@ aws_state_to_virtue_state = {
         'stopped': 'STOPPED'
 }
 
+## TRANSFER TO NEW MODELS/VIRTUE FILE FOR ORGANIZATION
 class Virtue:
         id = ''
         username = ''
@@ -182,3 +186,11 @@ def virtue_application_stop():
     print request.args['virtId']
     print request.args['appId']
     return '0'
+
+@bp.route('/test', methods=['GET'])
+@require_login
+def virtue_test():
+    test = ''
+    for arg in request.args:
+        test += arg + ':' + request.args[arg] + '&'
+    return test

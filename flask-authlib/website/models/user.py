@@ -9,9 +9,7 @@ from sqlalchemy import (
     Integer, String, DateTime
 )
 from .base import db, Base
-
-LDAP_PROVIDER_URL = 'ldap://172.30.1.250'
-LDAP_PROTOCOL_VERSION = 3
+from ..ldaplookup import LDAP
 
 class User(Base):
     __tablename__ = 'user'
@@ -27,29 +25,22 @@ class User(Base):
         onupdate=datetime.datetime.utcnow,
     )
 
-    def get_ldap_connection(self):
-        conn = ldap.initialize(LDAP_PROVIDER_URL)
-        conn.protocol_version = LDAP_PROTOCOL_VERSION
-        conn.set_option(ldap.OPT_REFERRALS, 0)
-        return conn
-
     def validate_login(self, email, password):
-        conn = self.get_ldap_connection()
-        try:
-            conn.simple_bind_s(email, password)
-        except:
+        user = LDAP(email, password)
+        if not user.bind_ad():
+            print('WAT   : returning False')
             return False
+        print('WAT    : returning True')
         return True
 
     def query_name(self, password):
-        conn = self.get_ldap_connection()
-        try:
-           conn.simple_bind_s(self.email, password)
-           r = conn.search_s('ou=virtue,dc=virtue,dc=com', ldap.SCOPE_SUBTREE, '(userPrincipalName=%s)' % self.email, ['cn'])
-           self.name = r[0][1]['cn'][0]
-        except:
-           print ('WAT    : conn error')
-	
+        print('WAT    : query_name')
+        user = LDAP(self.email, password)
+        if user.bind_ad():
+            r = user.query_ad('userPrincipalName',self.email)
+        else:
+            print ('WAT    : query_name bind error')
+        self.name = r['cn'][0] 
 
     def get_user_id(self):
         return self.id
