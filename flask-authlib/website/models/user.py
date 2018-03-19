@@ -24,20 +24,22 @@ class User(Base):
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
     )
+    conn = None
 
     def validate_login(self, email, password):
-        user = LDAP(email, password)
-        if not user.bind_ad():
+        self.conn = LDAP(email, password)
+        if not self.conn.bind_ad():
             print('WAT   : returning False')
             return False
         print('WAT    : returning True')
+        print('WAT    : %s' % self.conn)
         return True
 
     def query_name(self, password):
         print('WAT    : query_name')
-        user = LDAP(self.email, password)
-        if user.bind_ad():
-            r = user.query_ad('userPrincipalName',self.email)
+        self.conn = LDAP(self.email, password)
+        if self.conn.bind_ad():
+            r = self.conn.query_ad('userPrincipalName',self.email)
         else:
             print ('WAT    : query_name bind error')
         self.name = r['cn'][0] 
