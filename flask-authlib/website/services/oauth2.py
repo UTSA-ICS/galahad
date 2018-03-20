@@ -150,7 +150,6 @@ authorization.register_revoke_token_endpoint(RevocationEndpoint)
 # scopes definition
 scopes = {
     'email': 'Access to your email address.',
-    'connects': 'Access to your connected networks.'
 }
 
 # protect resource

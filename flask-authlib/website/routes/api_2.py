@@ -19,11 +19,3 @@ def user_profile():
 def user_email():
     user = User.query.get(current_token.user_id)
     return jsonify(email=user.email)
-
-
-@bp.route('/connects')
-@require_oauth('connects')
-def user_connects():
-    q = db.session.query(Connect.name)
-    rv = [n for n, in q.filter_by(user_id=current_token.user_id)]
-    return jsonify(rv)
