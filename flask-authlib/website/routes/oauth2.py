@@ -45,6 +45,7 @@ def authorize():
 def issue_token():
     for a in request.form:
         print ('WAT    : %s=%s' % (a, request.form[a]))
+    print('WAT    : %s' % request.form)
     return authorization.create_token_response()
 
 

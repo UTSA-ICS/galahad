@@ -19,48 +19,20 @@ GRANTS = [
     ('client_credentials', 'Client Credentials')
 ]
 
-
-class Client1Form(BaseForm):
-    name = StringField(validators=[DataRequired()])
-    website = URLField()
-    default_redirect_uri = URLField()
-
-    def update(self, client):
-        client.name = self.name.data
-        client.website = self.website.data
-        client.default_redirect_uri = self.default_redirect_uri.data
-        with db.auto_commit():
-            db.session.add(client)
-        return client
-
-    def save(self, user):
-        name = self.name.data
-        client_id = gen_salt(48)
-        client_secret = gen_salt(78)
-
-        client = OAuth1Client(
-            user_id=user.id,
-            client_id=client_id,
-            client_secret=client_secret,
-            name=name,
-            default_redirect_uri=self.default_redirect_uri.data,
-            website=self.website.data,
-        )
-        with db.auto_commit():
-            db.session.add(client)
-        return client
-
-
 class OAuth2ClientWrapper(object):
     def __init__(self, client):
         self._client = client
         self.name = client.name
         self.website = client.website
         self.is_confidential = client.is_confidential
-        self.redirect_uris = client.redirect_uris
+        #self.redirect_uris = ''.join(client.redirect_uris)
+        self.redirect_uris = '\n'.join(client.redirect_uris)
         self.default_redirect_uri = client.default_redirect_uri
         self.allowed_scopes = client.allowed_scopes.split()
         self.allowed_grants = client.allowed_grants.split()
+        self.token_endpoint_auth_method = 'none'
+
+        print('WAT    : REDIRECT_URIS - init    : %s' % self.redirect_uris)
 
 
 class Client2Form(BaseForm):
@@ -76,8 +48,11 @@ class Client2Form(BaseForm):
         client.name = self.name.data
         client.website = self.website.data
         client.is_confidential = self.is_confidential.data
-        client.redirect_uris = self.redirect_uris.data
-        client.default_redirect_uri = self.default_redirect_uri.data
+        client.redirect_uris = self.redirect_uris.data.splitlines()
+        client.token_endpoint_auth_method='none'
+        #client.default_redirect_uri = self.default_redirect_uri.data
+        print(self.redirect_uris.data)
+        print('WAT    : REDIRECT_URIS - update     : %s' % client.redirect_uris)
         client.allowed_scopes = ' '.join(self.allowed_scopes.data)
         client.allowed_grants = ' '.join(self.allowed_grants.data)
         with db.auto_commit():
@@ -94,6 +69,8 @@ class Client2Form(BaseForm):
         else:
             client_secret = ''
 
+        print('WAT    : REDIRECT_URIS - save    : %s' % self.redirect_uris.data)
+
         client = OAuth2Client(
             user_id=user.id,
             client_id=client_id,
@@ -105,8 +82,8 @@ class Client2Form(BaseForm):
             allowed_scopes=' '.join(self.allowed_scopes.data),
             allowed_grants=' '.join(self.allowed_grants.data),
         )
+        client.redirect_uris = self.redirect_uris.data.splitlines()
+        client.token_endpoint_auth_method='none'
         with db.auto_commit():
-            for a in db.session.query(OAuth2Client):
-                print('WAT:    ' + repr(a))
             db.session.add(client)
         return client

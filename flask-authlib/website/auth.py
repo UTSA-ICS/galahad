@@ -8,7 +8,6 @@ from .models import User, cache
 
 
 def login(user, permanent=True):
-    print('WAT    : user.id = ' + repr(user.id))
     session['sid'] = user.id
     session.permanent = permanent
     g.current_user = user
@@ -21,17 +20,14 @@ def logout():
 
 def get_current_user():
     user = getattr(g, 'current_user', None)
-    print('WAT    : getattr = ' + repr(user))
     if user:
         return user
 
     sid = session.get('sid')
-    print('WAT    : sid = ' + repr(sid))
     if not sid:
         return None
 
     user = User.query.get(sid)
-    print('WAT    : query = ' + repr(user))
     if not user:
         logout()
         return None

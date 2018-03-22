@@ -154,7 +154,8 @@ scopes = {
 
 # protect resource
 query_token = create_query_token_func(db.session, OAuth2Token)
-require_oauth = ResourceProtector(query_token=query_token)
+#require_oauth = ResourceProtector(query_token=query_token)
+require_oauth = ResourceProtector()
 
 
 def init_app(app):
