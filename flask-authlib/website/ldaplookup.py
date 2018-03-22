@@ -17,11 +17,11 @@ class LDAP():
         self.password = password
 
     def get_ldap_connection(self):
-        self.conn = ldap.ldapobject.ReconnectLDAPObject(LDAP_DATABASE_URI)
+        self.conn = ldap.initialize(LDAP_DATABASE_URI)
         self.conn.protocol_version = LDAP_PROTOCOL_VERSION
 
     def get_ad_connection(self):
-        self.conn = ldap.ldapobject.ReconnectLDAPObject(AD_DATABASE_URI)
+        self.conn = ldap.initialize(AD_DATABASE_URI)
         self.conn.protocol_version = LDAP_PROTOCOL_VERSION
         self.conn.set_option(ldap.OPT_REFERRALS, 0)
 
@@ -32,7 +32,7 @@ class LDAP():
             self.conn.simple_bind_s(dn, self.password)
         except:
             return False
-        return self.conn
+        return True
 
     def bind_ad(self):
         self.get_ad_connection()
@@ -40,7 +40,7 @@ class LDAP():
             self.conn.simple_bind_s(self.email, self.password)
         except:
             return False
-        return self.conn
+        return True
 
     def query_ldap(self, prop, prop_value):
         try:
