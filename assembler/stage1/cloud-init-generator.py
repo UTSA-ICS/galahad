@@ -1,16 +1,48 @@
 #!/usr/bin/env python
 
-import yaml
+# Generates cloud-init style yaml files that can be passed to a VM for proper config
+# Author: Stanislav Ponomarev
+# Email: stanislav.ponomarev@raytheon.com
+
+import sys, yaml, random, string
+
+REMOTE_SCRIPT='''
+docker ps
+while [ $? -eq 127 ]; do
+    echo "Waiting for docker"
+    sleep 1
+    docker ps
+done
+echo "{\"insecure-registries\": [ \"%s\" ]}" > /etc/docker/daemon.json
+service docker restart
+docker pull %s
+git clone https://github.com/starlab-io/docker-virtue.git
+cd docker-virtue/virtue
+echo '%s' > my_virtue.config
+SSHPUBKEY=$(cat /home/virtue/.ssh/authorized_keys) ./virtue start my_virtue.config
+'''
 
 
 class CloudInitUserData():
-    def __init__(self):
+    ''' Generates two yaml-like files for cloud-init startup
+        FYI Clud-init looks for these files in different sources. One such source
+        is a cd-rom. It's common to build an iso that contains these files to 
+        pass to a vm.
+    '''
+    def __init__(self, app_name):
         self.userdata = {'ssh_pwauth': True, 'repo_update': True}
-        self.metadata = {'instance-id': 'test-assembler-local-01', 'local-hostname': 'assembler-test-vm'}
+        self.metadata = {}
+        self._generate_metadata(app_name)
     
     def _ensure_key_exists(self, key, init_value = {}):
         if key not in self.userdata:
             self.userdata[key] = init_value
+
+    def _generate_metadata(self, app_name):
+        id_str = ''.join(random.choice(string.ascii_lowercase+string.digits) for _ in range(16))
+        self.metadata['local-hostname'] = 'virtue-'+app_name+'-'+id_str
+        self.metadata['instance-id'] = 'instance-'+id_str
+        
 
     def install_package(self, package):
         key = 'packages'
@@ -38,8 +70,15 @@ class CloudInitUserData():
         self._ensure_key_exists(key, [])
         entry = {}
         entry['path'] = destination
-        with open(source, 'rb') as f:
-            entry['content'] = f.read()
+        # decide if source is a file path or a script text
+        if '\n' in source: # if there are new lines, this is not a path
+            entry['content'] = source
+        elif os.path.sifile(source): # if it's a single line, see if file exists
+            with open(source, 'rb') as f:
+                entry['content'] = f.read()
+        else: # not a file and a single line... one-liner I guess...
+            entry['content'] = source
+
         if owner is not None:
             entry['owner'] = owner
         if permissions is not None:
@@ -70,8 +109,17 @@ class CloudInitUserData():
 
 
 if __name__ == '__main__':
-    ci = CloudInitUserData()
+    if len(sys.argv) != 3:
+        print("Usage: %s <app_name> <app_port>" % (sys.argv[0]))
+        sys.exit(1)
+    application_name = sys.argv[1]
+    application_port = sys.argv[2]
+    registry_host = '\"ajordan-desktop.bbn.com:5000\"' # has to have \" \"
+    docker_pull = 'ajordan-desktop.bbn.com:5000/virtue:virtue-'+application_name
+    config_string = application_name+'|'+application_port+'|'
 
+
+    ci = CloudInitUserData(application_name)
     ci.install_package('docker.io')
 
     key = 0
@@ -79,6 +127,8 @@ if __name__ == '__main__':
         key = f.read()
     ci.add_user('virtue', key)
 
-    ci.write_files('remote_script.sh', '/root/remote_script.sh', permissions='0700')
+    
+
+    ci.write_files(REMOTE_SCRIPT % (registry_host, docker_pull, config_string), '/root/remote_script.sh', permissions='0700')
     ci.run_cmd('/root/remote_script.sh')
     ci.save()
