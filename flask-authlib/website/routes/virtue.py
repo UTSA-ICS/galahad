@@ -197,3 +197,11 @@ def virtue_test():
     for arg in request.args:
         test += arg + ':' + request.args[arg] + '&'
     return test
+
+@bp.route('/connect/excalibur', methods=['GET'])
+@require_login
+def virtue_connect():
+    test = ''
+    for arg in request.args:
+        test += arg + ':' + request.args[arg] + '&'
+    return test
