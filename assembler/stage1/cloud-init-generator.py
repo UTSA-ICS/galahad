@@ -4,22 +4,36 @@
 # Author: Stanislav Ponomarev
 # Email: stanislav.ponomarev@raytheon.com
 
-import sys, yaml, random, string
+import yaml, random, string, argparse, os, subprocess
 
 REMOTE_SCRIPT='''
+#!/bin/bash
+
 docker ps
-while [ $? -eq 127 ]; do
+while [ $? -ne 0 ]; do
     echo "Waiting for docker"
     sleep 1
     docker ps
 done
-echo "{\"insecure-registries\": [ \"%s\" ]}" > /etc/docker/daemon.json
+python3 --version
+while [ $? -ne 0 ]; do
+    echo "Waiting for python"
+    sleep 1
+    python3 --version
+done
+pip3 --version
+while [ $? -ne 0 ]; do
+    echo "Waiting for pip"
+    sleep 1
+    pip3 --version
+done
 service docker restart
-docker pull %s
-git clone https://github.com/starlab-io/docker-virtue.git
-cd docker-virtue/virtue
-echo '%s' > my_virtue.config
-SSHPUBKEY=$(cat /home/virtue/.ssh/authorized_keys) ./virtue start my_virtue.config
+pip3 install docker
+%s
+cd /root
+tar xzf pack.tar.gz
+rm $0 # delete the password
+./run.py -p start %s
 '''
 
 
@@ -73,7 +87,7 @@ class CloudInitUserData():
         # decide if source is a file path or a script text
         if '\n' in source: # if there are new lines, this is not a path
             entry['content'] = source
-        elif os.path.sifile(source): # if it's a single line, see if file exists
+        elif os.path.isfile(source): # if it's a single line, see if file exists
             with open(source, 'rb') as f:
                 entry['content'] = f.read()
         else: # not a file and a single line... one-liner I guess...
@@ -90,14 +104,6 @@ class CloudInitUserData():
         self._ensure_key_exists(key, [])
         self.userdata[key].append(cmd)
 
-    #def grow_part(self, dev):
-    #    key='growpart'
-    #    self._ensure_key_exists(key, [])
-    #    entry = {'mode': 'auto'}
-    #    entry['devices'] = [dev]
-
-
-
     def save(self):
         with open('user-data', 'w') as f:
             f.write("#cloud-config\n")
@@ -109,26 +115,32 @@ class CloudInitUserData():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: %s <app_name> <app_port>" % (sys.argv[0]))
-        sys.exit(1)
-    application_name = sys.argv[1]
-    application_port = sys.argv[2]
-    registry_host = '\"ajordan-desktop.bbn.com:5000\"' # has to have \" \"
-    docker_pull = 'ajordan-desktop.bbn.com:5000/virtue:virtue-'+application_name
-    config_string = application_name+'|'+application_port+'|'
+    parser = argparse.ArgumentParser(description='Generate CloudInit data for virtue vm')
+    parser.add_argument('-d', '--docker-virtue', help='Path to Galahad Docker-Virtue virtue folder')
+    parser.add_argument('-l', '--docker-lovin', help='docker login command as a single string to login the docker registry')
+    parser.add_argument('container_name', nargs=1, help='What docker-virtue container to run on start')
+    args = parser.parse_args()
 
-
-    ci = CloudInitUserData(application_name)
+    ci = CloudInitUserData(args.container_name[0])
     ci.install_package('docker.io')
+    ci.install_package('python3')
+    ci.install_package('python3-pip')
 
     key = 0
     with open("id_rsa.pub", 'r') as f:
         key = f.read()
     ci.add_user('virtue', key)
 
-    
+    cwd = os.getcwd()
+    os.chdir(args.docker_virtue)
+    cmd = ['./run.py', '-r']
+    cmd.extend(['pack', args.container_name[0]])
+    print(' '.join(cmd))
+    subprocess.check_call(cmd)
+    os.chdir(cwd)
 
-    ci.write_files(REMOTE_SCRIPT % (registry_host, docker_pull, config_string), '/root/remote_script.sh', permissions='0700')
-    ci.run_cmd('/root/remote_script.sh')
+
+    ci.write_files(REMOTE_SCRIPT % (args.docker_login, args.container_name[0]), '/root/remote_script.sh', permissions='0700')
+    ci.write_files(os.path.join(args.docker_virtue, args.container_name[0]+'.tar.gz'), '/root/pack.tar.gz', permissions='0600')
+    ci.run_cmd(['/root/remote_script.sh'])
     ci.save()

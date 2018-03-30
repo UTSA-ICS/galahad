@@ -1,9 +1,8 @@
 #!/bin/bash
 
 IMG_FILE=$1
-APPLICATION_NAME=$2
-APPLICATION_PORT=$3
-
+CONTAINER_NAME=$2
+DOCKER_LOGIN=$3
 
 ISO_FILE=virtue.cloudinit.iso
 LOG_FILE=SERIAL.log
@@ -19,7 +18,7 @@ echo "Generating new keypair"
 ssh-keygen -N "" -f id_rsa
 
 echo "Generating cloud-init scripts"
-./cloud-init-generator.py $APPLICATION_NAME $APPLICATION_PORT
+./cloud-init-generator.py -d ../../../docker-virtue/virtue -l "$DOCKER_LOGIN"  $CONTAINER_NAME
 mkisofs -output $ISO_FILE  -volid cidata -joliet -rock meta-data user-data
 
 echo "Starting VM with cloud-init data..."

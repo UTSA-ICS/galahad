@@ -4,7 +4,7 @@
 
 This assembler stage adds data to the VM. Nothing is cleaned
 
-### Call ./run.sh path_to_qemu_image
+### Call ./run.sh image_file container_name "docker login from aws cli"
 
 The script does the following
 
@@ -14,5 +14,4 @@ The script does the following
     - Write user authorized key
 	- Run remote_script
 	    - checks out docker container
-		- git clones starlab's docker-virtue
-		- runs virtue start with appropriate docker image
+		- runs the container with appropriate apparmor/seccomp stuff
