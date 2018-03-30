@@ -117,7 +117,7 @@ class CloudInitUserData():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate CloudInit data for virtue vm')
     parser.add_argument('-d', '--docker-virtue', help='Path to Galahad Docker-Virtue virtue folder')
-    parser.add_argument('-l', '--docker-lovin', help='docker login command as a single string to login the docker registry')
+    parser.add_argument('-l', '--docker-login', help='docker login command as a single string to login the docker registry')
     parser.add_argument('container_name', nargs=1, help='What docker-virtue container to run on start')
     args = parser.parse_args()
 
