@@ -8,46 +8,33 @@ from ..forms.client import (
     Client2Form, OAuth2ClientWrapper
 )
 import json
-import boto3.ec2
 import time
+import aws
 from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
 from ..ldaplookup import LDAP
 
 bp = Blueprint('virtue', __name__)
 
-import boto3
-#import logging
-#boto3.set_stream_logger('botocore.credentials', logging.DEBUG)
-aws_image_id = 'ami-36a8754c' # see https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#LaunchInstanceWizard:
-aws_instance_type = 't2.small'
-aws_subnet_id='subnet-0b97b651'
-aws_key_name = 'valor-dev'
-aws_tag_key = 'Project'
-aws_tag_value = 'Virtue'
-aws_security_group = 'sg-3c8ccf4f'
-aws_vpc = 'vpc-5fcac526'
-aws_instance_profile_name = 'Virtue-Tester'
-aws_instance_profile_arn = 'arn:aws:iam::602130734730:instance-profile/Virtue-Tester'
-
-aws_state_to_virtue_state = {
+class Virtue:
+        aws_state_to_virtue_state = {
         'pending': 'CREATING',
         'running': 'RUNNING',
         'shutting-down': 'DELETING',
         'terminated': 'STOPPED',
         'stopping': 'STOPPING',
         'stopped': 'STOPPED'
-}
+        }
 
-## TRANSFER TO NEW MODELS/VIRTUE FILE FOR ORGANIZATION
-class Virtue:
-        id = ''
-        username = ''
-        roleId = ''
-        applicationIds = []
-        resourceIds = []
-        transducerIds = []
-        state = ''
-        ipAddress = ''
+        def __init__(self):
+                self.id = ''
+                self.username = ''
+                self.roleId = ''
+                self.applicationIds = []
+                self.resourceIds = []
+                self.transducerIds = []
+                self.state = ''
+                self.ipAddress = ''
+                self.awsClient = aws.AWS()
 
         def get_json(self):
                 return json.dumps({'id': self.id,
@@ -110,51 +97,10 @@ def virtue_create():
     virtue = Virtue()
     virtue.roleId = request.args['roleId']
 
-    #print 'AWS ACCESS KEY' + boto3.Session().get_credentials().access_key
-    #print 'AWS SECRET KEY' + boto3.Session().get_credentials().secret_key
-    ec2 = boto3.resource('ec2',region_name='us-east-1')
-    
-    res = ec2.create_instances(ImageId=aws_image_id,
-                             InstanceType=aws_instance_type,
-                             KeyName=aws_key_name,
-                             MinCount=1,
-                             MaxCount=1,
-                             Monitoring={'Enabled':False},
-                             SecurityGroupIds=[aws_security_group],
-                             SubnetId=aws_subnet_id,
-                             IamInstanceProfile={
-                                                 'Name':aws_instance_profile_name
-                                                },
-                             TagSpecifications=[
-				     {
-					 'ResourceType': 'instance',
-					 'Tags': [
-						  {
-						      'Key': 'Project',
-						      'Value': 'Virtue'
-						  },
-						 ]
-				     },
-				     {
-					 'ResourceType': 'volume',
-					 'Tags': [
-						  {
-						      'Key': 'Project',
-						      'Value': 'Virtue'
-						  },
-						 ]
-				     },
-                             ]
-                             )
-
-    instance = res[0]
-    virtue.id = instance.id
-
-    instance.wait_until_running()
-
-    virtue.ipAddress = instance.ip_address
-    virtue.state = aws_state_to_virtue_state.get(instance.state,
-            'UNKNOWN')
+    virtue.awsClient.instance_create()
+    virtue.id = virtue.awsClient.id
+    virtue.ipAddress = virtue.awsClient.ipAddress
+    virtue.state = virtue.aws_state_to_virtue_state.get(virtue.awsClient.state, 'UNKNOWN')
 
     return virtue.get_json()
 
