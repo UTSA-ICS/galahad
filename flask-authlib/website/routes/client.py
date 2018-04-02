@@ -35,6 +35,7 @@ def create_client(version):
 @require_login
 def edit_client(version, client_id):
     client = OAuth2Client.query.filter_by(client_id=client_id).first()
+    print('WAT    : REDIRECT_URIS - bp.route    : %s' % ''.join(client.redirect_uris))
     if not client or client.user_id != current_user.id:
         abort(404)
     form = Client2Form(obj=OAuth2ClientWrapper(client))

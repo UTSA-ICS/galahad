@@ -1,7 +1,7 @@
 import time
 from sqlalchemy import Column
 from sqlalchemy import (
-    Integer, String, Text
+    Integer, String, Text, Boolean
 )
 from authlib.flask.oauth2.sqla import (
     OAuth2ClientMixin,
@@ -19,7 +19,10 @@ class OAuth2Client(Base, OAuth2ClientMixin):
     user_id = Column(Integer, nullable=False)
     name = Column(String(48), nullable=False)
     website = Column(Text)
+    allowed_scopes = Column(Text, nullable=False, default='')
     allowed_grants = Column(Text)
+    is_confidential = Column(Boolean, nullable=False, default=False)
+    default_redirect_uri = Column(Text, nullable=False, default='')
 
     def check_response_type(self, response_type):
         grant_maps = {'code': 'authorization_code', 'token': 'implicit'}

@@ -8,7 +8,6 @@ from . import auth, routes
 def create_app(config=None):
     app = create_flask_app(config)
     db.init_app(app)
-    auth.init_app(app)
     oauth2.init_app(app)
     routes.init_app(app)
     register_hook(app)

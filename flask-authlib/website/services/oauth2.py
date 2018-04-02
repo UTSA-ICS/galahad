@@ -71,11 +71,13 @@ class ImplicitGrant(_ImplicitGrant):
 
 class PasswordGrant(_PasswordGrant):
     def authenticate_user(self, username, password):
+        print('WAT    : username=%s, password=%s' % (username, password))
         user = User.query.filter_by(email=username).first()
         if user.check_password(password):
             return user
 
     def create_access_token(self, token, client, user):
+        print('WAT    : create_access_token')
         item = OAuth2Token(
             client_id=client.client_id,
             user_id=user.id,
@@ -148,12 +150,12 @@ authorization.register_revoke_token_endpoint(RevocationEndpoint)
 # scopes definition
 scopes = {
     'email': 'Access to your email address.',
-    'connects': 'Access to your connected networks.'
 }
 
 # protect resource
 query_token = create_query_token_func(db.session, OAuth2Token)
-require_oauth = ResourceProtector(query_token=query_token)
+#require_oauth = ResourceProtector(query_token=query_token)
+require_oauth = ResourceProtector()
 
 
 def init_app(app):

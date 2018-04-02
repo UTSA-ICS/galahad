@@ -3,13 +3,15 @@ from flask import request
 from flask import Blueprint, url_for
 from flask import abort, redirect, render_template
 from ..auth import require_login, current_user
-from ..models import OAuth2Client
+from ..models import OAuth2Client, User
 from ..forms.client import (
     Client2Form, OAuth2ClientWrapper
 )
 import json
 import time
 import aws
+from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
+from ..ldaplookup import LDAP
 
 bp = Blueprint('virtue', __name__)
 
@@ -54,6 +56,9 @@ class Virtue:
 @require_login
 def application_get():
     print request.args['appId']
+    user = User.query.filter_by(email=current_user.email).first()
+    print current_user.conn
+    print user.conn
     return 'The Application with the given ID. Type: Application.'
 
 @bp.route('/user/role/get', methods=['GET'])
@@ -130,3 +135,11 @@ def virtue_application_stop():
     print request.args['virtId']
     print request.args['appId']
     return '0'
+
+@bp.route('/test', methods=['GET'])
+@require_login
+def virtue_test():
+    test = ''
+    for arg in request.args:
+        test += arg + ':' + request.args[arg] + '&'
+    return test
