@@ -1,0 +1,110 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "NonResourceBasedReadOnlyPermissions",
+            "Action": [
+                "ec2:Describe*",
+                "ec2:CreateSecurityGroup",
+                "iam:GetInstanceProfile",
+                "iam:ListInstanceProfiles"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Sid": "IAMPassRoleToInstance",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:iam::602130734730:role/Virtue-Tester"
+        },
+        {
+            "Sid": "AllowInstanceActions",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:RebootInstances",
+                "ec2:StopInstances",
+                "ec2:TerminateInstances",
+                "ec2:StartInstances",
+                "ec2:AttachVolume",
+                "ec2:DetachVolume",
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Resource": "arn:aws:ec2:us-east-1:602130734730:instance/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:InstanceProfile": "arn:aws:iam::602130734730:instance-profile/Virtue-Tester"
+                }
+            }
+        },
+        {
+            "Sid": "AllowVolumeAndSnapshotTagActions",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Resource": [
+                "arn:aws:ec2:us-east-1::snapshot/*",
+                "arn:aws:ec2:us-east-1:602130734730:volume/*"
+            ]
+        },
+        {
+            "Sid": "EC2RunInstances",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": "arn:aws:ec2:us-east-1:602130734730:instance/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:InstanceProfile": "arn:aws:iam::602130734730:instance-profile/Virtue-Tester"
+                }
+            }
+        },
+        {
+            "Sid": "EC2RunInstancesSubnet",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": "arn:aws:ec2:us-east-1:602130734730:subnet/*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:vpc": "arn:aws:ec2:us-east-1:602130734730:vpc/vpc-5fcac526"
+                }
+            }
+        },
+        {
+            "Sid": "RemainingRunInstancePermissions",
+            "Effect": "Allow",
+            "Action": "ec2:RunInstances",
+            "Resource": [
+                "arn:aws:ec2:us-east-1:602130734730:volume/*",
+                "arn:aws:ec2:us-east-1::image/*",
+                "arn:aws:ec2:us-east-1::snapshot/*",
+                "arn:aws:ec2:us-east-1:602130734730:network-interface/*",
+                "arn:aws:ec2:us-east-1:602130734730:key-pair/*",
+                "arn:aws:ec2:us-east-1:602130734730:security-group/*"
+            ]
+        },
+        {
+            "Sid": "AllowEFSPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "elasticfilesystem:CreateFileSystem",
+                "elasticfilesystem:CreateMountTarget"
+            ],
+            "Resource": "arn:aws:elasticfilesystem:us-west-2:account-id:file-system/*"
+        },
+        {
+            "Sid": "AllowEC2PermissionsForEFSOperations",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeSubnets",
+                "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

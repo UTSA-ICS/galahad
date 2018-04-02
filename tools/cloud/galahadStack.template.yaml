@@ -1,0 +1,384 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Sets up a single VPC multi subnet configuration for Galahad/VirtUE
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  NameSuffix:
+    Description: Suffix to add to all 'Name' tags for easy searching and viewing.
+    Type: String
+    MinLength: 1
+    MaxLength: 5
+    AllowedPattern: '^[a-zA-Z0-9]+$'
+Resources:
+  VirtUEVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 172.30.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-VPC'
+  VirtUEAdminSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.0.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnet'
+      VpcId: !Ref VirtUEVPC
+  VirtUEAdminADSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        VirtUE Security Group for the VirtUE AD Server on the Administration
+        Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminADSecGroup'
+      VpcId: !Ref VirtUEVPC
+  VirtueAdminADSecGroupEgressGeneralRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: General Traffic Out
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupEgressUserSecGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE User SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEUserSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupEgressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressTCPRDPRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: RemoteDesktop tcp
+      FromPort: 3389
+      IpProtocol: tcp
+      ToPort: 3389
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressUDPRDPRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: RemoteDesktop udp
+      FromPort: 3389
+      IpProtocol: udp
+      ToPort: 3389
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressAdminGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin SecGroup
+      SourceSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressUserGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking From VirtUE User SecGroup
+      SourceSecurityGroupId: !Ref VirtUEUserSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtUEAdminSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE Administration Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - Description: Allow Talking to VirtUE User Subnet
+          DestinationSecurityGroupId: !Ref VirtUEUserSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - Description: Allow Talking to VirtUE Admin AD Group
+          DestinationSecurityGroupId: !Ref VirtUEAdminADSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref VirtUEUserSecGroup
+          Description: Allow Talking From VirtUE User Group
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
+          Description: SSH Traffic In
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          Description: Excalibur Web Traffic In
+          FromPort: 8080
+          IpProtocol: tcp
+          ToPort: 8080
+        - Description: Allow Talking From VirtUE Admin AD Group
+          SourceSecurityGroupId: !Ref VirtUEAdminADSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSecGroup'
+      VpcId: !Ref VirtUEVPC
+  VirtUEUserSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.64.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnet'
+      VpcId: !Ref VirtUEVPC
+  VirtUEUserSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: SSH Traffic In
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSecGroup'
+      VpcId: !Ref VirtUEVPC
+  VirtueUserSecGroupEgressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+  VirtueUserSecGroupEgressAdminADRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin AD SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminADSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+  VirtueUserSecGroupIngressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin SecGroup
+      SourceSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+  VirtueUserSecGroupIngressAdminADRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin AD Group
+      SourceSecurityGroupId: !Ref VirtUEAdminADSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+  VirtUEUserStandBySecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Standby Instance Pool.
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserStandBySecGroup'
+      VpcId: !Ref VirtUEVPC
+  VirtUELoggingSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.128.0/18
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-LoggingSubnet'
+      VpcId: !Ref VirtUEVPC
+  VirtUELoggingSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE Logging Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-LoggingSecGroup'
+      VpcId: !Ref VirtUEVPC
+  VirtueInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-InternetGateway'
+  VirtueInternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref VirtueInternetGateway
+      VpcId: !Ref VirtUEVPC
+  VirtUEUserSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnetRT'
+  VirtUEUserSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref VirtUEUserSubnetRT
+      SubnetId: !Ref VirtUEUserSubnet
+  VirtUEUserSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEUserSubnetRT
+  VirtUEAdminSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnetRT'
+  VirtUEAdminSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+      SubnetId: !Ref VirtUEAdminSubnet
+  VirtUEAdminSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+  ExcaliburServer:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    Properties:
+      IamInstanceProfile: Virtue-Tester
+      ImageId: ami-7aff1c07
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref VirtUEAdminSecGroup
+      SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Excalibur'
+Outputs: {}
+
