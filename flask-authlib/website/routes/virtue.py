@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, Response
 
 from flask import Blueprint, url_for
 from flask import abort, redirect, render_template
@@ -78,7 +78,15 @@ def application_get():
 @require_login
 def role_get():
     print request.args['roleId']
-    return 'Information about the indicated Role. Type: Role'
+    print('WAT    : request = %s' % request)
+    #return 'Information about the indicated Role. Type: Role'
+
+    js = json.dumps({'status':'success'})
+    resp = Response(js, status=200, mimetype='application/json')
+    #resp = make_response()
+    resp.headers['status'] = 'success'
+    print('WAT    : response = %s' % resp)
+    return resp
 
 # TODO
 # user login (username, password)
