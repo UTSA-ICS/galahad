@@ -13,6 +13,7 @@ from authlib.specs.rfc6749.grants import (
     ClientCredentialsGrant as _ClientCredentialsGrant,
     RefreshTokenGrant as _RefreshTokenGrant,
 )
+from authlib.specs.rfc6750 import BearerTokenValidator
 from authlib.specs.rfc7009 import RevocationEndpoint as _RevocationEndpoint
 from werkzeug.security import gen_salt
 from ..models import (
@@ -152,9 +153,23 @@ scopes = {
     'email': 'Access to your email address.',
 }
 
+class MyBearerTokenValidator(BearerTokenValidator):
+    def authenticate_token(self, token_string):
+        print('WAT    : token_string = %s' % token_string)
+        return OAuth2Token.query.filter_by(access_token=token_string).first()
+
+    def request_invalid(self, request):
+        return False
+
+    def token_revoked(self, token):
+        token.revoked
+
 # protect resource
 query_token = create_query_token_func(db.session, OAuth2Token)
 #require_oauth = ResourceProtector(query_token=query_token)
+from authlib.flask.oauth2.sqla import create_bearer_token_validator
+BearerTokenValidator = create_bearer_token_validator(db.session, OAuth2Token)
+ResourceProtector.register_token_validator(BearerTokenValidator())
 require_oauth = ResourceProtector()
 
 

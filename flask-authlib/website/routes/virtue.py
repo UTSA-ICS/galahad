@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, Response
 
 from flask import Blueprint, url_for
 from flask import abort, redirect, render_template
@@ -12,6 +12,8 @@ import time
 import aws
 from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
 from ..ldaplookup import LDAP
+
+from ..services.oauth2 import require_oauth
 
 bp = Blueprint('virtue', __name__)
 
@@ -62,10 +64,19 @@ def application_get():
     return 'The Application with the given ID. Type: Application.'
 
 @bp.route('/user/role/get', methods=['GET'])
-@require_login
+#@require_login
+@require_oauth()
 def role_get():
     print request.args['roleId']
-    return 'Information about the indicated Role. Type: Role'
+    print('WAT    : request = %s' % request)
+    #return 'Information about the indicated Role. Type: Role'
+
+    js = json.dumps({'status':'success'})
+    resp = Response(js, status=200, mimetype='application/json')
+    #resp = make_response()
+    resp.headers['status'] = 'success'
+    print('WAT    : response = %s' % resp)
+    return resp
 
 # TODO
 # user login (username, password)
@@ -139,6 +150,14 @@ def virtue_application_stop():
 @bp.route('/test', methods=['GET'])
 @require_login
 def virtue_test():
+    test = ''
+    for arg in request.args:
+        test += arg + ':' + request.args[arg] + '&'
+    return test
+
+@bp.route('/connect/excalibur', methods=['GET'])
+@require_login
+def virtue_connect():
     test = ''
     for arg in request.args:
         test += arg + ':' + request.args[arg] + '&'
