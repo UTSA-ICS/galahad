@@ -38,9 +38,5 @@ else
   export FLASK_APP=app.py
   export FLASK_DEBUG=1
 
-  python app.py 5000
+  python app.py 5002
 fi
-#source /home/ubuntu/sso/galahad/flask-authlib/virtual/bin/activate
-#export FLASK_APP=app.py
-#export FLASK_DEBUG=1
-#flask run --host=0.0.0.0
