@@ -13,6 +13,8 @@ import aws
 from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
 from ..ldaplookup import LDAP
 
+from ..services.oauth2 import require_oauth
+
 bp = Blueprint('virtue', __name__)
 
 class Virtue:
@@ -62,7 +64,8 @@ def application_get():
     return 'The Application with the given ID. Type: Application.'
 
 @bp.route('/user/role/get', methods=['GET'])
-@require_login
+#@require_login
+@require_oauth()
 def role_get():
     print request.args['roleId']
     print('WAT    : request = %s' % request)
