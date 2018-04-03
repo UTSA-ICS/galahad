@@ -4,9 +4,16 @@
 *.ko
 *.swp
 *.bin
+*.iso
+*.img
+*.log
 tags
 GPATH
 GSYMS
 GTAGS
 TAGS
+id_rsa
+id_rsa.pub
+meta-data
+user-data
 
