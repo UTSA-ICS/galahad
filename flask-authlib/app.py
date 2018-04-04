@@ -2,7 +2,7 @@ import os
 import sys
 from website import create_app
 from website.models import db
-from OpenSSL import SSL
+import ssl
 
 app = None
 is_dev = bool(os.getenv('FLASK_DEBUG'))
@@ -30,14 +30,13 @@ def main():
     # proces command line arguments
     flask_port = int(sys.argv[1])
 
-    # TODO - Create a proper certificate.
-    #context = SSL.Context(SSL.SSLv23_METHOD)
-    #context.use_privatekey_file('flask_ssl.key')
-    #context.use_certificate_file('flask_ssl.crt')
+    # Use generated certs for SSL/HTTPS
+    # For SSLContext its better to use TLS rather than
+    # SSLv3 due to a POODLE vulnerability.
+    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    context.load_cert_chain('ssl/flask_ssl.cert', 'ssl/flask_ssl.key')
 
-    # Create a adhoc certificate for now.
-    context = 'adhoc'
-
+    # Run the flask server with appropriate options
     app.run(host='0.0.0.0', port=flask_port, debug=True, ssl_context=context)
  
 if __name__ == "__main__":
