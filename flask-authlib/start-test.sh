@@ -40,8 +40,9 @@ else
   export FLASK_APP=app.py
   export FLASK_DEBUG=1
 
-  if [ ! -f "website/sqlite.db" ]; then
-    # Update the SQLite DB file location in the config
+  # If database config file is not found then create it.
+  if [ ! -f "conf/dev.config.py" ]; then
+    # Specify the SQLite DB file's location in the generated config
     # Get the directory path without the 'flask-authlib' dir
     directory_path=$(sed 's/\/flask-authlib//' <<< $current_dir)
     # Now create the config file for the database.
@@ -51,6 +52,10 @@ else
 	SQLALCHEMY_DATABASE_URI = 'sqlite:///$directory_path/flask-authlib/website/sqlite.db'
 	OAUTH_CACHE_DIR = '_cache'
 	EOF
+  fi
+
+  # If database does not exist then intialize it
+  if [ ! -f "website/sqlite.db" ]; then
     # Initialize the database.
     flask initdb
   fi
