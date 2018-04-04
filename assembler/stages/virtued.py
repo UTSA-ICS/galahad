@@ -9,11 +9,10 @@ class DockerVirtueStage(CIStage):
     USER_SCRIPT = '''#!/bin/bash
         pip3 install docker
         cd /home/virtue
-        su - virtue
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         %s
-        ./run.py -p start %s'''
+        ./run.py -pr start %s'''
 
     def run(self):
         if not self._has_run:

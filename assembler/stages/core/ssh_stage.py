@@ -29,7 +29,7 @@ class SSHStage():
                 self._cloudinit_is_done = True
             except subprocess.CalledProcessError as e:
                 if e.returncode == 1: # grep didn't match regex
-                    print("Waiting for grep to find finish... status: %s" % (e.returncode))
+                    print("Waiting for cloud-init to finish setup...")
                     self._cloudinit_is_done = False
                     sleep(5)
                 else:

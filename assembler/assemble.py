@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--start-vm', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
-    parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
+    parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
     parser.add_argument('-c', '--clean', action='store_true', help='Clean the working directory when done')
     parser.add_argument('containers', nargs='*', help='Docker container names that docker-virtue repository supports')
     args = parser.parse_args()
