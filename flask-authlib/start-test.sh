@@ -1,5 +1,16 @@
 #!/bin/bash
 
+PORT=""
+if [ "$#" -ne 1 ]; then
+  echo "#########################################################################################"
+  echo "ERROR: No Port number specified. Please pass in flask PORT! .e.g. 5000, 5002 etc."
+  echo "#########################################################################################"
+  exit
+else
+  PORT=$1
+  echo "Port to be used is $PORT"
+fi
+
 # Get the current directory
 current_dir=$(pwd)
 # Now get the last field in the directory structure - This should be
@@ -22,21 +33,27 @@ else
     virtualenv venv
     source ./venv/bin/activate
     pip install -r ./requirements.txt
-    # These are needed to initialize flask's database
-    export FLASK_APP=app.py
-    export FLASK_DEBUG=1
-    # Update the SQLite DB file location in the config
-    # Get the directory path without the 'flask-authlib' dir
-    directory_path=$(sed 's/\/flask-authlib//' <<< $current_dir)
-    # Now replace the placeholders with the correct directory location
-    $(sed -i 's,/<USER_HOME_DIR>\/<GALAHAD_HOME_DIR>,'"$directory_path"',' $current_dir/conf/dev.config.py)
-    # Initialize the database.
-    flask initdb
   fi
-
+  # Source the virtual environment
   source ./venv/bin/activate
+  # These are needed to initialize flask's database
   export FLASK_APP=app.py
   export FLASK_DEBUG=1
 
-  python app.py 5002
+  if [ ! -f "website/sqlite.db" ]; then
+    # Update the SQLite DB file location in the config
+    # Get the directory path without the 'flask-authlib' dir
+    directory_path=$(sed 's/\/flask-authlib//' <<< $current_dir)
+    # Now create the config file for the database.
+    mkdir -p conf
+    cat <<-EOF > conf/dev.config.py
+	SECRET_KEY = 'your_secret'
+	SQLALCHEMY_DATABASE_URI = 'sqlite:///$directory_path/flask-authlib/website/sqlite.db'
+	OAUTH_CACHE_DIR = '_cache'
+	EOF
+    # Initialize the database.
+    flask initdb
+  fi
+ 
+  python app.py $PORT
 fi
