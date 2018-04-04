@@ -4,37 +4,7 @@
 # Author: Stanislav Ponomarev
 # Email: stanislav.ponomarev@raytheon.com
 
-import yaml, random, string, argparse, os, subprocess
-
-REMOTE_SCRIPT='''
-#!/bin/bash
-
-docker ps
-while [ $? -ne 0 ]; do
-    echo "Waiting for docker"
-    sleep 1
-    docker ps
-done
-python3 --version
-while [ $? -ne 0 ]; do
-    echo "Waiting for python"
-    sleep 1
-    python3 --version
-done
-pip3 --version
-while [ $? -ne 0 ]; do
-    echo "Waiting for pip"
-    sleep 1
-    pip3 --version
-done
-service docker restart
-pip3 install docker
-%s
-cd /root
-tar xzf pack.tar.gz
-rm $0 # delete the password
-./run.py -p start %s
-'''
+import yaml, random, string, os, subprocess
 
 
 class CloudInitUserData():
@@ -43,19 +13,20 @@ class CloudInitUserData():
         is a cd-rom. It's common to build an iso that contains these files to 
         pass to a vm.
     '''
-    def __init__(self, app_name):
+    USERDATA_FILENAME = 'user-data'
+    METADATA_FILENAME = 'meta-data'
+
+    def __init__(self):
         self.userdata = {'ssh_pwauth': True, 'repo_update': True}
         self.metadata = {}
-        self._generate_metadata(app_name)
     
     def _ensure_key_exists(self, key, init_value = {}):
         if key not in self.userdata:
             self.userdata[key] = init_value
 
-    def _generate_metadata(self, app_name):
-        id_str = ''.join(random.choice(string.ascii_lowercase+string.digits) for _ in range(16))
-        self.metadata['local-hostname'] = 'virtue-'+app_name+'-'+id_str
-        self.metadata['instance-id'] = 'instance-'+id_str
+    def _set_metadata(self, host_name, instance_id):
+        self.metadata['local-hostname'] = host_name
+        self.metadata['instance-id'] = instance_id
         
 
     def install_package(self, package):
@@ -104,43 +75,24 @@ class CloudInitUserData():
         self._ensure_key_exists(key, [])
         self.userdata[key].append(cmd)
 
-    def save(self):
-        with open('user-data', 'w') as f:
+    def save(self, out_dir):
+        with open(os.path.join(out_dir, self.USERDATA_FILENAME), 'w') as f:
             f.write("#cloud-config\n")
             f.write(yaml.dump(self.userdata))
-        with open('meta-data', 'w') as f:
+        with open(os.path.join(out_dir, self.METADATA_FILENAME), 'w') as f:
             f.write(yaml.dump(self.metadata))
-        
 
+    def load(self, in_dir):
+        userdata_path = os.path.join(in_dir, self.USERDATA_FILENAME)
+        metadata_path = os.path.join(in_dir, self.METADATA_FILENAME)
+        with open(userdata_path, 'r') as f:
+            self.userdata = yaml.load(f)
+        with open(metadata_path, 'r') as f:
+            self.metadata = yaml.load(f)
 
+    def userdata_exists(self, in_dir):
+        return os.path.exists(os.path.join(in_dir, self.USERDATA_FILENAME))
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate CloudInit data for virtue vm')
-    parser.add_argument('-d', '--docker-virtue', help='Path to Galahad Docker-Virtue virtue folder')
-    parser.add_argument('-l', '--docker-login', help='docker login command as a single string to login the docker registry')
-    parser.add_argument('container_name', nargs=1, help='What docker-virtue container to run on start')
-    args = parser.parse_args()
-
-    ci = CloudInitUserData(args.container_name[0])
-    ci.install_package('docker.io')
-    ci.install_package('python3')
-    ci.install_package('python3-pip')
-
-    key = 0
-    with open("id_rsa.pub", 'r') as f:
-        key = f.read()
-    ci.add_user('virtue', key)
-
-    cwd = os.getcwd()
-    os.chdir(args.docker_virtue)
-    cmd = ['./run.py', '-r']
-    cmd.extend(['pack', args.container_name[0]])
-    print(' '.join(cmd))
-    subprocess.check_call(cmd)
-    os.chdir(cwd)
-
-
-    ci.write_files(REMOTE_SCRIPT % (args.docker_login, args.container_name[0]), '/root/remote_script.sh', permissions='0700')
-    ci.write_files(os.path.join(args.docker_virtue, args.container_name[0]+'.tar.gz'), '/root/pack.tar.gz', permissions='0600')
-    ci.run_cmd(['/root/remote_script.sh'])
-    ci.save()
+    def metadata_exists(self, in_dir):
+        return os.path.exists(os.path.join(in_dir, self.METADATA_FILENAME))
+    
