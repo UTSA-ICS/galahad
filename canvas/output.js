@@ -271,6 +271,8 @@ function login(e) {
     loginMsg.classList.add(color);
 }
 function check_oauth(e) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
   var msg = '';
   var color = 'admin';
   var loginMsg = document.getElementById('loginMsg');
@@ -297,12 +299,25 @@ function check_oauth(e) {
   var iframe = document.createElement("iframe");
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
   iframe.style.background = "white";
+  iframe.setAttribute("seamless", true);
+  iframe.setAttribute("width", "100%");
+  iframe.setAttribute("height", "100%");
 
   app.get("/excalibur_callback", function (req, res) {
     console.log('/callback');
-    //iframe.parentElement.removeChild(iframe)
+    iframe.parentElement.removeChild(iframe)
     console.log(req.query);
     res.end(JSON.stringify(req.query, null, 2));
+
+    if (req.query.hasOwnProperty('access_token')) {
+      login.classList.remove('fadeIn');
+      login.classList.add('fadeOut');
+      dockWrapper.style.display = 'flex';
+      msg = 'Welcome';
+      color = 'viewer';
+    } else {
+      console.log('error - error_description');
+    }
   });
 
   app.listen(3000, function() {
@@ -310,13 +325,7 @@ function check_oauth(e) {
   });
 
   login.parentElement.appendChild(iframe);
-
-  login.classList.remove('fadeIn');
-  login.classList.add('fadeOut');
   setTimeout(function () {
       login.parentElement.removeChild(login);
   }, 300);
-  dockWrapper.style.display = 'flex';
-  msg = 'Welcome';
-  color = 'viewer';
 }
