@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 
 
-import argparse, os, subprocess, sys, re
+import argparse, os, subprocess, sys, re, shutil
 
 from stages.user import UserStage
 from stages.apt import AptStage
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
     parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
-    parser.add_argument('-c', '--clean', action='store_true', help='Clean the working directory when done')
+    parser.add_argument('-c', '--clean', action='store_true', help='Clean the working directory when done. WARNING! This will delete the generated RSA Keys')
     parser.add_argument('containers', nargs='*', help='Docker container names that docker-virtue repository supports')
     args = parser.parse_args()
 
@@ -43,6 +43,9 @@ if __name__ == '__main__':
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete
     #stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
+    
+    if not os.path.exists(WORK_DIR):
+        os.makedirs(WORK_DIR)
 
     for stage in stage_dict:
         if isinstance(stage_dict[stage], CIStage):
@@ -76,6 +79,9 @@ if __name__ == '__main__':
     for stage in stage_dict:
         if isinstance(stage_dict[stage], SSHStage):
             run_stage(stage_dict, stage)
+
+    if args.clean:
+        shutil.rmtree(WORK_DIR)
 
     print("Assembler is done")
 
