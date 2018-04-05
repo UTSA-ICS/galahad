@@ -1,0 +1,13 @@
+{
+  "server": {
+    "protocol": "http",
+    "host": "canvas.com:3000"
+  },
+  "excalibur": {
+    "authorize_url": "https://172.30.1.44:5000/oauth2/authorize",
+    "access_url": "https://172.30.1.44:5000/oauth2/token",
+    "oauth": 2,
+    "key": "I2VQgbxO8FgBl1aEgFr2lc6OMEMm35kc9ksEgeGXChjU6AOq",
+    "callback": "/excalibur_callback"
+  }
+}
