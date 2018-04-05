@@ -7,7 +7,7 @@ I use the **SDK**.
 
 The following route needs to be added to the local hosts file:
 
-  127.0.0.1    canvas.com
+`  127.0.0.1    canvas.com`
 
 ## To start app with appropriate flags:
 CD to your NW.js app and run:
