@@ -3,6 +3,12 @@
 Get [NW.js](https://nwjs.io) by clicking one of the blue buttons at the top.
 I use the **SDK**.
 
+## Config requirements:
+
+The following route needs to be added to the local hosts file:
+
+  127.0.0.1    canvas.com
+
 ## To start app with appropriate flags:
 CD to your NW.js app and run:
 
