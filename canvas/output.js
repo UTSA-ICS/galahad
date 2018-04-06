@@ -270,3 +270,62 @@ function login(e) {
     loginMsg.className = ''; // Clear out old color
     loginMsg.classList.add(color);
 }
+function check_oauth(e) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+  var msg = '';
+  var color = 'admin';
+  var loginMsg = document.getElementById('loginMsg');
+  var login = document.getElementById('login');
+  var dockWrapper = document.getElementById('dockWrapper');
+  var win = document.getElementById('oauth2');
+
+  var express = require('express')
+    , logger = require('morgan')
+    , session = require('express-session');
+  var Grant = require('grant-express')
+    , grant = new Grant(require('./config.json'));
+  var app = express();
+  //var favicon = require('serve-favicon');
+  app.use(logger('dev'));
+  app.use(session({secret: 'grant',
+                   resave: true,
+                   saveUninitialized: true}));
+  app.use(grant);
+  //app.use(favicon("./assets/img/virtue.png"));
+
+  //window.open("http://canvas.com:3000/connect/excalibur");
+
+  var iframe = document.createElement("iframe");
+  iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
+  iframe.style.background = "white";
+  iframe.setAttribute("seamless", true);
+  iframe.setAttribute("width", "100%");
+  iframe.setAttribute("height", "100%");
+
+  app.get("/excalibur_callback", function (req, res) {
+    console.log('/callback');
+    iframe.parentElement.removeChild(iframe)
+    console.log(req.query);
+    res.end(JSON.stringify(req.query, null, 2));
+
+    if (req.query.hasOwnProperty('access_token')) {
+      login.classList.remove('fadeIn');
+      login.classList.add('fadeOut');
+      dockWrapper.style.display = 'flex';
+      msg = 'Welcome';
+      color = 'viewer';
+    } else {
+      console.log('error - error_description');
+    }
+  });
+
+  app.listen(3000, function() {
+    console.log('Express server listening on port ' + 3000);
+  });
+
+  login.parentElement.appendChild(iframe);
+  setTimeout(function () {
+      login.parentElement.removeChild(login);
+  }, 300);
+}

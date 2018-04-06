@@ -1,7 +1,8 @@
 // initialize app
 // and ...
+
 nw.Window.open('index.html', {}, function(win) {
-  
+
 });
 
 // Create a tray icon
