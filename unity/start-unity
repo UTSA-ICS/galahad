@@ -1,0 +1,16 @@
+#!/bin/bash
+
+case $1 in
+	start)
+		UNITY=${2:-$(pwd)/artful-server-cloudimg-amd64.img}
+		kvm \
+			-cdrom $(pwd)/cloud-seed.iso \
+			-m 1024 \
+			-smp 1 \
+			-vnc :10 \
+			-serial stdio \
+			-device e1000,netdev=user.0 \
+			-netdev user,id=user.0,hostfwd=tcp::5555-:22 \
+			-drive file=${UNITY},if=virtio,cache=writeback,index=0
+		;;
+esac
