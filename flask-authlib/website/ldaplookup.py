@@ -90,7 +90,7 @@ class LDAP():
                     '({0}={1})'.format( identifier, obj[identifier] ) )
 
             for i in r:
-                if( identifier in i[1].split(',')[0] )
+                if( identifier in i[1].split(',')[0] ):
                     # Object with identifier already exists
                     return 22 # EINVAL
 
