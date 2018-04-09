@@ -1,0 +1,11 @@
+# Requirements for galahad flask server
+
+flask
+flask_sqlalchemy
+python_ldap == 2.5.2
+authlib
+wtforms
+flask_wtf
+boto3
+pyopenssl
+Authlib
