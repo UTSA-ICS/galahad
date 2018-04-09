@@ -14,6 +14,7 @@ from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
 from ..ldaplookup import LDAP
 
 from ..services.oauth2 import require_oauth
+from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
@@ -68,7 +69,9 @@ def application_get():
 @require_oauth()
 def role_get():
     print request.args['roleId']
-    print('WAT    : request = %s' % request)
+    user = User.query.filter_by(id=current_token.user_id).first()
+    print ('WAT    : user = %s' % user)
+    print ('WAT    : user email = %s' % user.email)
     #return 'Information about the indicated Role. Type: Role'
 
     js = json.dumps({'status':'success'})
