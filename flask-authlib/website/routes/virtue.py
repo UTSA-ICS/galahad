@@ -35,7 +35,6 @@ def make_response(message, status):
 def get_user():
     user = User.query.filter_by(id=current_token.user_id).first()
     user = user.email.replace('@virtue.com', '')
-    print user
     return user
 
 
