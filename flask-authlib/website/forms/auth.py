@@ -10,9 +10,9 @@ from ..models import User
 from ..auth import login
 
 
+## FOR LATER CLEANUP - RELIC OF AUTHORIZE CONFIRMATION FIELD
 class ConfirmForm(BaseForm):
-    confirm = BooleanField()
-
+    pass
 
 class LoginConfirmForm(ConfirmForm):
     email = EmailField(validators=[DataRequired()])
@@ -24,5 +24,4 @@ class LoginConfirmForm(ConfirmForm):
         if not user or not user.check_password(field.data):
             raise StopValidation('Email or password is invalid.')
 
-        if self.confirm.data:
-            login(user, False)
+        login(user, False)
