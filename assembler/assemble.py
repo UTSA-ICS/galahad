@@ -8,7 +8,7 @@ from stages.virtued import DockerVirtueStage
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
 
-from stages.demo import DemoStage
+from stages.kernel import KernelStage
 from stages.shutdown import ShutdownStage
 
 WORK_DIR = 'tmp/' # where all the generated files will live
@@ -39,10 +39,10 @@ if __name__ == '__main__':
     stage_dict[UserStage.NAME] = UserStage(args, WORK_DIR)
     stage_dict[AptStage.NAME] = AptStage(args, WORK_DIR)
     stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
-    stage_dict[DemoStage.NAME] = DemoStage(args, WORK_DIR)
+    stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete
-    #stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
+    stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
     
     if not os.path.exists(WORK_DIR):
         os.makedirs(WORK_DIR)
