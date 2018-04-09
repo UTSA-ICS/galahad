@@ -44,8 +44,13 @@ class EndPoint():
                 data[ k[ 1:len(k) ] ] = data.pop(k)
 
         for k in data.keys():
-            if( k not in entries_with_lists and type( data[k] ) == list ):
+            if( k not in entries_with_lists
+                and type( data[k] ) == list ):
                 data[k] = data[k][0]
+            elif( k in entries_with_lists
+                  and type( data[k] ) == list
+                  and data[k][0] == '[]' ):
+                data[k] = []
 
     @staticmethod
     def to_ldap( data, objectClass ):
@@ -105,7 +110,7 @@ class EndPoint():
 
             if( DEBUG_PERMISSIONS ):
                 return json.dumps(app)
-        
+
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj( 'cid', roleId, 'openLDAProle' )
                 if( role == None or role == () ):
@@ -235,8 +240,10 @@ class EndPoint():
             if( roleId not in user['authorizedRoleIds'] ):
                 return json.dumps( ErrorCodes.user['userNotAuthorizedForRole'] )
 
-            with self.inst.get_obj( 'roleId', roleId, 'OpenLDAPvirtue', True ) as virtue_test:
-                if( virtue_test != () ):
+            curr_virtues = self.inst.get_objs_of_type( 'OpenLDAPvirtue' )
+            for v in curr_virtues:
+                self.parse_ldap(v[1])
+                if( v[1]['username'] == username and v[1]['roleId'] == roleId ):
                     return json.dumps( ErrorCodes.user['virtueAlreadyExistsForRole'] )
 
             for rid in role['startingResourceIds']:
