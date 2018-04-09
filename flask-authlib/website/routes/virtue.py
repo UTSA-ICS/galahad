@@ -16,6 +16,7 @@ import time
 import aws
 
 from ..services.oauth2 import require_oauth
+from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
