@@ -31,7 +31,7 @@ function check_result() {
   for i in "${@}"; do
     result="$result $i"
   done
-  echo "ERROR: $result"
+  echo "RESULT: $result"
 }
 
 # role_get
@@ -40,8 +40,8 @@ API_PARAMETER="Test"
 echo "#########################"
 echo "Test [role get]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
@@ -52,8 +52,8 @@ API_PARAMETER=""
 echo "#########################"
 echo "Test [role list]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
@@ -64,107 +64,120 @@ API_PARAMETER=""
 echo "#########################"
 echo "Test [virtue list]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
 # virtue_get
 API_CALL="virtue/user/virtue/get?virtueId="
-API_PARAMETER="Test"
+API_PARAMETER="TestVirtue2"
 echo "#########################"
 echo "Test [virtue get]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
-# virtue_create
+# virtue_create - Existing Virtue
 API_CALL="virtue/user/virtue/create?roleId="
 API_PARAMETER="Test"
 echo "#########################"
-echo "Test [virtue create]"
+echo "Test [virtue create - Existing Virtue]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
+# virtue_create - New Virtue
+API_CALL="virtue/user/virtue/create?roleId="
+API_PARAMETER="EmptyRole"
+echo "#########################"
+echo "Test [virtue create - New Virtue]"
+echo "#########################"
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
+check_result $result
+echo ""
+echo ""
+
+
 # virtue_launch
 API_CALL="virtue/user/virtue/launch?virtueId="
-API_PARAMETER="Test"
+API_PARAMETER="TestVirtue2"
 echo "#########################"
 echo "Test [virtue launch]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
 # virtue_stop
 API_CALL="virtue/user/virtue/stop?virtueId="
-API_PARAMETER="Test"
+API_PARAMETER="TestVirtue2"
 echo "#########################"
 echo "Test [virtue stop]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
 # virtue_destroy
 API_CALL="virtue/user/virtue/destroy?virtueId="
-API_PARAMETER="Test"
+API_PARAMETER="TestVirtue2"
 echo "#########################"
 echo "Test [virtue destroy]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
 # application_get
 API_CALL="virtue/user/application/get?appId="
-API_PARAMETER="Test"
+API_PARAMETER="firefox1"
 echo "#########################"
 echo "Test [application get]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER')
 check_result $result
 echo ""
 echo ""
 
 # application_launch
 API_CALL="virtue/user/application/launch?appId="
-API_PARAMETER="Test"
+API_PARAMETER="firefox1"
 API_CALL2="&virtueId="
-API_PARAMETER2="Test"
+API_PARAMETER2="TestVirtue2"
 echo "#########################"
 echo "Test [application launch]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2')
 check_result $result
 echo ""
 
 # application_stop
 API_CALL="virtue/user/application/stop?appId="
-API_PARAMETER="Test"
+API_PARAMETER="firefox1"
 API_CALL2="&virtueId="
-API_PARAMETER2="Test"
+API_PARAMETER2="TestVirtue2"
 echo "#########################"
 echo "Test [application stop]"
 echo "#########################"
-echo "$CURL_CMD$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2"
-result=$(eval $CURL_CMD$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2)
+echo "$CURL_CMD'$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2'"
+result=$(eval $CURL_CMD'$URL$API_CALL$API_PARAMETER$API_CALL2$API_PARAMETER2')
 check_result $result
 echo ""
 echo ""
