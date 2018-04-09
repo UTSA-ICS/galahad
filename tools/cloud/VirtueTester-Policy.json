@@ -42,6 +42,13 @@
             "Resource": "*"
         },
         {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:*"
+            ],
+            "Resource": "*"
+        },
+        {
             "Sid": "AllowInstanceActions",
             "Effect": "Allow",
             "Action": [
@@ -144,7 +151,8 @@
                 "s3:ListBucket"
             ],
             "Resource": [
-                "arn:aws:s3:::dl.starlab.io"
+                "arn:aws:s3:::dl.starlab.io",
+                "arn:aws:s3:::cf-templates-u2xzux3f0psi-us-east-1"
             ],
             "Condition": {
                 "StringEquals": {
@@ -182,7 +190,8 @@
                 "s3:*"
             ],
             "Resource": [
-                "arn:aws:s3:::dl.starlab.io/galahad/*"
+                "arn:aws:s3:::dl.starlab.io/galahad/*",
+                "arn:aws:s3:::cf-templates-u2xzux3f0psi-us-east-1/*"
             ]
         },
         {
