@@ -2,8 +2,6 @@
 {% from "macros.html" import render_form %}
 
 {% block form %}
-  <h2>Authorization</h2>
-  <p>Client <strong>{{ client.name }}</strong> is requesting:</p>
   {% if scopes is defined and grant.scopes %}
     <ul>
       <li>Access to public resources.</li>

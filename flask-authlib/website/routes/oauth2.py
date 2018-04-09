@@ -14,15 +14,13 @@ bp = Blueprint('oauth2', __name__)
 def authorize():
     if current_user:
         form = ConfirmForm()
+        print('WAT    : ConfirmForm() form = %s' % form)
     else:
         form = LoginConfirmForm()
+        print('WAT    : LoginConfirmForm() form = %s' % form)
 
     if form.validate_on_submit():
-        if form.confirm.data:
-            # granted by current user
-            grant_user = current_user
-        else:
-            grant_user = None
+        grant_user = current_user
         return authorization.create_authorization_response(grant_user)
     try:
         grant = authorization.validate_authorization_request()
