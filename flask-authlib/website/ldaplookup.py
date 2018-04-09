@@ -1,9 +1,11 @@
 import ldap
+import ldap.modlist
 
 LDAP_DATABASE_URI = "ldap://ip-172-30-1-44.ec2.internal"
 AD_DATABASE_URI = "ldap://EC2AMAZ-UPCI42G.virtue.com"
 LDAP_PROTOCOL_VERSION = 3
 LDAP_QUERY_DN = "dc=canvas,dc=virtue,dc=com"
+LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
 AD_QUERY_DN = "ou=virtue,dc=virtue,dc=com"
 
 class LDAP():
@@ -41,6 +43,96 @@ class LDAP():
         except:
             return False
         return True
+
+    def get_obj(self, prop, prop_value, objectClass=None, throw_error=False):
+
+        try:
+            search_str = '({0}={1})'.format( prop, prop_value )
+
+            if( objectClass != None ):
+                search_str = '(&{0}(objectClass={1}))'.format( search_str, objectClass )
+
+            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str )
+
+            #for k in r[0][1].keys():
+            #    print( "{0}, {1}".format( k, r[0][1][k] ) )
+
+            if(len(r) == 0):
+                return ()
+
+            return r[0][1]
+        except Exception as e:
+            print("Error: {0}".format(e))
+            # Send error to calling function if indicated
+            if( throw_error ):
+                raise e
+            return None
+
+    def get_objs_of_type(self, objectClass):
+
+        try:
+            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    '(objectClass={0})'.format( objectClass ) )
+
+            return r
+        except Exception as e:
+            print("Error: {0}".format(e))
+            return None
+
+    def add_obj(self, obj, parent_rdn, identifier, throw_error=False):
+
+        try:
+            if( identifier not in obj ):
+                return 22 # EINVAL
+
+            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    '({0}={1})'.format( identifier, obj[identifier] ) )
+
+            for i in r:
+                if( identifier in i[1].split(',')[0] )
+                    # Object with identifier already exists
+                    return 22 # EINVAL
+
+            modlist = ldap.modlist.addModlist( obj )
+
+            self.conn.add_s( '{0}={1},cn={2},{3}'.format( identifier, obj[identifier], parent_rdn, LDAP_VIRTUE_DN ), modlist )
+
+            return 0 # Success!
+
+        except Exception as e:
+            print("Error: {0}".format(e))
+            # Send error to calling function if indicated
+            if( throw_error ):
+                raise e
+            return None
+
+    def del_obj(self, prop, prop_value, objectClass=None, throw_error=False):
+
+        try:
+            search_str = '({0}={1})'.format( prop, prop_value )
+
+            if( objectClass != None ):
+                search_str = '(&{0}(objectClass={1}))'.format( search_str, objectClass )
+
+            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str )
+
+            if( len(r) != 1 ):
+                # We only want to delete it if there's no
+                # possibility that we're referring to the wrong object.
+                return 22 # Error EINVAL
+
+            dn = r[0][0]
+            self.conn.delete_s( dn )
+
+            return 0 # Success
+        except Exception as e:
+            print("Error: {0}".format(e))
+            # Send error to calling function if indicated
+            if( throw_error ):
+                raise e
+            return None
 
     def query_ldap(self, prop, prop_value):
         try:
