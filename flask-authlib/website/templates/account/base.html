@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  <style>
+    .account{max-width:480px;margin-top:100px}
+    .account-info{margin-top:60px;font-size:.86em}
+  </style>
+{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block body %}
+  <div class="account inner">
+    <h1>VirtUE Excalibur</h1>
+    <div class="account-form">
+      {% block form %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

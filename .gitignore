@@ -16,4 +16,9 @@ id_rsa
 id_rsa.pub
 meta-data
 user-data
-
+flask-authlib/conf/*
+flask-authlib/venv/*
+flask-authlib/website/sqlite.db
+kernel-source
+artful-server-cloudimg-amd64.img
+lsm

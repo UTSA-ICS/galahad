@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>{% block title %}VirtUE Excalibur{% endblock %}</title>
+  <link rel="shortcut icon" href="//authlib.org/favicon.ico">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,700">
+  {% for src in assets.base.styles %}
+    <link rel="stylesheet" href="{{ src }}">
+  {% endfor %}
+  {% block extrahead %}{% endblock %}
+</head>
+<body>
+{% block nav %}
+  <header class="head" style="margin-top:80px">
+    <div class="inner">
+      <h1>VirtUE Excalibur</h1>
+      {% if current_user %}
+        <nav>
+          <a href="/">Home</a>
+          <a href="{{ url_for('client.list_clients') }}">Apps</a>
+        </nav>
+      {% endif %}
+    </div>
+  </header>
+{% endblock %}
+{% block body %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends "account/base.html" %}
+{% from "macros.html" import render_form %}
+
+{% block form %}
+  {% if scopes is defined and grant.scopes %}
+    <ul>
+      <li>Access to public resources.</li>
+      {% for scope in grant.scopes %}
+        <li>{{ scopes[scope] }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <form action="" method="post">
+    {{ render_form(form) }}
+    <button class="btn">Authorize</button>
+  </form>
+{% endblock %}

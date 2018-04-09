@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block body %}
+  <section class="section">
+    <div class="inner">
+      {% if current_user %}
+        <p>You are logged in as <strong>{{ current_user.name }}</strong></p>
+        <div class="account_actions">
+          <a href="{{ url_for('account.logout') }}" class="btn">Log Out</a>
+          <a href="{{ url_for('client.list_clients') }}" class="btn">Apps</a>
+        </div>
+      {% else %}
+        <p>You need to log in to access Excalibur Resources.</p>
+        <div class="account_actions">
+          <a href="{{ url_for('account.login') }}" class="btn">Log In</a>
+        </div>
+      {% endif %}
+    </div>
+   </section>
+  </footer>
+{% endblock %}
