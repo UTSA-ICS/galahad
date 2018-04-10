@@ -1,22 +1,24 @@
-from stages.core.ci_stage import CIStage
+from stages.core.ssh_stage import SSHStage
 
 import subprocess, os
 
-class DockerVirtueStage(CIStage):
+class DockerVirtueStage(SSHStage):
     NAME = 'DockerVirtueStage'
-    DEPENDS = ['AptStage', 'UserStage']
+    DEPENDS = ['AptStage', 'UserStage', 'KernelStage']
 
     USER_SCRIPT = '''#!/bin/bash
-        pip3 install docker
         cd /home/virtue
+        pip3 install --user docker
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
-        %s
-        ./run.py -pr start %s'''
+        sudo %s
+        sudo ./run.py -pr start %s
+        cd /home/virtue
+        sudo rm -rf docker-virtue
+        '''
 
     def run(self):
         if not self._has_run:
             super().run()
 
-            self._ci.run_cmd(self.USER_SCRIPT % (self._args.docker_login, ' '.join(self._args.containers)))
-            self._ci.save(self._work_dir)
+            self._exec_cmd(self.USER_SCRIPT % (self._args.docker_login, ' '.join(self._args.containers)))
