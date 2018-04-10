@@ -89,6 +89,10 @@ class EndPoint():
             else:
                 modified_data[k] = data[k]
 
+        for k in modified_data.keys():
+            if( modified_data[k] == [] ):
+                modified_data[k] = '[]'
+
         return modified_data
 
     # Retrieve information about the specified application
@@ -96,7 +100,7 @@ class EndPoint():
 
         try:
             if( not DEBUG_PERMISSIONS ):
-        
+
                 user = self.inst.get_obj( 'cusername', username, 'openLDAPuser' )
                 if( user == None or user == () ):
                     # User was already validated, but can't be accessed now...
@@ -240,10 +244,13 @@ class EndPoint():
             if( roleId not in user['authorizedRoleIds'] ):
                 return json.dumps( ErrorCodes.user['userNotAuthorizedForRole'] )
 
+            virtue = None
             curr_virtues = self.inst.get_objs_of_type( 'OpenLDAPvirtue' )
             for v in curr_virtues:
-                self.parse_ldap(v[1])
-                if( v[1]['username'] == username and v[1]['roleId'] == roleId ):
+                self.parse_ldap( v[1] )
+                if( v[1]['username'] == 'NULL' and v[1]['roleId'] == roleId ):
+                    virtue = v[1]
+                elif( v[1]['username'] == username and v[1]['roleId'] == roleId ):
                     return json.dumps( ErrorCodes.user['virtueAlreadyExistsForRole'] )
 
             for rid in role['startingResourceIds']:
@@ -264,9 +271,24 @@ class EndPoint():
 
                 transducers.append( transducer )
 
-            # Todo: Create virtue
+            if( virtue == None ):
+                # Pending virtue does not exist
+                return json.dumps( ErrorCodes.user['resourceCreationError'] )
 
-            return json.dumps( ErrorCodes.user['notImplemented'] )
+            virtue['username'] = username
+
+            virtue_ldap = self.to_ldap( virtue, 'OpenLDAPvirtue' )
+
+            ret = self.inst.modify_obj( 'cid', virtue_ldap['cid'], virtue_ldap, objectClass='OpenLDAPvirtue', throw_error=True )
+
+            if( ret != 0 ):
+                return json.dumps( ErrorCodes.user['resourceCreationError'] )
+
+            # Return the whole thing
+            # return json.dumps( virtue )
+
+            # Return a json of the id and ip address
+            return json.dumps( {'ipAddress': virtue['ipAddress'], 'id': virtue['id']} )
 
         except Exception as e:
             print( "Error: {0}".format(e) )
