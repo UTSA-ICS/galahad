@@ -5,7 +5,7 @@ How to spin up Amazon VM for a given ROLE(s)
 
 - Linux instance with ssh, python3, and py-yaml library
 	- `pip3 install pyyaml`
-	- Optional dependency: qemu-kvm 
+	- Optional dependency: qemu-kvm (can use AWS instead) 
 
 - You have access to aws cli to get docker login password
 	- Follow this URL to configure aws cli interface: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
@@ -41,7 +41,7 @@ This will generate proper cloud-init config and start a qemu vm with that config
 To run the assembler on AWS instead of local QEMU build, run
 
 ```
-./asseble.py --docker-login "$DOCKER_LOGIN" --ssh-host <vm_host> --ssh-port <vm_port> virtue_container [virtue_container ... ]
+./asseble.py --docker-login "$DOCKER_LOGIN" virtue_container [virtue_container ... ]
 ```
 
-This will first generated the cloud-init config file in `tmp/user-data` You can provide this file to AWS in order to configure an instance properly. The script will wait until the VM comes up on the provided ssh host and ports. Once it is up, the SSH stages will run, and finally the machine will be shut-down and the assebly process will be complete. After this point your AWS will contain a stopped instance that launches specified virtues on boot.
+This will first generated the cloud-init config file in `tmp/user-data` You can provide this file to AWS in order to configure an instance properly. The script will ask for SSH host and port and wait until the VM comes up. Once it is up, the SSH stages will run, and finally the machine will be shut-down and the assebly process will be complete. After this point your AWS will contain a stopped instance that launches specified virtues on boot.
