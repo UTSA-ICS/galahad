@@ -42,7 +42,7 @@ if __name__ == '__main__':
     stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete
-    stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
+    #stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
     
     if not os.path.exists(WORK_DIR):
         os.makedirs(WORK_DIR)
