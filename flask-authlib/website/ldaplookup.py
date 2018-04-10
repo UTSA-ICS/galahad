@@ -107,6 +107,44 @@ class LDAP():
                 raise e
             return None
 
+    def modify_obj(self, prop, prop_value, new, objectClass=None, throw_error=False):
+
+        try:
+            search_str = '({0}={1})'.format( prop, prop_value )
+
+            if( objectClass != None ):
+                search_str = '(&{0}(objectClass={1}))'.format( search_str, objectClass )
+
+            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str )
+
+            if( len(r) != 1 ):
+                # We only want to change it if there's no
+                # possibility that we're referring to the wrong object.
+                return 22 # Error EINVAL
+
+            dn = r[0][0]
+            curr = r[0][1]
+
+            # modlist = ldap.modlist.modifyModlist( r[0][1], new )
+            modlist = []
+            for k in new:
+                if( curr.get(k) == None and new.get(k) != None ):
+                    modlist.append( ( 0, k, new[k] ) )
+                elif( curr.get(k) != None and new.get(k) != None and new[k] != curr[k] ):
+                    modlist.append( ( 2, k, new[k] ) )
+
+            self.conn.modify_s( dn, modlist )
+
+            return 0 # Success!
+
+        except Exception as e:
+            print("Error: {0}".format(e))
+            # Send error to calling function if indicated
+            if( throw_error ):
+                raise e
+            return None
+
     def del_obj(self, prop, prop_value, objectClass=None, throw_error=False):
 
         try:
