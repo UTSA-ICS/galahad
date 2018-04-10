@@ -24,7 +24,7 @@ def run_stage(stages, stage):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Assemble virtue components into a VM')
-    parser.add_argument('--docker-login', help='docker login command as given by the aws cli')
+    parser.add_argument('--docker-login', required=True, help='docker login command as given by the aws cli')
     parser.add_argument('-i', '--start-vm', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
@@ -75,6 +75,10 @@ if __name__ == '__main__':
         cmd = ['qemu-system-x86_64', '--enable-kvm', '-m', '1024', '-smp', '1', '-cdrom', iso_path, '-device', 'e1000,netdev=user.0', '-netdev', 'user,id=user.0,hostfwd=tcp::%s-:22' % (args.ssh_port), '-drive', 'file=%s,if=virtio,cache=writeback,index=0' % (args.start_vm), '-serial', 'file:%s' % (log_path)]
 
         vm = subprocess.Popen(cmd)
+
+    else:
+        args.ssh_host = input("SSH host: ")
+        args.ssh_port = input("SSH port: ")
 
     for stage in stage_dict:
         if isinstance(stage_dict[stage], SSHStage):

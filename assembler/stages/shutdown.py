@@ -5,7 +5,7 @@ import subprocess, os
 class ShutdownStage(SSHStage):
     ''' This stage will shutdown the vm, so you want it to depend on All SSH stages '''
     NAME = 'ShutdownStage'
-    DEPENDS = ['DemoStage']
+    DEPENDS = ['KernelStage']
 
     def run(self):
         if not self._has_run:
