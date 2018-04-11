@@ -424,7 +424,7 @@ Resources:
     Metadata:
       Placeholder: Placeholder
     Properties:
-      ImageId: ami-XXXZZZ
+      ImageId: ami-d020f9af
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       SecurityGroupIds:
