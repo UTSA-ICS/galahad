@@ -39,32 +39,77 @@ class AWS:
     def __str__(self):
         return self.get_json()
 
-    def instance_create(self):
+    @staticmethod
+    def get_id_from_ip(ip_address):
+        ec2 = boto3.client('ec2')
+
+        res = ec2.describe_instances(
+            Filters=[{
+                'Name': 'private-ip-address',
+                'Values': [ ip_address ]
+            }] )
+
+        if( len(res['Reservations'][0]['Instances']) == 0 ):
+            return None
+
+        return res['Reservations'][0]['Instances'][0]['InstanceId']
+
+
+    def instance_create(self, image_id=None, \
+                        inst_type=None, \
+                        subnet_id=None, \
+                        key_name=None, \
+                        tag_key=None, \
+                        tag_value=None, \
+                        sec_group=None, \
+                        inst_profile_name=None, \
+                        inst_profile_arn=None):
         """Create a new AWS instance - a virtue
         This will create a AWS instance based on a
         given AMI ID.
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.ServiceResource.create_instances
         """
+
+        if( image_id == None ):
+            image_id = self.aws_image_id
+        if( inst_type == None ):
+            inst_type = self.aws_instance_type
+        if( subnet_id == None ):
+            subnet_id = self.aws_subnet_id
+        if( key_name == None ):
+            key_name = self.aws_key_name
+        if( tag_key == None ):
+            tag_key = self.aws_tag_key
+        if( tag_value == None ):
+            tag_value = self.aws_tag_value
+        if( sec_group == None ):
+            sec_group = self.aws_security_group
+        if( inst_profile_name == None ):
+            inst_profile_name = self.aws_instance_profile_name
+        if( inst_profile_arn == None ):
+            inst_profile_arn = self.aws_instance_profile_arn
+
         ec2 = boto3.resource('ec2',region_name='us-east-1')
-    
-        res = ec2.create_instances(ImageId=self.aws_image_id,
-            InstanceType=self.aws_instance_type,
-            KeyName=self.aws_key_name,
+
+        res = ec2.create_instances(ImageId=image_id,
+            InstanceType=inst_type,
+            KeyName=key_name,
             MinCount=1,
             MaxCount=1,
             Monitoring={'Enabled':False},
-            SecurityGroupIds=[self.aws_security_group],
-            SubnetId=self.aws_subnet_id,
+            SecurityGroupIds=[sec_group],
+            SubnetId=subnet_id,
             IamInstanceProfile={
-                                    'Name':self.aws_instance_profile_name
+                                    'Name': inst_profile_name,
+                                    'Arn': inst_profile_arn
                                 },
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
                     'Tags': [
                         {
-                            'Key': 'Project',
-                            'Value': 'Virtue'
+                            'Key': tag_key,
+                            'Value': tag_value
                         },
                     ]
                 },
@@ -72,8 +117,8 @@ class AWS:
                     'ResourceType': 'volume',
                     'Tags': [
                         {
-                            'Key': 'Project',
-                            'Value': 'Virtue'
+                            'Key': tag_key,
+                            'Value': tag_value
                         },
                     ]
                 },
@@ -91,9 +136,9 @@ class AWS:
         return instance
 
 
-    def instance_launch(self, virtueId):
+    def instance_launch(self, instId):
         """Start the specified AWS instance
-        This will use the virtue ID specifed as the AWS instance ID and start the
+        This will use the instance ID specifed as the AWS instance ID and start the
         instance.
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.start_instances
         """
@@ -101,13 +146,13 @@ class AWS:
 
         response = client.start_instances(
             InstanceIds=[
-                virtueId,
+                instId,
             ]
         )
         return response
 
 
-    def instance_stop(self, virtueId):
+    def instance_stop(self, instId):
         """Stop the specified AWS instance
         Stop the specified AWS instance
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.stop_instances
@@ -117,13 +162,13 @@ class AWS:
         # Specify the InstanceId of the spcific instance.
         response = client.stop_instances(
             InstanceIds=[
-                virtueId,
+                instId,
             ]
         )
         return response
 
 
-    def instance_destroy(self, virtueId):
+    def instance_destroy(self, instId):
         """Terminate the AWS instance
         Terminate the specified AWS instance.
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.terminate_instances
@@ -133,7 +178,7 @@ class AWS:
         # Specify the InstanceId of the spcific instance.
         response = client.terminate_instances(
             InstanceIds=[
-                virtueId,
+                instId,
             ]
         )
         return response
