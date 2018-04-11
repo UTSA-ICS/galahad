@@ -434,6 +434,7 @@ Resources:
       Placeholder: Placeholder
       'AWS::CloudFormation::Designer':
         id: 8b2f1290-e334-4658-a135-cc1c90490a95
+    DependsOn: VirtUEAdminSubnet
     Properties:
       IamInstanceProfile: Virtue-Tester
       ImageId: ami-7aff1c07    ## IS THIS RIGHT???
@@ -461,6 +462,7 @@ Resources:
       Placeholder: Placeholder
       'AWS::CloudFormation::Designer':
         id: 1c434563-0095-4e81-a6e3-dec53250469c
+    DependsOn: VirtUELoggingSubnet
     Properties:
       IamInstanceProfile: Virtue-Tester
       ImageId: ami-c85188b7
@@ -488,6 +490,7 @@ Resources:
       Placeholder: Placeholder
       'AWS::CloudFormation::Designer':
         id: 2391e029-6d3b-4dc9-a37d-904afa122da4
+    DependsOn: VirtUELoggingSubnet        
     Properties:
       IamInstanceProfile: Virtue-Tester
       ImageId: ami-62538a1d
@@ -515,6 +518,7 @@ Resources:
       Placeholder: Placeholder
       'AWS::CloudFormation::Designer':
         id: c00ebe8a-862d-4090-910d-3b662cd21f08
+    DependsOn: VirtUELoggingSubnet        
     Properties:
       IamInstanceProfile: Virtue-Tester
       ImageId: ami-d020f9af
