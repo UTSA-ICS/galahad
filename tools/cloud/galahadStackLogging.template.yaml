@@ -440,7 +440,8 @@ Resources:
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
-        - PrivateIpAddress: "172.130.128.128"
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.130.128.128"
           SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUEAdminSecGroup
@@ -466,7 +467,8 @@ Resources:
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
-        - PrivateIpAddress: "172.130.128.129"
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.130.128.129"
           SubnetId: !Ref VirtUELoggingSubnet      
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
@@ -492,7 +494,8 @@ Resources:
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
-        - PrivateIpAddress: "172.130.128.130"
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.130.128.130"
           SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
@@ -518,9 +521,9 @@ Resources:
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
-          - PrivateIpAddress: "172.30.128.131"
-            SubnetId:
-              Ref: "VirtUELoggingSubnet"
+          - DeviceIndex: "0"
+            PrivateIpAddress: "172.30.128.131"
+            SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
       SubnetId: !Ref VirtUELoggingSubnet
