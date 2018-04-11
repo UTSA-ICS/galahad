@@ -13,4 +13,6 @@ class AptStage(CIStage):
             self._ci.install_package('git')
             self._ci.install_package('python3')
             self._ci.install_package('python3-pip')
+            self._ci.install_package('python')
+            self._ci.install_package('python-pip')
             self._ci.save(self._work_dir)

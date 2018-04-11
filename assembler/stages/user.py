@@ -16,4 +16,5 @@ class UserStage(CIStage):
             with open('%s.pub' % (key_file), 'r') as f:
                 key = f.read()
             self._ci.add_user('virtue', ssh_authorized_keys=key)
+            self._ci.add_user('merlin', ssh_authorized_keys=key, groups='virtue', sudo=None)
             self._ci.save(self._work_dir)

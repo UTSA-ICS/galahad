@@ -6,7 +6,7 @@ class TransducerStage(SSHStage):
     ''' This is a gutted galahad/transducers/syslog-ng-module-setup.sh script that
         accounts for different IP addresses '''
     NAME = 'TransducerInstallStage'
-    DEPENDS = ['KernelStage']
+    DEPENDS = []#'KernelStage']
 
     PAYLOAD_PATH = 'payload'
     MODULE_TARBALL = 'transducer-module.tar.gz'
@@ -46,6 +46,7 @@ apt update && apt install syslog-ng-core curl git -y
         mv kirk-keystore.jks /etc/syslog-ng/
         mv truststore.jks /etc/syslog-ng/
         systemctl enable syslog-ng
+        systemctl start syslog-ng
         rm runme.sh
         '''
 
