@@ -446,7 +446,6 @@ Resources:
           SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUEAdminSecGroup
-      SubnetId: !Ref VirtUEAdminSubnet
       Tags:
         - Key: Project
           Value: Virtue
@@ -474,7 +473,6 @@ Resources:
           SubnetId: !Ref VirtUELoggingSubnet      
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
-      SubnetId: !Ref VirtUELoggingSubnet
       Tags:
         - Key: Project
           Value: Virtue
@@ -502,7 +500,6 @@ Resources:
           SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
-      SubnetId: !Ref VirtUELoggingSubnet
       Tags:
         - Key: Project
           Value: Virtue
@@ -530,7 +527,6 @@ Resources:
             SubnetId: !Ref VirtUELoggingSubnet
       SecurityGroupIds:
         - !Ref VirtUELoggingSecGroup
-      SubnetId: !Ref VirtUELoggingSubnet
       Tags:
         - Key: Project
           Value: Virtue
