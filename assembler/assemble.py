@@ -44,9 +44,9 @@ if __name__ == '__main__':
     stage_dict = {}
     stage_dict[UserStage.NAME] = UserStage(args, WORK_DIR)
     stage_dict[AptStage.NAME] = AptStage(args, WORK_DIR)
-    #stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
-    #stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
-    #stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
+    stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
+    stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
+    stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
     stage_dict[MerlinStage.NAME] = MerlinStage(args, WORK_DIR)
 
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
