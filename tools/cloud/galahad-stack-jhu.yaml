@@ -379,5 +379,87 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Excalibur'
+  ExcaliburElasticSearch:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    Properties:
+      ImageId: ami-XXXXXX
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref VirtUELoggingSecGroup
+      SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ElasticSearch'
+  ExcaliburRethinkDB:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    Properties:
+      ImageId: ami-XXXYYY
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref VirtUELoggingSecGroup
+      SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-RethinkDB'
+  APLSyslog:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    Properties:
+      ImageId: ami-XXXZZZ
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref VirtUELoggingSecGroup
+      SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-apl-syslog'
+  VirtuePuTTY:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    Properties:
+      ImageId: ami-XXXAAA
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref VirtUEUserSecGroup
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - 'putty'
+
 Outputs: {}
+
 
