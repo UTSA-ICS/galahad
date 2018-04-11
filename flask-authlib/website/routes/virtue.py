@@ -1,154 +1,195 @@
+import sys
 from flask import request, Response
 
 from flask import Blueprint, url_for
 from flask import abort, redirect, render_template
-from ..auth import require_login, current_user
+from authlib.flask.oauth2 import current_token
+from ..auth import require_login
 from ..models import OAuth2Client, User
 from ..forms.client import (
     Client2Form, OAuth2ClientWrapper
 )
+from ..apiendpoint import EndPoint
+from ..services.oauth2 import require_oauth
 import json
 import time
 import aws
-from ..vars import LDAP_DATABASE_URI, AD_DATABASE_URI, LDAP_PROTOCOL_VERSION
-from ..ldaplookup import LDAP
 
 from ..services.oauth2 import require_oauth
 from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
-class Virtue:
-        aws_state_to_virtue_state = {
-        'pending': 'CREATING',
-        'running': 'RUNNING',
-        'shutting-down': 'DELETING',
-        'terminated': 'STOPPED',
-        'stopping': 'STOPPING',
-        'stopped': 'STOPPED'
-        }
 
-        def __init__(self):
-                self.id = ''
-                self.username = ''
-                self.roleId = ''
-                self.applicationIds = []
-                self.resourceIds = []
-                self.transducerIds = []
-                self.state = ''
-                self.ipAddress = ''
-                self.awsClient = aws.AWS()
+def endpoint():
+    return EndPoint( 'jmitchell@virtue.com', 'Test123!' )
 
-        def get_json(self):
-                return json.dumps({'id': self.id,
-                        'username': self.username,
-                        'roleId': self.roleId,
-                        'applicationIds': self.applicationIds,
-                        'resourceIds': self.resourceIds,
-                        'transducerIds': self.transducerIds,
-                        'state': self.state,
-                        'ipAddress': self.ipAddress})
+def make_response(message):
+    message = json.loads(message)
+    if 'status' in message:
+        if message['status'] == 'failed':
+            response = Response(json.dumps(message['result']), status=400, mimetype='application/json')
+            response.headers['status'] = 'failed'
+    else:
+        response = Response(json.dumps(message), status=200, mimetype='application/json')
+    return response
 
-        def __repr__(self):
-                return self.get_json()
+def get_user():
+    user = User.query.filter_by(id=current_token.user_id).first()
+    user = user.email.replace('@virtue.com', '')
+    return user
 
-        def __str__(self):
-                return self.get_json()
-
-@bp.route('/user/application/get', methods=['GET'])
-@require_login
-def application_get():
-    print request.args['appId']
-    user = User.query.filter_by(email=current_user.email).first()
-    print current_user.conn
-    print user.conn
-    return 'The Application with the given ID. Type: Application.'
 
 @bp.route('/user/role/get', methods=['GET'])
-#@require_login
 @require_oauth()
 def role_get():
-    print request.args['roleId']
-    user = User.query.filter_by(id=current_token.user_id).first()
-    print ('WAT    : user = %s' % user)
-    print ('WAT    : user email = %s' % user.email)
-    #return 'Information about the indicated Role. Type: Role'
+    role = ''
+    try :
+        # Information about the indicated Role. Type: Role
+        ep = endpoint()
+        role = ep.role_get( get_user(), request.args['roleId'] )
+        return make_response(role)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(role)
 
-    js = json.dumps({'status':'success'})
-    resp = Response(js, status=200, mimetype='application/json')
-    #resp = make_response()
-    resp.headers['status'] = 'success'
-    print('WAT    : response = %s' % resp)
-    return resp
 
-# TODO
-# user login (username, password)
-# user logout
-
-@bp.route('/user/user/rolelist', methods=['GET'])
-@require_login
+@bp.route('/user/role/list', methods=['GET'])
+@require_oauth()
 def user_role_list():
-    return 'A set of Roles available to the given User. Type: set of Role'
+    roleList = ''
+    try :
+        # A set of Roles available to the given User. Type: set of Role
+        ep = endpoint()
+        roleList = ep.user_role_list( get_user() )
+        return make_response(roleList)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(roleList)
 
-@bp.route('/user/user/virtuelist', methods=['GET'])
-@require_login
+
+@bp.route('/user/virtue/list', methods=['GET'])
+@require_oauth()
 def user_virtue_list():
-    return 'A set of Virtues for the given User. Type: set of Virtue.'
+    virtueList = ''
+    try :
+        # A set of Virtues for the given User. Type: set of Virtue.
+        ep = endpoint()
+        virtueList = ep.user_virtue_list( get_user() )
+        return make_response(virtueList)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(virtueList)
+
 
 @bp.route('/user/virtue/get', methods=['GET'])
-@require_login
+@require_oauth()
 def virtue_get():
-    print request.args['virtId']
-    return 'Information about the indicated Virtue. Type: Virtue.'
+    virtueId = ''
+    try :
+        # Information about the indicated Virtue. Type: Virtue.
+        ep = endpoint()
+        virtueId = ep.virtue_get( get_user(), request.args['virtueId'] )
+        return make_response(virtueId)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(virtueId )
+
 
 @bp.route('/user/virtue/create', methods=['GET'])
-@require_login
+@require_oauth()
 def virtue_create():
-    if 'roleId' not in request.args:
-        return 'Missing argument: roleId'
+    roleId = ''
+    try :
+        # Information about the created Virtue. Type: Virtue
+        ep = endpoint()
+        roleId = ep.virtue_create( get_user(), request.args['roleId'] )
+        return make_response(roleId)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(roleId)
 
-    print request.args['roleId']
-    virtue = Virtue()
-    virtue.roleId = request.args['roleId']
-
-    virtue.awsClient.instance_create()
-    virtue.id = virtue.awsClient.id
-    virtue.ipAddress = virtue.awsClient.ipAddress
-    virtue.state = virtue.aws_state_to_virtue_state.get(virtue.awsClient.state, 'UNKNOWN')
-
-    return virtue.get_json()
 
 @bp.route('/user/virtue/launch', methods=['GET'])
-@require_login
+@require_oauth()
 def virtue_launch():
-    print request.args['virtId']
-    return 'Information about the launched Virtue. Type: Virtue'
+    virtue = ''
+    try:
+        # Information about the launched Virtue. Type: Virtue
+        ep = endpoint()
+        virtue = ep.virtue_launch( get_user(), request.args['virtueId'] )
+        return make_response( virtue )
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response( virtue )
 
 @bp.route('/user/virtue/stop', methods=['GET'])
-@require_login
+@require_oauth()
 def virtue_stop():
-    print request.args['virtId']
-    return 'Information about the stopped Virtue. Type: Virtue'
+    virtue = ''
+    try:
+        # Information about the stopped Virtue. Type: Virtue
+        ep = endpoint()
+        virtue = ep.virtue_stop( get_user(), request.args['virtueId'] )
+        return make_response( virtue )
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response( virtue )
 
 @bp.route('/user/virtue/destroy', methods=['GET'])
-@require_login
+@require_oauth()
 def virtue_destroy():
-    print request.args['virtId']
-    return '0'
+    ret = ''
+    try:
+        # Destroys a Virtue. Releases all resources.
+        ep = endpoint()
+        ret = ep.virtue_destroy( get_user(), request.args['virtueId'] )
+        return make_response( ret )
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+@bp.route('/user/application/get', methods=['GET'])
+@require_oauth()
+def application_get():
+    application = ''
+    try:
+        # The Application with the given ID. Type: Application
+        ep = endpoint()
+        application = ep.application_get( get_user(), request.args['appId'] )
+        return make_response( application )
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response( application )
 
-@bp.route('/user/virtue/applicationlaunch', methods=['GET'])
-@require_login
+@bp.route('/user/application/launch', methods=['GET'])
+@require_oauth()
 def virtue_application_launch():
-    print request.args['virtId']
-    print request.args['appId']
-    return 'Information about the launched Application. Format is implementation-specific. Type: object'
+    application = ''
+    try:
+        # Information about the launched Application. Format is implementation-specific. Type: object
+        ep = endpoint()
+        application = ep.virtue_application_launch( get_user(),
+                                                    request.args['virtueId'],
+                                                    request.args['appId'] )
+        return make_response( application )
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response( application )
 
-@bp.route('/user/virtue/applicationstop', methods=['GET'])
-@require_login
+@bp.route('/user/application/stop', methods=['GET'])
+@require_oauth()
 def virtue_application_stop():
-    print request.args['virtId']
-    print request.args['appId']
-    return '0'
+    ret = ''
+    try:
+        # Stops a running Application in the indicated Virtue.
+        ep = endpoint()
+        ret = ep.virtue_application_stop( get_user(),
+                                          request.args['virtueId'],
+                                          request.args['appId'] )
+        return make_response( ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response( ret )
 
 @bp.route('/test', methods=['GET'])
 @require_login
@@ -158,10 +199,3 @@ def virtue_test():
         test += arg + ':' + request.args[arg] + '&'
     return test
 
-@bp.route('/connect/excalibur', methods=['GET'])
-@require_login
-def virtue_connect():
-    test = ''
-    for arg in request.args:
-        test += arg + ':' + request.args[arg] + '&'
-    return test
