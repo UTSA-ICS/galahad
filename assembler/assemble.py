@@ -11,6 +11,7 @@ from stages.user import UserStage
 from stages.apt import AptStage
 from stages.virtued import DockerVirtueStage
 from stages.transducer_install import TransducerStage
+from stages.merlin import MerlinStage
 
 WORK_DIR = 'tmp/' # where all the generated files will live
 ISO_FILE = 'virtue.cloudinit.iso'
@@ -26,9 +27,10 @@ def run_stage(stages, stage):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Assemble virtue components into a VM')
     parser.add_argument('--docker-login', required=False, help='docker login command as given by the aws cli')
-    parser.add_argument('--elastic-search-node', required=True, help='http(s) url of your elasticsearch cluster')
-    parser.add_argument('--syslog-server', required=True, help='ip/hostname of the syslog server')
-    parser.add_argument('--elastic-search-host', required=True, help='ip/hostname of elastic search node (not sure if used but needs to not be empty)')
+    parser.add_argument('--elastic-search-node', default='https://172.30.128.129:9200', help='http(s) url of your elasticsearch cluster. Goes into syslog module.')
+    parser.add_argument('--syslog-server', default='172.30.128.131', help='ip/hostname of the syslog server, goes into syslog module.')
+    parser.add_argument('--elastic-search-host', default='172.30.128.129', help='ip/hostname of elastic search node (not sure if used but needs to not be empty)')
+    parser.add_argument('--rethinkdb-host', default='172.30.128.130', help='ip/hostname of the RethinkDB that goes into merlin')
     parser.add_argument('-i', '--start-vm', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
@@ -42,9 +44,10 @@ if __name__ == '__main__':
     stage_dict = {}
     stage_dict[UserStage.NAME] = UserStage(args, WORK_DIR)
     stage_dict[AptStage.NAME] = AptStage(args, WORK_DIR)
-    stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
-    stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
-    stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
+    #stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
+    #stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
+    #stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
+    stage_dict[MerlinStage.NAME] = MerlinStage(args, WORK_DIR)
 
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete

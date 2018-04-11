@@ -35,7 +35,7 @@ class CloudInitUserData():
         if package not in self.userdata[key]:
             self.userdata[key].append(package)
 
-    def add_user(self, username, ssh_authorized_keys=None, sudo='ALL=(ALL) NOPASSWD:ALL', shell='/bin/bash'):
+    def add_user(self, username, ssh_authorized_keys=None, groups=None, sudo='ALL=(ALL) NOPASSWD:ALL', shell='/bin/bash'):
         key = 'users'
         self._ensure_key_exists(key, [])
         for entry in self.userdata[key]:
@@ -48,6 +48,20 @@ class CloudInitUserData():
             new_entry['sudo'] = sudo
         if shell is not None:
             new_entry['shell'] = shell
+        if groups is not None:
+            new_entry['groups'] = groups
+        self.userdata[key].append(new_entry)
+
+    def add_group(self, new_group, members=[]):
+        key = 'groups'
+        self._ensure_key_exists(key, [])
+    
+        new_entry = ''
+        if len(members) == 0:
+            new_entry = new_group
+        else:
+            new_entry = {new_group: members}
+
         self.userdata[key].append(new_entry)
 
     def write_files(self, source, destination, owner=None, permissions=None):
