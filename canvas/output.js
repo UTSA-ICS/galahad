@@ -6,7 +6,8 @@ var Client = require('ssh2').Client;
 var config = {
     username: "ubuntu",
     //password:"derp",
-    host: "ec2-54-91-72-220.compute-1.amazonaws.com",
+    //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
+    host: "172.30.1.246",
     port: 22,
     dstHost: "127.0.0.1",
     dstPort: 2023,
@@ -270,7 +271,20 @@ function login(e) {
     loginMsg.className = ''; // Clear out old color
     loginMsg.classList.add(color);
 }
+var data = null;
+var express = require('express')
+  , logger = require('morgan')
+  , session = require('express-session');
+var Grant = require('grant-express')
+  , grant = new Grant(require('./config.json'));
+var app = express();
+app.use(logger('dev'));
+app.use(session({secret: 'grant',
+                 resave: true,
+                 saveUninitialized: true}));
+app.use(grant);
 function check_oauth(e) {
+  // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
   var msg = '';
@@ -278,24 +292,7 @@ function check_oauth(e) {
   var loginMsg = document.getElementById('loginMsg');
   var login = document.getElementById('login');
   var dockWrapper = document.getElementById('dockWrapper');
-  var win = document.getElementById('oauth2');
-
-  var express = require('express')
-    , logger = require('morgan')
-    , session = require('express-session');
-  var Grant = require('grant-express')
-    , grant = new Grant(require('./config.json'));
-  var app = express();
-  //var favicon = require('serve-favicon');
-  app.use(logger('dev'));
-  app.use(session({secret: 'grant',
-                   resave: true,
-                   saveUninitialized: true}));
-  app.use(grant);
-  //app.use(favicon("./assets/img/virtue.png"));
-
-  //window.open("http://canvas.com:3000/connect/excalibur");
-
+  //var win = document.getElementById('oauth2');
   var iframe = document.createElement("iframe");
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
   iframe.style.background = "white";
@@ -312,9 +309,12 @@ function check_oauth(e) {
     if (req.query.hasOwnProperty('access_token')) {
       login.classList.remove('fadeIn');
       login.classList.add('fadeOut');
-      dockWrapper.style.display = 'flex';
+      //dockWrapper.style.display = 'flex';
       msg = 'Welcome';
       color = 'viewer';
+      data = req.query;
+      retrieve_info();
+      console.log('exit retrieve')
     } else {
       console.log('error - error_description');
     }
@@ -325,7 +325,70 @@ function check_oauth(e) {
   });
 
   login.parentElement.appendChild(iframe);
-  setTimeout(function () {
-      login.parentElement.removeChild(login);
-  }, 300);
+  login.parentElement.removeChild(login);
+}
+function retrieve_info(){
+  var dockWrapper = document.getElementById('dockWrapper');
+  var client = methods();
+  var args = {
+    headers: { "Authorization" : "Bearer " + data['access_token']}
+  }
+
+  client.methods.userRoleList(args, function (dat, resp){
+    console.log("methods.userRoleList");
+    console.log(dat);
+    //console.log(dat[0]);
+
+    //var temp = dat[0];
+    //var info = JSON.parse(tmp);
+    //console.log(info);
+    var count = dat.length;
+    console.log(count);
+
+    dockWrapper.style.display = 'flex';
+
+    for(var i = 0; i < count; i++){
+      // NEED TO UPDATE ROLE ICON
+      var option = document.getElementById("options" + i);
+      var name = document.getElementById("dock" + i);
+      name.innerHTML = dat[i]['id'];
+      console.log(option);
+      option.style.display = 'flex';
+
+      console.log(dat[i]['applicationIds']);
+
+      var inner_count = dat[i]['applicationIds'].length;
+      for(var k = 0; k < inner_count; k++){
+        // Updates app dock
+        var optionsinner = document.getElementById("optionsinner" + i);
+        var div = document.createElement("div");
+        div.setAttribute("class","icon-pair circle-bg");
+        div.setAttribute("onclick","openApp('word','editor','3000');");
+        var itag = document.createElement("I");
+        itag.setAttribute("class","far fa-file-edit fa-2x");
+        div.appendChild(itag);
+        optionsinner.appendChild(div);
+      }
+    }
+  });
+}
+function methods() {
+  var Client = require('node-rest-client').Client;
+  var client = new Client();
+  var host = "https://172.30.1.44:5000/virtue"
+
+  client.registerMethod("logout", "https://172.30.1.44:5000/oauth2/revoke", "POST");
+
+  // ### Virtue User API
+  client.registerMethod("userRoleGet", host + "/user/role/get", "GET");
+  client.registerMethod("userRoleList", host + "/user/role/list", "GET");
+
+  // ### Virtue Administrative API
+
+
+  // ### Virtue Security API
+
+
+  console.log('client');
+  return client;
 }
