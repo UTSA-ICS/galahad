@@ -436,16 +436,13 @@ Resources:
         id: 8b2f1290-e334-4658-a135-cc1c90490a95
     DependsOn: VirtUEAdminSubnet
     Properties:
-      IamInstanceProfile: Virtue-Tester
       ImageId: ami-7aff1c07    ## IS THIS RIGHT???
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
-          PrivateIpAddress: "172.130.128.128"
+          PrivateIpAddress: "172.30.128.128"
           SubnetId: !Ref VirtUELoggingSubnet
-      SecurityGroupIds:
-        - !Ref VirtUEAdminSecGroup
       Tags:
         - Key: Project
           Value: Virtue
@@ -463,16 +460,13 @@ Resources:
         id: 1c434563-0095-4e81-a6e3-dec53250469c
     DependsOn: VirtUELoggingSubnet
     Properties:
-      IamInstanceProfile: Virtue-Tester
       ImageId: ami-c85188b7
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
-          PrivateIpAddress: "172.130.128.129"
+          PrivateIpAddress: "172.30.128.129"
           SubnetId: !Ref VirtUELoggingSubnet      
-      SecurityGroupIds:
-        - !Ref VirtUELoggingSecGroup
       Tags:
         - Key: Project
           Value: Virtue
@@ -490,16 +484,13 @@ Resources:
         id: 2391e029-6d3b-4dc9-a37d-904afa122da4
     DependsOn: VirtUELoggingSubnet        
     Properties:
-      IamInstanceProfile: Virtue-Tester
       ImageId: ami-62538a1d
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
-          PrivateIpAddress: "172.130.128.130"
+          PrivateIpAddress: "172.30.128.130"
           SubnetId: !Ref VirtUELoggingSubnet
-      SecurityGroupIds:
-        - !Ref VirtUELoggingSecGroup
       Tags:
         - Key: Project
           Value: Virtue
@@ -517,7 +508,6 @@ Resources:
         id: c00ebe8a-862d-4090-910d-3b662cd21f08
     DependsOn: VirtUELoggingSubnet        
     Properties:
-      IamInstanceProfile: Virtue-Tester
       ImageId: ami-d020f9af
       InstanceType: t2.micro
       KeyName: !Ref KeyName
@@ -525,8 +515,6 @@ Resources:
           - DeviceIndex: "0"
             PrivateIpAddress: "172.30.128.131"
             SubnetId: !Ref VirtUELoggingSubnet
-      SecurityGroupIds:
-        - !Ref VirtUELoggingSecGroup
       Tags:
         - Key: Project
           Value: Virtue
@@ -536,29 +524,6 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-apl-syslog'
-  VirtuePuTTY:
-    Type: 'AWS::EC2::Instance'
-    Metadata:
-      Placeholder: Placeholder
-      'AWS::CloudFormation::Designer':
-        id: 1ca38dc5-d471-4b5d-bcef-caa8b8934d6c
-    Properties:
-      IamInstanceProfile: Virtue-Tester
-      ImageId: ami-XXXAAA
-      InstanceType: t2.micro
-      KeyName: !Ref KeyName
-      SecurityGroupIds:
-        - !Ref VirtUEUserSecGroup
-      SubnetId: !Ref VirtUEUserSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join 
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - putty
   EC2SRTA1TOHY:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
