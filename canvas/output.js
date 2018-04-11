@@ -4,17 +4,17 @@ var fs = require('fs');
 var debug = require('debug')('connector');
 var Client = require('ssh2').Client;
 var config = {
-    username: "ubuntu",
+    username: "virtue",
     //password:"derp",
     //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
     host: "172.30.1.246",
-    port: 22,
+    port: 6767,
     dstHost: "127.0.0.1",
     dstPort: 2023,
     localHost: "0.0.0.0",
-    localPort: 2000,
+    localPort: 10000,
     //privateKey:fs.readFileSync('key.pem')
-    privateKey: "key.pem"
+    privateKey: "new_key.pem"
 };
 function execTunnel(options) {
     var str = "ssh -i " + config.privateKey + " " + config.username + "@" + config.host + " -p " + config.port + " -4 -L " + config.localPort + ":" + config.dstHost + ":" + config.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
@@ -363,7 +363,7 @@ function retrieve_info(){
         var optionsinner = document.getElementById("optionsinner" + i);
         var div = document.createElement("div");
         div.setAttribute("class","icon-pair circle-bg");
-        div.setAttribute("onclick","openApp('word','editor','3000');");
+        div.setAttribute("onclick","openApp('word','editor','10000');");
         var itag = document.createElement("I");
         itag.setAttribute("class","far fa-file-edit fa-2x");
         div.appendChild(itag);
