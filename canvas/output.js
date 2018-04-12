@@ -7,17 +7,32 @@ var config = {
     username: "virtue",
     //password:"derp",
     //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
-    host: "172.30.1.246",
+    //host: "172.30.1.246",
+    host: "172.30.1.122",
     port: 6767,
     dstHost: "127.0.0.1",
     dstPort: 2023,
     localHost: "0.0.0.0",
     localPort: 10000,
     //privateKey:fs.readFileSync('key.pem')
-    privateKey: "new_key.pem"
+    privateKey: "key_2.pem"
 };
+var data = null;
+var express = require('express')
+  , logger = require('morgan')
+  , session = require('express-session');
+var Grant = require('grant-express')
+  , grant = new Grant(require('./config.json'));
+var app = express();
+app.use(logger('dev'));
+app.use(session({secret: 'grant',
+                 resave: true,
+                 saveUninitialized: true}));
+app.use(grant);
+var Client = require('node-rest-client').Client;
+var client = new Client();
 function execTunnel(options) {
-    var str = "ssh -i " + config.privateKey + " " + config.username + "@" + config.host + " -p " + config.port + " -4 -L " + config.localPort + ":" + config.dstHost + ":" + config.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
+    var str = "ssh -i " + options.privateKey + " " + options.username + "@" + options.host + " -p " + options.port + " -4 -L " + options.localPort + ":" + options.dstHost + ":" + options.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
     console.warn('execTunnel str: ', str);
     debug('trying to connect with: ', str);
     exec(str, function (error, stdout, stderr) {
@@ -32,9 +47,6 @@ function execTunnel(options) {
         debug("stderr: " + stderr);
     });
 }
-// Connect to AWS Xpra
-execTunnel("derp");
-// SSH -L
 var connector = require('./assets/js/connect');
 function showOptions(target) {
     return target.lastElementChild.style.visibility = "visible";
@@ -42,26 +54,40 @@ function showOptions(target) {
 function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
-function openApp(name, role, port) {
-    var roleIcon = '';
-    if (role === 'viewer') {
-        roleIcon = 'far fa-eye';
+function openApp(name, role, port_local, appId) {
+    var roleIcon = 'fab fa-black-tie';
+
+    var args = {
+      parameters: { "appId" : appId },
+      headers: { "Authorization" : "Bearer " + data['access_token']}
     }
-    else if (role === 'editor') {
-        roleIcon = 'far fa-file-edit';
-    }
-    else {
-        roleIcon = 'fab fa-black-tie';
-    }
-    var view = document.createElement('div');
-    view.id = name + '_' + role;
-    view.classList.add('app');
-    view.draggable = true;
-    view.setAttribute("ondrag", "drag(event)");
-    view.setAttribute("ondragstart", "dragstart(event)");
-    view.setAttribute("ondragend", "dragend(event)");
-    view.innerHTML = "\n    <div class=\"wrapper " + role + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port + "/\" allowtransparency></webview>\n    </div>\n  ";
-    document.getElementById('appArea').appendChild(view);
+    client.methods.userApplicationGet(args, function(dat, resp){
+      console.log("methods.userApplicationGet");
+
+      var local_config = {
+        username: "virtue",
+        host: "172.30.1.122",
+        port: dat['port'],
+        dstHost: "127.0.0.1",
+        dstPort: 2023,
+        localHost: "0.0.0.0",
+        localPort: port_local,
+        privateKey: "key_2.pem"
+      }
+      execTunnel(local_config);
+
+      var view = document.createElement('div');
+      view.id = name + '_' + role;
+      view.classList.add('app');
+      view.draggable = true;
+      view.setAttribute("ondrag", "drag(event)");
+      view.setAttribute("ondragstart", "dragstart(event)");
+      view.setAttribute("ondragend", "dragend(event)");
+      view.innerHTML = "\n    <div class=\"wrapper " + role + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
+      console.log('appArea');
+      document.getElementById('appArea').appendChild(view);
+      console.log("after appendChild");
+    });
 }
 function toggleMaximizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
@@ -271,18 +297,6 @@ function login(e) {
     loginMsg.className = ''; // Clear out old color
     loginMsg.classList.add(color);
 }
-var data = null;
-var express = require('express')
-  , logger = require('morgan')
-  , session = require('express-session');
-var Grant = require('grant-express')
-  , grant = new Grant(require('./config.json'));
-var app = express();
-app.use(logger('dev'));
-app.use(session({secret: 'grant',
-                 resave: true,
-                 saveUninitialized: true}));
-app.use(grant);
 function check_oauth(e) {
   // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -336,45 +350,49 @@ function retrieve_info(){
 
   client.methods.userRoleList(args, function (dat, resp){
     console.log("methods.userRoleList");
-    console.log(dat);
-    //console.log(dat[0]);
-
-    //var temp = dat[0];
-    //var info = JSON.parse(tmp);
-    //console.log(info);
     var count = dat.length;
-    console.log(count);
 
     dockWrapper.style.display = 'flex';
 
     for(var i = 0; i < count; i++){
-      // NEED TO UPDATE ROLE ICON
       var option = document.getElementById("options" + i);
       var name = document.getElementById("dock" + i);
-      name.innerHTML = dat[i]['id'];
-      console.log(option);
+      name.innerHTML = dat[i]['name'];
       option.style.display = 'flex';
 
+      console.log("role - " + i);
+      console.log(dat[i]);
+      console.log(dat[i]['ipAddress']);
       console.log(dat[i]['applicationIds']);
 
       var inner_count = dat[i]['applicationIds'].length;
+      console.log(inner_count)
       for(var k = 0; k < inner_count; k++){
+        var appId = "outlook1523544495";
+        var port_local = '1' + i + k + '00';
+
         // Updates app dock
         var optionsinner = document.getElementById("optionsinner" + i);
         var div = document.createElement("div");
         div.setAttribute("class","icon-pair circle-bg");
-        div.setAttribute("onclick","openApp('word','editor','10000');");
+        var appstr = "openApp('word','editor','" + appId + "')";
+        console.log(appstr);
+        div.setAttribute("onclick","openApp('word','editor','" + port_local + "','" + appId + "');");
         var itag = document.createElement("I");
         itag.setAttribute("class","far fa-file-edit fa-2x");
         div.appendChild(itag);
         optionsinner.appendChild(div);
+
+        // ### NEED TO FIX DYNAMIC EXEC_TUNNEL IN OPEN_APP WITH OPTIONS
       }
     }
   });
 }
+function logout(e){
+  var gui = require('nw.gui');
+  gui.App.quit();
+}
 function methods() {
-  var Client = require('node-rest-client').Client;
-  var client = new Client();
   var host = "https://172.30.1.44:5000/virtue"
 
   client.registerMethod("logout", "https://172.30.1.44:5000/oauth2/revoke", "POST");
@@ -382,6 +400,7 @@ function methods() {
   // ### Virtue User API
   client.registerMethod("userRoleGet", host + "/user/role/get", "GET");
   client.registerMethod("userRoleList", host + "/user/role/list", "GET");
+  client.registerMethod("userApplicationGet", host + "/user/application/get", "GET");
 
   // ### Virtue Administrative API
 
