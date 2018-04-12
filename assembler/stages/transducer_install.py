@@ -47,6 +47,8 @@ apt update && apt install syslog-ng-core curl git -y
         mv truststore.jks /etc/syslog-ng/
         systemctl enable syslog-ng
         systemctl start syslog-ng
+
+        echo 172.30.128.130 rethinkdb.galahad.com >> /etc/hosts
         rm runme.sh
         '''
 
