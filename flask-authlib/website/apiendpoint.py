@@ -106,6 +106,9 @@ class EndPoint():
                     # User was already validated, but can't be accessed now...
                     return json.dumps( ErrorCodes.user['unspecifiedError'] )
                 self.parse_ldap( user )
+                # roleIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
 
             app = self.inst.get_obj( 'cid', applicationId, 'openLDAPapplication', True )
             if( app == () ):
@@ -122,6 +125,9 @@ class EndPoint():
                     continue
                 self.parse_ldap( role )
 
+                # appIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                role['applicationIds'] = eval(role['applicationIds'][0])
                 if( applicationId in role['applicationIds'] ):
                     # User is authorized to access this application.
                     return json.dumps(app)
@@ -147,7 +153,16 @@ class EndPoint():
                 return json.dumps( ErrorCodes.user['invalidId'] )
             self.parse_ldap( role )
 
+            # roleIds are formatted to contain a string object inside a list 
+            # convert string representation of array to array
+            user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
+
             if( DEBUG_PERMISSIONS or roleId in user['authorizedRoleIds'] ):
+
+                # appIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                role['applicationIds'] = eval(role['applicationIds'][0])
+
                 return json.dumps(role)
 
             return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -166,12 +181,20 @@ class EndPoint():
             self.parse_ldap( user )
 
             roles = []
-        
+       
+            # roleIds are formatted to contain a string object inside a list 
+            # convert string representation of array to array
+            user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
+ 
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj( 'cid', roleId, 'openLDAProle' )
                 if( role == None or role == () ):
                     continue
                 self.parse_ldap( role )
+
+                # appIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                role['applicationIds'] = eval(role['applicationIds'][0])
 
                 roles.append( role )
 
@@ -194,6 +217,10 @@ class EndPoint():
             for virtue in virtues_raw:
                 self.parse_ldap( virtue[1] )
 
+                # appIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                virtue[1]['applicationIds'] = eval(virtue[1]['applicationIds'][0])
+
                 if( virtue[1]['username'] == username ):
                     virtues_ret.append( virtue[1] )
 
@@ -213,6 +240,11 @@ class EndPoint():
             self.parse_ldap( virtue )
 
             if( virtue['username'] == username or DEBUG_PERMISSIONS ):
+
+                # appIds are formatted to contain a string object inside a list 
+                # convert string representation of array to array
+                virtue['applicationIds'] = eval(virtue['applicationIds'][0])
+
                 return json.dumps( virtue )
 
             return json.dumps( ErrorCodes.user['userNotAuthorized'] )
