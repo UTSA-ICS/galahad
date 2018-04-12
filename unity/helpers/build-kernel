@@ -39,7 +39,7 @@ chmod a+x debian/scripts/misc/*
 fakeroot debian/rules clean
 
 echo "Applying patches to the kernel source"
-for PATCH in $(find /lsm -type f -name "*.patch"); do
+for PATCH in $(find /lsm -type f -name "*.patch" | sort); do
 	echo "Applying ${PATCH}"
 	patch -p1 < ${PATCH}
 done
