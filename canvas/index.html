@@ -34,11 +34,12 @@
 
 		<div id="dockWrapper" class="fadeInRight animated" style="display: none;">
 			<ul class="dock">
-				<div class="optionsWrapper">
+				<div id="options0" class="optionsWrapper" style="display: none;">
 					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
 		        <i class="fab fa-black-tie fa-2x"></i>
-						<div style="margin-top: 5px;">Admin</div>
-						<div class="options admin">
+						<div id="dock0" style="margin-top: 5px;">Admin</div>
+						<div id="optionsinner0" class="options admin">
+							<!--
 							<div class="icon-pair circle-bg" onclick="openApp('word', 'admin', '2000');">
 								<i class="fas fa-file-word fa-2x"></i>
 							</div>
@@ -47,7 +48,7 @@
 							</div>
 							<div class="icon-pair circle-bg" onclick="openApp('firefox', 'admin', '2000');">
 								<i class="fab fa-firefox fa-2x"></i>
-							</div>
+							</div> -->
 						</div>
 		      </li>
 					<div id="minimized_admin_drawer" class="minimizedWrapper" style="display: none;">
@@ -59,11 +60,12 @@
 					</div>
 				</div>
 
-				<div class="optionsWrapper">
+				<div id="options1" class="optionsWrapper" style="display: none;">
 					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
 		        <i class="far fa-file-edit fa-2x"></i>
-						<div style="margin-top: 5px;">Editor</div>
-						<div class="options editor">
+						<div id="dock1" style="margin-top: 5px;">Editor</div>
+						<div id=optionsinner1 class="options editor">
+							<!--
 							<div class="icon-pair circle-bg" onclick="openApp('word', 'editor', '3000');">
 								<i class="fas fa-file-word fa-2x"></i>
 							</div>
@@ -72,7 +74,7 @@
 							</div>
 							<div class="icon-pair circle-bg" onclick="openApp('firefox', 'editor', '3000');">
 								<i class="fab fa-firefox fa-2x"></i>
-							</div>
+							</div> -->
 						</div>
 		      </li>
 					<div id="minimized_editor_drawer" class="minimizedWrapper" style="display: none;">
@@ -84,11 +86,12 @@
 					</div>
 				</div>
 
-				<div class="optionsWrapper">
+				<div id="options2" class="optionsWrapper" style="display: none;">
 					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
 		        <i class="far fa-eye fa-2x"></i>
-						<div style="margin-top: 5px;">Viewer</div>
-						<div class="options viewer">
+						<div id="dock2" style="margin-top: 5px;">Viewer</div>
+						<div id="optionsinner2" class="options viewer">
+							<!--
 							<div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
 								<i class="fas fa-file-word fa-2x"></i>
 							</div>
@@ -97,7 +100,7 @@
 							</div>
 							<div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
 								<i class="fab fa-firefox fa-2x"></i>
-							</div>
+							</div> -->
 						</div>
 		      </li>
 					<div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
@@ -109,6 +112,9 @@
 					</div>
 				</div>
 
+				<div id="logout">
+					<input class="submit" type="submit" value="Logout" onclick="logout(event);">
+				</div>
 	    </ul>
 		</div>
 
