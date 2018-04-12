@@ -472,7 +472,7 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AD'
-  GalahadElasticSearch:
+  GalahadAggregator:
     Type: 'AWS::EC2::Instance'
     Metadata:
       Placeholder: Placeholder
@@ -480,8 +480,8 @@ Resources:
         id: 1c434563-0095-4e81-a6e3-dec53250469c
     DependsOn: VirtUELoggingSubnet
     Properties:
-      ImageId: ami-c85188b7
-      InstanceType: t2.micro
+      ImageId: ami-77d50e08
+      InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
@@ -495,7 +495,7 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-ElasticSearch'
+              - '-Aggregator'
   GalahadRethinkDB:
     Type: 'AWS::EC2::Instance'
     Metadata:
@@ -505,7 +505,7 @@ Resources:
     DependsOn: VirtUELoggingSubnet        
     Properties:
       ImageId: ami-62538a1d
-      InstanceType: t2.micro
+      InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
@@ -529,7 +529,7 @@ Resources:
     DependsOn: VirtUELoggingSubnet        
     Properties:
       ImageId: ami-d020f9af
-      InstanceType: t2.micro
+      InstanceType: t2.small
       KeyName: !Ref KeyName
       NetworkInterfaces:
           - DeviceIndex: "0"
@@ -544,6 +544,75 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-apl-syslog'
+  VirtueInternetConsumer:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-a003d8df
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-internet-user'
+  VirtueRouterAdmin:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-a802d9d7
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-router-admin'
+  VirtueLinuxEmail:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-8803d8f7
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-linux-email'
+  VirtuePowerUser:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-a901dad6
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-poweruser'              
+
   EC2SRTA1TOHY:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
