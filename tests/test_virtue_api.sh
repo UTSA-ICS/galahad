@@ -36,7 +36,7 @@ function check_result() {
 
 # role_get
 API_CALL="virtue/user/role/get?roleId="
-API_PARAMETER="Test"
+API_PARAMETER="documenteditor1523544176"
 echo "#########################"
 echo "Test [role get]"
 echo "#########################"
@@ -72,7 +72,7 @@ echo ""
 
 # virtue_get
 API_CALL="virtue/user/virtue/get?virtueId="
-API_PARAMETER="TestVirtue2"
+API_PARAMETER="TestVirtue"
 echo "#########################"
 echo "Test [virtue get]"
 echo "#########################"
@@ -84,7 +84,7 @@ echo ""
 
 # virtue_create - Existing Virtue
 API_CALL="virtue/user/virtue/create?roleId="
-API_PARAMETER="Test"
+API_PARAMETER="TestVirtue"
 echo "#########################"
 echo "Test [virtue create - Existing Virtue]"
 echo "#########################"
@@ -109,7 +109,7 @@ echo ""
 
 # virtue_launch
 API_CALL="virtue/user/virtue/launch?virtueId="
-API_PARAMETER="TestVirtue2"
+API_PARAMETER="TestVirtue"
 echo "#########################"
 echo "Test [virtue launch]"
 echo "#########################"
@@ -121,7 +121,7 @@ echo ""
 
 # virtue_stop
 API_CALL="virtue/user/virtue/stop?virtueId="
-API_PARAMETER="TestVirtue2"
+API_PARAMETER="TestVirtue"
 echo "#########################"
 echo "Test [virtue stop]"
 echo "#########################"
@@ -133,7 +133,7 @@ echo ""
 
 # virtue_destroy
 API_CALL="virtue/user/virtue/destroy?virtueId="
-API_PARAMETER="TestVirtue2"
+API_PARAMETER="TestVirtue"
 echo "#########################"
 echo "Test [virtue destroy]"
 echo "#########################"
@@ -145,7 +145,7 @@ echo ""
 
 # application_get
 API_CALL="virtue/user/application/get?appId="
-API_PARAMETER="firefox1"
+API_PARAMETER="word1523497937"
 echo "#########################"
 echo "Test [application get]"
 echo "#########################"
@@ -157,9 +157,9 @@ echo ""
 
 # application_launch
 API_CALL="virtue/user/application/launch?appId="
-API_PARAMETER="firefox1"
+API_PARAMETER="word1523497937"
 API_CALL2="&virtueId="
-API_PARAMETER2="TestVirtue2"
+API_PARAMETER2="TestVirtue"
 echo "#########################"
 echo "Test [application launch]"
 echo "#########################"
@@ -170,9 +170,9 @@ echo ""
 
 # application_stop
 API_CALL="virtue/user/application/stop?appId="
-API_PARAMETER="firefox1"
+API_PARAMETER="word1523497937"
 API_CALL2="&virtueId="
-API_PARAMETER2="TestVirtue2"
+API_PARAMETER2="TestVirtue"
 echo "#########################"
 echo "Test [application stop]"
 echo "#########################"
