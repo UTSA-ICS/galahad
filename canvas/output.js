@@ -56,7 +56,8 @@ function hideOptions(target) {
 }
 function openApp(role, port_local, appId, ip) {
     var roleIcon = 'fab fa-black-tie';
-    console.log(ip);
+    console.log("openApp");
+    console.log(appId);
 
     var args = {
       parameters: { "appId" : appId },
@@ -64,7 +65,6 @@ function openApp(role, port_local, appId, ip) {
     }
     client.methods.userApplicationGet(args, function(dat, resp){
       console.log("methods.userApplicationGet");
-      console.log(dat);
 
       var local_config = {
         username: "virtue",
@@ -76,7 +76,6 @@ function openApp(role, port_local, appId, ip) {
         localPort: port_local,
         privateKey: "key_2.pem"
       }
-      console.log(local_config);
       execTunnel(local_config);
 
       var name = dat['name'];
@@ -88,9 +87,7 @@ function openApp(role, port_local, appId, ip) {
       view.setAttribute("ondragstart", "dragstart(event)");
       view.setAttribute("ondragend", "dragend(event)");
       view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
-      console.log('appArea');
       document.getElementById('appArea').appendChild(view);
-      console.log("after appendChild");
     });
 }
 function toggleMaximizeApp(target) {
@@ -372,7 +369,8 @@ function retrieve_info(){
       var inner_count = dat[i]['applicationIds'].length;
       console.log(inner_count)
       for(var k = 0; k < inner_count; k++){
-        var appId = "outlook1523544495";
+        var appId = dat[i]['applicationIds'][k];
+        console.log(appId);
         var port_local = '1' + i + k + '00';
         console.log(i);
 
