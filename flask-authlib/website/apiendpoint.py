@@ -164,19 +164,12 @@ class EndPoint():
                 role['applicationIds'] = eval(role['applicationIds'][0])
 
                 # Now get the IP address of the virtue associated with this user/role
-                # Get list of virtues associated with the user
-                virtue_list = json.loads(self.user_virtue_list(username))
-                # Now get the list of applications associated with this role
-                role_apps = role['applicationIds']
-                # Get the list of applications for each virtue associated with the user
-                for virtue in virtue_list:
-                    virtue_apps = virtue['applicationIds']
-                    # Check if the applications are the same - They should be for a certain
-                    # virtue to service a certain role.
-                    if role_apps == virtue_apps:
-                        # Now add the IP address of the virtue to the return data
-                        role['ipAddress'] = virtue['ipAddress']
-                        break
+                # Get the virtue ID from the role
+                virtueId = role['virtId']
+                # Get the virtue info from LDAP
+                virtue = json.loads(self.virtue_get( username, virtueId ))
+                # Now add the IP address of the virtue to the return data
+                role['ipAddress'] = virtue['ipAddress']
 
                 return json.dumps(role)
 
@@ -210,6 +203,17 @@ class EndPoint():
                 # appIds are formatted to contain a string object inside a list 
                 # convert string representation of array to array
                 role['applicationIds'] = eval(role['applicationIds'][0])
+
+                # Now get the IP address of the virtue associated with this user/role
+                # Get the virtue ID from the role
+                virtueId = role['virtId']
+                if virtueId != 'null':
+                    # Get the virtue info from LDAP
+                    virtue = json.loads(self.virtue_get( username, virtueId ))
+                    # Now add the IP address of the virtue to the return data
+                    role['ipAddress'] = virtue['ipAddress']
+                else:
+                    role['ipAddress'] = 'null'
 
                 roles.append( role )
 
