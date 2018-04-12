@@ -1,0 +1,887 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Sets up a single VPC multi subnet configuration for Galahad/VirtUE
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  NameSuffix:
+    Description: Suffix to add to all 'Name' tags for easy searching and viewing.
+    Type: String
+    MinLength: 1
+    MaxLength: 5
+    AllowedPattern: '^[a-zA-Z0-9]+$'
+Resources:
+  VirtUEVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 172.30.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-VPC'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+  VirtUEAdminSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.0.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnet'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 67738caa-8f4c-4750-9a1d-46c08c1432ad
+  VirtUEAdminADSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        VirtUE Security Group for the VirtUE AD Server on the Administration
+        Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminADSecGroup'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 71832af2-469e-4141-a01c-46cc9148bca8
+  VirtueAdminADSecGroupEgressGeneralRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: General Traffic Out
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupEgressUserSecGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE User SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEUserSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b5b96545-bb92-479a-895d-1de1849bfd13
+  VirtueAdminADSecGroupEgressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3d8e3e19-0f75-456e-84bc-92790ce0f37b
+  VirtueAdminADSecGroupIngressTCPRDPRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: RemoteDesktop tcp
+      FromPort: 3389
+      IpProtocol: tcp
+      ToPort: 3389
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressUDPRDPRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: RemoteDesktop udp
+      FromPort: 3389
+      IpProtocol: udp
+      ToPort: 3389
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressAdminGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin SecGroup
+      SourceSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtueAdminADSecGroupIngressUserGroupRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking From VirtUE User SecGroup
+      SourceSecurityGroupId: !Ref VirtUEUserSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEAdminADSecGroup
+  VirtUEAdminSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE Administration Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - Description: Allow Talking to VirtUE User Subnet
+          DestinationSecurityGroupId: !Ref VirtUEUserSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - Description: Allow Talking to VirtUE Admin AD Group
+          DestinationSecurityGroupId: !Ref VirtUEAdminADSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref VirtUEUserSecGroup
+          Description: Allow Talking From VirtUE User Group
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
+          Description: SSH Traffic In
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          Description: Excalibur Web Traffic In
+          FromPort: 8080
+          IpProtocol: tcp
+          ToPort: 8080
+        - Description: Allow Talking From VirtUE Admin AD Group
+          SourceSecurityGroupId: !Ref VirtUEAdminADSecGroup
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSecGroup'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+  VirtUEUserSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.64.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnet'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ad81820f-7d1f-40c1-b150-f3a261eed78e
+  VirtUEUserSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: SSH Traffic In
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSecGroup'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+  VirtueUserSecGroupEgressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: dc4ad29b-cb51-4269-a61a-5c2484aacd6d
+  VirtueUserSecGroupEgressAdminADRule:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: Allow Talking to VirtUE Admin AD SecGroup
+      DestinationSecurityGroupId: !Ref VirtUEAdminADSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: dc51fbeb-4bb2-4bba-9e04-1a0ea8723391
+  VirtueUserSecGroupIngressAdminRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin SecGroup
+      SourceSecurityGroupId: !Ref VirtUEAdminSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 1543a65e-6033-4084-858d-c85facebc515
+  VirtueUserSecGroupIngressAdminADRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow Talking From VirtUE Admin AD Group
+      SourceSecurityGroupId: !Ref VirtUEAdminADSecGroup
+      FromPort: -1
+      IpProtocol: '-1'
+      ToPort: -1
+      GroupId: !Ref VirtUEUserSecGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b69b85ae-57f2-45f3-a7d5-749d4c05a68f
+  VirtUEUserStandBySecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Standby Instance Pool.
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserStandBySecGroup'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b654bec3-933c-4fdc-9bad-9370e057a2aa
+  VirtUELoggingSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 172.30.128.0/18
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-LoggingSubnet'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 22aa571a-722f-4ba8-9cce-a57314da77de
+  VirtUELoggingSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE Logging Network
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-LoggingSecGroup'
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ed8236ca-4390-4657-843e-046614d157cd
+  VirtueInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-InternetGateway'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ad59040a-ea74-4f74-9b2a-227ef777b2fd
+  VirtueInternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref VirtueInternetGateway
+      VpcId: !Ref VirtUEVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5fdc6062-76d8-4a63-a9fe-d1557a287503
+  VirtUEUserSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnetRT'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+  VirtUEUserSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref VirtUEUserSubnetRT
+      SubnetId: !Ref VirtUEUserSubnet
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5a8894e4-f19e-4b53-a8f2-375d0afbd44f
+  VirtUEUserSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEUserSubnetRT
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 055fd5b2-8ba1-4922-b981-6d7b32654477
+  VirtUEAdminSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnetRT'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 813df16b-433c-4abb-8a3e-f9cea9a2f070
+  VirtUEAdminSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+      SubnetId: !Ref VirtUEAdminSubnet
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 87c1b0a3-f505-4a66-b7ac-099eb9f331be
+  VirtUEAdminSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 38f4321f-2e39-4d4d-9ae3-f284858e467a
+  ExcaliburServer:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+      'AWS::CloudFormation::Designer':
+        id: 8b2f1290-e334-4658-a135-cc1c90490a95
+    DependsOn: VirtUEAdminSubnet
+    Properties:
+      ImageId: ami-3e60b941 # note that this is a custom build of Excalibur
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.30.128.128"
+          SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Excalibur'
+  GalahadAD:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: VirtUEAdminSubnet
+    Properties:
+      ImageId: ami-99dc07e6
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.30.1.250"
+          SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AD'
+  GalahadElasticSearch:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+      'AWS::CloudFormation::Designer':
+        id: 1c434563-0095-4e81-a6e3-dec53250469c
+    DependsOn: VirtUELoggingSubnet
+    Properties:
+      ImageId: ami-c85188b7
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.30.128.129"
+          SubnetId: !Ref VirtUELoggingSubnet      
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ElasticSearch'
+  GalahadRethinkDB:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+      'AWS::CloudFormation::Designer':
+        id: 2391e029-6d3b-4dc9-a37d-904afa122da4
+    DependsOn: VirtUELoggingSubnet        
+    Properties:
+      ImageId: ami-62538a1d
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.30.128.130"
+          SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-RethinkDB'
+  APLSyslog:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+      'AWS::CloudFormation::Designer':
+        id: c00ebe8a-862d-4090-910d-3b662cd21f08
+    DependsOn: VirtUELoggingSubnet        
+    Properties:
+      ImageId: ami-d020f9af
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+          - DeviceIndex: "0"
+            PrivateIpAddress: "172.30.128.131"
+            SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-apl-syslog'
+  EC2SRTA1TOHY:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref VirtUEUserSubnetRT
+      SubnetId: !Ref VirtUELoggingSubnet
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 5437a3b9-90b9-4c61-858d-9e5f44ed2a50
+Outputs: {}
+Metadata:
+  'AWS::CloudFormation::Designer':
+    ad59040a-ea74-4f74-9b2a-227ef777b2fd:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -170
+        'y': 780
+      z: 1
+      embeds: []
+    10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f:
+      size:
+        width: 1050
+        height: 960
+      position:
+        x: 90
+        'y': 140
+      z: 1
+      embeds:
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - ed8236ca-4390-4657-843e-046614d157cd
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+        - b654bec3-933c-4fdc-9bad-9370e057a2aa
+        - 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+        - ad81820f-7d1f-40c1-b150-f3a261eed78e
+        - 71832af2-469e-4141-a01c-46cc9148bca8
+        - 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+    813df16b-433c-4abb-8a3e-f9cea9a2f070:
+      size:
+        width: 240
+        height: 160
+      position:
+        x: 120
+        'y': 850
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds:
+        - 38f4321f-2e39-4d4d-9ae3-f284858e467a
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    38f4321f-2e39-4d4d-9ae3-f284858e467a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 150
+        'y': 890
+      z: 3
+      parent: 813df16b-433c-4abb-8a3e-f9cea9a2f070
+      embeds: []
+      isassociatedwith:
+        - ad59040a-ea74-4f74-9b2a-227ef777b2fd
+      iscontainedinside:
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+    adaa05ff-59a4-46f4-9abb-fa6c41be11fc:
+      size:
+        width: 240
+        height: 130
+      position:
+        x: 120
+        'y': 650
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds:
+        - 055fd5b2-8ba1-4922-b981-6d7b32654477
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    055fd5b2-8ba1-4922-b981-6d7b32654477:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 140
+        'y': 690
+      z: 3
+      parent: adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+      embeds: []
+      isassociatedwith:
+        - ad59040a-ea74-4f74-9b2a-227ef777b2fd
+      iscontainedinside:
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+    5fdc6062-76d8-4a63-a9fe-d1557a287503:
+      source:
+        id: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      target:
+        id: ad59040a-ea74-4f74-9b2a-227ef777b2fd
+      z: 1
+    ed8236ca-4390-4657-843e-046614d157cd:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 820
+        'y': 300
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    22aa571a-722f-4ba8-9cce-a57314da77de:
+      size:
+        width: 240
+        height: 330
+      position:
+        x: 510
+        'y': 170
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds:
+        - c00ebe8a-862d-4090-910d-3b662cd21f08
+        - 2391e029-6d3b-4dc9-a37d-904afa122da4
+        - 1c434563-0095-4e81-a6e3-dec53250469c
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    c00ebe8a-862d-4090-910d-3b662cd21f08:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 580
+        'y': 200
+      z: 3
+      parent: 22aa571a-722f-4ba8-9cce-a57314da77de
+      embeds: []
+      isassociatedwith:
+        - ed8236ca-4390-4657-843e-046614d157cd
+      iscontainedinside:
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+    2391e029-6d3b-4dc9-a37d-904afa122da4:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 580
+        'y': 300
+      z: 3
+      parent: 22aa571a-722f-4ba8-9cce-a57314da77de
+      embeds: []
+      isassociatedwith:
+        - ed8236ca-4390-4657-843e-046614d157cd
+      iscontainedinside:
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+    1c434563-0095-4e81-a6e3-dec53250469c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 580
+        'y': 410
+      z: 3
+      parent: 22aa571a-722f-4ba8-9cce-a57314da77de
+      embeds: []
+      isassociatedwith:
+        - ed8236ca-4390-4657-843e-046614d157cd
+      iscontainedinside:
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+        - 22aa571a-722f-4ba8-9cce-a57314da77de
+    b654bec3-933c-4fdc-9bad-9370e057a2aa:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 930
+        'y': 500
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    6b05a85d-589e-42c1-8a1b-30a7d31e59a5:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 800
+        'y': 590
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    ad81820f-7d1f-40c1-b150-f3a261eed78e:
+      size:
+        width: 240
+        height: 240
+      position:
+        x: 510
+        'y': 530
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds:
+        - 1ca38dc5-d471-4b5d-bcef-caa8b8934d6c
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    1ca38dc5-d471-4b5d-bcef-caa8b8934d6c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 540
+        'y': 590
+      z: 3
+      parent: ad81820f-7d1f-40c1-b150-f3a261eed78e
+      embeds: []
+      isassociatedwith:
+        - 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      iscontainedinside:
+        - ad81820f-7d1f-40c1-b150-f3a261eed78e
+        - ad81820f-7d1f-40c1-b150-f3a261eed78e
+    5a8894e4-f19e-4b53-a8f2-375d0afbd44f:
+      source:
+        id: adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+      target:
+        id: ad81820f-7d1f-40c1-b150-f3a261eed78e
+      z: 2
+    71832af2-469e-4141-a01c-46cc9148bca8:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 960
+        'y': 750
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    b69b85ae-57f2-45f3-a7d5-749d4c05a68f:
+      source:
+        id: 71832af2-469e-4141-a01c-46cc9148bca8
+      target:
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      z: 2
+    dc51fbeb-4bb2-4bba-9e04-1a0ea8723391:
+      source:
+        id: 71832af2-469e-4141-a01c-46cc9148bca8
+      target:
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      z: 2
+    6956c45c-f724-45a2-bd2a-51bad1a6aa31:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 800
+        'y': 900
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    1543a65e-6033-4084-858d-c85facebc515:
+      source:
+        id: 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+      target:
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      z: 2
+    dc4ad29b-cb51-4269-a61a-5c2484aacd6d:
+      source:
+        id: 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+      target:
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      z: 2
+    3d8e3e19-0f75-456e-84bc-92790ce0f37b:
+      source:
+        id: 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+      target:
+        id: 71832af2-469e-4141-a01c-46cc9148bca8
+      z: 2
+    b5b96545-bb92-479a-895d-1de1849bfd13:
+      source:
+        id: 6b05a85d-589e-42c1-8a1b-30a7d31e59a5
+      target:
+        id: 71832af2-469e-4141-a01c-46cc9148bca8
+      z: 2
+    67738caa-8f4c-4750-9a1d-46c08c1432ad:
+      size:
+        width: 240
+        height: 240
+      position:
+        x: 510
+        'y': 810
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds:
+        - 8b2f1290-e334-4658-a135-cc1c90490a95
+      iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+    8b2f1290-e334-4658-a135-cc1c90490a95:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 540
+        'y': 870
+      z: 3
+      parent: 67738caa-8f4c-4750-9a1d-46c08c1432ad
+      embeds: []
+      isassociatedwith:
+        - 6956c45c-f724-45a2-bd2a-51bad1a6aa31
+      iscontainedinside:
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+    87c1b0a3-f505-4a66-b7ac-099eb9f331be:
+      source:
+        id: 813df16b-433c-4abb-8a3e-f9cea9a2f070
+      target:
+        id: 67738caa-8f4c-4750-9a1d-46c08c1432ad
+      z: 2
+    5437a3b9-90b9-4c61-858d-9e5f44ed2a50:
+      source:
+        id: adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+      target:
+        id: 22aa571a-722f-4ba8-9cce-a57314da77de
+      z: 2
