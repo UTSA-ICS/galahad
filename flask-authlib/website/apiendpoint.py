@@ -217,11 +217,12 @@ class EndPoint():
             for virtue in virtues_raw:
                 self.parse_ldap( virtue[1] )
 
-                # appIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                virtue[1]['applicationIds'] = eval(virtue[1]['applicationIds'][0])
-
                 if( virtue[1]['username'] == username ):
+
+                    # appIds are formatted to contain a string object inside a list 
+                    # convert string representation of array to array
+                    virtue[1]['applicationIds'] = eval(virtue[1]['applicationIds'][0])
+
                     virtues_ret.append( virtue[1] )
 
             return json.dumps(virtues_ret)
