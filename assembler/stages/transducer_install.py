@@ -6,15 +6,15 @@ class TransducerStage(SSHStage):
     ''' This is a gutted galahad/transducers/syslog-ng-module-setup.sh script that
         accounts for different IP addresses '''
     NAME = 'TransducerInstallStage'
-    DEPENDS = []#'KernelStage']
+    DEPENDS = ['UserStage']
 
     PAYLOAD_PATH = 'payload'
     MODULE_TARBALL = 'transducer-module.tar.gz'
 
     INSTALL_PREREQ_SCRIPT = '''#!/bin/bash
         # install latest syslog-ng
-        wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_17.04/Release.key | apt-key add -
-echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_17.10 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list
+	wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
+echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list
 apt update && apt install syslog-ng-core curl git -y
         # install syslog modules and its prereqs
         add-apt-repository ppa:eugenesan/ppa

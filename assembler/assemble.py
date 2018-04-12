@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 
 
-import argparse, os, subprocess, sys, re, shutil
+import argparse, os, subprocess, sys, re, shutil, json
 
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
@@ -26,7 +26,7 @@ def run_stage(stages, stage):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Assemble virtue components into a VM')
-    parser.add_argument('--docker-login', required=False, help='docker login command as given by the aws cli')
+    parser.add_argument('--docker-login', required=True, help='docker login command as given by the aws cli')
     parser.add_argument('--elastic-search-node', default='https://172.30.128.129:9200', help='http(s) url of your elasticsearch cluster. Goes into syslog module.')
     parser.add_argument('--syslog-server', default='172.30.128.131', help='ip/hostname of the syslog server, goes into syslog module.')
     parser.add_argument('--elastic-search-host', default='172.30.128.129', help='ip/hostname of elastic search node (not sure if used but needs to not be empty)')
@@ -88,6 +88,18 @@ if __name__ == '__main__':
     else:
         args.ssh_host = input("SSH host: ")
         args.ssh_port = input("SSH port: ")
+        '''Potentially can start AWS instance here instead. To launch new instance in starlab's environment last time this worked:
+        aws ec2 run-instances --image-id ami-43a15f3e --count 1 --instance-type t2.micro --security-group-ids sg-0676d24f --subnet-id subnet-0b97b651 --iam-instance-profile "Name=Virtue-Tester" --user-data "$(cat tmp/user-data)" --tag-specifications "ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=BBN-Assembler}]"
+
+
+        you can then get its IP address with
+
+        aws ec2 describe-instances --instance-ids i-032d5f28b9281e42d --query "Reservations[*].Instances[*].PublicIpAddress"
+
+        But somehoe wrong tmp/user-data often ends up in the VM.
+
+        Uploading user-data through a web-browser seems to also not work sometimes (maybe caching?)
+        '''
 
     for stage in stage_dict:
         if isinstance(stage_dict[stage], SSHStage):

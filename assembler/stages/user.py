@@ -11,7 +11,10 @@ class UserStage(CIStage):
         if not self._has_run:
             super().run()
             key_file = os.path.join(self._work_dir, 'id_rsa')
-            subprocess.check_call(['ssh-keygen', '-N', '', '-f', key_file])
+            try:
+                subprocess.check_call(['ssh-keygen', '-N', '', '-f', key_file])
+            except subprocess.CalledProcessError as e:
+                print(e)
             key = ''
             with open('%s.pub' % (key_file), 'r') as f:
                 key = f.read()

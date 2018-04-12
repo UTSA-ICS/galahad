@@ -5,7 +5,7 @@ import subprocess, os
 class MerlinStage(SSHStage):
     ''' This stage is a demo stage for how to use SSHStage tools '''
     NAME = 'MerlinStage'
-    DEPENDS = ['UserStage']
+    DEPENDS = ['UserStage', 'DockerVirtueStage']
 
     PAYLOAD_PATH = 'payload'
     DEB_FILE = 'merlin.deb'
@@ -76,7 +76,7 @@ ExecStart=/etc/init.d/merlin start
 
 [Install]
 WantedBy=multi-user.target
-Alias=merlin.service'''
+'''
 
     def run(self):
         if not self._has_run:
