@@ -4,7 +4,7 @@ import subprocess, os
 
 class DockerVirtueStage(SSHStage):
     NAME = 'DockerVirtueStage'
-    DEPENDS = ['AptStage', 'UserStage', 'KernelStage']
+    DEPENDS = ['AptStage', 'UserStage']
 
     USER_SCRIPT = '''#!/bin/bash
         cd /home/virtue
