@@ -54,8 +54,9 @@ function showOptions(target) {
 function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
-function openApp(name, role, port_local, appId) {
+function openApp(role, port_local, appId, ip) {
     var roleIcon = 'fab fa-black-tie';
+    console.log(ip);
 
     var args = {
       parameters: { "appId" : appId },
@@ -63,10 +64,11 @@ function openApp(name, role, port_local, appId) {
     }
     client.methods.userApplicationGet(args, function(dat, resp){
       console.log("methods.userApplicationGet");
+      console.log(dat);
 
       var local_config = {
         username: "virtue",
-        host: "172.30.1.122",
+        host: ip,
         port: dat['port'],
         dstHost: "127.0.0.1",
         dstPort: 2023,
@@ -74,8 +76,10 @@ function openApp(name, role, port_local, appId) {
         localPort: port_local,
         privateKey: "key_2.pem"
       }
+      console.log(local_config);
       execTunnel(local_config);
 
+      var name = dat['name'];
       var view = document.createElement('div');
       view.id = name + '_' + role;
       view.classList.add('app');
@@ -83,7 +87,7 @@ function openApp(name, role, port_local, appId) {
       view.setAttribute("ondrag", "drag(event)");
       view.setAttribute("ondragstart", "dragstart(event)");
       view.setAttribute("ondragend", "dragend(event)");
-      view.innerHTML = "\n    <div class=\"wrapper " + role + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
+      view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
       console.log('appArea');
       document.getElementById('appArea').appendChild(view);
       console.log("after appendChild");
@@ -370,19 +374,19 @@ function retrieve_info(){
       for(var k = 0; k < inner_count; k++){
         var appId = "outlook1523544495";
         var port_local = '1' + i + k + '00';
+        console.log(i);
 
         // Updates app dock
         var optionsinner = document.getElementById("optionsinner" + i);
         var div = document.createElement("div");
         div.setAttribute("class","icon-pair circle-bg");
-        var appstr = "openApp('word','editor','" + appId + "')";
-        console.log(appstr);
-        div.setAttribute("onclick","openApp('word','editor','" + port_local + "','" + appId + "');");
+        if(dat[i]['ipAddress'] != "null"){
+          div.setAttribute("onclick","openApp('" + dat[i]['name'] + "','" + port_local + "','" + appId + "','" + dat[i]['ipAddress'] + "');");
+        }
         var itag = document.createElement("I");
         itag.setAttribute("class","far fa-file-edit fa-2x");
         div.appendChild(itag);
         optionsinner.appendChild(div);
-
         // ### NEED TO FIX DYNAMIC EXEC_TUNNEL IN OPEN_APP WITH OPTIONS
       }
     }
