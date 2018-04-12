@@ -76,11 +76,11 @@ destination d_elastic {
 		java_truststore_password("changeit")
 		http_auth_type("clientcert")
 		resource("/etc/syslog-ng/elasticsearch.yml")
-		template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE @timestamp=${ISODATE})")
+		template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE @timestamp=${ISODATE} @virtue_ip=${HOST})")
 	);
 };
 
-destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${MESSAGE}\n")); };
+destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${HOST} ${MESSAGE}")); };
 
 
 parser message_parser {
@@ -94,9 +94,9 @@ parser transducer_controller {
 log { 
 	source(s_local); 
 	filter { match("kernel" value("PROGRAM")) or match("winesrv" value("PROGRAM")) };
-    	parser(message_parser);
+    parser(message_parser);
 	parser(transducer_controller);
-    	filter { not match("syslog-ng" value("ProcName")) };
+    filter { not match("syslog-ng" value("ProcName")) };
 	destination(d_file);
 	destination(d_elastic);
 	destination(d_network);
