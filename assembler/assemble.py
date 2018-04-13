@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--syslog-server', default='172.30.128.131', help='ip/hostname of the syslog server, goes into syslog module.')
     parser.add_argument('--elastic-search-host', default='172.30.128.129', help='ip/hostname of elastic search node (not sure if used but needs to not be empty)')
     parser.add_argument('--rethinkdb-host', default='172.30.128.130', help='ip/hostname of the RethinkDB that goes into merlin')
-    parser.add_argument('-i', '--start-qemu', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
+    parser.add_argument('-i', '--start-qemu', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it. If not specified, will try to launch aws vm using aws cli')
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
     parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
@@ -68,6 +68,17 @@ if __name__ == '__main__':
     parser.add_argument('containers', nargs='*', help='Docker container names that docker-virtue repository supports')
     args = parser.parse_args()
 
+
+    if not args.start_qemu:
+        WORK_DIR = 'keys-%s' % ('-'.join(args.containers))
+        if not os.path.exists(WORK_DIR):
+            os.mkdir(WORK_DIR)
+
+    if os.listdir(WORK_DIR) != []:
+        is_delete = input("WARNING: working directory is not empty! Delete? Type 'yes' or 'no':")
+        if is_delete == 'yes':
+            shutil.rmtree(WORK_DIR)
+            os.mkdir(WORK_DIR)
 
 
     stage_dict = {}
