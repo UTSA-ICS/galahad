@@ -454,12 +454,12 @@ Resources:
               - '-Excalibur'
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
-    DependsOn: VirtUEAdminSubnet
+    DependsOn: VirtUEUserSubnet
     Properties:
       ImageId: ami-b1459ece
       InstanceType: t2.small
       KeyName: !Ref KeyName
-      SubnetId: !Ref VirtUEAdminSubnet
+      SubnetId: !Ref VirtUEUserSubnet
       Tags:
         - Key: Project
           Value: Virtue
