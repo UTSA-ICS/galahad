@@ -458,7 +458,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-35e6434a # note that this is a custom BBN build of Excalibur w/ CLI
+      ImageId: ami-edd57092 # note that this is a custom BBN build of Excalibur w/ CLI
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -520,7 +520,7 @@ Resources:
     DependsOn: VirtUELoggingSubnet
     Properties:
       ImageId: ami-77d50e08
-      InstanceType: t2.medium
+      InstanceType: t2.large
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
@@ -589,7 +589,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-a003d8df
+      ImageId: ami-68df7a17
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -606,7 +606,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-cd5289b2
+      ImageId: ami-ded471a1
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -623,7 +623,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-8803d8f7
+      ImageId: ami-62a1041d
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -640,7 +640,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-a901dad6
+      ImageId: ami-eddf7a92
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -650,8 +650,41 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-unity-poweruser'              
-
+              - '-unity-poweruser'
+  VirtueOfficeOutlook:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-cdd376b2
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-outlook'
+  VirtueOfficeEditor:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEUserSubnet
+    Properties:
+      ImageId: ami-16dc7969
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEUserSubnet
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-unity-office'
   EC2SRTA1TOHY:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
