@@ -24,7 +24,7 @@ def start_aws_vm(args, userdata, name):
     output = json.loads(data)
     if len(output['Instances']) > 0:
         instanceId = output['Instances'][0]['InstanceId']
-        time.sleep(2)
+        time.sleep(5)
         return instanceId
     else:
         print("Got unexpaced data")
@@ -34,13 +34,17 @@ def start_aws_vm(args, userdata, name):
 def get_vm_ip(args, instanceId):
     cmd = ['aws', 'ec2', 'describe-instances', '--instance-ids', instanceId, '--query', 'Reservations[*].Instances[*].PublicIpAddress']
     print("Calling %s" % (' '.join(cmd)))
-    output = json.loads(subprocess.check_output(cmd).decode('utf-8'))
-    if len(output) == 1 and len(output[0]) == 1:
-        return output[0][0]
-    else:
-        print("Got unexpected data")
-        print(output)
-        raise Exception("Can't get aws vm ip")
+    is_vm_up = False
+    while not is_vm_up:
+        output = json.loads(subprocess.check_output(cmd).decode('utf-8'))
+        if len(output) == 1 and len(output[0]) == 1:
+            return output[0][0]
+        elif len(output[0]) == 0:
+            is_vm_up = False
+        else:
+            print("Got unexpected data")
+            print(output)
+            raise Exception("Can't get aws vm ip")
 
 def run_stage(stages, stage):
     for dep in stages[stage].DEPENDS:
