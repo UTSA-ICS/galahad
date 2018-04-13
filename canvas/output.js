@@ -4,19 +4,35 @@ var fs = require('fs');
 var debug = require('debug')('connector');
 var Client = require('ssh2').Client;
 var config = {
-    username: "ubuntu",
+    username: "virtue",
     //password:"derp",
-    host: "ec2-54-91-72-220.compute-1.amazonaws.com",
-    port: 22,
+    //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
+    //host: "172.30.1.246",
+    host: "172.30.1.122",
+    port: 6767,
     dstHost: "127.0.0.1",
     dstPort: 2023,
     localHost: "0.0.0.0",
-    localPort: 2000,
+    localPort: 10000,
     //privateKey:fs.readFileSync('key.pem')
-    privateKey: "key.pem"
+    privateKey: "key_2.pem"
 };
+var data = null;
+var express = require('express')
+  , logger = require('morgan')
+  , session = require('express-session');
+var Grant = require('grant-express')
+  , grant = new Grant(require('./config.json'));
+var app = express();
+app.use(logger('dev'));
+app.use(session({secret: 'grant',
+                 resave: true,
+                 saveUninitialized: true}));
+app.use(grant);
+var Client = require('node-rest-client').Client;
+var client = new Client();
 function execTunnel(options) {
-    var str = "ssh -i " + config.privateKey + " " + config.username + "@" + config.host + " -p " + config.port + " -4 -L " + config.localPort + ":" + config.dstHost + ":" + config.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
+    var str = "ssh -i " + options.privateKey + " " + options.username + "@" + options.host + " -p " + options.port + " -4 -L " + options.localPort + ":" + options.dstHost + ":" + options.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
     console.warn('execTunnel str: ', str);
     debug('trying to connect with: ', str);
     exec(str, function (error, stdout, stderr) {
@@ -31,9 +47,6 @@ function execTunnel(options) {
         debug("stderr: " + stderr);
     });
 }
-// Connect to AWS Xpra
-execTunnel("derp");
-// SSH -L
 var connector = require('./assets/js/connect');
 function showOptions(target) {
     return target.lastElementChild.style.visibility = "visible";
@@ -41,26 +54,41 @@ function showOptions(target) {
 function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
-function openApp(name, role, port) {
-    var roleIcon = '';
-    if (role === 'viewer') {
-        roleIcon = 'far fa-eye';
+function openApp(role, port_local, appId, ip) {
+    var roleIcon = 'fab fa-black-tie';
+    console.log("openApp");
+    console.log(appId);
+
+    var args = {
+      parameters: { "appId" : appId },
+      headers: { "Authorization" : "Bearer " + data['access_token']}
     }
-    else if (role === 'editor') {
-        roleIcon = 'far fa-file-edit';
-    }
-    else {
-        roleIcon = 'fab fa-black-tie';
-    }
-    var view = document.createElement('div');
-    view.id = name + '_' + role;
-    view.classList.add('app');
-    view.draggable = true;
-    view.setAttribute("ondrag", "drag(event)");
-    view.setAttribute("ondragstart", "dragstart(event)");
-    view.setAttribute("ondragend", "dragend(event)");
-    view.innerHTML = "\n    <div class=\"wrapper " + role + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port + "/\" allowtransparency></webview>\n    </div>\n  ";
-    document.getElementById('appArea').appendChild(view);
+    client.methods.userApplicationGet(args, function(dat, resp){
+      console.log("methods.userApplicationGet");
+
+      var local_config = {
+        username: "virtue",
+        host: ip,
+        port: dat['port'],
+        dstHost: "127.0.0.1",
+        dstPort: 2023,
+        localHost: "0.0.0.0",
+        localPort: port_local,
+        privateKey: "key_2.pem"
+      }
+      execTunnel(local_config);
+
+      var name = dat['name'];
+      var view = document.createElement('div');
+      view.id = name + '_' + role;
+      view.classList.add('app');
+      view.draggable = true;
+      view.setAttribute("ondrag", "drag(event)");
+      view.setAttribute("ondragstart", "dragstart(event)");
+      view.setAttribute("ondragend", "dragend(event)");
+      view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
+      document.getElementById('appArea').appendChild(view);
+    });
 }
 function toggleMaximizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
@@ -271,6 +299,7 @@ function login(e) {
     loginMsg.classList.add(color);
 }
 function check_oauth(e) {
+  // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
   var msg = '';
@@ -278,24 +307,7 @@ function check_oauth(e) {
   var loginMsg = document.getElementById('loginMsg');
   var login = document.getElementById('login');
   var dockWrapper = document.getElementById('dockWrapper');
-  var win = document.getElementById('oauth2');
-
-  var express = require('express')
-    , logger = require('morgan')
-    , session = require('express-session');
-  var Grant = require('grant-express')
-    , grant = new Grant(require('./config.json'));
-  var app = express();
-  //var favicon = require('serve-favicon');
-  app.use(logger('dev'));
-  app.use(session({secret: 'grant',
-                   resave: true,
-                   saveUninitialized: true}));
-  app.use(grant);
-  //app.use(favicon("./assets/img/virtue.png"));
-
-  //window.open("http://canvas.com:3000/connect/excalibur");
-
+  //var win = document.getElementById('oauth2');
   var iframe = document.createElement("iframe");
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
   iframe.style.background = "white";
@@ -312,9 +324,12 @@ function check_oauth(e) {
     if (req.query.hasOwnProperty('access_token')) {
       login.classList.remove('fadeIn');
       login.classList.add('fadeOut');
-      dockWrapper.style.display = 'flex';
+      //dockWrapper.style.display = 'flex';
       msg = 'Welcome';
       color = 'viewer';
+      data = req.query;
+      retrieve_info();
+      console.log('exit retrieve')
     } else {
       console.log('error - error_description');
     }
@@ -325,7 +340,76 @@ function check_oauth(e) {
   });
 
   login.parentElement.appendChild(iframe);
-  setTimeout(function () {
-      login.parentElement.removeChild(login);
-  }, 300);
+  login.parentElement.removeChild(login);
+}
+function retrieve_info(){
+  var dockWrapper = document.getElementById('dockWrapper');
+  var client = methods();
+  var args = {
+    headers: { "Authorization" : "Bearer " + data['access_token']}
+  }
+
+  client.methods.userRoleList(args, function (dat, resp){
+    console.log("methods.userRoleList");
+    var count = dat.length;
+
+    dockWrapper.style.display = 'flex';
+
+    for(var i = 0; i < count; i++){
+      var option = document.getElementById("options" + i);
+      var name = document.getElementById("dock" + i);
+      name.innerHTML = dat[i]['name'];
+      option.style.display = 'flex';
+
+      console.log("role - " + i);
+      console.log(dat[i]);
+      console.log(dat[i]['ipAddress']);
+      console.log(dat[i]['applicationIds']);
+
+      var inner_count = dat[i]['applicationIds'].length;
+      console.log(inner_count)
+      for(var k = 0; k < inner_count; k++){
+        var appId = dat[i]['applicationIds'][k];
+        console.log(appId);
+        var port_local = '1' + i + k + '00';
+        console.log(i);
+
+        // Updates app dock
+        var optionsinner = document.getElementById("optionsinner" + i);
+        var div = document.createElement("div");
+        div.setAttribute("class","icon-pair circle-bg");
+        if(dat[i]['ipAddress'] != "null"){
+          div.setAttribute("onclick","openApp('" + dat[i]['name'] + "','" + port_local + "','" + appId + "','" + dat[i]['ipAddress'] + "');");
+        }
+        var itag = document.createElement("I");
+        itag.setAttribute("class","far fa-file-edit fa-2x");
+        div.appendChild(itag);
+        optionsinner.appendChild(div);
+        // ### NEED TO FIX DYNAMIC EXEC_TUNNEL IN OPEN_APP WITH OPTIONS
+      }
+    }
+  });
+}
+function logout(e){
+  var gui = require('nw.gui');
+  gui.App.quit();
+}
+function methods() {
+  var host = "https://172.30.1.44:5000/virtue"
+
+  client.registerMethod("logout", "https://172.30.1.44:5000/oauth2/revoke", "POST");
+
+  // ### Virtue User API
+  client.registerMethod("userRoleGet", host + "/user/role/get", "GET");
+  client.registerMethod("userRoleList", host + "/user/role/list", "GET");
+  client.registerMethod("userApplicationGet", host + "/user/application/get", "GET");
+
+  // ### Virtue Administrative API
+
+
+  // ### Virtue Security API
+
+
+  console.log('client');
+  return client;
 }
