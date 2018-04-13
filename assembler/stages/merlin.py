@@ -36,6 +36,7 @@ WantedBy=multi-user.target
 
             self._exec_cmd('sudo dpkg -i %s' % (self.DEB_FILE))
             self._exec_cmd('sudo chown -R merlin:virtue /opt/merlin')
+            self._exec_cmd('sudo chmod 777 /opt/merlin')
             self._exec_cmd('sudo chown -R merlin:virtue /var/private/ssl')
             self._exec_cmd('sudo mv %s %s' % (systemctl_filename, systemctl_vmpath))
             self._exec_cmd('sudo systemctl enable merlin')
