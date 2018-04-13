@@ -441,7 +441,7 @@ Resources:
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: "0"
-          PrivateIpAddress: "172.30.128.128"
+          PrivateIpAddress: "172.30.128.127"
           SubnetId: !Ref VirtUELoggingSubnet
       Tags:
         - Key: Project
@@ -452,6 +452,28 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Excalibur'
+  LogExcaliburServer:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Placeholder: Placeholder
+    DependsOn: VirtUEAdminSubnet
+    Properties:
+      ImageId: ami-35e6434a # note that this is a custom BBN build of Excalibur w/ CLI
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          PrivateIpAddress: "172.30.128.128"
+          SubnetId: !Ref VirtUELoggingSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-LogExcalibur'
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
     DependsOn: VirtUEUserSubnet
@@ -584,7 +606,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-a802d9d7
+      ImageId: ami-cd5289b2
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
