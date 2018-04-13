@@ -79,8 +79,9 @@ if __name__ == '__main__':
             os.mkdir(WORK_DIR)
 
     if os.listdir(WORK_DIR) != []:
-        is_delete = input("WARNING: working directory is not empty! Delete? Type 'yes' or 'no':")
+        is_delete = input("WARNING: working directory '%s' is not empty! Delete? Type 'yes' or 'no':" % (WORK_DIR))
         if is_delete == 'yes':
+            print("Cleaning working directory...")
             shutil.rmtree(WORK_DIR)
             os.mkdir(WORK_DIR)
 
@@ -166,4 +167,8 @@ if __name__ == '__main__':
     print("Assembler is done")
     if not args.start_qemu:
         print("Created instance id: %s, name: %s" % (instance, vmname))
+        with open(os.path.join(WORK_DIR, "README.md"), 'w') as f:
+            for c in args.containers:
+                f.write(' - %s\n' % (c))
+            f.write('\nInstance ID: %s' % (instance))
 
