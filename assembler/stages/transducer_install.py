@@ -19,7 +19,8 @@ apt update && apt install syslog-ng-core curl git -y
         # install syslog modules and its prereqs
         add-apt-repository ppa:eugenesan/ppa
         apt install syslog-ng-mod-elastic openjdk-8-jdk -y
-        echo LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/ >> /etc/default/syslog-ng
+        echo /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server >> /etc/ld.so.conf.d/java.conf
+	ldconfig
 
         # Install pre-build module (taken from make install step of the transducer script)
         tar xzf transducer-module.tar.gz
