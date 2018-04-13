@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 
 
-import argparse, os, subprocess, sys, re, shutil, json
+import argparse, os, subprocess, sys, re, shutil, json, time
 
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
@@ -17,6 +17,31 @@ WORK_DIR = 'tmp/' # where all the generated files will live
 ISO_FILE = 'virtue.cloudinit.iso'
 LOG_FILE = 'SERIAL.log'
 
+def start_aws_vm(args, userdata, name):
+    print("Starting VM, %s" % (name))
+    cmd = ['aws', 'ec2', 'run-instances', '--image-id', args.aws_image_id, '--count', '1', '--instance-type', args.aws_instance_type, '--security-group-ids', args.aws_security_group, '--subnet-id', args.aws_subnet_id, '--iam-instance-profile', 'Name=Virtue-Tester', '--user-data', '%s' % (userdata), '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name)]
+    data = subprocess.check_output(cmd).decode("utf-8")
+    output = json.loads(data)
+    if len(output['Instances']) > 0:
+        instanceId = output['Instances'][0]['InstanceId']
+        time.sleep(2)
+        return instanceId
+    else:
+        print("Got unexpaced data")
+        print(output)
+        raise Exception("Can't start aws vm")
+
+def get_vm_ip(args, instanceId):
+    cmd = ['aws', 'ec2', 'describe-instances', '--instance-ids', instanceId, '--query', 'Reservations[*].Instances[*].PublicIpAddress']
+    print("Calling %s" % (' '.join(cmd)))
+    output = json.loads(subprocess.check_output(cmd).decode('utf-8'))
+    if len(output) == 1 and len(output[0]) == 1:
+        return output[0][0]
+    else:
+        print("Got unexpected data")
+        print(output)
+        raise Exception("Can't get aws vm ip")
+
 def run_stage(stages, stage):
     for dep in stages[stage].DEPENDS:
         if dep not in stages.keys():
@@ -31,10 +56,14 @@ if __name__ == '__main__':
     parser.add_argument('--syslog-server', default='172.30.128.131', help='ip/hostname of the syslog server, goes into syslog module.')
     parser.add_argument('--elastic-search-host', default='172.30.128.129', help='ip/hostname of elastic search node (not sure if used but needs to not be empty)')
     parser.add_argument('--rethinkdb-host', default='172.30.128.130', help='ip/hostname of the RethinkDB that goes into merlin')
-    parser.add_argument('-i', '--start-vm', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
+    parser.add_argument('-i', '--start-qemu', metavar='IMAGE', help='Start qemu-kvm on IMAGE and apply generated cloud-init to it')
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
     parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
+    parser.add_argument('--aws-image-id', default='ami-43a15f3e', help='AWS Image ID to start. Default Ubuntu 16')
+    parser.add_argument('--aws-instance-type', default='t2.micro', help='AWS Instance type. Default t2.micro')
+    parser.add_argument('--aws-security-group', default='sg-0676d24f', help='AWS Security group id. Default id is ssh only')
+    parser.add_argument('--aws-subnet-id', default='subnet-0b97b651', help='AWS Subnet ID. Selects network too. Default is VirtuePublic')
     parser.add_argument('-c', '--clean', action='store_true', help='Clean the working directory when done. WARNING! This will delete the generated RSA Keys')
     parser.add_argument('containers', nargs='*', help='Docker container names that docker-virtue repository supports')
     args = parser.parse_args()
@@ -64,8 +93,10 @@ if __name__ == '__main__':
     print("Waiting for a VM to come up for ssh stages...")
     
     vm = None
+    instance = ''
+    vmname = ''
 
-    if args.start_vm:
+    if args.start_qemu:
         if args.resize_img:
             # figure out image size by parsing output of 'qemu-img info $IMAGE'
             qemu_img = subprocess.Popen(['qemu-img', 'info', args.start_vm], stdout=subprocess.PIPE)
@@ -86,8 +117,8 @@ if __name__ == '__main__':
         vm = subprocess.Popen(cmd)
 
     else:
-        args.ssh_host = input("SSH host: ")
-        args.ssh_port = input("SSH port: ")
+        #args.ssh_host = input("SSH host: ")
+        #args.ssh_port = input("SSH port: ")
         '''Potentially can start AWS instance here instead. To launch new instance in starlab's environment last time this worked:
         aws ec2 run-instances --image-id ami-43a15f3e --count 1 --instance-type t2.micro --security-group-ids sg-0676d24f --subnet-id subnet-0b97b651 --iam-instance-profile "Name=Virtue-Tester" --user-data "$(cat tmp/user-data)" --tag-specifications "ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=BBN-Assembler}]"
 
@@ -100,6 +131,15 @@ if __name__ == '__main__':
 
         Uploading user-data through a web-browser seems to also not work sometimes (maybe caching?)
         '''
+        vmname = 'Unity-%s' % ('-'.join(args.containers))
+        with open(os.path.join(WORK_DIR, 'user-data'), 'r') as f:
+            instance = start_aws_vm(args, f.read(), vmname)
+            print("New instance id: %s" % (instance))
+            args.ssh_host = get_vm_ip(args, instance)
+            print("New instance ip: %s" % (args.ssh_host))
+            args.ssh_port = '22'
+        print("Waiting for VM to start...")
+        time.sleep(10)
 
     for stage in stage_dict:
         if isinstance(stage_dict[stage], SSHStage):
@@ -109,4 +149,6 @@ if __name__ == '__main__':
         shutil.rmtree(WORK_DIR)
 
     print("Assembler is done")
+    if not args.start_qemu:
+        print("Created instance id: %s, name: %s" % (instance, vmname))
 
