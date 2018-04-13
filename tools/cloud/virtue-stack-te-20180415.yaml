@@ -452,6 +452,23 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Excalibur'
+  CanvasInstance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: VirtUEAdminSubnet
+    Properties:
+      ImageId: ami-b1459ece
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Canvas'
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     DependsOn: VirtUEAdminSubnet
