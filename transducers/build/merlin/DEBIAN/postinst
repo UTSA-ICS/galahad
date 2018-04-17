@@ -1,0 +1,10 @@
+#!/bin/sh
+
+chmod -R 700 /var/private/ssl
+pip install -r /opt/merlin/requirements.txt
+
+# set up autostart
+ln -s /etc/init.d/merlin /etc/rc2.d/S10merlin
+ln -s /etc/init.d/merlin /etc/rc3.d/S10merlin
+ln -s /etc/init.d/merlin /etc/rc4.d/S10merlin
+ln -s /etc/init.d/merlin /etc/rc5.d/S10merlin

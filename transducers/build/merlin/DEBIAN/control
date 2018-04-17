@@ -1,0 +1,8 @@
+Source: merlin
+Section: devel
+Maintainer: Maria Zakhalyavko
+Version: 1.0
+Package: merlin
+Architecture: all
+Depends: python, python-pip
+Description: VirtUE Merlin

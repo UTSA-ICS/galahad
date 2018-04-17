@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+    rethinkdb:
+        image: "rethinkdb"
+        network_mode: host
+        volumes:
+            - /home/ubuntu/excalibur/docker/rethinkdb.conf:/etc/rethinkdb/instances.d/rethinkdb.conf:ro
+            - /home/ubuntu/excalibur/docker/rethinkdb-data:/data
+            - /home/ubuntu/excalibur/docker/rethinkdb.pem:/var/private/ssl/rethinkdb.pem:ro
+            - /home/ubuntu/excalibur/docker/rethinkdb_cert_excal.pem:/var/private/ssl/rethinkdb_cert.pem:ro
+        #ports:
+        #    - "28015:28015"
+        restart: always
+        command: "rethinkdb --config-file /etc/rethinkdb/instances.d/rethinkdb.conf"
+
+    mongo:
+        image: "mongo"
+        volumes:
+            - /home/ubuntu/excalibur/docker/mongodb-data:/data/db
+        ports:
+            - "27017:27017"
+        restart: always
