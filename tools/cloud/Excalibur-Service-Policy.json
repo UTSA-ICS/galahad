@@ -18,7 +18,7 @@
                 "iam:PassRole"
             ],
             "Effect": "Allow",
-            "Resource": "arn:aws:iam::602130734730:role/Virtue-Tester"
+            "Resource": "arn:aws:iam::<AWS_ID>:role/Virtue-Tester"
         },
         {
             "Sid": "AllowInstanceActions",
@@ -33,10 +33,10 @@
                 "ec2:CreateTags",
                 "ec2:DeleteTags"
             ],
-            "Resource": "arn:aws:ec2:us-east-1:602130734730:instance/*",
+            "Resource": "arn:aws:ec2:us-east-1:<AWS_ID>:instance/*",
             "Condition": {
                 "StringEquals": {
-                    "ec2:InstanceProfile": "arn:aws:iam::602130734730:instance-profile/Virtue-Tester"
+                    "ec2:InstanceProfile": "arn:aws:iam::<AWS_ID>:instance-profile/Virtue-Tester"
                 }
             }
         },
@@ -49,17 +49,17 @@
             ],
             "Resource": [
                 "arn:aws:ec2:us-east-1::snapshot/*",
-                "arn:aws:ec2:us-east-1:602130734730:volume/*"
+                "arn:aws:ec2:us-east-1:<AWS_ID>:volume/*"
             ]
         },
         {
             "Sid": "EC2RunInstances",
             "Effect": "Allow",
             "Action": "ec2:RunInstances",
-            "Resource": "arn:aws:ec2:us-east-1:602130734730:instance/*",
+            "Resource": "arn:aws:ec2:us-east-1:<AWS_ID>:instance/*",
             "Condition": {
                 "StringEquals": {
-                    "ec2:InstanceProfile": "arn:aws:iam::602130734730:instance-profile/Virtue-Tester"
+                    "ec2:InstanceProfile": "arn:aws:iam::<AWS_ID>:instance-profile/Virtue-Tester"
                 }
             }
         },
@@ -67,10 +67,10 @@
             "Sid": "EC2RunInstancesSubnet",
             "Effect": "Allow",
             "Action": "ec2:RunInstances",
-            "Resource": "arn:aws:ec2:us-east-1:602130734730:subnet/*",
+            "Resource": "arn:aws:ec2:us-east-1:<AWS_ID>:subnet/*",
             "Condition": {
                 "StringEquals": {
-                    "ec2:vpc": "arn:aws:ec2:us-east-1:602130734730:vpc/vpc-5fcac526"
+                    "ec2:vpc": "arn:aws:ec2:us-east-1:<AWS_ID>:vpc/vpc-5fcac526"
                 }
             }
         },
@@ -79,12 +79,12 @@
             "Effect": "Allow",
             "Action": "ec2:RunInstances",
             "Resource": [
-                "arn:aws:ec2:us-east-1:602130734730:volume/*",
+                "arn:aws:ec2:us-east-1:<AWS_ID>:volume/*",
                 "arn:aws:ec2:us-east-1::image/*",
                 "arn:aws:ec2:us-east-1::snapshot/*",
-                "arn:aws:ec2:us-east-1:602130734730:network-interface/*",
-                "arn:aws:ec2:us-east-1:602130734730:key-pair/*",
-                "arn:aws:ec2:us-east-1:602130734730:security-group/*"
+                "arn:aws:ec2:us-east-1:<AWS_ID>:network-interface/*",
+                "arn:aws:ec2:us-east-1:<AWS_ID>:key-pair/*",
+                "arn:aws:ec2:us-east-1:<AWS_ID>:security-group/*"
             ]
         },
         {

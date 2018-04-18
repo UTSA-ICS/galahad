@@ -58,7 +58,7 @@ boto3 with automatic instance-profile credential retrieval should be used for
  installing the aws python cli.  
 * Then you must edit the `.aws/credentials` file, specifically the profile
 for the account you want to use to generate temporary mfa credentials, to 
-include a line like `mfa_serial = arn:aws:iam::602130734730:mfa/kyle` 
+include a line like `mfa_serial = arn:aws:iam::<AWS_ID>:mfa/kyle` 
 including the arn of the mfa device.  You can find this arn in the 'security 
 credentials' page of the IAM service on AWS (E.G. https://console.aws.amazon.com/iam/home?region=us-east-1#/users/username?section=security_credentials).
 * Then run `aws_get_mfa.sh newprofilename <srcprofile>`.  If you don't provide
