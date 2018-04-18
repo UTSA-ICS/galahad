@@ -22,6 +22,14 @@ from struct import pack
 from threading import Thread, Lock, Event
 from time import sleep, time
 
+logfile = open('merlin.log', 'w', 1)
+
+def log(*args):
+	s = ''
+	for arg in args:
+		s += str(arg)
+	logfile.write(s + '\n')
+
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
 def signal_handler(signal, frame):
 	exit.set()
@@ -48,7 +56,7 @@ def connect_socket(path):
 	try:
 		sock.connect(path)
 	except socket.error, msg:
-		print 'ERROR: Failed to connect to socket:', msg
+		log('ERROR: Failed to connect to socket:', msg)
 		return None
 	return sock
 
@@ -61,7 +69,7 @@ def send_message(sock, message):
 		sock.sendall(message)
 		return True
 	except socket.error, msg:
-		print 'ERROR: Failed to send message:', msg
+		log('ERROR: Failed to send message:', msg)
 		return False
 
 # Receive message over a unix domain socket
@@ -75,44 +83,46 @@ def receive_message(sock):
 			else:
 				break
 	except socket.error, msg:
-		print 'ERROR: Failed while receiving message:', msg
+		log('ERROR: Failed while receiving message:', msg)
 		return None
 	finally:
-		print 'INFO: Received data:', all_data
+		log('INFO: Received data:', all_data)
 		sock.close()
 	return all_data
 
 # Perform a heartbeat - get the current ruleset from the filter periodically
 def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path_to_socket):
 	# Rethinkdb connection
-	try:
-		heartbeat_conn = r.connect(host=rethinkdb_host, 
-					user='virtue', 
-					password='virtue', 
-					ssl={ 'ca_certs': ca_cert })
-	except ReqlDriverError as e:
-		print 'ERROR: Failed to connect to RethinkDB at host:', rethinkdb_host, 'error:', e
-		return
+	heartbeat_conn = None
+	while heartbeat_conn is None:
+		try:
+			heartbeat_conn = r.connect(host=rethinkdb_host, 
+						user='virtue', 
+						password='virtue', 
+						ssl={ 'ca_certs': ca_cert })
+		except r.ReqlDriverError as e:
+			log('ERROR: Failed to connect to RethinkDB at host:', rethinkdb_host, 'error:', e)
+			sleep(30)
 
 	while not exit.is_set():
 		# Lock so that we don't interrupt a real command
 		with lock:
 			sock = connect_socket(path_to_socket)
 			if sock is None:
-				print 'ERROR: Failed to connect to socket'
+				log('ERROR: Failed to connect to socket')
 				exit.wait(interval_len)
 				continue
 
 			# Request a heartbeat from the syslog-ng filter
 			if not send_message(sock, 'heartbeat'):
-				print 'ERROR: Failed to request heartbeat'
+				log('ERROR: Failed to request heartbeat')
 				exit.wait(interval_len)
 				continue
-			print 'Heartbeat'
+			log('Heartbeat')
 
 			data = receive_message(sock)
 			if data is None:
-				print 'ERROR: Failed to receive response to heartbeat'
+				log('ERROR: Failed to receive response to heartbeat')
 				exit.wait(interval_len)
 				continue
 			current_ruleset = json.loads(data)
@@ -130,8 +140,8 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 					required_keys = ['virtue_id', 'transducer_id', 'configuration', 
 						'enabled', 'timestamp', 'signature']
 					if not all( [ (key in row) for key in required_keys ] ):
-						print 'ERROR: Missing required keys in row:',\
-							filter((lambda key: key not in row),required_keys)
+						log('ERROR: Missing required keys in row:',\
+							filter((lambda key: key not in row),required_keys))
 						continue
 					transducer_id = row['transducer_id']
 					config = row['configuration']
@@ -144,31 +154,32 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 					del printable_msg['signature']
 					new_signature = sign_message(virtue_id, transducer_id, config, enabled, timestamp, virtue_key)
 					if new_signature == signature:
-						print 'INFO: Retrieved valid ACK:', \
-							json.dumps(printable_msg, indent=2)
+						log('INFO: Retrieved valid ACK:', \
+							json.dumps(printable_msg, indent=2))
 						ruleset[transducer_id] = enabled
 					else:
-						print 'ERROR: Retrieved invalid ACK:', \
-							json.dumps(printable_msg, indent=2)
+						log('ERROR: Retrieved invalid ACK:', \
+							json.dumps(printable_msg, indent=2))
 						continue
 
 				if len(ruleset) > 0:
 					# Inform filter of changes through unix domain socket
 					sock = connect_socket(socket_to_filter)
 					if sock is None:
-						print 'ERROR: Unable to connect to socket'
+						log('ERROR: Unable to connect to socket')
 						continue
 
 					if not send_message(sock, json.dumps(ruleset)):
-						print 'ERROR: Failed to send ruleset to filter'
+						log('ERROR: Failed to send ruleset to filter')
 						continue
 
 					all_data = receive_message(sock)
 					if all_data is None:
-						print 'ERROR: Failed to receive response from filter'
+						log('ERROR: Failed to receive response from filter')
 						continue
-				print 'INFO: Successfully reminded filter of ruleset'
+				log('INFO: Successfully reminded filter of ruleset')
 
+				exit.wait(interval_len)
 				continue
 
 			transducers = []
@@ -193,24 +204,27 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 					.insert(transducers, conflict='replace')\
 					.run(heartbeat_conn, durability='soft')
 				if res['errors'] > 0:
-					print 'ERROR: Failed to insert into ACKs table; first error:'
-					print res['first_error']
+					log('ERROR: Failed to insert into ACKs table; first error:')
+					log(res['first_error'])
 			except r.ReqlError as e:
-				print 'ERROR: Failed to insert into ACKs table because:', e
+				log('ERROR: Failed to insert into ACKs table because:', e)
 
 		# Wait until the next heartbeat
 		exit.wait(interval_len)
 
 def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, socket_to_filter):
-	try:
-		conn = r.connect(host=rethinkdb_host, 
-			user='virtue', 
-			password='virtue', 
-			ssl={ 'ca_certs': args.ca_cert })
-	except ReqlDriverError as e:
-		print 'ERROR: Failed to connect to RethinkDB at host:', rethinkdb_host, 'error:', e
+	conn = None
+	while conn is None:
+		try:
+			conn = r.connect(host=rethinkdb_host, 
+				user='virtue', 
+				password='virtue', 
+				ssl={ 'ca_certs': args.ca_cert })
+		except r.ReqlDriverError as e:
+			log('ERROR: Failed to connect to RethinkDB at host:', rethinkdb_host, 'error:', e)
+			sleep(30)
 
-	print 'INFO: Waiting for ruleset change commands for Virtue:', virtue_id
+	log('INFO: Waiting for ruleset change commands for Virtue:', virtue_id)
 
 	# Listen for changes (receive commands through rethinkdb)
 	for change in r.db('transducers').table('commands')\
@@ -223,8 +237,8 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		required_keys = ['virtue_id', 'transducer_id', 'configuration', 
                         'enabled', 'timestamp', 'signature']
 		if not all( [ (key in row) for key in required_keys ] ):
-                        print 'ERROR: Missing required keys in row:',\
-                                filter((lambda key: key not in row),required_keys)
+                        log('ERROR: Missing required keys in row:',\
+                                filter((lambda key: key not in row),required_keys))
 			continue
 		transducer_id = row['transducer_id']
 		config = row['configuration']
@@ -236,30 +250,30 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		printable_msg = deepcopy(row)
 		del printable_msg['signature']
 		if verify_message(virtue_id, transducer_id, config, enabled, timestamp, signature, excalibur_key):
-			print 'INFO: Received valid command message:', \
-				json.dumps(printable_msg, indent=2)
+			log('INFO: Received valid command message:', \
+				json.dumps(printable_msg, indent=2))
 		else:
-			print 'ERROR: Unable to validate signature of command message:', \
-				json.dumps(printable_msg, indent=2)
+			log('ERROR: Unable to validate signature of command message:', \
+				json.dumps(printable_msg, indent=2))
 			continue
 
 		with lock:
-			print 'INFO: Begin implementing received command'
+			log('INFO: Begin implementing received command')
 
 			# Inform filter of changes through unix domain socket
 			sock = connect_socket(socket_to_filter)
 			if sock is None:
-				print 'ERROR: Unable to connect to socket'
+				log('ERROR: Unable to connect to socket')
 				continue
 
 			command = { transducer_id : enabled }
 			if not send_message(sock, json.dumps(command)):
-				print 'ERROR: Failed to send command to filter'
+				log('ERROR: Failed to send command to filter')
 				continue
 
 			all_data = receive_message(sock)
 			if all_data is None:
-				print 'ERROR: Failed to receive response from filter'
+				log('ERROR: Failed to receive response from filter')
 				continue
 
 			# Confirm to excalibur that changes were successful
@@ -276,14 +290,14 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 					'signature': r.binary(new_signature)
 				}, conflict='replace').run(conn)
 				if res['errors'] > 0:
-					print 'ERROR: Failed to insert into ACKs table; first error:'
-					print res['first_error']
+					log('ERROR: Failed to insert into ACKs table; first error:')
+					log(res['first_error'])
 					continue
 			except r.ReqlError as e:
-				print 'ERROR: Failed to publish ACK to Excalibur because:', e
+				log('ERROR: Failed to publish ACK to Excalibur because:', e)
 				continue
 
-			print 'INFO: Successfully implemented command from Excalibur'
+			log('INFO: Successfully implemented command from Excalibur')
 
 if __name__ == '__main__':
 	exit = Event()
@@ -291,7 +305,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Receiver for Virtue transducer ruleset changes')
 	parser.add_argument('virtue_id', help='ID of this Virtue')
-	parser.add_argument('-r', '--rdb_host', help='RethinkDB host', default='ec2-54-145-211-31.compute-1.amazonaws.com')
+	parser.add_argument('-r', '--rdb_host', help='RethinkDB host', default='rethinkdb.galahad.com')
 	parser.add_argument('-c', '--ca_cert', help='RethinkDB CA cert', default='rethinkdb_cert.pem')
 	parser.add_argument('-e', '--excalibur_key', help='Public key file for Excalibur', default='excalibur_pub.pem')
 	parser.add_argument('-v', '--virtue_key', help='Private key file for this Virtue', default='virtue_key.pem')
@@ -299,19 +313,19 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	if not os.path.isfile(args.ca_cert):
-		print 'ERROR: CA cert file does not exist:', args.ca_cert
+		log('ERROR: CA cert file does not exist:', args.ca_cert)
 		sys.exit(1)
 	if not os.path.isfile(args.excalibur_key):
-		print 'ERROR: Excalibur public key file does not exist:', args.excalibur_key
+		log('ERROR: Excalibur public key file does not exist:', args.excalibur_key)
 		sys.exit(1)
 	if not os.path.isfile(args.virtue_key):
-		print 'ERROR: Virtue private key file does not exist:', args.virtue_key
+		log('ERROR: Virtue private key file does not exist:', args.virtue_key)
 		sys.exit(1)
 	if args.heartbeat < 0:
-		print 'ERROR: Invalid heartbeat interval:', args.heartbeat
+		log('ERROR: Invalid heartbeat interval:', args.heartbeat)
 		sys.exit(1)
 
-	socket_to_filter = '/opt/receiver_to_filter'
+	socket_to_filter = '/opt/merlin/receiver_to_filter'
 
 	# Load keys into memory
 	virtue_key = None
