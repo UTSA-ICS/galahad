@@ -1,0 +1,9 @@
+[transducer]
+rethinkdb_host = rethinkdb.galahad.com
+rethinkdb_ca_cert = /opt/heartbeatlistener/keys/rethinkdb_cert.pem
+excalibur_private_key = /opt/heartbeatlistener/keys/excalibur_key.pem
+virtue_public_key_dir = /opt/heartbeatlistener/keys/
+elasticsearch_host = 172.30.128.129
+elasticsearch_ca_cert = /opt/heartbeatlistener/keys/elasticsearch/chain-ca.pem
+elasticsearch_client_cert = /opt/heartbeatlistener/keys/elasticsearch/kirk.crtfull.pem
+elasticsearch_client_key = /opt/heartbeatlistener/keys/elasticsearch/kirk.key.pem

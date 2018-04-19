@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2018 
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * As an additional exemption you are allowed to compile & link against the
+ * OpenSSL libraries as published by the OpenSSL project. See the file
+ * COPYING for details.
+ *
+ */
+
+%code top {
+#include "transducer-controller-parser.h"
+
+}
+
+
+%code {
+
+#include "cfg-parser.h"
+#include "transducer-controller-grammar.h"
+#include "syslog-names.h"
+#include "messages.h"
+#include "plugin.h"
+#include "cfg-grammar.h"
+
+#include <string.h>
+
+}
+
+%name-prefix "transducer_controller_"
+
+/* this parameter is needed in order to instruct bison to use a complete
+ * argument list for yylex/yyerror */
+
+%lex-param {CfgLexer *lexer}
+%parse-param {CfgLexer *lexer}
+%parse-param {LogDriver **instance}
+%parse-param {gpointer arg}
+
+/* INCLUDE_DECLS */
+
+%token KW_TRANSDUCER_CONTROLLER
+
+%%
+
+start
+  : LL_CONTEXT_PARSER KW_TRANSDUCER_CONTROLLER
+    {
+      last_parser = *instance = (LogParser *) transducer_controller_new(configuration);
+    }
+    '('')'    { YYACCEPT; }
+  ;
+
+//tc_parser
+//  : KW_TRANSDUCER_CONTROLLER
+//  ;
+
+/* INCLUDE_RULES */
+
+%%
+
