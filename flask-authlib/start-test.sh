@@ -59,6 +59,21 @@ else
     # Initialize the database.
     flask initdb
   fi
- 
+
+  # Copy SSL Certs from galahad-config repo
+  if [ ! -d "ssl" ] || [ ! -f "ssl/flask_ssl.cert" ] || [ ! -f "ssl/flask_ssl.key" ]; then
+    mkdir -p ssl
+    galahad_dir=$(sed 's/\/galahad\/flask-authlib//' <<< $current_dir)
+    galahad_config_dir=$galahad_dir/galahad-config
+    if [ ! -d "$galahad_config_dir" ]; then
+      echo "#########################################################################################"
+      echo "ERROR: Config directory $galahad_config_dir does not exist"
+      echo "Please ensure that [$galahad_config_dir/flask_ssl] exists with the relevant SSL certs"
+      echo "#########################################################################################"
+      exit
+    fi
+    cp -R $galahad_config_dir/flask_ssl/* ssl/.
+  fi
+
   python app.py $PORT
 fi
