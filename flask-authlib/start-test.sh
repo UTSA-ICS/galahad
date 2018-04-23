@@ -63,8 +63,14 @@ else
   # Copy SSL Certs from galahad-config repo
   if [ ! -d "ssl" ] || [ ! -f "ssl/flask_ssl.cert" ] || [ ! -f "ssl/flask_ssl.key" ]; then
     mkdir -p ssl
-    galahad_dir=$(sed 's/\/galahad\/flask-authlib//' <<< $current_dir)
-    galahad_config_dir=$galahad_dir/galahad-config
+    # Remove the flask-authlib dir
+    base_dir=$(sed 's/\/flask-authlib//' <<< $current_dir)
+    # Get the directory name that the repo is checked out in
+    galahad_dir=$(echo ${base_dir##*/})
+    # Remove the base repo checked out dir name
+    base_dir=$(sed "s/\/$galahad_dir//" <<< $base_dir)
+    # This is the root dir where the config repo should be
+    galahad_config_dir=$base_dir/galahad-config
     if [ ! -d "$galahad_config_dir" ]; then
       echo "#########################################################################################"
       echo "ERROR: Config directory $galahad_config_dir does not exist"
