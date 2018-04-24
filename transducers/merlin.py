@@ -179,9 +179,6 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 						continue
 				log('INFO: Successfully reminded filter of ruleset')
 
-				exit.wait(interval_len)
-				continue
-
 			transducers = []
 			timestamp = int(time())
 			for transducer_id in current_ruleset:
