@@ -55,8 +55,10 @@ class Transducer(object):
 		transducer = collection.find_one({ 'id': transducerId },{ '_id': 0 })
 		if transducer is None:
 			print 'No transducer found!'
+			return None
 		else:
 			print self.__print(transducer)
+			return Transducer(transducer)
 
 	def enable(self, userToken, transducerId, virtueId, configuration):
 		'''

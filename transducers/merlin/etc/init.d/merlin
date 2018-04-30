@@ -12,17 +12,17 @@ SCRIPT="python /opt/merlin/merlin.py -c /var/private/ssl/rethinkdb_cert.pem -v /
 RUNAS=root
 
 PIDFILE=/opt/merlin/merlin.pid
-LOGFILE=/opt/merlin/merlin.log
+LOGFILE=/opt/merlin/merlin-initd.log
 
 start() {
-  if [ -f /var/run/$PIDNAME ] && kill -0 $(cat /var/run/$PIDNAME); then
+  if [ -f $PIDFILE ] && kill -0 $(cat $PIDFILE); then
     echo 'Service already running' >&2
     return 1
   fi
   echo 'Starting service...' >&2
   local CMD="$SCRIPT &> \"$LOGFILE\" & echo \$!"
   echo "Command: $CMD" >&2
-  su - $RUNAS -c "$CMD" > "$PIDFILE"
+  su -c "$CMD" $RUNAS > "$PIDFILE"
   echo 'Service started' >&2
 }
 

@@ -12,17 +12,17 @@ SCRIPT="bash /opt/heartbeatlistener/heartbeatlistener.sh"
 RUNAS=root
 
 PIDFILE=/opt/heartbeatlistener/heartbeat.pid
-LOGFILE=/opt/heartbeatlistener/heartbeat.log
+LOGFILE=/opt/heartbeatlistener/heartbeat-initd.log
 
 start() {
-  if [ -f /var/run/$PIDNAME ] && kill -0 $(cat /var/run/$PIDNAME); then
+  if [ -f $PIDFILE ] && kill -0 $(cat $PIDFILE); then
     echo 'Service already running' >&2
     return 1
   fi
   echo 'Starting service...' >&2
   local CMD="$SCRIPT &> \"$LOGFILE\" & echo \$!"
   echo "Command: $CMD" >&2
-  su - $RUNAS -c "$CMD" > "$PIDFILE"
+  su -c "$CMD" $RUNAS > "$PIDFILE"
   echo 'Service started' >&2
 }
 

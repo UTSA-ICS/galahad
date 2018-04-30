@@ -10,21 +10,44 @@
 
 * To build merlin:
     * Put `rethinkdb_cert.pem`, `excalibur_pub.pem`, and `excalibur_key.pem` into `merlin/var/private/ssl/`
-    * Run `dpkg-deb --build merlin` from this (`galahad/transducers`) directory
+    * Run `./build_deb.sh merlin` from this (`galahad/transducers`) directory
     * This creates a deb file, which is given to the Assembler
 
 * To build the heartbeat listener:
     * Look in `listener/opt/heartbeatlistener/.excalibur` and either copy all those keys into the specified paths, or change the paths to point to the keys' locations
-    * Run `dpkg-deb --build listener` to build the listener deb file, which is installed on Excalibur
+    * Run `./build_deb.sh merlin` to build the listener deb file, which is installed on Excalibur
 
 * To build the syslog-ng filter:
     * See `transducer-module/README.md`
 
+* To set up RethinkDB:
+    * As a docker container: `cd docker; docker-compose up -d`
+    * On bare metal (run `install_rethinkdb.sh`):
+        * In `/etc/hosts`, add `127.0.0.1 rethinkdb.galahad.lab`
+        * Install rethinkdb:
+            ```
+            source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
+            wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
+            sudo apt-get update
+            sudo apt-get install rethinkdb
+            ```
+        * Generate a certificate for the `rehtinkdb.galahad.lab` domain: `openssl req -new -x509 -key rethinkdb.pem -out rethinkdb_cert.pem -days 3650`
+        * Put the key (`rethinkdb.pem`) and cert (`rethinkdb_cert.pem`) in `/var/private/ssl` and set permissions:
+            ```
+            sudo chown rethinkdb:rethinkdb /var/private/ssl/*.pem
+            sudo chmod 600 /var/private/ssl/*.pem
+            ```
+        * Copy `rethinkdb.conf` to `/etc/rethinkdb/instances.d/`
+        * Enable rethinkdb in systemctl and start it:
+            ```
+            sudo systemctl enable rethinkdb@rethinkdb
+            sudo systemctl start rethinkdb@rethinkdb
+            ```
+
 * To set up Excalibur:
-    * Start RethinkDB with a config file similar to `docker/rethinkdb.conf`.  Make sure you have a cert that matches the domain name.
-    * Edit `setup_rethinkdb.py` and `set_admin_pw_rethinkdb.py` to specify RethinkDB's host and cert location.
-    * Set up RethinkDB by running: `python setup_rethinkdb.py` (you will need all the python modules specified in `../excalibur/requirements.txt`)
-    * Configure RethinkDB's admin password by running: `python set_admin_pw_rethinkdb.py`.  NOTE: If you want to run this script again, you must add the current admin password to the `connect()` call.
+    * Add an entry to `/etc/hosts` that maps the ip address of the RethinkDB host to `rethinkdb.galahad.lab`
+    * Set up RethinkDB by running: `python setup_rethinkdb.py -h [rethinkdb hostname] -c [path to rethinkdb ca cert]` (you will need all the python modules specified in `../excalibur/requirements.txt`)
+    * Configure RethinkDB's admin password by running: `python set_admin_pw_rethinkdb.py -h [host] -c [cert]`.  NOTE: If you want to run this script again, you must add the current admin password to the `connect()` call.
 
 ## To run:
 * The Virtue must be running syslog-ng (with transducer module) and Merlin (look in `merlin/etc/init.d/merlin` for runtime arguments)
@@ -37,5 +60,5 @@ python -m excalibur.cli
 >>> transducer disable <VIRTUE_ID> socket_connect
 ```
 
-* You should see heartbeat and control messages in /root/merlin.log on the Virtue
+* You should see heartbeat and control messages in /opt/merlin/merlin.log on the Virtue
 

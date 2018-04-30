@@ -1,0 +1,9 @@
+[Unit]
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/merlin start
+
+[Install]
+WantedBy=multi-user.target

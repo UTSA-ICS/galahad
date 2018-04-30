@@ -40,24 +40,31 @@ class TransducerCmd(cmd.Cmd):
 		self.user_token = userToken
 
 		# Default values
-		self.rethinkdb_host = 'ec2-54-145-211-31.compute-1.amazonaws.com'
+		self.rethinkdb_host = 'rethinkdb.galahad.lab'
 		self.ca_cert = 'rethinkdb_cert.pem'
 		self.excalibur_key_file = 'excalibur_key.pem'
 		self.virtue_key_dir = '.'
+		self.wait_for_ack = 30   # seconds
 
 		# Read config file if exists
 		if os.path.isfile(dotfile):
 			config = configparser.ConfigParser()
 			config.read(dotfile)
 			if 'transducer' in config:
-				if 'rethinkdb_host' in config['transducer']:
-					self.rethinkdb_host = config['transducer']['rethinkdb_host']
-				if 'rethinkdb_ca_cert' in config['transducer']:
-					self.ca_cert = config['transducer']['rethinkdb_ca_cert']
-				if 'excalibur_private_key' in config['transducer']:
-					self.excalibur_key_file = config['transducer']['excalibur_private_key']
-				if 'virtue_public_key_dir' in config['transducer']:
-					self.virtue_key_dir = config['transducer']['virtue_public_key_dir']
+				c = config['transducer']
+				if 'rethinkdb_host' in c:
+					self.rethinkdb_host = c['rethinkdb_host']
+				if 'rethinkdb_ca_cert' in c:
+					self.ca_cert = c['rethinkdb_ca_cert']
+				if 'excalibur_private_key' in c:
+					self.excalibur_key_file = c['excalibur_private_key']
+				if 'virtue_public_key_dir' in c:
+					self.virtue_key_dir = c['virtue_public_key_dir']
+				if 'wait_for_ack' in c:
+					try:
+						self.wait_for_ack = int(c['wait_for_ack'])
+					except:
+						print 'ERROR: Invalid number for seconds to wait for Transducer control ACK: %s; using default: %d seconds', str(c['wait_for_ack']), self.wait_for_ack
 
 		# Check that files exist
 		if not os.path.isfile(self.ca_cert):
@@ -84,7 +91,7 @@ class TransducerCmd(cmd.Cmd):
 				return
 
 		# Make sure that the database and tables have been set up
-		# NOTE: This doesn't set the permissions for the users.  That is only done by the setup_rethinkdb.py script - please run that before running the Excalibur CLI!!!
+		# NOTE: This doesn't set the permissions for the users.  That is only done by the setup_rethinkdb.py script - PLEASE RUN THAT BEFORE running the Excalibur CLI!!!  (For this reason the below code is technically unnecessary since setup_rethinkdb.py will do it all.)
 		try:
 			r.db_create('transducers').run(self.conn)
 		except r.ReqlOpFailedError:
@@ -224,7 +231,7 @@ class TransducerCmd(cmd.Cmd):
 				# Wait max 30 seconds - if we miss the real ACK, hopefully
 				# at least the next heartbeat will suffice
 				print 'INFO: Waiting for ACK'
-				change = cursor.next(wait=30)
+				change = cursor.next(wait=self.wait_for_ack)
 				row = change['new_val']
 				verified = self.__verify_message(row)
 				if verified:
@@ -313,6 +320,8 @@ class TransducerCmd(cmd.Cmd):
 
 	def do_list_enabled(self, virtue_id):
 		'''List all enabled transducers'''
+		if virtue_id == '':
+			raise InvalidOrMissingParameters()
 		print "transducer.list_enabled(" + virtue_id + ")"
 
 		enabled_transducers = []
@@ -400,6 +409,8 @@ class ExcaliburCmd(cmd.Cmd):
 		'''
 		try:
 			TransducerCmd("MAH-TOKEN").onecmd(subcmd)
+		except InvalidOrMissingParameters:
+			print 'ERROR: Invalid or missing paramenters.  Try again.'
 		except ExcaliburException as ee:
 			print "ERROR: return code =", ee.retcode
 			if verbose:
@@ -415,6 +426,6 @@ if __name__ == '__main__':
 		try:
 			ExcaliburCmd().cmdloop(banner)
 		except InvalidOrMissingParameters:
-			print 'Invalid or missing paramenters.  Try again.'
+			print 'ERROR: Invalid or missing paramenters.  Try again.'
 		except KeyboardInterrupt:
 			print "Goodbye!"
