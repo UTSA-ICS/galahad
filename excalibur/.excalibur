@@ -1,0 +1,10 @@
+[transducer]
+rethinkdb_host = ec2-54-145-211-31.compute-1.amazonaws.com
+rethinkdb_ca_cert = /home/ubuntu/excalibur/rethinkdb_cert_excal.pem
+excalibur_private_key = /home/ubuntu/excalibur/excalibur_key.pem
+virtue_public_key_dir = /home/ubuntu/excalibur/
+#elasticsearch_host = ec2-52-90-25-82.compute-1.amazonaws.com
+elasticsearch_host = 172.30.1.182
+elasticsearch_ca_cert = /home/ubuntu/excalibur/elastic_certs/chain-ca.pem
+elasticsearch_client_cert = /home/ubuntu/excalibur/elastic_certs/kirk.crtfull.pem
+elasticsearch_client_key = /home/ubuntu/excalibur/elastic_certs/kirk.key.pem

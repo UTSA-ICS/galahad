@@ -18,6 +18,7 @@ meta-data
 user-data
 flask-authlib/conf/*
 flask-authlib/venv/*
+flask-authlib/ssl/*
 flask-authlib/website/sqlite.db
 kernel-source
 artful-server-cloudimg-amd64.img

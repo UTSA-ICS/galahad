@@ -1,0 +1,1 @@
+include modules/transducer-controller/Makefile.am
