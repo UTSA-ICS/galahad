@@ -3,6 +3,7 @@
 ###############################################################################
 #
 # MERLIN: Mediator of Events for Responses, Logging, and IntrospectioN
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 #
 ###############################################################################
 

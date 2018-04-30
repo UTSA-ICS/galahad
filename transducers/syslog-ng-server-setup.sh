@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Copyright (c) 2018 Raytheon BBN Technologies Corp.
+
 ## Install syslog-ng
 wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
 echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list

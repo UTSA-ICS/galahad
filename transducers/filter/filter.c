@@ -9,6 +9,8 @@
 #include "cjson/cJSON.h"
 #include "map/src/map.h"
 
+/* Copyright (c) 2018 by Raytheon BBN Technologies Corp. */
+
 /*
  * All of this should eventually be a thread in the syslog-ng module, not a 
  * separate process.

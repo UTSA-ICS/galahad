@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 from stages.core.ssh_stage import SSHStage
 
 import subprocess, os
