@@ -27,13 +27,14 @@
 typedef struct {
     LogParser super;
     gchar *prefix;
+    char* socket_path;
     int prefix_len;
     gboolean debug;
     map_int_t* transducers;
 } TransducerController;
 
 void transducer_controller_set_prefix(LogParser *p, const gchar *prefix);
-
+void transducer_set_socket(LogParser *p, char* socket_path);
 
 gboolean transducer_controller_init_method(LogPipe *s);
 gboolean transducer_controller_deinit_method(LogPipe *s);

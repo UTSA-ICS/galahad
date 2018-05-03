@@ -32,7 +32,8 @@ int transducer_controller_parse(CfgLexer *lexer, LogDriver **instance, gpointer 
 static CfgLexerKeyword transducer_controller_keywords[] =
 {
         { "transducer_controller", KW_TRANSDUCER_CONTROLLER },
-  { NULL }
+        { "socket", KW_SOCKET },
+        { NULL }
 };
 
 CfgParser transducer_controller_parser =
