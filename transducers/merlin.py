@@ -346,8 +346,6 @@ if __name__ == '__main__':
 
 	lock = Lock()
 
-	# TODO: set up initial ruleset, as well as actions on restart
-
 	heartbeat_thread = Thread(target = heartbeat, args=(
 		args.virtue_id, args.rdb_host, args.ca_cert, args.heartbeat, 
 		virtue_key, args.socket,))
