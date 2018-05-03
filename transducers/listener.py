@@ -8,10 +8,12 @@
 #
 ###############################################################################
 
+import argparse
 import configparser
 import cmd
 import gnureadline as readline
 import json
+import logging
 import os.path
 import rethinkdb as r
 import sys
@@ -29,9 +31,9 @@ from time import sleep, time
 
 class HeartbeatListener():
 
-	def __init__(self):
+	def __init__(self, dotfile):
 		# Dotfile path
-		self.dotfile = '/opt/heartbeatlistener/.excalibur'
+		self.dotfile = dotfile
 
 		# Default values
 		self.rethinkdb_host = 'ec2-54-145-211-31.compute-1.amazonaws.com'
@@ -42,19 +44,36 @@ class HeartbeatListener():
 		self.es_ca_cert = 'chain-ca.pem'
 		self.es_client_cert = 'kirk.crtfull.pem'
 		self.es_client_key = 'kirk.key.pem'
+		self.max_time = 3 * 60   # 3 minutes
+		self.logfile = 'listener.log'
 
-		self.logfile = open('listener.log', 'w', 1)
+		self.log = logging.getLogger('heartbeatlistener')
+
+	# ---------------------------------------------------
+
+	def setup_logging(self, filename):
+		logfile = logging.FileHandler(filename)
+		formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+		logfile.setFormatter(formatter)
+		self.log.addHandler(logfile)
+		self.log.setLevel(logging.INFO)
 
 	# ---------------------------------------------------
 
 	def setup_config(self):
-		self.logfile.write('INFO: Reading config\n')
+		self.log.info('Reading config')
 		# Read config file if exists
 		if os.path.isfile(self.dotfile):
 			config = configparser.ConfigParser()
 			config.read(self.dotfile)
 			if 'transducer' in config:
 				c = config['transducer']
+
+				if 'logfile' in c:
+					self.logfile = c['logfile']
+				# Setup logging either for specified or default file name
+				self.setup_logging(self.logfile)
+
 				if 'rethinkdb_host' in c:
 					self.rethinkdb_host = c['rethinkdb_host']
 				if 'rethinkdb_ca_cert' in c:
@@ -71,25 +90,34 @@ class HeartbeatListener():
 					self.es_client_cert = c['elasticsearch_client_cert']
 				if 'elasticsearch_client_key' in c:
 					self.es_client_key = c['elasticsearch_client_key']
+				if 'max_time' in c:
+					try:
+						self.max_time = int(c['max_time'])
+					except:
+						self.log.error('Invalid number for max time: %s; using default: %d', str(c['max_time']), self.max_time)
+
 
 		# Check that files exist
 		if not os.path.isfile(self.rdb_ca_cert):
-			self.logfile.write('ERROR: File not found for RethinkDB CA cert: ' + self.rdb_ca_cert + '\n')
+			self.log.error('File not found for RethinkDB CA cert: %s', self.rdb_ca_cert)
 			return False
 		if not os.path.isfile(self.excalibur_key_file):
-			self.logfile.write('ERROR: File not found for Excalibur private key: ' + self.excalibur_key_file + '\n')
+			self.log.error('File not found for Excalibur private key: %s', self.excalibur_key_file)
 			return False
 		if not os.path.isdir(self.virtue_key_dir):
-			self.logfile.write('ERROR: Directory not found for Virtue public keys: ' + self.virtue_key_dir + '\n')
+			self.log.error('Directory not found for Virtue public keys: ', self.virtue_key_dir)
 			return False
 		if not os.path.isfile(self.es_ca_cert):
-			self.logfile.write('ERROR: File not found for Elasticsearch CA cert: ' + self.es_ca_cert + '\n')
+			self.log.error('File not found for Elasticsearch CA cert: ', self.es_ca_cert)
 			return False
 		if not os.path.isfile(self.es_client_cert):
-			self.logfile.write('ERROR: File not found for Elasticsearch client cert: ' + self.es_client_cert + '\n')
+			self.log.error('File not found for Elasticsearch client cert: ', self.es_client_cert)
 			return False
 		if not os.path.isfile(self.es_client_key):
-			self.logfile.write('ERROR: File not found for Elasticsearch client key: ' + self.es_client_key + '\n')
+			self.log.error('File not found for Elasticsearch client key: ', self.es_client_key)
+			return False
+		if self.max_time <= 0:
+			self.log.error('Max time invalid: %d', self.max_time)
 			return False
 
 		return True
@@ -97,7 +125,7 @@ class HeartbeatListener():
 	# ---------------------------------------------------
 
 	def connect_rethinkdb(self):
-		self.logfile.write('INFO: Connecting to RethinkDB\n')
+		self.log.info('Connecting to RethinkDB')
 		# RethinkDB connection
 		while (True):
 			with open(self.excalibur_key_file, 'r') as f:
@@ -110,21 +138,21 @@ class HeartbeatListener():
 						ssl={ 'ca_certs': self.rdb_ca_cert })
 					return conn
 				except r.ReqlDriverError as e:
-					self.logfile.write('ERROR: Failed to connect to RethinkDB at host: ' + self.rethinkdb_host + '; error: ' + str(e) +  '; Trying again in 30 seconds.\n')
+					self.log.error('Failed to connect to RethinkDB at host: %s; error: %s; Trying again in 30 seconds.', self.rethinkdb_host, str(e))
 					sleep(30)
 
 	# ---------------------------------------------------
 
 	def __verify_message(self, row):
 		if row is None:
-			self.logfile.write('ERROR: No match found\n')
+			self.log.error('No match found')
 			return False
 
 		required_keys = ['virtue_id', 'transducer_id', 'configuration', 
 			'enabled', 'timestamp', 'signature']
 		if not all( [ (key in row) for key in required_keys ] ):
-			self.logfile.write('ERROR: Missing required keys in row: ' + \
-				str(filter((lambda key: key not in row),required_keys)) + '\n')
+			self.log.error('Missing required keys in row: %s',\
+				str(filter((lambda key: key not in row),required_keys)))
 			return False
 
 		message = '|'.join([row['virtue_id'], row['transducer_id'], 
@@ -133,8 +161,8 @@ class HeartbeatListener():
 		virtue_public_key = os.path.join(self.virtue_key_dir, 
 			'virtue_' + row['virtue_id'] + '_pub.pem')
 		if not os.path.isfile(virtue_public_key):
-			self.logfile.write('ERROR: No file found for Virtue public key at: ' + \
-				virtue_public_key + '\n')
+			self.log.error('No file found for Virtue public key at: %s', \
+				virtue_public_key)
 			return False
 		with open(virtue_public_key) as f:
 			virtue_key = RSA.importKey(f.read())
@@ -145,15 +173,15 @@ class HeartbeatListener():
 		if not verified:
 			printable_msg = deepcopy(row)
 			del printable_msg['signature']
-			self.logfile.write('ERROR: Unable to validate signature of ACK message: ' + \
-				json.dumps(printable_msg, indent=2) + '\n')
+			self.log.error('Unable to validate signature of ACK message: %s', \
+				json.dumps(printable_msg, indent=2))
 		return verified
 
 	# ---------------------------------------------------
 
 	# Create ES connection
 	def connect_es(self):
-		self.logfile.write('INFO: Connecting to ElasticSearch\n')
+		self.log.info('Connecting to ElasticSearch')
 		while (True):
 			try:
 				urllib3.contrib.pyopenssl.inject_into_urllib3()
@@ -170,7 +198,7 @@ class HeartbeatListener():
 				)
 				return
 			except Exception as e:
-				self.logfile.write('ERROR: Could not connect to ElasticSearch: ' + str(e) + '; Trying again in 30 seconds.\n')
+				self.log.error('Could not connect to ElasticSearch: %s; Trying again in 30 seconds.', str(e))
 				sleep(30)
 		HeartbeatNotification.init()
 
@@ -195,19 +223,20 @@ class HeartbeatListener():
 	# ---------------------------------------------------
 
 	def run(self):
-		self.logfile.write('INFO: Starting\n')
+		self.log.info('Starting')
 
-		interval = 3 * 60   # 3 minutes
+		# If no heartbeats for >= `interval` seconds, send an alert to Elasticsearch
+		interval = self.max_time   # default is 3 minutes
 
 		if not self.setup_config():
-			self.logfile.write('Configuration errors - exiting\n')
+			self.log.error('Configuration errors - exiting')
 			sys.exit(1)
 
 		# These will loop until they get connections, so they can't "fail"
 		conn = self.connect_rethinkdb()
 		self.connect_es()
 
-		self.logfile.write('INFO: Starting to listen for heartbeats\n')
+		self.log.info('Starting to listen for heartbeats')
 		while (True):
 			current_time = int(time())
 
@@ -222,5 +251,9 @@ class HeartbeatListener():
 			sleep(30)  # some amount of time
 
 if __name__ == '__main__':
-	HeartbeatListener().run()
+	parser = argparse.ArgumentParser(description='Listener for Virtue transducer heartbeats')
+	parser.add_argument('dotfile', help='The .excalibur file containing all parameters', default='.excalibur')
+	args = parser.parse_args()
+
+	HeartbeatListener(args.dotfile).run()
 
