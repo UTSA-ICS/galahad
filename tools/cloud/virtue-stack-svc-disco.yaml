@@ -31,6 +31,24 @@ Resources:
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+  VirtueHostedZone:
+    Type: 'AWS::Route53::HostedZone'
+    Properties: 
+      HostedZoneConfig:
+        Comment: "VPC-private zone for service discovery"
+      HostedZoneTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join 
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Zone'
+      Name: 'galahad.test'
+      VPCs:
+        - VPCId: !Ref VirtUEVPC
+          VPCRegion: !Ref "AWS::Region"
   VirtUEAdminSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -535,6 +553,15 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Aggregator'
+  AggregatorDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties: 
+      HostedZoneName: galahad.test.
+      Name: aggregator.galahad.test.
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadAggregator.PrivateIp
   GalahadRethinkDB:
     Type: 'AWS::EC2::Instance'
     Metadata:
@@ -559,6 +586,15 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-RethinkDB'
+  RethinkDBDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties: 
+      HostedZoneName: galahad.test.
+      Name: rethinkdb.galahad.test.
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadRethinkDB.PrivateIp
   APLSyslog:
     Type: 'AWS::EC2::Instance'
     Metadata:
