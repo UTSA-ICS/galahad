@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 from excalibur.ExcaliburException import *
 
 import json

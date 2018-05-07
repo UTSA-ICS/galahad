@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 class ExcaliburException(Exception):
 	def __init__(self, *args, **kwargs):
 		self.retcode = 0

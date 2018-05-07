@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 if [ "$#" -ne 1 ]; then
     echo "Missing arguments: please specify which deb file to build (merlin, listener)"
     exit 1
