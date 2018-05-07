@@ -87,10 +87,8 @@ void transducer_rules_connection_thread(void *vargp) {
 
     grp = getgrnam("virtue");
     gid =  grp->gr_gid;
-
     unlink(s_filename);
-    printf("socket path pointer in startup method: %p\n", self->socket_path);
-    printf("Starting domain socket setup for %s \n", s_filename);
+    printf("socket path pointer in startup method: %s\n", self->socket_path);
 
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -102,19 +100,25 @@ void transducer_rules_connection_thread(void *vargp) {
 
     server.sun_family = AF_UNIX;
     strcpy(server.sun_path, s_filename);
+
     if (bind(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_un))) {
         perror("binding stream socket\n");
         return 1;
     }
 
 
-//    if (chown(s_filename, -1, gid) == -1) {
-//        int errsv = errno;
-//        printf("Chown fail %d\n", errsv);
-//        return 1;
-//    }
-//
-//    chmod(server.sun_path, 0770);
+    if (chmod(s_filename, 0770) == -1) {
+        int errsv = errno;
+        printf("Chmod fail %d\n", errsv);
+        return 1;
+    }
+
+
+    if (chown(s_filename, -1, gid) == -1) {
+        int errsv = errno;
+        printf("Chown fail %d\n", errsv);
+        return 1;
+    }
 
     printf("set up socket with name %s\n", server.sun_path);
     listen(sock, 5);
@@ -286,7 +290,6 @@ _free(LogPipe *s)
 {
     TransducerController *self = (TransducerController *)s;
 
-    printf("We are free'ing all of the things\n");
     g_free(self->prefix);
     g_free(self->socket_path);
     g_free(self);
@@ -303,9 +306,6 @@ void mock_map(map_int_t *map) {
 
 LogParser *transducer_controller_new(GlobalConfig *cfg)  {
     TransducerController *self = g_new0(TransducerController, 1);
-
-    printf("socket path in new method: %s\n", self->socket_path);
-
     //map_int_t transducers;
     map_int_t* transducers = (map_int_t*)malloc(sizeof(map_int_t));
     map_init(transducers);
@@ -316,7 +316,6 @@ LogParser *transducer_controller_new(GlobalConfig *cfg)  {
     transducer_controller_init_instance(self, cfg);
     self->super.super.clone = _clone;
     self->transducers = transducers;
-    printf("socket path at end of new method: %s\n", self->socket_path);
 
     return &self->super;
 }
