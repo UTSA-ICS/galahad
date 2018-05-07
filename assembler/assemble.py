@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 #!/usr/bin/env python3 
 
 import argparse, os, subprocess, sys, re, shutil, json, time

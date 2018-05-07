@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 #!/usr/bin/env python
 
 # Generates cloud-init style yaml files that can be passed to a VM for proper config

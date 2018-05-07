@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 from stages.core.ci_stage import CIStage
 
 import subprocess, os

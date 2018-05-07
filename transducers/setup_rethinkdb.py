@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 import argparse
 import os.path
 import rethinkdb as r

@@ -6,6 +6,8 @@
 # Listens for heartbeats coming from Merlin, and alerts ElasticSearch if
 # something is wrong.
 #
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+#
 ###############################################################################
 
 import argparse

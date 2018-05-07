@@ -1,3 +1,5 @@
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 import tempfile
 
 from stages.core.ci import CloudInitUserData

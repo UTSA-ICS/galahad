@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 if [ "$#" -ne 2 ]; then
     echo "Usage: install_rethinkdb.sh path/to/rethinkdb.pem path/to/rethinkdb.conf"
     exit 1
