@@ -1,7 +1,7 @@
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
+from . import ldap_tools
 import json
-import ldap.modlist
 
 DEBUG_PERMISSIONS = False
 
@@ -11,89 +11,6 @@ class EndPoint():
         self.inst = LDAP( user, password )
 
         self.inst.bind_ldap()
-
-    @staticmethod
-    def parse_ldap( data ):
-
-        parse_map = {'cappIds': 'applicationIds',
-                     'cstartResIds': 'startingResourceIds',
-                     'cstartTransIds': 'startingTransducerIds',
-                     'cstartConfig': 'startingConfiguration',
-                     'creqAccess': 'requiredAccess',
-                     'cauthRoleIds': 'authorizedRoleIds',
-                     'cresIds': 'resourceIds',
-                     'ctransIds': 'transducerIds'}
-
-        entries_with_lists = ['applicationIds',
-                              'startingResourceIds',
-                              'startingTransducerIds',
-                              'requiredAccess',
-                              'authorizedRoleIds',
-                              'resourceIds',
-                              'transducerIds']
-
-        if( 'ou' in data.keys() ):
-            del data['ou']
-        if( 'objectClass' in data.keys() ):
-            del data['objectClass']
-        
-        for k in data.keys():
-            if( k in parse_map.keys() ):
-                data[ parse_map[k] ] = data.pop(k)
-            elif( k[0] == 'c' and k != 'credentials' ):
-                data[ k[ 1:len(k) ] ] = data.pop(k)
-
-        for k in data.keys():
-            if( k not in entries_with_lists
-                and type( data[k] ) == list ):
-                data[k] = data[k][0]
-            elif( k in entries_with_lists
-                  and type( data[k] ) == list
-                  and data[k][0] == '[]' ):
-                data[k] = []
-
-    @staticmethod
-    def to_ldap( data, objectClass ):
-
-        if( type(data) != dict ):
-            return None
-
-        parse_map = {'id': 'cid',
-                     'version': 'cversion',
-                     'os': 'cos',
-                     'type': 'ctype',
-                     'unc': 'cunc',
-                     'credentials': 'ccredentials',
-                     'applicationIds': 'cappIds',
-                     'startingResourceIds': 'cstartResIds',
-                     'startingTransducerIds': 'cstartTransIds',
-                     'startEnabled': 'cstartEnabled',
-                     'startingConfiguration': 'cstartConfig',
-                     'requiredAccess': 'creqAccess',
-                     'username': 'cusername',
-                     'authorizedRoleIds': 'cauthRoleIds',
-                     'token': 'ctoken',
-                     'expiration': 'cexpiration',
-                     'roleId': 'croleId',
-                     'resourceIds': 'cresIds',
-                     'transducerIds': 'ctransIds',
-                     'state': 'cstate',
-                     'ipAddress': 'cipAddress' }
-
-        modified_data = { 'objectClass': objectClass,
-                          'ou': 'Virtue' }
-
-        for k in data.keys():
-            if( k in parse_map.keys() ):
-                modified_data[ parse_map[k] ] = data[k]
-            else:
-                modified_data[k] = data[k]
-
-        for k in modified_data.keys():
-            if( modified_data[k] == [] ):
-                modified_data[k] = '[]'
-
-        return modified_data
 
     # Retrieve information about the specified application
     def application_get( self, username, applicationId ):
@@ -105,15 +22,12 @@ class EndPoint():
                 if( user == None or user == () ):
                     # User was already validated, but can't be accessed now...
                     return json.dumps( ErrorCodes.user['unspecifiedError'] )
-                self.parse_ldap( user )
-                # roleIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
+                ldap_tools.parse_ldap( user )
 
             app = self.inst.get_obj( 'cid', applicationId, 'openLDAPapplication', True )
             if( app == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( app )
+            ldap_tools.parse_ldap( app )
 
             if( DEBUG_PERMISSIONS ):
                 return json.dumps(app)
@@ -123,11 +37,8 @@ class EndPoint():
                 if( role == None or role == () ):
                     # Error!
                     continue
-                self.parse_ldap( role )
+                ldap_tools.parse_ldap( role )
 
-                # appIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                role['applicationIds'] = eval(role['applicationIds'][0])
                 if( applicationId in role['applicationIds'] ):
                     # User is authorized to access this application.
                     return json.dumps(app)
@@ -146,22 +57,14 @@ class EndPoint():
                 user = self.inst.get_obj( 'cusername', username, 'openLDAPuser' )
                 if( user == None or user == () ):
                     return json.dumps( ErrorCodes.user['unspecifiedError'] )
-                self.parse_ldap( user )
+                ldap_tools.parse_ldap( user )
 
             role = self.inst.get_obj( 'cid', roleId, 'openLDAProle', True )
             if( role == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( role )
-
-            # roleIds are formatted to contain a string object inside a list 
-            # convert string representation of array to array
-            user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
+            ldap_tools.parse_ldap( role )
 
             if( DEBUG_PERMISSIONS or roleId in user['authorizedRoleIds'] ):
-
-                # appIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                role['applicationIds'] = eval(role['applicationIds'][0])
 
                 # Now get the IP address of the virtue associated with this user/role
                 # Get the virtue ID from the role
@@ -186,23 +89,15 @@ class EndPoint():
             user = self.inst.get_obj( 'cusername', username, 'openLDAPuser' )
             if( user == None or user == () ):
                 return json.dumps( ErrorCodes.user['unspecifiedError'] )
-            self.parse_ldap( user )
+            ldap_tools.parse_ldap( user )
 
             roles = []
-       
-            # roleIds are formatted to contain a string object inside a list 
-            # convert string representation of array to array
-            user['authorizedRoleIds'] = eval(user['authorizedRoleIds'][0])
- 
+
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj( 'cid', roleId, 'openLDAProle' )
                 if( role == None or role == () ):
                     continue
-                self.parse_ldap( role )
-
-                # appIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                role['applicationIds'] = eval(role['applicationIds'][0])
+                ldap_tools.parse_ldap( role )
 
                 # Now get the IP address of the virtue associated with this user/role
                 # Get the virtue ID from the role
@@ -234,13 +129,9 @@ class EndPoint():
             virtues_ret = []
         
             for virtue in virtues_raw:
-                self.parse_ldap( virtue[1] )
+                ldap_tools.parse_ldap( virtue[1] )
 
                 if( virtue[1]['username'] == username ):
-
-                    # appIds are formatted to contain a string object inside a list 
-                    # convert string representation of array to array
-                    virtue[1]['applicationIds'] = eval(virtue[1]['applicationIds'][0])
 
                     virtues_ret.append( virtue[1] )
 
@@ -257,13 +148,9 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] == username or DEBUG_PERMISSIONS ):
-
-                # appIds are formatted to contain a string object inside a list 
-                # convert string representation of array to array
-                virtue['applicationIds'] = eval(virtue['applicationIds'][0])
 
                 return json.dumps( virtue )
 
@@ -286,12 +173,12 @@ class EndPoint():
             user = self.inst.get_obj( 'cusername', username, 'OpenLDAPuser' )
             if( user == None or user == () ):
                 return json.dumps( ErrorCodes.user['unspecifiedError'] )
-            self.parse_ldap( user )
+            ldap_tools.parse_ldap( user )
 
             role = self.inst.get_obj( 'cid', roleId, 'OpenLDAProle', True )
             if( role == () ):
                 return json.dumps( ErrorCodes.user['invalidRoleId'] )
-            self.parse_ldap( role )
+            ldap_tools.parse_ldap( role )
 
             if( roleId not in user['authorizedRoleIds'] ):
                 return json.dumps( ErrorCodes.user['userNotAuthorizedForRole'] )
@@ -299,7 +186,7 @@ class EndPoint():
             virtue = None
             curr_virtues = self.inst.get_objs_of_type( 'OpenLDAPvirtue' )
             for v in curr_virtues:
-                self.parse_ldap( v[1] )
+                ldap_tools.parse_ldap( v[1] )
                 if( v[1]['username'] == 'NULL' and v[1]['roleId'] == roleId ):
                     virtue = v[1]
                 elif( v[1]['username'] == username and v[1]['roleId'] == roleId ):
@@ -310,7 +197,7 @@ class EndPoint():
                 resource = self.inst.get_obj( 'cid', rid, 'OpenLDAPresource', True )
                 if( resource == () ):
                     continue
-                self.parse_ldap( resource )
+                ldap_tools.parse_ldap( resource )
 
                 resources.append( resource )
 
@@ -319,7 +206,7 @@ class EndPoint():
                 transducer = self.inst.get_obj( 'cid', tid, 'OpenLDAPtransducer', True )
                 if( transducer == () ):
                     continue
-                self.parse_ldap( transducer )
+                ldap_tools.parse_ldap( transducer )
 
                 transducers.append( transducer )
 
@@ -353,7 +240,7 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] != username ):
                 return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -378,7 +265,7 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] != username ):
                 return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -403,7 +290,7 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] != username ):
                 return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -426,7 +313,7 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidVirtueId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] != username ):
                 return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -437,12 +324,12 @@ class EndPoint():
             app = self.inst.get_obj( 'cid', applicationId, 'OpenLDAPapplication', True )
             if( app == () ):
                 return json.dumps( ErrorCodes.user['invalidApplicationId'] )
-            self.parse_ldap( app )
+            ldap_tools.parse_ldap( app )
 
             role = self.inst.get_obj( 'cid', virtue['roleId'], 'OpenLDAProle' )
             if( role == None or role == () ):
                 return json.dumps( ErrorCodes.user['unspecifiedError'] )
-            self.parse_ldap( role )
+            ldap_tools.parse_ldap( role )
 
             if( app['id'] not in role['applicationIds'] ):
                 return json.dumps( ErrorCodes.user['applicationNotInVirtue'] )
@@ -465,7 +352,7 @@ class EndPoint():
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
             if( virtue == () ):
                 return json.dumps( ErrorCodes.user['invalidVirtueId'] )
-            self.parse_ldap( virtue )
+            ldap_tools.parse_ldap( virtue )
 
             if( virtue['username'] != username ):
                 return json.dumps( ErrorCodes.user['userNotAuthorized'] )
@@ -476,12 +363,12 @@ class EndPoint():
             app = self.inst.get_obj( 'cid', applicationId, 'OpenLDAPapplication', True )
             if( app == () ):
                 return json.dumps( ErrorCodes.user['invalidApplicationId'] )
-            self.parse_ldap( app )
+            ldap_tools.parse_ldap( app )
 
             role = self.inst.get_obj( 'cid', virtue['roleId'], 'OpenLDAProle' )
             if( role == None or role == () ):
                 return json.dumps( ErrorCodes.user['unspecifiedError'] )
-            self.parse_ldap( role )
+            ldap_tools.parse_ldap( role )
 
             if( app['id'] not in role['applicationIds'] ):
                 return json.dumps( ErrorCodes.user['applicationNotInVirtue'] )

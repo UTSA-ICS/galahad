@@ -101,7 +101,7 @@ class AWS:
             SubnetId=subnet_id,
             IamInstanceProfile={
                                     'Name': inst_profile_name,
-                                    'Arn': inst_profile_arn
+                                    #'Arn': inst_profile_arn
                                 },
             TagSpecifications=[
                 {
