@@ -153,8 +153,8 @@ def setup_server(host_server, path_to_key, github_key):
                 host_server)).run()
     _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
     result1 = run_ssh_cmd(host_server, path_to_key, _cmd1)
-    #_cmd2 = "mv('github_key.public ~/.ssh/id_rsa.pub')"
-    #result2 = run_ssh_cmd(host_server, path_to_key, _cmd2)
+    # _cmd2 = "mv('github_key.public ~/.ssh/id_rsa.pub')"
+    # result2 = run_ssh_cmd(host_server, path_to_key, _cmd2)
     return result1
 
 
@@ -223,7 +223,8 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     if args.setup_env:
-        setup_env(args.path_to_key, args.stack_name, args.stack_suffix)
+        setup_env(args.path_to_key, args.stack_name, args.stack_suffix,
+                  args.github_repo_key)
     if args.start_excalibur:
         start_excalibur(args.stack_name, args.path_to_key)
     if args.start_all:
