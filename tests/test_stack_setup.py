@@ -169,7 +169,9 @@ def get_excalibur_server_ip(stack_name):
     server = client.describe_instances(Filters=[
         {'Name': 'tag:aws:cloudformation:logical-id',
          'Values': ['ExcaliburServer']},
-        {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [stack_name]}])
+        {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [stack_name]},
+        {'Name': 'instance-state-name', 'Values': ['running']}
+    ])
     # Return public IP
     return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
