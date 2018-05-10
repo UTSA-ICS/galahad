@@ -125,6 +125,12 @@ def add_local_security_rules(stack_name):
         IpProtocol='TCP'
     )
     response = security_group.authorize_ingress(
+        CidrIp='54.236.36.79/32',
+        FromPort=22,
+        ToPort=22,
+        IpProtocol='TCP'
+    )
+    response = security_group.authorize_ingress(
         CidrIp='129.115.2.249/32',
         FromPort=22,
         ToPort=22,
@@ -153,12 +159,17 @@ def setup_server(host_server, path_to_key, github_key):
                 host_server)).run()
     _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
     result1 = run_ssh_cmd(host_server, path_to_key, _cmd1)
-    # _cmd2 = "mv('github_key.public ~/.ssh/id_rsa.pub')"
-    # result2 = run_ssh_cmd(host_server, path_to_key, _cmd2)
+
+    # Now remove any existing public keys as they will conflict with the private key
+    result2 = run_ssh_cmd(host_server, path_to_key,
+                          "rm('-f ~/.ssh/id_rsa.pub')")
     return result1
 
 
 def checkout_repo(host_server, path_to_key, repo):
+    # Cleanup any left over repos
+    run_ssh_cmd(host_server, path_to_key, "rm('-rf {}')".format(repo))
+
     _cmd = "git('clone git@github.com:starlab-io/{}.git {}')".format(repo,
                                                                      repo)
     return run_ssh_cmd(host_server, path_to_key, _cmd)
