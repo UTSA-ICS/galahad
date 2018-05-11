@@ -202,8 +202,7 @@ def start_excalibur(stack_name, path_to_key):
     checkout_repo(host_server, path_to_key, 'galahad-config')
     checkout_repo(host_server, path_to_key, 'galahad')
 
-    print
-    'sleeping for 10 seconds......pls wait......'
+    # Sleep for 10 seconds to ensure that both repos are completely checked out
     time.sleep(10)
 
     _cmd = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
