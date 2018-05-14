@@ -1,7 +1,7 @@
 import ldap
 import ldap.modlist
 
-LDAP_DATABASE_URI = "ldap://ip-172-30-1-44.ec2.internal"
+LDAP_DATABASE_URI = "ldap://localhost"
 AD_DATABASE_URI = "ldap://EC2AMAZ-UPCI42G.virtue.com"
 LDAP_PROTOCOL_VERSION = 3
 LDAP_QUERY_DN = "dc=canvas,dc=virtue,dc=com"

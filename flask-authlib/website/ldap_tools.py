@@ -1,3 +1,5 @@
+import copy
+
 # A static file to make LDAP more usable while implementing the VirtUE API
 
 def parse_ldap( data ):
@@ -66,7 +68,7 @@ def to_ldap( data, objectClass ):
                  'ipAddress': 'cipAddress' }
 
     modified_data = { 'objectClass': objectClass,
-                      'ou': 'Virtue' }
+                      'ou': 'virtue' }
 
     for k in data.keys():
         if( k in parse_map.keys() ):
@@ -75,3 +77,17 @@ def to_ldap( data, objectClass ):
             modified_data[k] = str( data[k] )
 
     return modified_data
+
+def parse_ldap_list( ls ):
+
+    ret = []
+
+    try:
+        for (dn, obj) in ls:
+            obj2 = copy.copy( obj )
+            parse_ldap( obj2 )
+            ret.append( obj2 )
+    except:
+        return None
+
+    return ret
