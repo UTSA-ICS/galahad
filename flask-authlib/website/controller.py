@@ -119,7 +119,7 @@ class CreateVirtueThread(threading.Thread):
         else:
             role = self.role
         
-        ami_id = AWS.aws_image_id #role['ami_id']
+        ami_id = 'ami-36a8754c'
 
         # Create by calling AWS
         aws = AWS()
