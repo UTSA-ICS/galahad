@@ -71,9 +71,17 @@ int read_command_from_json(cJSON* json, map_int_t* transducers) {
 }
 
 void transducer_rules_connection_thread(void *vargp) {
+    if (vargp == NULL) {
+        return;
+    }
     TransducerController* self = (TransducerController *) vargp;
+
+    if (self->transducers == NULL) {
+        return;
+    }
     map_int_t* transducers = self->transducers;
-//    map_int_t* transducers = (map_int_t *) vargp;
+
+
 //    // set up unix domain socket
     int sock, msgsock, rval;
     struct sockaddr_un server;
@@ -143,6 +151,7 @@ void transducer_rules_connection_thread(void *vargp) {
                 } else if (rval == 0) {
                     printf("finished connection\n");
                 } else {
+                    printf(">>%s\n", buf);
                     if (total_len - rval < 0) {
                         perror("message too long\n");
                         rval = total_len;
@@ -202,10 +211,8 @@ void transducer_set_socket(LogParser *p, char* socket_path) {
     printf("Adding socket path of %s to module\n", socket_path);
     g_free(self->prefix);
 //    self->socket_path = socket_path;
-    self->socket_path = (char*) malloc(strlen(socket_path) + 1);
+    self->socket_path = (char*) malloc(sizeof(char) * strlen(socket_path) + 1);
     strncpy(self->socket_path, socket_path, strlen(socket_path) + 1);
-    printf("Adding socket path of %s to module\n", self->socket_path);
-    printf("socket path pointer: %p\n", self->socket_path);
     pthread_t tid;
     pthread_create(&tid, NULL, transducer_rules_connection_thread, (void *) self);
 }
@@ -230,7 +237,7 @@ transducer_controller_set_prefix(LogParser *p, const gchar *prefix)
 }
 
 static gboolean _process(LogParser *s, LogMessage **pmsg, const LogPathOptions *path_options, const gchar *input,
-         gsize input_len)
+                         gsize input_len)
 {
     TransducerController *self = (TransducerController *) s;
 
