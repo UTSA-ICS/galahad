@@ -1,6 +1,5 @@
 from functools import wraps
 from authlib.flask.client import OAuth
-from authlib.client.apps import register_apps
 from werkzeug.local import LocalProxy
 from flask import g, session
 from flask import url_for, redirect, request
