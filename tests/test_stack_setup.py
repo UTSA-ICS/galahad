@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
+# !/usr/bin/python3
 
 ###
 # Test CI Orchestration:
@@ -21,10 +22,13 @@ import boto3
 import json
 import time
 import argparse
+import logging
 from sultan.api import Sultan, SSHConfig
 
 stack_template = 'virtue-ci-stack.yaml'
 key_name = 'starlab-virtue-te'
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def read_template():
@@ -189,9 +193,26 @@ def get_excalibur_server_ip(stack_name):
 
 def setup_env(path_to_key, stack_name, stack_suffix, github_key):
     setup_stack(stack_name, stack_suffix)
+
+    client = boto3.client('cloudformation')
+
+    # Log the events of the Stack
+    response = client.describe_stack_events(StackName=stack_name)
+    for event in response['StackEvents']:
+        logger.info('{} {} {}'.format(event['Timestamp'], event['ResourceType'],
+                                      event['ResourceStatus']))
+
     waiter = boto3.client('cloudformation').get_waiter(
         'stack_create_complete')
     waiter.wait(StackName=stack_name)
+
+    # Log the events of the Stack
+    response = client.describe_stack_events(StackName=stack_name)
+    for event in response['StackEvents']:
+        if 'CREATE_COMPLETE' in event['ResourceStatus']:
+            logger.info(
+                '{} {} {}'.format(event['Timestamp'], event['ResourceType'],
+                                  event['ResourceStatus']))
     add_local_security_rules(stack_name)
     host_server = get_excalibur_server_ip(stack_name)
     setup_server(host_server, path_to_key, github_key)
@@ -209,30 +230,41 @@ def start_excalibur(stack_name, path_to_key):
     return run_ssh_cmd(host_server, path_to_key, _cmd)
 
 
+def list_stacks():
+    client = boto3.client('cloudformation')
+    response = client.list_stacks()
+    for stack in response['StackSummaries']:
+        if 'UPDATE' in stack['StackStatus'] or 'CREATE' in stack['StackStatus']:
+            logger.info(
+                '{} {} {}'.format(stack['StackName'], stack['CreationTime'],
+                                  stack['StackStatus']))
+
+
 def parse_args():
-    if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        parser.add_argument("-k", "--path_to_key", type=str, required=True,
-                            help="The path to the public key used for the ec2 instances")
-        parser.add_argument("-g", "--github_repo_key", type=str, required=True,
-                            help="The path to the key to be able to access github repos")
-        parser.add_argument("-n", "--stack_name", type=str, required=True,
-                            help="The name of the cloudformation stack for the virtue environment")
-        parser.add_argument("-s", "--stack_suffix", type=str, required=True,
-                            help="The suffix used by the cloudformation stack to append to resource names")
-        parser.add_argument("--setup_env", action="store_true",
-                            help="setup the galahad/virtue test environment")
-        parser.add_argument("--start_excalibur", action="store_true",
-                            help="start the excalibur server")
-        parser.add_argument("--start_all", action="store_true",
-                            help="setup and start the appropriate servers")
-        parser.add_argument("--delete_stack", action="store_true",
-                            help="delete the specified stack")
-        args = parser.parse_args()
-        return args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--path_to_key", type=str, required=True,
+                        help="The path to the public key used for the ec2 instances")
+    parser.add_argument("-g", "--github_repo_key", type=str, required=True,
+                        help="The path to the key to be able to access github repos")
+    parser.add_argument("-n", "--stack_name", type=str, required=True,
+                        help="The name of the cloudformation stack for the virtue environment")
+    parser.add_argument("-s", "--stack_suffix", type=str, required=True,
+                        help="The suffix used by the cloudformation stack to append to resource names")
+    parser.add_argument("--setup_env", action="store_true",
+                        help="setup the galahad/virtue test environment")
+    parser.add_argument("--start_excalibur", action="store_true",
+                        help="start the excalibur server")
+    parser.add_argument("--start_all", action="store_true",
+                        help="setup and start the appropriate servers")
+    parser.add_argument("--list_stacks", action="store_true",
+                        help="List all the available stacks")
+    parser.add_argument("--delete_stack", action="store_true",
+                        help="delete the specified stack")
+    args = parser.parse_args()
+    return args
 
 
-if __name__ == '__main__':
+def main():
     args = parse_args()
     if args.setup_env:
         setup_env(args.path_to_key, args.stack_name, args.stack_suffix,
@@ -242,5 +274,11 @@ if __name__ == '__main__':
     if args.start_all:
         setup_env(args.path_to_key, args.stack_name, args.stack_suffix)
         start_excalibur(args.stack_name, args.path_to_key)
+    if args.list_stacks:
+        list_stacks()
     if args.delete_stack:
         delete_stack(args.stack_name)
+
+
+if __name__ == '__main__':
+    main()
