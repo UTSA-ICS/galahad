@@ -1,5 +1,4 @@
-#!/usr/local/bin/python3
-# !/usr/bin/python3
+#!/usr/bin/python3
 
 ###
 # Test CI Orchestration:
@@ -153,7 +152,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
         return result
 
 
-def setup_server(host_server, path_to_key, github_key):
+def setup_excalibur_server(host_server, path_to_key, github_key):
     # Transfer the private key to the server to enable
     # it to access github without being prompted for credentials
     with Sultan.load() as s:
@@ -167,6 +166,14 @@ def setup_server(host_server, path_to_key, github_key):
     # Now remove any existing public keys as they will conflict with the private key
     result2 = run_ssh_cmd(host_server, path_to_key,
                           "rm('-f ~/.ssh/id_rsa.pub')")
+
+    # Check out galahad repos required for excalibur
+    checkout_repo(host_server, path_to_key, 'galahad-config')
+    checkout_repo(host_server, path_to_key, 'galahad')
+
+    # Sleep for 10 seconds to ensure that both repos are completely checked out
+    time.sleep(10)
+
     return result1
 
 
@@ -215,16 +222,12 @@ def setup_env(path_to_key, stack_name, stack_suffix, github_key):
                                   event['ResourceStatus']))
     add_local_security_rules(stack_name)
     host_server = get_excalibur_server_ip(stack_name)
-    setup_server(host_server, path_to_key, github_key)
+    setup_excalibur_server(host_server, path_to_key, github_key)
 
 
 def start_excalibur(stack_name, path_to_key):
     host_server = get_excalibur_server_ip(stack_name)
-    checkout_repo(host_server, path_to_key, 'galahad-config')
-    checkout_repo(host_server, path_to_key, 'galahad')
 
-    # Sleep for 10 seconds to ensure that both repos are completely checked out
-    time.sleep(10)
 
     _cmd = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
     return run_ssh_cmd(host_server, path_to_key, _cmd)
