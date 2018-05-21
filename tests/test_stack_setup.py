@@ -222,6 +222,10 @@ def setup_env(path_to_key, stack_name, stack_suffix, github_key):
                                   event['ResourceStatus']))
     add_local_security_rules(stack_name)
     host_server = get_excalibur_server_ip(stack_name)
+
+    # Wait a min to Ensure that the instance is accessible.
+    time.sleep(60)
+
     setup_excalibur_server(host_server, path_to_key, github_key)
 
 
