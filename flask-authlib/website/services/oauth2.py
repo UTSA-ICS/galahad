@@ -139,14 +139,14 @@ query_client = create_query_client_func(db.session, OAuth2Client)
 authorization = AuthorizationServer(query_client=query_client)
 
 # support all grants
-authorization.register_grant_endpoint(AuthorizationCodeGrant)
-authorization.register_grant_endpoint(ImplicitGrant)
-authorization.register_grant_endpoint(PasswordGrant)
-authorization.register_grant_endpoint(ClientCredentialsGrant)
-authorization.register_grant_endpoint(RefreshTokenGrant)
+authorization.register_grant(AuthorizationCodeGrant)
+authorization.register_grant(ImplicitGrant)
+authorization.register_grant(PasswordGrant)
+authorization.register_grant(ClientCredentialsGrant)
+authorization.register_grant(RefreshTokenGrant)
 
 # support revocation
-authorization.register_revoke_token_endpoint(RevocationEndpoint)
+authorization.register_endpoint(RevocationEndpoint)
 
 # scopes definition
 scopes = {
