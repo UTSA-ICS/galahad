@@ -399,7 +399,7 @@ Resources:
         id: 8b2f1290-e334-4658-a135-cc1c90490a95
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-2565bf5a
+      ImageId: ami-03decd76c6f12f205
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -440,7 +440,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-99dc07e6
+      ImageId: ami-02b219c7e867985a6
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
