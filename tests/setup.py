@@ -220,18 +220,18 @@ def setup_env(path_to_key, stack_name, stack_suffix, github_key):
             logger.info(
                 '{} {} {}'.format(event['Timestamp'], event['ResourceType'],
                                   event['ResourceStatus']))
+
     add_local_security_rules(stack_name)
-    host_server = get_excalibur_server_ip(stack_name)
 
     # Wait a min to Ensure that the instance is accessible.
     time.sleep(60)
 
+    host_server = get_excalibur_server_ip(stack_name)
     setup_excalibur_server(host_server, path_to_key, github_key)
 
 
 def start_excalibur(stack_name, path_to_key):
     host_server = get_excalibur_server_ip(stack_name)
-
 
     _cmd = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
     return run_ssh_cmd(host_server, path_to_key, _cmd)
