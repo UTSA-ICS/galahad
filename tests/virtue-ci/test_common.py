@@ -2,10 +2,10 @@ import subprocess
 
 class ssh_tool():
 
-    def __init__( self, username, ip_address ):
+    def __init__( self, username, ip_address, sshkey=None ):
         self.rem_username = username
         self.ip = ip_address
-        self.sshkey = None
+        self.sshkey = sshkey
 
     def ssh( self, command, test=True ):
 

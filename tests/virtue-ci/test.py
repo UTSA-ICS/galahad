@@ -51,9 +51,8 @@ if( __name__ == '__main__' ):
 
     print( aws_ip )
 
-    ssh_inst = ssh_tool( args.username, aws_ip )
-    ssh_inst.sshkey = args.sshkey
-    
+    ssh_inst = ssh_tool( args.username, aws_ip, sshkey=args.sshkey )
+
     # Setup the VM
     setup.setup_aws_inst( ssh_inst, args.github_key, args.awskeys )
 
