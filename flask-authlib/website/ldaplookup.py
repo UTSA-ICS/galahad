@@ -2,7 +2,8 @@ import ldap
 import ldap.modlist
 
 LDAP_DATABASE_URI = "ldap://localhost"
-AD_DATABASE_URI = "ldap://EC2AMAZ-UPCI42G.virtue.com"
+AD_DATABASE_URI = "ldap://172.30.1.250"
+
 LDAP_PROTOCOL_VERSION = 3
 LDAP_QUERY_DN = "dc=canvas,dc=virtue,dc=com"
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
@@ -26,6 +27,9 @@ class LDAP():
         self.conn = ldap.initialize(AD_DATABASE_URI)
         self.conn.protocol_version = LDAP_PROTOCOL_VERSION
         self.conn.set_option(ldap.OPT_REFERRALS, 0)
+        self.conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_DEMAND)
+        self.conn.set_option(ldap.OPT_X_TLS_DEMAND, True)
+
 
     def bind_ldap(self):
         self.get_ldap_connection()
