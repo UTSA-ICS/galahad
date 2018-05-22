@@ -37,3 +37,21 @@ On a new setup, run
 Note that the first command only needs to be run once when first setting up your build directory.  The second line should be run whenever your make file needs to change.  
 
 Make install installs the module for you to your local syslog-ng envrionment.
+
+## Using module
+
+### Post install pre-req's 
+
+The syslog-ng module currently sets the group of the unix domain socket to the "virtue" group.  Due to permission restrictions on the C chown call, the root user must be added to the "virtue" group prior to starting syslog-ng.  
+
+Also, the directory a unix domain socket in effects the access permissions of unix domain sockets, so the directory the socket is placed in should also belong to the "virtue" group.  
+
+### Socket Path
+
+To select your socket path, using the following config for the transducer module with syslog-ng:
+
+	parser transducer_controller {
+	        transducer_controller(
+	                socket("/var/run/receiver_to_filter")
+	        );
+	};

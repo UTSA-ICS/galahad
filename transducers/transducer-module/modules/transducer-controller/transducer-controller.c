@@ -71,14 +71,22 @@ int read_command_from_json(cJSON* json, map_int_t* transducers) {
 }
 
 void transducer_rules_connection_thread(void *vargp) {
-    map_int_t* transducers = (map_int_t *) vargp;
-    printf("Map: %p", transducers);
+    if (vargp == NULL) {
+        return;
+    }
+    TransducerController* self = (TransducerController *) vargp;
+
+    if (self->transducers == NULL) {
+        return;
+    }
+    map_int_t* transducers = self->transducers;
+
 
 //    // set up unix domain socket
     int sock, msgsock, rval;
     struct sockaddr_un server;
     char buf[1024];
-    char s_filename[] = "/opt/merlin/receiver_to_filter";
+    char* s_filename = self->socket_path;
     int total_len;
     char* rcvd_msg;
     int offset;
@@ -87,9 +95,8 @@ void transducer_rules_connection_thread(void *vargp) {
 
     grp = getgrnam("virtue");
     gid =  grp->gr_gid;
-
     unlink(s_filename);
-    printf("Starting domain socket setup\n");
+    printf("socket path pointer in startup method: %s\n", self->socket_path);
 
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -101,23 +108,28 @@ void transducer_rules_connection_thread(void *vargp) {
 
     server.sun_family = AF_UNIX;
     strcpy(server.sun_path, s_filename);
+
     if (bind(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_un))) {
         perror("binding stream socket\n");
         return 1;
     }
 
 
+    if (chmod(s_filename, 0770) == -1) {
+        int errsv = errno;
+        printf("Chmod fail %d\n", errsv);
+        return 1;
+    }
+
+
+    if (chown(s_filename, -1, gid) == -1) {
+        int errsv = errno;
+        printf("Chown fail %d\n", errsv);
+        return 1;
+    }
+
     printf("set up socket with name %s\n", server.sun_path);
     listen(sock, 5);
-
-//    if (chown(s_filename, -1, gid) == -1) {
-//        int errsv = errno;
-//        printf("Chown fail %d\n", errsv);
-//        return 1;
-//    }
-//
-//    chmod(server.sun_path, 0770);
-
 
     for (;;) {
         msgsock = accept(sock, 0, 0);
@@ -134,7 +146,6 @@ void transducer_rules_connection_thread(void *vargp) {
             offset = 0;
             do {
                 bzero(buf, sizeof(buf));
-                printf("waiting for read\n");
                 if ((rval = read(msgsock, buf, 1024)) < 0) {
                     perror("reading stream message\n");
                 } else if (rval == 0) {
@@ -155,7 +166,6 @@ void transducer_rules_connection_thread(void *vargp) {
                 cJSON* json = cJSON_CreateObject();
                 write_ruleset_to_json(json, transducers);
                 char* str = cJSON_Print(json);
-                printf(">>> json: %s\n", str);
                 send_message(msgsock, str, strlen(str));
                 cJSON_Delete(json);
             } else { //if (strncmp(rcvd_msg, "command", 8) == 0) {
@@ -194,8 +204,17 @@ void transducer_rules_connection_thread(void *vargp) {
             close(msgsock);
         }
     }
-    close(sock);
-    unlink(s_filename);
+}
+
+void transducer_set_socket(LogParser *p, char* socket_path) {
+    TransducerController *self = (TransducerController *)p;
+    printf("Adding socket path of %s to module\n", socket_path);
+    g_free(self->prefix);
+//    self->socket_path = socket_path;
+    self->socket_path = (char*) malloc(sizeof(char) * strlen(socket_path) + 1);
+    strncpy(self->socket_path, socket_path, strlen(socket_path) + 1);
+    pthread_t tid;
+    pthread_create(&tid, NULL, transducer_rules_connection_thread, (void *) self);
 }
 
 
@@ -218,7 +237,7 @@ transducer_controller_set_prefix(LogParser *p, const gchar *prefix)
 }
 
 static gboolean _process(LogParser *s, LogMessage **pmsg, const LogPathOptions *path_options, const gchar *input,
-         gsize input_len)
+                         gsize input_len)
 {
     TransducerController *self = (TransducerController *) s;
 
@@ -257,9 +276,10 @@ static gboolean _process(LogParser *s, LogMessage **pmsg, const LogPathOptions *
 //    kv_scanner_deinit(&kv_scanner);
 }
 
-LogPipe *transducer_controller_clone_method(TransducerController *dst, TransducerController *src)
-    {
+LogPipe *transducer_controller_clone_method(TransducerController *dst, TransducerController *src) {
     transducer_controller_set_prefix(&dst->super, src->prefix);
+    transducer_set_socket(&dst->super, src->socket_path);
+    printf("socket path value in clone method: %s : %s\n", src->socket_path, &dst->socket_path);
     log_parser_set_template(&dst->super, log_template_ref(src->super.template));
     return &dst->super.super;
 }
@@ -278,6 +298,7 @@ _free(LogPipe *s)
     TransducerController *self = (TransducerController *)s;
 
     g_free(self->prefix);
+    g_free(self->socket_path);
     g_free(self);
     log_parser_free_method(s);
 }
@@ -292,14 +313,12 @@ void mock_map(map_int_t *map) {
 
 LogParser *transducer_controller_new(GlobalConfig *cfg)  {
     TransducerController *self = g_new0(TransducerController, 1);
-
     //map_int_t transducers;
     map_int_t* transducers = (map_int_t*)malloc(sizeof(map_int_t));
     map_init(transducers);
 //    mock_map(&transducers);
-    pthread_t tid;
-    printf("Map in init: %p", transducers);
-    pthread_create(&tid, NULL, transducer_rules_connection_thread, (void *) transducers);
+//    pthread_t tid;
+//    pthread_create(&tid, NULL, transducer_rules_connection_thread, (void *) self);
 
     transducer_controller_init_instance(self, cfg);
     self->super.super.clone = _clone;
