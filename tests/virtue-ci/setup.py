@@ -76,7 +76,7 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad-config.git ~/galahad-config' )
 
     # Temporary
-    ssh_inst.ssh( 'cd galahad && git checkout api-testing && git pull' )
+    ssh_inst.ssh( 'cd galahad && git checkout ci-firstcut && git pull' )
 
     # Install and configure slapd
     ssh_inst.ssh( 'sudo ~/galahad/tests/virtue-ci/install_ldap.sh' )
