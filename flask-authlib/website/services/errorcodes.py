@@ -38,3 +38,32 @@ class ErrorCodes():
         'unspecifiedError': { 'status': 'failed', 'result': [255, 'An otherwise unspecified error. Check user messages and/or error logs ' +
                 'for more information.']}
     }
+
+    admin = {
+        'success': { 'status': 'success', 'result': [0, 'Successfully completed operation.']},
+        'invalidOrMissingParameters': { 'status': 'failed', 'result': [1, 'Invalid or missing parameters']},
+        'userNotAuthorized': { 'status': 'failed', 'result': [2, 'The User is not authorized for this operation.']},
+        'userTokenExpired': { 'status': 'failed', 'result': [3, 'The provided UserToken has expired. Refresh your session and try again.']},
+        'invalidId': { 'status': 'failed', 'result': [10, 'The given ID is invalid.']},
+        'invalidResourceId': { 'status': 'failed', 'result': [10, 'The given Resource ID is invalid.']},
+        'invalidRoleId': { 'status': 'failed', 'result': [11, 'The given Role ID is invalid.']},
+        'invalidVirtueId': { 'status': 'failed', 'result': [11, 'The given Virtue ID is invalid.']},
+        'invalidVirtueState': { 'status': 'failed', 'result': [12, 'The given Virtue is not in a proper state to perform operation']},
+        'invalidCredentials': { 'status': 'failed', 'result': [13, 'You don\'t have the correct credentials to attach this resource.']},
+        'invalidFormat': { 'status': 'failed', 'result': [10, 'The implementation does not understand the format of this Role.']},
+        'invalidApplicationId': { 'status': 'failed', 'result': [11, 'One or more of the Application Ids is invalid.']},
+        'invalidResourceId': { 'status': 'failed', 'result': [12, 'One or more Resource IDs is invalid.']},
+        'invalidTransducerId': { 'status': 'failed', 'result': [13, 'One or more of the Transducer IDs is invalid.']},
+        'uniqueConstraintViolation': { 'status': 'failed', 'result': [14, 'This Role cannot be created because it violates a unique constraint.']},
+        'storageError': { 'status': 'failed', 'result': [10, 'There was an error trying to store the object.']},
+        'invalidUsername': { 'status': 'failed', 'result': [10, 'The given username is invalid, or doesn\'t exist.']},
+        'userNotLoggedIn': { 'status': 'failed', 'result': [10, 'The indicated User is not currently logged in.']},
+        'userAlreadyAuthorized': { 'status': 'failed', 'result': [12, 'The User is already authorized for that Role.']},
+        'userNotAlreadyAuthorized': { 'status': 'failed', 'result': [12, 'The User is not authorized for that Role']},
+        'userUsingVirtue': { 'status': 'failed', 'result': [13, 'The indicated user is logged in and currently using a Virtue with the ' +
+                'indicated Role. Force their logout and try again.']},
+        'cantAttach': { 'status': 'failed', 'result': [100, 'Can\'t attach to the Resource']},
+        'cantDetach': { 'status': 'failed', 'result': [100, 'Can\'t detach the Resource']},
+        'notImplemented': { 'status': 'failed', 'result': [254, 'This function has not been implemented.']},
+        'unspecifiedError': { 'status': 'failed', 'result': [255, 'An otherwise-unspecified error. Check user messages and/or error logs.']}
+    } 
