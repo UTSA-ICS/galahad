@@ -32,7 +32,7 @@ app.use(grant);
 var Client = require('node-rest-client').Client;
 var client = new Client();
 function execTunnel(options) {
-    var str = "ssh -i " + options.privateKey + " " + options.username + "@" + options.host + " -p " + options.port + " -4 -L " + options.localPort + ":" + options.dstHost + ":" + options.dstPort + " -N -o \"StrictHostKeyChecking no\" ";
+    var str = "ssh -i " + options.privateKey + " " + options.username + "@" + options.host + " -p " + options.port + " -4 -L " + options.localPort + ":" + options.dstHost + ":" + options.dstPort + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
     console.warn('execTunnel str: ', str);
     debug('trying to connect with: ', str);
     exec(str, function (error, stdout, stderr) {
