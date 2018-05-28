@@ -104,7 +104,7 @@ class EndPoint_Admin():
             print( "Error: {0}".format(e) )
             return json.dumps( ErrorCodes.admin['unspecifiedError'] )
 
-    def role_create( self, role ):
+    def role_create( self, role, use_aws=True ):
 
         try:
             if(  'name' not in role or
@@ -146,9 +146,24 @@ class EndPoint_Admin():
             if( ret != 0 ):
                 return json.dumps( ErrorCodes.admin['storageError'] )
 
-            # Call a controller thread to create a new standby virtue on a new thread
-            thr = CreateVirtueThread( self.inst.email, self.inst.password, role['id'], role=role )
-            thr.start()
+            if( use_aws == True ):
+                # Call a controller thread to create a new standby virtue on a new thread
+                thr = CreateVirtueThread( self.inst.email, self.inst.password, role['id'], role=role )
+                thr.start()
+            else:
+                # Write a dummy virtue to LDAP
+                virtue = {
+                    'id': 'virtue_{0}{1}'.format( role['name'], int(time.time()) ),
+                    'username': 'NULL',
+                    'roleId': role['id'],
+                    'applicationIds': [],
+                    'resourceIds': role['startingResourceIds'],
+                    'transducerIds': role['startingTransducerIds'],
+                    'state': 'STOPPED',
+                    'ipAddress': '8.8.8.8'
+                }
+                ldap_virtue = ldap_tools.to_ldap( virtue, 'OpenLDAPvirtue' )
+                self.inst.add_obj( ldap_virtue, 'virtues', 'cid' )
             
             return json.dumps( role )
 
