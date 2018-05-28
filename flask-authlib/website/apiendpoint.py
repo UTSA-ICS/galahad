@@ -170,7 +170,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Create a virtue for the specified role, but do not launch it yet
-    def virtue_create( self, username, roleId ):
+    def virtue_create( self, username, roleId, use_aws=True ):
 
         try:
             user = None
@@ -244,7 +244,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Launch the specified virtue, which must have already been created
-    def virtue_launch( self, username, virtueId ):
+    def virtue_launch( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -269,7 +269,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Stop the specified virtue, but do not destroy it
-    def virtue_stop( self, username, virtueId ):
+    def virtue_stop( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -294,7 +294,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Destroy the specified stopped virtue
-    def virtue_destroy( self, username, virtueId ):
+    def virtue_destroy( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -307,6 +307,10 @@ class EndPoint():
 
             if( virtue['state'] != 'STOPPED' ):
                 return json.dumps( ErrorCodes.user['virtueNotStopped'] )
+
+            if( use_aws == False ):
+                self.inst.del_obj( 'cid', virtue['id'], throw_error=True )
+                return
 
             aws = AWS()
             aws_id = aws.get_id_from_ip( virtue['ipAddress'] )
