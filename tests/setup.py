@@ -26,7 +26,7 @@ from sultan.api import Sultan, SSHConfig
 
 stack_template = 'virtue-ci-stack.yaml'
 key_name = 'starlab-virtue-te'
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
