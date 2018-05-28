@@ -26,7 +26,7 @@ from sultan.api import Sultan, SSHConfig
 
 stack_template = 'virtue-ci-stack.yaml'
 key_name = 'starlab-virtue-te'
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +43,7 @@ class Stack():
         #
         client = boto3.client('cloudformation')
         stack = client.create_stack(StackName=self.stack_name,
-                                    TemplateBody=read_template(),
+                                    TemplateBody=self.read_template(),
                                     Parameters=[
                                         {'ParameterKey': 'KeyName',
                                          'ParameterValue': key_name},
@@ -72,7 +72,7 @@ class Stack():
         self.stack_name = stack_name
         #
         client = boto3.client('cloudformation')
-        clear_security_groups(stack_name)
+        self.clear_security_groups()
         response = client.delete_stack(StackName=stack_name)
         waiter = boto3.client('cloudformation').get_waiter(
             'stack_delete_complete')
@@ -116,7 +116,7 @@ class Excalibur():
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.github_key = github_key
-        self.server_ip = get_excalibur_server_ip()
+        self.server_ip = self.get_excalibur_server_ip()
 
     def get_excalibur_server_ip(self):
         client = boto3.client('ec2')
@@ -138,13 +138,15 @@ class Excalibur():
                     self.server_ip)).run()
 
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(host_server, path_to_key, _cmd1)
+        result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
 
         # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(host_server, path_to_key,
+        result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
                               "rm('-f ~/.ssh/id_rsa.pub')")
 
-        result = result1 + result2
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
         return (result)
 
     def checkout_repo(self, repo, branch='master'):
@@ -161,6 +163,7 @@ class Excalibur():
     def setup_excalibur(self, branch):
 
         logger.info('Setting up key for github access')
+        self.update_security_rules()
         self.setup_keys()
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
@@ -168,13 +171,20 @@ class Excalibur():
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
-        checkout_repo('galahad-config', branch)
-        checkout_repo('galahad', branch)
+        self.checkout_repo('galahad-config')
+        self.checkout_repo('galahad', branch)
 
         # Sleep for 10 seconds to ensure that both repos are completely checked out
         time.sleep(10)
 
         _cmd = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+    def setup_ldap(self):
+
+        logger.info('Setup LDAP config for Tests')
+        # Call setup_ldap on the server
+        _cmd = "cd('galahad/tests').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def get_vpc_id(self):
@@ -192,7 +202,7 @@ class Excalibur():
 
     def get_default_security_group_id(self):
         client = boto3.client('ec2')
-        vpc_id = get_vpc_id(self.stack_name)
+        vpc_id = self.get_vpc_id()
         group_filter = [
             {'Name': 'group-name',
              'Values': ['default']
@@ -204,8 +214,8 @@ class Excalibur():
         group_id = client.describe_security_groups(Filters=group_filter)
         return group_id['SecurityGroups'][0]['GroupId']
 
-    def add_local_security_rules(self):
-        group_id = get_default_security_group_id(self.stack_name)
+    def update_security_rules(self):
+        group_id = self.get_default_security_group_id()
         ec2 = boto3.resource('ec2')
         security_group = ec2.SecurityGroup(group_id)
         response1 = security_group.authorize_ingress(
@@ -232,7 +242,9 @@ class Excalibur():
             ToPort=22,
             IpProtocol='TCP'
             )
-        return response1 + response2 + response3 + response4
+        return dict(
+            list(response1.items()) + list(response2.items()) +
+            list(response3.items()) + list(response4.items()))
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
@@ -241,6 +253,10 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
     with Sultan.load(user='ubuntu', hostname=host_server,
                      ssh_config=config) as s:
         result = eval('s.{}.run()'.format(cmd))
+        logger.debug(
+            '\nstdout: {}\nstderr: {}\nsuccess: {}'.format(result.stdout,
+                                                           result.stderr,
+                                                           result.is_success))
         return result
 
 
@@ -250,7 +266,6 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, branch):
 
     excalibur = Excalibur(stack_name, path_to_key, github_key)
     excalibur.setup_excalibur(branch)
-    excalibur.add_local_security_rules()
 
 
 def parse_args():
@@ -267,6 +282,8 @@ def parse_args():
                         help="The branch name to be used for excalibur repo")
     parser.add_argument("--setup", action="store_true",
                         help="setup the galahad/virtue test environment")
+    parser.add_argument("--setup_ldap", action="store_true",
+                        help="setup the ldap related test environment")
     parser.add_argument("--update_excalibur", action="store_true",
                         help="Update the excalibur server/code")
     parser.add_argument("--list_stacks", action="store_true",
@@ -282,6 +299,10 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.branch_name)
+    if args.setup_ldap:
+        excalibur = Excalibur(args.stack_name, args.path_to_key,
+                              args.github_repo_key)
+        excalibur.setup_ldap()
     if args.update_excalibur:
         logger.warn('Not yet implemented!')
     if args.list_stacks:
