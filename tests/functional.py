@@ -51,11 +51,11 @@ if (__name__ == '__main__'):
     logger.info('\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.format(excalibur_ip))
 
     if args.ldap_api:
-        ssh_inst.ssh('cd galahad/tests/virtue-ci && ./run_ldap_tests.py')
+        ssh_inst.ssh('cd galahad/tests && pytest test_ldap.py')
     if args.admin_api:
-        ssh_inst.ssh('cd galahad/tests/virtue-ci && ./run_admin_api_tests.py')
+        ssh_inst.ssh('cd galahad/tests && pytest test_admin_api.py')
     if args.user_api:
-        ssh_inst.ssh('cd galahad/tests/virtue-ci && ./run_user_api_tests.py')
+        ssh_inst.ssh('cd galahad/tests && pytest test_user_api.py')
 
     print
     print('Success')

@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import os
 import sys
 import json
 import time
@@ -13,7 +12,10 @@ from website.apiendpoint_admin import EndPoint_Admin
 from website.services.errorcodes import ErrorCodes
 from website.routes.aws import AWS
 
-if( __name__ == '__main__' ):
+def setup_module():
+
+    global inst
+    global ep
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -23,28 +25,11 @@ if( __name__ == '__main__' ):
     ep = EndPoint( 'jmitchell', 'Test123!' )
     ep.inst = inst
 
-    epa = EndPoint_Admin( 'jmitchell', 'Test123!' )
-    epa.inst = inst
-
-    # Assume the admin test has been run first,
-    # and the browsing role has been created
-
     # Test...
+
+def test_application_calls():
     # application_get
     assert json.dumps( ErrorCodes.user['invalidId'] ) == ep.application_get( 'jmitchell', 'DoesNotExist' )
-
-    role = inst.get_obj( 'name', 'browsing', objectClass='OpenLDAProle', throw_error=True )
-    assert role != ()
-    ldap_tools.parse_ldap( role )
-
-    user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
-    ldap_tools.parse_ldap( user )
-
-    test_role_id = role['id']
-
-    # Authorize the user if they aren't already
-    if( test_role_id not in user['authorizedRoleIds'] ):
-        epa.user_role_authorize( 'jmitchell', test_role_id )
 
     assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.application_get( 'jmitchell', 'xterm' )
 
@@ -55,15 +40,15 @@ if( __name__ == '__main__' ):
 
     assert app == real_app
 
-
+def test_role_calls():
     # role_get
     assert json.dumps( ErrorCodes.user['invalidId'] ) == ep.role_get( 'jmitchell', 'DoesNotExist' )
 
     assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.role_get( 'jmitchell', 'emptyrole' )
 
-    role = json.loads( ep.role_get( 'jmitchell', test_role_id ) )
+    role = json.loads( ep.role_get( 'jmitchell', 'usertestrole0' ) )
 
-    real_role = inst.get_obj( 'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True )
+    real_role = inst.get_obj( 'cid', 'usertestrole0', objectClass='OpenLDAProle', throw_error=True )
     ldap_tools.parse_ldap( real_role )
 
     # role_get also returns an ip address for that user/role's virtue.
@@ -79,9 +64,6 @@ if( __name__ == '__main__' ):
 
     roles = json.loads( ep.user_role_list( 'jmitchell' ) )
 
-    ldap_real_roles = inst.get_objs_of_type( 'OpenLDAProle' )
-    real_roles = ldap_tools.parse_ldap_list( ldap_real_roles )
-
     real_roles = []
 
     for r in user['authorizedRoleIds']:
@@ -93,10 +75,6 @@ if( __name__ == '__main__' ):
             role['ipAddress'] = 'NULL'
             real_roles.append( role )
 
-    '''for r in real_roles:
-        # user_role_list also returns an ip address for that user/role's virtue.
-        r['ipAddress'] = 'NULL'''
-
     if( roles != real_roles ):
         print( roles )
         print
@@ -106,32 +84,31 @@ if( __name__ == '__main__' ):
 
     assert ep.user_role_list( 'fpatwa' ) == json.dumps( [] )
 
-    
+def test_virtue_calls():
     # virtue_create
-    assert json.dumps( ErrorCodes.user['invalidRoleId'] ) == ep.virtue_create( 'jmitchell', 'DoesNotExist' )
+    assert json.dumps( ErrorCodes.user['invalidRoleId'] ) == ep.virtue_create( 'jmitchell', 'DoesNotExist', use_aws=False )
 
-    assert json.dumps( ErrorCodes.user['userNotAuthorizedForRole'] ) == ep.virtue_create( 'jmitchell', 'emptyrole' )
+    assert json.dumps( ErrorCodes.user['userNotAuthorizedForRole'] ) == ep.virtue_create( 'jmitchell', 'emptyrole', use_aws=False )
 
-    result = json.loads( ep.virtue_create( 'jmitchell', test_role_id ) )
+    result = json.loads( ep.virtue_create( 'jmitchell', 'usertestrole0', use_aws=False ) )
 
-    real_virtue = inst.get_obj( 'cid', result['id'], objectClass='OpenLDAPvirtue', throw_error=True )
+    real_virtue = inst.get_obj( 'cid', 'usertestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True )
     ldap_tools.parse_ldap( real_virtue )
 
-    assert result['id'] == real_virtue['id']
+    assert result['id'] == 'usertestvirtue0'
     assert result['ipAddress'] == real_virtue['ipAddress']
 
-    assert AWS.get_id_from_ip( real_virtue['ipAddress'] ) != None
+    assert real_virtue['username'] == 'jmitchell'
 
-    test_virtue_id = real_virtue['id']
+    assert json.dumps( ErrorCodes.user['virtueAlreadyExistsForRole'] ) == ep.virtue_create( 'jmitchell', 'usertestrole0', use_aws=False )
 
-    assert json.dumps( ErrorCodes.user['virtueAlreadyExistsForRole'] ) == ep.virtue_create( 'jmitchell', test_role_id )
 
     # virtue_get
     assert json.dumps( ErrorCodes.user['invalidId'] ) == ep.virtue_get( 'jmitchell', 'DoesNotExist' )
 
-    assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.virtue_get( 'fpatwa', test_virtue_id )
+    assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.virtue_get( 'fpatwa', 'usertestvirtue0' )
 
-    virtue = json.loads( ep.virtue_get( 'jmitchell', test_virtue_id ) )
+    virtue = json.loads( ep.virtue_get( 'jmitchell', 'usertestvirtue0' ) )
 
     assert virtue == real_virtue
 
@@ -147,17 +124,22 @@ if( __name__ == '__main__' ):
     # virtue_launch (NotImplemented)
     # virtue_stop (NotImplemented)
     # virtue_destroy
-    assert json.dumps( ErrorCodes.user['invalidId'] ) == ep.virtue_destroy( 'jmitchell', 'DoesNotExist' )
+    assert json.dumps( ErrorCodes.user['invalidId'] ) == ep.virtue_destroy( 'jmitchell', 'DoesNotExist', use_aws=False )
 
-    assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.virtue_destroy( 'fpatwa', test_virtue_id )
+    assert json.dumps( ErrorCodes.user['userNotAuthorized'] ) == ep.virtue_destroy( 'fpatwa', 'usertestvirtue0', use_aws=False )
 
-    ldap_virtue = inst.get_obj( 'cid', test_virtue_id, objectClass='OpenLDAPvirtue', throw_error=True )
+    ldap_virtue = inst.get_obj( 'cid', 'usertestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True )
+    ldap_virtue['cstate'] = 'RUNNING'
+    inst.modify_obj( 'cid', 'usertestvirtue0', ldap_virtue, objectClass='OpenLDAPvirtue' )
+
+    assert json.dumps( ErrorCodes.user['virtueNotStopped'] ) == ep.virtue_destroy( 'jmitchell', 'usertestvirtue0' )
+
     ldap_virtue['cstate'] = 'STOPPED'
-    inst.modify_obj( 'cid', test_virtue_id, ldap_virtue, objectClass='OpenLDAPvirtue' )
+    inst.modify_obj( 'cid', 'usertestvirtue0', ldap_virtue, objectClass='OpenLDAPvirtue' )
 
-    assert ep.virtue_destroy( 'jmitchell', test_virtue_id ) == None
+    assert ep.virtue_destroy( 'jmitchell', 'usertestvirtue0', use_aws=False ) == None
 
-    virtue = json.loads( ep.virtue_get( 'jmitchell', test_virtue_id ) )
+    virtue = json.loads( ep.virtue_get( 'jmitchell', 'usertestvirtue0' ) )
 
     assert ( virtue == ErrorCodes.user['invalidId'] or virtue['state'] == 'DELETING' )
 

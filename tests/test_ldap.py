@@ -9,18 +9,23 @@ sys.path.insert( 0, '/home/ubuntu/galahad/flask-authlib' )
 from website.ldaplookup import LDAP
 from website import ldap_tools
 
-if( __name__ == '__main__' ):
+def setup_module():
+
+    global inst
+    global ep
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
+def test_get_obj():
+
     user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
 
     assert user == {
         'cusername': ['jmitchell'],
-        'cauthRoleIds': ['[]'],
+        'cauthRoleIds': ["['usertestrole0']"],
         'ou': ['virtue'],
         'objectClass': ['OpenLDAPuser']
     }
@@ -29,14 +34,16 @@ if( __name__ == '__main__' ):
 
     assert user == {
         'username': 'jmitchell',
-        'authorizedRoleIds': []
+        'authorizedRoleIds': ['usertestrole0']
     }
+
+def test_objs_of_type():
 
     users = inst.get_objs_of_type( 'OpenLDAPuser' )
 
     assert ( 'cusername=jmitchell,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
         'cusername': ['jmitchell'],
-        'cauthRoleIds': ['[]'],
+        'cauthRoleIds': ["['usertestrole0']"],
         'ou': ['virtue'],
         'objectClass': ['OpenLDAPuser']
     } ) in users
@@ -59,7 +66,7 @@ if( __name__ == '__main__' ):
 
     assert {
         'username': 'jmitchell',
-        'authorizedRoleIds': []
+        'authorizedRoleIds': ['usertestrole0']
     } in users_parsed
 
     assert {
@@ -71,6 +78,8 @@ if( __name__ == '__main__' ):
         'username': 'klittle',
         'authorizedRoleIds': []
     } in users_parsed
+
+def test_write_to_ldap():
 
     temp_role = {
         'id': 'routeradmin',

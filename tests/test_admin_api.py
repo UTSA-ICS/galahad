@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import os
 import sys
 import json
 
@@ -10,8 +9,12 @@ from website.ldaplookup import LDAP
 from website.apiendpoint_admin import EndPoint_Admin
 from website.services.errorcodes import ErrorCodes
 
-if( __name__ == '__main__' ):
 
+def setup_module():
+
+    global inst
+    global ep
+    
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
@@ -20,7 +23,7 @@ if( __name__ == '__main__' ):
     ep = EndPoint_Admin( 'jmitchell', 'Test123!' )
     ep.inst = inst
 
-    # Test...
+def test_application_calls():
     # application_list
     app_list = ep.application_list()
 
@@ -29,7 +32,7 @@ if( __name__ == '__main__' ):
 
     assert json.loads( app_list ) == real_app_list
 
-
+def test_resource_calls():
     # resource_get
     assert json.dumps( ErrorCodes.admin['invalidId'] ) == ep.resource_get( 'DoesNotExist' )
 
@@ -55,7 +58,7 @@ if( __name__ == '__main__' ):
     # resource_attach (NotImplemented)
     # resource_detach (NotImplemented)
 
-
+def test_role_calls():
     # role_create
     good_role = {'id': 'NotRelevant',
                  'name': 'browsing',
@@ -103,16 +106,16 @@ if( __name__ == '__main__' ):
                   'startingTransducerIds': ['DoesNotExist']
     }
 
-    assert json.dumps( ErrorCodes.admin['invalidFormat'] ) == ep.role_create( bad_role_1 )
-    assert json.dumps( ErrorCodes.admin['invalidFormat'] ) == ep.role_create( bad_role_2 )
+    assert json.dumps( ErrorCodes.admin['invalidFormat'] ) == ep.role_create( bad_role_1, use_aws=False )
+    assert json.dumps( ErrorCodes.admin['invalidFormat'] ) == ep.role_create( bad_role_2, use_aws=False )
 
-    assert json.dumps( ErrorCodes.admin['invalidApplicationId'] ) == ep.role_create( bad_role_3 )
+    assert json.dumps( ErrorCodes.admin['invalidApplicationId'] ) == ep.role_create( bad_role_3, use_aws=False )
 
-    assert json.dumps( ErrorCodes.admin['invalidResourceId'] ) == ep.role_create( bad_role_4 )
+    assert json.dumps( ErrorCodes.admin['invalidResourceId'] ) == ep.role_create( bad_role_4, use_aws=False )
 
-    assert json.dumps( ErrorCodes.admin['invalidTransducerId'] ) == ep.role_create( bad_role_5 )
+    assert json.dumps( ErrorCodes.admin['invalidTransducerId'] ) == ep.role_create( bad_role_5, use_aws=False )
 
-    result_role_json = ep.role_create( good_role )
+    result_role_json = ep.role_create( good_role, use_aws=False )
 
     result_role = json.loads( result_role_json )
 
@@ -135,50 +138,6 @@ if( __name__ == '__main__' ):
     real_role_list = ldap_tools.parse_ldap_list( ldap_role_list )
 
     assert role_list == json.dumps( real_role_list )
-
-
-    # system_export (NotImplemented)
-    # system_import (NotImplemented)
-    # test_import_user (NotImplemented)
-    # test_import_application (NotImplemented)
-    # test_import_role (NotImplemented)
-
-
-    # user_list
-    user_list = ep.user_list()
-
-    ldap_user_list = inst.get_objs_of_type( 'OpenLDAPuser' )
-    real_user_list = ldap_tools.parse_ldap_list( ldap_user_list )
-
-    assert user_list == json.dumps( real_user_list )
-
-
-    # user_get
-    assert json.dumps( ErrorCodes.admin['invalidUsername'] ) == ep.user_get( 'DoesNotExist' )
-    
-    user = ep.user_get( 'jmitchell' )
-
-    ldap_user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
-    assert ldap_user != ()
-
-    ldap_tools.parse_ldap( ldap_user )
-
-    assert json.loads( user ) == ldap_user
-
-
-    # user_virtue_list
-    assert json.dumps( ErrorCodes.admin['invalidUsername'] ) == ep.user_virtue_list( 'DoesNotExist' )
-
-    virtue_list = ep.user_virtue_list( 'jmitchell' )
-
-    ldap_virtue_list = inst.get_objs_of_type( 'OpenLDAPvirtue' )
-    real_virtue_list = ldap_tools.parse_ldap_list( ldap_virtue_list )
-
-    for v in real_virtue_list:
-        if( v['username'] != 'jmitchell' ):
-            del v
-
-    assert json.loads( virtue_list ) == real_virtue_list
 
 
     # user_role_authorize
@@ -217,3 +176,49 @@ if( __name__ == '__main__' ):
 
     # Try to unauthorize twice
     assert json.dumps( ErrorCodes.admin['userNotAlreadyAuthorized'] ) == ep.user_role_unauthorize( 'jmitchell', test_role_id )
+
+
+    # system_export (NotImplemented)
+    # system_import (NotImplemented)
+    # test_import_user (NotImplemented)
+    # test_import_application (NotImplemented)
+    # test_import_role (NotImplemented)
+
+def test_user_calls():
+    # user_list
+    user_list = ep.user_list()
+
+    ldap_user_list = inst.get_objs_of_type( 'OpenLDAPuser' )
+    real_user_list = ldap_tools.parse_ldap_list( ldap_user_list )
+
+    assert user_list == json.dumps( real_user_list )
+
+
+    # user_get
+    assert json.dumps( ErrorCodes.admin['invalidUsername'] ) == ep.user_get( 'DoesNotExist' )
+    
+    user = ep.user_get( 'jmitchell' )
+
+    ldap_user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
+    assert ldap_user != ()
+
+    ldap_tools.parse_ldap( ldap_user )
+
+    assert json.loads( user ) == ldap_user
+
+
+    # user_virtue_list
+    assert json.dumps( ErrorCodes.admin['invalidUsername'] ) == ep.user_virtue_list( 'DoesNotExist' )
+
+    virtue_list = ep.user_virtue_list( 'jmitchell' )
+
+    ldap_virtue_list = inst.get_objs_of_type( 'OpenLDAPvirtue' )
+    parsed_virtue_list = ldap_tools.parse_ldap_list( ldap_virtue_list )
+
+    real_virtue_list = []
+    
+    for v in parsed_virtue_list:
+        if( v['username'] == 'jmitchell' ):
+            real_virtue_list.append( v )
+
+    assert json.loads( virtue_list ) == real_virtue_list

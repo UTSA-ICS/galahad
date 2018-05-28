@@ -72,6 +72,23 @@ def add_user( username, authRoleIds ):
 
     inst.add_obj( ldap_user, 'users', 'cusername', throw_error=True )
 
+def add_virtue( id, username, roleid, appIds, resIds, transIds, state, ip ):
+
+    virtue = {
+        'id': id,
+        'username': username,
+        'roleId': roleid,
+        'applicationIds': str(appIds),
+        'resourceIds': str(resIds),
+        'transducerIds': str(transIds),
+        'state': state,
+        'ipAddress': ip
+    }
+
+    ldap_virtue = to_ldap( virtue, 'OpenLDAPvirtue' )
+
+    inst.add_obj( ldap_virtue, 'virtues', 'cid', throw_error=True )
+
 
 if( __name__ == '__main__' ):
 
@@ -102,7 +119,10 @@ if( __name__ == '__main__' ):
     add_resource( 'fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare', 'token' )
 
     add_role( 'emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]' )
+    add_role( 'usertestrole0', 'UserTestRole', '1.0', "['firefox']", '[]', '[]' )
 
-    add_user( 'jmitchell', '[]' )
+    add_user( 'jmitchell', "['usertestrole0']" )
     add_user( 'fpatwa', '[]' )
     add_user( 'klittle', '[]' )
+
+    add_virtue( 'usertestvirtue0', 'NULL', 'usertestrole0', '[]', '[]', '[]', 'STOPPED', '1.2.3.4' )

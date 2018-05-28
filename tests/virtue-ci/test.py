@@ -57,9 +57,9 @@ if( __name__ == '__main__' ):
     setup.setup_aws_inst( ssh_inst, args.github_key, args.awskeys )
 
     # Run individual tests
-    ssh_inst.ssh( 'cd galahad/tests/virtue-ci && ./run_ldap_tests.py' )
-    ssh_inst.ssh( 'cd galahad/tests/virtue-ci && ./run_admin_api_tests.py' )
-    ssh_inst.ssh( 'cd galahad/tests/virtue-ci && ./run_user_api_tests.py' )
+    ssh_inst.ssh( 'cd galahad/tests && pytest test_ldap.py' )
+    ssh_inst.ssh( 'cd galahad/tests && pytest test_admin_api.py' )
+    ssh_inst.ssh( 'cd galahad/tests && pytest test_user_api.py' )
 
     print
     print( 'Success' )

@@ -1,8 +1,6 @@
 import time
 import boto3
 
-import test_common
-
 def create_aws_inst( ami, subnet, iam, name, key_name ):
 
     if( subnet == None ):
@@ -78,18 +76,17 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     # Temporary
     ssh_inst.ssh( 'cd galahad && git checkout ci-firstcut && git pull' )
 
-    # Install and configure slapd
-    ssh_inst.ssh( 'sudo ~/galahad/tests/virtue-ci/install_ldap.sh' )
-    ssh_inst.ssh( 'echo \'export LDAPSEARCH="ldapsearch -H ldap://localhost -D cn=admin,dc=canvas,dc=virtue,dc=com -W -b dc=canvas,dc=virtue,dc=com"\' >> ~/.bashrc' )
+    # Very temporary
+    #ssh_inst.ssh( 'rm -rf ~/galahad/tests' )
+    #ssh_inst.scp_to( '/home/jeffrey/galahad/tests', '~/galahad' )
 
     # Install required python packages
     ssh_inst.ssh( 'sudo pip install --upgrade -r ~/galahad/flask-authlib/requirements.txt' )
+    ssh_inst.ssh( 'sudo pip install --upgrade pytest' )
 
-    # Setup the schema
-    ssh_inst.ssh( '~/galahad/tests/virtue-ci/add_canvas_schema.sh' )
-
-    # Create base LDAP structure
-    ssh_inst.ssh( '~/galahad/tests/virtue-ci/create_base_ldap_structure.py' )
+    # Install and configure slapd
+    ssh_inst.ssh( 'bash ~/galahad/tests/setup_ldap.sh' )
+    ssh_inst.ssh( 'echo \'export LDAPSEARCH="ldapsearch -H ldap://localhost -D cn=admin,dc=canvas,dc=virtue,dc=com -W -b dc=canvas,dc=virtue,dc=com"\' >> ~/.bashrc' )
 
     # Setup AWS client on AWS inst
     ssh_inst.ssh( 'sudo apt-get install -y awscli' )
