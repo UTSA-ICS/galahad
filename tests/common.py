@@ -1,6 +1,7 @@
 import subprocess
 import boto3
 
+
 class ssh_tool():
 
     def __init__(self, username, ip_address, sshkey=None):

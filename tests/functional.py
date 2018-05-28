@@ -21,12 +21,14 @@ def parse_args():
                         help='The path to the private key to use ssh with')
     parser.add_argument('-e', '--excalibur_server_ip', type=str, required=False,
                         help='The IP address of an existing aws excalibur instance.')
-    parser.add_argument('--ldap_api', action='store_true',
+    parser.add_argument('--test_ldap_api', action='store_true',
                         help='The ldap API Tests')
-    parser.add_argument('--admin_api', action='store_true',
+    parser.add_argument('--test_admin_api', action='store_true',
                         help='The ADMIN API Tests')
-    parser.add_argument('--user_api', action='store_true',
+    parser.add_argument('--test_user_api', action='store_true',
                         help='The USER API Tests')
+    parser.add_argument('--run_all_tests', action='store_true',
+                        help='Run All available functional Tests')
 
     arg = parser.parse_args()
 
@@ -43,19 +45,21 @@ if (__name__ == '__main__'):
     elif args.excalibur_server_ip != None:
         excalibur_ip = args.excalibur_server_ip
     else:
-        logger.error('\nPlease specify either stack_name or excalibur_user_ip!\n')
+        logger.error(
+            '\nPlease specify either stack_name or excalibur_user_ip!\n')
         sys.exit()
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
-    logger.info('\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.format(excalibur_ip))
+    logger.info(
+        '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.format(
+            excalibur_ip))
 
-    if args.ldap_api:
+    if args.test_ldap_api:
         ssh_inst.ssh('cd galahad/tests && pytest test_ldap.py')
-    if args.admin_api:
+    if args.test_admin_api:
         ssh_inst.ssh('cd galahad/tests && pytest test_admin_api.py')
-    if args.user_api:
+    if args.test_user_api:
         ssh_inst.ssh('cd galahad/tests && pytest test_user_api.py')
-
-    print
-    print('Success')
+    if args.run_all_tests:
+        ssh_inst.ssh('cd galahad/tests && ./test.py')
