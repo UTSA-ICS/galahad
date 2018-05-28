@@ -112,10 +112,9 @@ class Stack():
 
 class Excalibur():
 
-    def __init__(self, stack_name, ssh_key, github_key):
+    def __init__(self, stack_name, ssh_key):
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.github_key = github_key
         self.server_ip = self.get_excalibur_server_ip()
 
     def get_excalibur_server_ip(self):
@@ -130,11 +129,11 @@ class Excalibur():
         # Return public IP
         return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
-    def setup_keys(self):
+    def setup_keys(self, github_key):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/github_key '.format(
-                    self.ssh_key, self.github_key,
+                    self.ssh_key, github_key,
                     self.server_ip)).run()
 
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
@@ -160,11 +159,11 @@ class Excalibur():
                 repo, branch)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-    def setup_excalibur(self, branch):
+    def setup_excalibur(self, branch, github_key):
 
         logger.info('Setting up key for github access')
         self.update_security_rules()
-        self.setup_keys()
+        self.setup_keys(github_key)
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
         # Check out galahad repos required for excalibur
@@ -264,8 +263,8 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, branch):
     stack = Stack()
     stack.setup_stack(stack_template, stack_name, stack_suffix)
 
-    excalibur = Excalibur(stack_name, path_to_key, github_key)
-    excalibur.setup_excalibur(branch)
+    excalibur = Excalibur(stack_name, path_to_key)
+    excalibur.setup_excalibur(branch, github_key)
 
 
 def parse_args():
@@ -300,8 +299,7 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.branch_name)
     if args.setup_ldap:
-        excalibur = Excalibur(args.stack_name, args.path_to_key,
-                              args.github_repo_key)
+        excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.setup_ldap()
     if args.update_excalibur:
         logger.warn('Not yet implemented!')
