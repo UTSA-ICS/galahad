@@ -23,6 +23,17 @@ def setup_module():
     ep = EndPoint_Admin( 'jmitchell', 'Test123!' )
     ep.inst = inst
 
+def teardown_module():
+
+    inst.del_obj( 'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True )
+
+    virtue = inst.get_obj( 'croleId', test_role_id, objectClass='OpenLDAPvirtue', throw_error=True )
+
+    while( virtue == () ):
+        virtue = inst.get_obj( 'croleId', test_role_id, objectClass='OpenLDAPvirtue', throw_error=True )
+
+    assert inst.del_obj( 'cid', virtue['cid'][0], objectClass='OpenLDAPvirtue', throw_error=True ) == 0
+
 def test_application_calls():
     # application_list
     app_list = ep.application_list()
@@ -128,6 +139,7 @@ def test_role_calls():
     ldap_role = inst.get_obj( 'cid', result_role['id'] )
 
     # This will be used later
+    global test_role_id
     test_role_id = result_role['id']
 
     

@@ -57,10 +57,8 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     # Install required packages
     ssh_inst.ssh( 'sudo apt-get update' )
     #ssh_inst.ssh( 'sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade' )
-    ssh_inst.ssh( 'sudo apt-get install -y python-pip libldap2-dev libsasl2-dev unzip' )
 
     # Clone the galahad repository to the instance
-
     ssh_inst.scp_to( github_key, '~/id_rsa' )
     ssh_inst.ssh( 'mv ~/id_rsa ~/.ssh/id_rsa' )
     ssh_inst.ssh( 'rm -f ~/.ssh/id_rsa.pub' )
@@ -69,20 +67,13 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.ssh( 'ssh -o StrictHostKeyChecking=no git@github.com', test=False )
 
     ssh_inst.ssh( 'rm -rf ~/galahad' )
-    ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad.git ~/galahad' )
+    ssh_inst.ssh( 'git clone -b ci-firstcut git@github.com:starlab-io/galahad.git ~/galahad' )
     ssh_inst.ssh( 'rm -rf ~/galahad-config' )
     ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad-config.git ~/galahad-config' )
-
-    # Temporary
-    ssh_inst.ssh( 'cd galahad && git checkout ci-firstcut && git pull' )
 
     # Very temporary
     #ssh_inst.ssh( 'rm -rf ~/galahad/tests' )
     #ssh_inst.scp_to( '/home/jeffrey/galahad/tests', '~/galahad' )
-
-    # Install required python packages
-    ssh_inst.ssh( 'sudo pip install --upgrade -r ~/galahad/flask-authlib/requirements.txt' )
-    ssh_inst.ssh( 'sudo pip install --upgrade pytest' )
 
     # Install and configure slapd
     ssh_inst.ssh( 'bash ~/galahad/tests/setup_ldap.sh' )

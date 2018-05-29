@@ -119,10 +119,7 @@ if( __name__ == '__main__' ):
     add_resource( 'fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare', 'token' )
 
     add_role( 'emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]' )
-    add_role( 'usertestrole0', 'UserTestRole', '1.0', "['firefox']", '[]', '[]' )
 
-    add_user( 'jmitchell', "['usertestrole0']" )
+    add_user( 'jmitchell', '[]' )
     add_user( 'fpatwa', '[]' )
     add_user( 'klittle', '[]' )
-
-    add_virtue( 'usertestvirtue0', 'NULL', 'usertestrole0', '[]', '[]', '[]', 'STOPPED', '1.2.3.4' )

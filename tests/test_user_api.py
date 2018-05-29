@@ -25,7 +25,50 @@ def setup_module():
     ep = EndPoint( 'jmitchell', 'Test123!' )
     ep.inst = inst
 
-    # Test...
+    role = {
+        'id': 'usertestrole0',
+        'name': 'UserTestRole',
+        'version': '1.0',
+        'applicationIds': ['firefox'],
+        'startingResourceIds': [],
+        'startingTransducerIds': []
+    }
+
+    virtue = {
+        'id': 'usertestvirtue0',
+        'username': 'NULL',
+        'roleId': 'usertestrole0',
+        'applicationIds': [],
+        'resourceIds': [],
+        'transducerIds': [],
+        'state': 'STOPPED',
+        'ipAddress': '1.2.3.4'
+    }
+
+    ldap_role = ldap_tools.to_ldap( role, 'OpenLDAProle' )
+    inst.add_obj( ldap_role, 'roles', 'cid', throw_error=True )
+
+    ldap_virtue = ldap_tools.to_ldap( virtue, 'OpenLDAPvirtue' )
+    inst.add_obj( ldap_virtue, 'virtues', 'cid', throw_error=True )
+
+    user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
+    ldap_tools.parse_ldap( user )
+
+    if( 'usertestrole0' not in user['authorizedRoleIds'] ):
+        user['authorizedRoleIds'].append( 'usertestrole0' )
+        ldap_user = ldap_tools.to_ldap( user, 'OpenLDAPuser' )
+        inst.modify_obj( 'cusername', 'jmitchell', ldap_user, objectClass='OpenLDAPuser', throw_error=True )
+
+def teardown_module():
+
+    user = inst.get_obj( 'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True )
+    ldap_tools.parse_ldap( user )
+
+    user['authorizedRoleIds'].remove( 'usertestrole0' )
+    ldap_user = ldap_tools.to_ldap( user, 'OpenLDAPuser' )
+    inst.modify_obj( 'cusername', 'jmitchell', ldap_user, objectClass='OpenLDAPuser', throw_error=True )
+
+    inst.del_obj( 'cid', 'usertestrole0', objectClass='OpenLDAProle', throw_error=True )
 
 def test_application_calls():
     # application_get

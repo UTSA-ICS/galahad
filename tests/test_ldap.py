@@ -25,7 +25,7 @@ def test_get_obj():
 
     assert user == {
         'cusername': ['jmitchell'],
-        'cauthRoleIds': ["['usertestrole0']"],
+        'cauthRoleIds': ['[]'],
         'ou': ['virtue'],
         'objectClass': ['OpenLDAPuser']
     }
@@ -34,7 +34,7 @@ def test_get_obj():
 
     assert user == {
         'username': 'jmitchell',
-        'authorizedRoleIds': ['usertestrole0']
+        'authorizedRoleIds': []
     }
 
 def test_objs_of_type():
@@ -43,7 +43,7 @@ def test_objs_of_type():
 
     assert ( 'cusername=jmitchell,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
         'cusername': ['jmitchell'],
-        'cauthRoleIds': ["['usertestrole0']"],
+        'cauthRoleIds': ['[]'],
         'ou': ['virtue'],
         'objectClass': ['OpenLDAPuser']
     } ) in users
@@ -66,7 +66,7 @@ def test_objs_of_type():
 
     assert {
         'username': 'jmitchell',
-        'authorizedRoleIds': ['usertestrole0']
+        'authorizedRoleIds': []
     } in users_parsed
 
     assert {
