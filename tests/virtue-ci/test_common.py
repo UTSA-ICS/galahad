@@ -37,7 +37,7 @@ class ssh_tool():
         else:
             keyls = ['-i', self.sshkey]
 
-        call_list = ['scp', '-r'] + keyls + [ file_path_local, self.rem_username + '@' + self.ip + ':' + file_path_remote ]
+        call_list = ['scp', '-r'] + keyls + [ '-o', 'StrictHostKeyChecking=no', file_path_local, self.rem_username + '@' + self.ip + ':' + file_path_remote ]
 
         print
         print

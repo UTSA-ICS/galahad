@@ -54,10 +54,6 @@ def create_aws_inst( ami, subnet, iam, name, key_name ):
 
 def setup_aws_inst( ssh_inst, github_key, awskeys ):
 
-    # Install required packages
-    ssh_inst.ssh( 'sudo apt-get update' )
-    #ssh_inst.ssh( 'sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y upgrade' )
-
     # Clone the galahad repository to the instance
     ssh_inst.scp_to( github_key, '~/id_rsa' )
     ssh_inst.ssh( 'mv ~/id_rsa ~/.ssh/id_rsa' )
@@ -75,8 +71,11 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     #ssh_inst.ssh( 'rm -rf ~/galahad/tests' )
     #ssh_inst.scp_to( '/home/jeffrey/galahad/tests', '~/galahad' )
 
+    # Install dependencies
+    ssh_inst.ssh( '~/galahad/tests/setup_excalibur.sh' )
+
     # Install and configure slapd
-    ssh_inst.ssh( 'bash ~/galahad/tests/setup_ldap.sh' )
+    ssh_inst.ssh( '~/galahad/tests/setup_ldap.sh' )
     ssh_inst.ssh( 'echo \'export LDAPSEARCH="ldapsearch -H ldap://localhost -D cn=admin,dc=canvas,dc=virtue,dc=com -W -b dc=canvas,dc=virtue,dc=com"\' >> ~/.bashrc' )
 
     # Setup AWS client on AWS inst
