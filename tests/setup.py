@@ -241,9 +241,35 @@ class Excalibur():
             ToPort=22,
             IpProtocol='TCP'
             )
+        response5 = security_group.authorize_ingress(
+            CidrIp='70.121.205.81/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP'
+            )
+        response6 = security_group.authorize_ingress(
+            CidrIp='172.3.30.184/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP'
+            )
+        response7 = security_group.authorize_ingress(
+            CidrIp='54.236.36.79/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP'
+            )
+        response8 = security_group.authorize_ingress(
+            CidrIp='129.115.2.249/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP'
+            )
         return dict(
             list(response1.items()) + list(response2.items()) +
-            list(response3.items()) + list(response4.items()))
+            list(response3.items()) + list(response4.items()) +
+            list(response5.items()) + list(response6.items()) +
+            list(response7.items()) + list(response8.items()))
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
