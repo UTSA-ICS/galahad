@@ -8,14 +8,14 @@ var config = {
     //password:"derp",
     //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
     //host: "172.30.1.246",
-    host: "172.30.1.122",
+    host: "34.226.244.252",
     port: 6767,
     dstHost: "127.0.0.1",
     dstPort: 2023,
     localHost: "0.0.0.0",
     localPort: 10000,
     //privateKey:fs.readFileSync('key.pem')
-    privateKey: "key_2.pem"
+    privateKey: "key.pem"
 };
 var data = null;
 var express = require('express')
@@ -74,7 +74,7 @@ function openApp(role, port_local, appId, ip) {
         dstPort: 2023,
         localHost: "0.0.0.0",
         localPort: port_local,
-        privateKey: "key_2.pem"
+        privateKey: "key.pem"
       }
       execTunnel(local_config);
 
@@ -309,6 +309,7 @@ function check_oauth(e) {
   var dockWrapper = document.getElementById('dockWrapper');
   //var win = document.getElementById('oauth2');
   var iframe = document.createElement("iframe");
+  //window.open("http://canvas.com:3000/connect/excalibur")
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
   iframe.style.background = "white";
   iframe.setAttribute("seamless", true);
@@ -395,9 +396,9 @@ function logout(e){
   gui.App.quit();
 }
 function methods() {
-  var host = "https://172.30.1.44:5000/virtue"
+  var host = "https://18.232.179.188:5002/virtue"
 
-  client.registerMethod("logout", "https://172.30.1.44:5000/oauth2/revoke", "POST");
+  client.registerMethod("logout", "https://18.232.179.188:5002/oauth2/revoke", "POST");
 
   // ### Virtue User API
   client.registerMethod("userRoleGet", host + "/user/role/get", "GET");
