@@ -77,4 +77,4 @@ function set_token {
 cleanup
 get_user_info
 set_token
-aws ecr get-login --no-include-email --region us-east-1
+aws ecr get-login --no-include-email --region us-east-2

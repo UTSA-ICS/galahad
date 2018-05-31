@@ -21,7 +21,15 @@ LOG_FILE = 'SERIAL.log'
 
 def start_aws_vm(args, userdata, name):
     print("Starting VM, %s" % (name))
-    cmd = ['aws', 'ec2', 'run-instances', '--image-id', args.aws_image_id, '--count', '1', '--instance-type', args.aws_instance_type, '--security-group-ids', args.aws_security_group, '--subnet-id', args.aws_subnet_id, '--iam-instance-profile', 'Name=Virtue-Tester', '--user-data', '%s' % (userdata), '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name)]
+    cmd = ['aws', 'ec2', 'run-instances', \
+        '--image-id', args.aws_image_id, \
+        '--count', '1', \
+        '--instance-type', args.aws_instance_type, \
+        '--security-group-ids', args.aws_security_group, \
+        '--subnet-id', args.aws_subnet_id, \
+        '--user-data', '%s' % (userdata), \
+        '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name), \
+        '--key-name', 'starlab-virtue-te']
     data = subprocess.check_output(cmd).decode("utf-8")
     output = json.loads(data)
     if len(output['Instances']) > 0:
