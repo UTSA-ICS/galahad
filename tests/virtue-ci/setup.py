@@ -63,7 +63,8 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.ssh( 'ssh -o StrictHostKeyChecking=no git@github.com', test=False )
 
     ssh_inst.ssh( 'rm -rf ~/galahad' )
-    ssh_inst.ssh( 'git clone -b ci-firstcut git@github.com:starlab-io/galahad.git ~/galahad' )
+    #ssh_inst.ssh( 'git clone -b ci-firstcut git@github.com:starlab-io/galahad.git ~/galahad' )
+    ssh_inst.ssh( 'git clone -b issue_90_no_refactorings git@github.com:starlab-io/galahad.git ~/galahad' )
     ssh_inst.ssh( 'rm -rf ~/galahad-config' )
     ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad-config.git ~/galahad-config' )
 
