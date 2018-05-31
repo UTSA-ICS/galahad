@@ -32,7 +32,7 @@ class Test_AWS:
         assert instance.subnet_id == self.test_instance['subnet_id']
         assert instance.instance_type == self.test_instance['inst_type']
 
-        aws.instance_create(instance.id)
+        aws.instance_stop(instance.id)
 
         aws.instance_destroy(instance.id)
 
