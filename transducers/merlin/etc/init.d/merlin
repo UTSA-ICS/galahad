@@ -9,7 +9,7 @@
 ### END INIT INFO
 
 SCRIPT="python /opt/merlin/merlin.py -c /var/private/ssl/rethinkdb_cert.pem -v /var/private/ssl/virtue_1_key.pem -e /var/private/ssl/excalibur_pub.pem -r rethinkdb.galahad.com virtue_$(cat /etc/machine-id)"
-RUNAS=root
+RUNAS=merlin
 
 PIDFILE=/opt/merlin/merlin.pid
 LOGFILE=/opt/merlin/merlin-initd.log

@@ -317,7 +317,7 @@ if __name__ == '__main__':
 	parser.add_argument('-e', '--excalibur_key', help='Public key file for Excalibur', default='excalibur_pub.pem')
 	parser.add_argument('-v', '--virtue_key', help='Private key file for this Virtue', default='virtue_key.pem')
 	parser.add_argument('-i', '--heartbeat', help='Heartbeat interval (sec)', type=int, default=30)
-	parser.add_argument('-s', '--socket', help='Path to socket to filter', default='/opt/merlin/receiver_to_filter')
+	parser.add_argument('-s', '--socket', help='Path to socket to filter', default='/var/run/receiver_to_filter')
 	parser.add_argument('-l', '--log', help='Path to log file', default='merlin.log')
 	args = parser.parse_args()
 
