@@ -68,9 +68,6 @@ if (__name__ == '__main__'):
             sys.exit()
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
-    # Setup Test prerequisites
-    ssh_inst.ssh('sudo apt autoremove -y')
-    ssh_inst.ssh('sudo apt install python-logilab-common -y')
 
     if args.test_ldap_api:
         ssh_inst.ssh('cd galahad/tests && pytest test_ldap.py')

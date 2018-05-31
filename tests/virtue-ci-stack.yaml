@@ -399,7 +399,7 @@ Resources:
         id: 8b2f1290-e334-4658-a135-cc1c90490a95
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-03decd76c6f12f205
+      ImageId: ami-aa2ea6d0
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:

@@ -143,9 +143,14 @@ class Excalibur():
         result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
                               "rm('-f ~/.ssh/id_rsa.pub')")
 
+        # Now add the github public key to avoid host key verification prompt
+        result3 = run_ssh_cmd(self.server_ip, self.ssh_key,
+                              "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
         result = list()
         result.append(result1.stdout)
         result.append(result2.stdout)
+        result.append(result3.stdout)
         return (result)
 
     def checkout_repo(self, repo, branch='master'):
@@ -163,21 +168,30 @@ class Excalibur():
 
         logger.info('Setting up key for github access')
         self.update_security_rules()
-        self.setup_keys(github_key)
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        # Check out galahad repos required for excalibur
+        self.setup_keys(github_key)
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
+        # Check out galahad repos required for excalibur
         self.checkout_repo('galahad-config')
         self.checkout_repo('galahad', branch)
 
         # Sleep for 10 seconds to ensure that both repos are completely checked out
         time.sleep(10)
 
-        _cmd = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        # Call the setup_excalibur.sh script for system and pip packages.
+        _cmd1 = "cd('galahad/tests').and_().bash('./setup_excalibur.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
+
+        # Call the setup_ldap.sh script for openldap installation and config.
+        _cmd2 = "cd('galahad/tests').and_().bash('./setup_ldap.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+
+        # Start the flask-server (excalibur)
+        _cmd3 = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
 
     def setup_ldap(self):
 
@@ -278,7 +292,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
     with Sultan.load(user='ubuntu', hostname=host_server,
                      ssh_config=config) as s:
         result = eval('s.{}.run()'.format(cmd))
-        logger.debug(
+        logger.info(
             '\nstdout: {}\nstderr: {}\nsuccess: {}'.format(result.stdout,
                                                            result.stderr,
                                                            result.is_success))
