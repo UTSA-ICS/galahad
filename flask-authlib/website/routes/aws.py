@@ -100,6 +100,7 @@ class AWS:
         self.id = instance.id
 
         instance.wait_until_running()
+        instance.reload()
 
         self.ipAddress = instance.private_ip_address
         self.state = instance.state['Name']
