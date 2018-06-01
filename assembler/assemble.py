@@ -19,7 +19,7 @@ WORK_DIR = 'tmp/' # where all the generated files will live
 ISO_FILE = 'virtue.cloudinit.iso'
 LOG_FILE = 'SERIAL.log'
 
-def start_aws_vm(args, userdata, name):
+def start_aws_vm(args, userdata, name, disk_size):
     print("Starting VM, %s" % (name))
     cmd = ['aws', 'ec2', 'run-instances', \
         '--image-id', args.aws_image_id, \
@@ -28,8 +28,8 @@ def start_aws_vm(args, userdata, name):
         '--security-group-ids', args.aws_security_group, \
         '--subnet-id', args.aws_subnet_id, \
         '--user-data', '%s' % (userdata), \
-        '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name), \
-        '--key-name', 'starlab-virtue-te']
+        '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name),
+        '--block-device-mapping', 'DeviceName=/dev/sda1,Ebs={VolumeSize=%s}' % (disk_size)]
     data = subprocess.check_output(cmd).decode("utf-8")
     output = json.loads(data)
     if len(output['Instances']) > 0:
@@ -74,10 +74,12 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--ssh-host', default='127.0.0.1', help='SSH hostname for SSH stages. Default 127.0.0.1')
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
     parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
+    parser.add_argument('-n', '--name', default='', help='Instance name')
     parser.add_argument('--aws-image-id', default='ami-43a15f3e', help='AWS Image ID to start. Default Ubuntu 16')
     parser.add_argument('--aws-instance-type', default='t2.micro', help='AWS Instance type. Default t2.micro')
     parser.add_argument('--aws-security-group', default='sg-0676d24f', help='AWS Security group id. Default id is ssh only')
     parser.add_argument('--aws-subnet-id', default='subnet-0b97b651', help='AWS Subnet ID. Selects network too. Default is VirtuePublic')
+    parser.add_argument('--aws-disk-size', default='8', help='Size of AWS disk in GB.  Default is 8')
     parser.add_argument('-c', '--clean', action='store_true', help='Clean the working directory when done. WARNING! This will delete the generated RSA Keys')
     parser.add_argument('containers', nargs='*', help='Docker container names that docker-virtue repository supports')
     args = parser.parse_args()
@@ -120,7 +122,7 @@ if __name__ == '__main__':
     
     vm = None
     instance = ''
-    vmname = ''
+    vmname = args.name
 
     if args.start_qemu:
         if args.resize_img:
@@ -157,9 +159,10 @@ if __name__ == '__main__':
 
         Uploading user-data through a web-browser seems to also not work sometimes (maybe caching?)
         '''
-        vmname = 'Unity-%s' % ('-'.join(args.containers))
+        if vmname == '':
+            vmname = 'Unity-%s' % ('-'.join(args.containers))
         with open(os.path.join(WORK_DIR, 'user-data'), 'r') as f:
-            instance = start_aws_vm(args, f.read(), vmname)
+            instance = start_aws_vm(args, f.read(), vmname, args.aws_disk_size)
             print("New instance id: %s" % (instance))
             args.ssh_host = get_vm_ip(args, instance)
             print("New instance ip: %s" % (args.ssh_host))
