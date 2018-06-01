@@ -41,7 +41,17 @@ This will generate proper cloud-init config and start a qemu vm with that config
 To run the assembler on AWS instead of local QEMU build, run
 
 ```
-./asseble.py --docker-login "$DOCKER_LOGIN" virtue_container [virtue_container ... ]
+./assemble.py --docker-login "$DOCKER_LOGIN" virtue_container [virtue_container ... ]
 ```
 
 This will first generated the cloud-init config file in `tmp/user-data` You can provide this file to AWS in order to configure an instance properly. The script will ask for SSH host and port and wait until the VM comes up. Once it is up, the SSH stages will run, and finally the machine will be shut-down and the assebly process will be complete. After this point your AWS will contain a stopped instance that launches specified virtues on boot.
+
+Here is an example of how to create a router-admin unity in the starlab-virtue AWS account:
+```
+python3 assemble.py --docker-login "$DOCKER_LOGIN" --aws-security-group sg-0e125c01c684e7f6c --aws-subnet-id subnet-00664ce7230870c66 firefox terminal
+```
+
+Office applications are very large and require a larger disk size and more RAM:
+```
+python3 assemble.py --docker-login "$DOCKER_LOGIN" --aws-security-group sg-0e125c01c684e7f6c --aws-subnet-id subnet-00664ce7230870c66 --aws-instance-type t2.xlarge --aws-disk-size 12 office-word
+```
