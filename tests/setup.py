@@ -215,6 +215,28 @@ class Excalibur():
         _cmd = "cd('galahad/tests').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
+    def setup_aws_instance_info(self):
+        client = boto3.client('cloudformation')
+        subnet = client.describe_stack_resource(StackName=self.stack_name,
+                                                LogicalResourceId='VirtUEAdminSubnet')
+        subnet = subnet['StackResourceDetail']['PhysicalResourceId']
+        aws_instance_info = {}
+        aws_instance_info['image_id'] = 'ami-aa2ea6d0'
+        aws_instance_info['inst_type'] = 't2.micro'
+        aws_instance_info['subnet_id'] = subnet
+        aws_instance_info['key_name'] = 'starlab-virtue-te'
+        aws_instance_info['tag_key'] = 'Project'
+        aws_instance_info['tag_value'] = 'Virtue'
+        aws_instance_info['sec_group'] = self.get_default_security_group_id()
+        aws_instance_info['inst_profile_name'] = ''
+        aws_instance_info['inst_profile_arn'] = ''
+
+        # Now write this to a file
+        with open('aws_instance_info.json', 'w') as f:
+            json.dump(aws_instance_info, f)
+
+        return aws_instance_info
+
     def get_vpc_id(self):
         ec2 = boto3.resource('ec2')
         vpc_filter = [
