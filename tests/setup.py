@@ -164,7 +164,19 @@ class Excalibur():
                 repo, branch)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-    def setup_excalibur(self, branch, github_key):
+    def setup_aws_access(self, aws_config, aws_keys):
+        run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/.aws/config '.format(
+                    self.ssh_key, aws_config,
+                    self.server_ip)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/.aws/credentials '.format(
+                    self.ssh_key, aws_keys,
+                    self.server_ip)).run()
+
+    def setup_excalibur(self, branch, github_key, aws_config, aws_keys):
 
         logger.info('Setting up key for github access')
         self.update_security_rules()
@@ -180,6 +192,9 @@ class Excalibur():
 
         # Sleep for 10 seconds to ensure that both repos are completely checked out
         time.sleep(10)
+
+        # Setup the config and keys for AWS communication
+        self.setup_aws_access(aws_config, aws_keys)
 
         # Call the setup_excalibur.sh script for system and pip packages.
         _cmd1 = "cd('galahad/tests').and_().bash('./setup_excalibur.sh')"
@@ -299,12 +314,13 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
         return result
 
 
-def setup(path_to_key, stack_name, stack_suffix, github_key, branch):
+def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
+          aws_keys, branch):
     stack = Stack()
     stack.setup_stack(stack_template, stack_name, stack_suffix)
 
     excalibur = Excalibur(stack_name, path_to_key)
-    excalibur.setup_excalibur(branch, github_key)
+    excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
 
 
 def parse_args():
@@ -319,6 +335,10 @@ def parse_args():
                         help="The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument("-b", "--branch_name", type=str, default="master",
                         help="The branch name to be used for excalibur repo")
+    parser.add_argument("--aws_config", type=str, required=False,
+                        help="AWS config to be used to communicate with AWS")
+    parser.add_argument("--aws_keys", type=str, required=False,
+                        help="AWS keys to be used for AWS communication")
     parser.add_argument("--setup", action="store_true",
                         help="setup the galahad/virtue test environment")
     parser.add_argument("--setup_ldap", action="store_true",
@@ -337,7 +357,8 @@ def main():
     args = parse_args()
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
-              args.github_repo_key, args.branch_name)
+              args.github_repo_key, args.aws_config, args.aws_keys,
+              args.branch_name)
     if args.setup_ldap:
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.setup_ldap()
