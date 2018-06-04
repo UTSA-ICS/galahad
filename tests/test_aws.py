@@ -44,9 +44,17 @@ class Test_AWS:
 
         instance = aws.instance_create(**self.test_instance)
 
-        response = aws.instance_stop(instance.id)
+        instance2 = aws.instance_stop(instance.id)
 
-        assert response['StoppingInstances'][0]['InstanceId'] == instance.id
+        assert instance2.id == instance.id
+        assert instance2.state['Name'] == 'stopped'
+
+        aws.instance_launch(instance.id)
+
+        instance3 = aws.instance_stop(instance.id, block=False)
+
+        assert instance3.id == instance.id
+        assert instance3.state['Name'] == 'stopping'
 
         aws.instance_destroy(instance.id)
 
@@ -58,13 +66,19 @@ class Test_AWS:
 
         instance = aws.instance_create(**self.test_instance)
 
-        response = aws.instance_stop(instance.id)
+        aws.instance_stop(instance.id)
 
-        time.sleep(60)
+        instance2 = aws.instance_launch(instance.id)
 
-        response = aws.instance_launch(instance.id)
+        assert instance2.id == instance.id
+        assert instance2.state['Name'] == 'running'
 
-        assert response['StartingInstances'][0]['InstanceId'] == instance.id
+        aws.instance_stop(instance.id)
+
+        instance3 = aws.instance_launch(instance.id, block=False)
+
+        assert instance3.id == instance.id
+        assert instance3.state['Name'] == 'pending'
 
         aws.instance_stop(instance.id)
 
@@ -80,6 +94,16 @@ class Test_AWS:
 
         aws.instance_stop(instance.id)
 
-        response = aws.instance_destroy(instance.id)
+        instance2 = aws.instance_destroy(instance.id)
 
-        assert response['TerminatingInstances'][0]['InstanceId'] == instance.id
+        assert instance2.id == instance.id
+        assert instance2.state['Name'] == 'terminated'
+
+        instance3 = aws.instance_create(**self.test_instance)
+
+        aws.instance_stop(instance3.id)
+
+        instance4 = aws.instance_destroy(instance3.id, block=False)
+
+        assert instance4.id == instance3.id
+        assert instance4.state['Name'] == 'shutting-down'

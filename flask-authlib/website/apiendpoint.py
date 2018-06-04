@@ -315,21 +315,21 @@ class EndPoint():
             aws = AWS()
             aws_id = aws.get_id_from_ip( virtue['ipAddress'] )
 
-            aws_res = aws.instance_destroy( aws_id )
+            aws_res = aws.instance_destroy( aws_id, block=False )
 
-            res = aws_res['TerminatingInstances'][0]
+            aws_state = aws_res.state['Name']
 
             # Wait for it to finish terminating?
 
             del_virtue = False
 
-            if( res['CurrentState']['Name'] == 'shutting-down' ):
+            if( aws_state == 'shutting-down' ):
                 virtue['state'] = 'DELETING'
                 ldap_virtue = ldap_tools.to_ldap( virtue, 'OpenLDAPvirtue' )
                 self.inst.modify_obj( 'cid', virtueId, ldap_virtue, objectClass='OpenLDAPvirtue', throw_error=True )
                 return # Success!
 
-            elif( res['CurrentState']['Name'] == 'terminated' ):
+            elif( aws_state == 'terminated' ):
                 self.inst.del_obj( 'cid', virtue['id'], throw_error=True )
                 return # Success!
 

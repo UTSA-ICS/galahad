@@ -108,49 +108,59 @@ class AWS:
         return instance
 
 
-    def instance_launch(self, instId):
+    def instance_launch(self, instId, block=True):
         """Start the specified AWS instance
         This will use the instance ID specifed as the AWS instance ID and start the
         instance.
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.start_instances
         """
-        client = boto3.client('ec2')
 
-        response = client.start_instances(
-            InstanceIds=[
-                instId,
-            ]
-        )
-        return response
+        ec2 = boto3.resource('ec2')
+        instance = ec2.Instance(instId)
+
+        instance.start()
+
+        if(block):
+            instance.wait_until_running()
+
+        instance.reload()
+
+        return instance
 
 
-    def instance_stop(self, instId):
+    def instance_stop(self, instId, block=True):
         """Stop the specified AWS instance
         Stop the specified AWS instance
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.stop_instances
         """
-        client = boto3.client('ec2', 'us-east-1')
 
-        # Specify the InstanceId of the spcific instance.
-        response = client.stop_instances(
-            InstanceIds=[
-                instId,
-            ]
-        )
-        return response
+        ec2 = boto3.resource('ec2')
+        instance = ec2.Instance(instId)
+
+        instance.stop()
+
+        if(block):
+            instance.wait_until_stopped()
+
+        instance.reload()
+
+        return instance
 
 
-    def instance_destroy(self, instId):
+    def instance_destroy(self, instId, block=True):
         """Terminate the AWS instance
         Terminate the specified AWS instance.
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.terminate_instances
         """
-        client = boto3.client('ec2')
 
-        # Specify the InstanceId of the spcific instance.
-        response = client.terminate_instances(
-            InstanceIds=[
-                instId,
-            ]
-        )
-        return response
+        ec2 = boto3.resource('ec2')
+        instance = ec2.Instance(instId)
+
+        instance.terminate()
+
+        if( block ):
+            instance.wait_until_terminated()
+
+        instance.reload()
+
+        return instance
