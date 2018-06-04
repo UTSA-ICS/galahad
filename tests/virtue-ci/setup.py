@@ -81,7 +81,7 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     # Setup AWS client on AWS inst
     ssh_inst.ssh( 'sudo apt-get install -y awscli' )
     ssh_inst.ssh( 'mkdir .aws', test=False )
-    ssh_inst.ssh( 'cp ~/galahad/tests/virtue-ci/aws_config ~/.aws/config' )
+    ssh_inst.ssh( 'cp ~/galahad/tests/aws_config ~/.aws/config' )
     ssh_inst.scp_to( awskeys, '~/.aws/credentials' )
 
     # Start Excalibur
