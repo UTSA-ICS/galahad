@@ -14,17 +14,37 @@ aws_instance_info = 'aws_instance_info.json'
 
 class Test_AWS:
 
-    def __init__(self):
+    def setup_class(self):
+        self.instance_list = []
+
         file = open(aws_instance_info, "r")
         test_string = json.dumps(file.read())
         self.test_instance = ast.literal_eval(json.loads(test_string))
 
+    def teardown_class(self):
+
+        aws = AWS()
+
+        abandoned_instances = 0
+        for i in self.instance_list:
+            i.reload()
+
+            if(i.state['Name'] != 'terminated' and i.state['Name'] != 'shutting-down'):
+                abandoned_instances = abandoned_instances + 1
+                aws.instance_destroy(i.id)
+
+        assert abandoned_instances == 0
+
+    def create_test_instance(self, aws):
+        instance = aws.instance_create(**self.test_instance)
+        self.instance_list.append(instance)
+        return instance
 
     def test_that_creating_an_instance_succeeds(self):
 
         aws = AWS()
 
-        instance = aws.instance_create(**self.test_instance)
+        instance = self.create_test_instance(aws)
 
         assert instance.state['Name'] == 'running'
         assert instance.image_id == self.test_instance['image_id']
@@ -32,9 +52,7 @@ class Test_AWS:
         assert instance.subnet_id == self.test_instance['subnet_id']
         assert instance.instance_type == self.test_instance['inst_type']
 
-        aws.instance_stop(instance.id)
-
-        aws.instance_destroy(instance.id)
+        aws.instance_destroy(instance.id, block=False)
 
 
 
@@ -42,7 +60,7 @@ class Test_AWS:
 
         aws = AWS()
 
-        instance = aws.instance_create(**self.test_instance)
+        instance = self.create_test_instance(aws)
 
         instance2 = aws.instance_stop(instance.id)
 
@@ -56,7 +74,7 @@ class Test_AWS:
         assert instance3.id == instance.id
         assert instance3.state['Name'] == 'stopping'
 
-        aws.instance_destroy(instance.id)
+        aws.instance_destroy(instance.id, block=False)
 
 
 
@@ -64,7 +82,7 @@ class Test_AWS:
 
         aws = AWS()
 
-        instance = aws.instance_create(**self.test_instance)
+        instance = self.create_test_instance(aws)
 
         aws.instance_stop(instance.id)
 
@@ -80,9 +98,9 @@ class Test_AWS:
         assert instance3.id == instance.id
         assert instance3.state['Name'] == 'pending'
 
-        aws.instance_stop(instance.id)
+        instance3.wait_until_running()
 
-        aws.instance_destroy(instance.id)
+        aws.instance_destroy(instance.id, block=False)
 
 
 
@@ -90,18 +108,14 @@ class Test_AWS:
 
         aws = AWS()
 
-        instance = aws.instance_create(**self.test_instance)
-
-        aws.instance_stop(instance.id)
+        instance = self.create_test_instance(aws)
 
         instance2 = aws.instance_destroy(instance.id)
 
         assert instance2.id == instance.id
         assert instance2.state['Name'] == 'terminated'
 
-        instance3 = aws.instance_create(**self.test_instance)
-
-        aws.instance_stop(instance3.id)
+        instance3 = self.create_test_instance(aws)
 
         instance4 = aws.instance_destroy(instance3.id, block=False)
 
