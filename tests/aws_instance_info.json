@@ -1,0 +1,9 @@
+{ 'image_id': 'ami-aa2ea6d0',
+'inst_type': 't2.micro',
+'subnet_id': 'subnet-0d4eb5ce2ba7ca317',
+'key_name': 'starlab-virtue-te',
+'tag_key': 'Project',
+'tag_value': 'Virtue',
+'sec_group': 'sg-0e125c01c684e7f6c',
+'inst_profile_name': '',
+'inst_profile_arn': ''}

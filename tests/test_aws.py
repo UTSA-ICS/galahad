@@ -1,23 +1,23 @@
 import time
+import json
 import sys
+import os
+import ast
 
-sys.path.insert( 0, '/home/ubuntu/galahad/flask-authlib' )
+file_path = os.path.realpath(__file__)
+base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/flask-authlib'
+sys.path.insert(0, base_excalibur_dir)
 from website.routes.aws import AWS
+
+# Name of the file storing the instance information
+aws_instance_info = 'aws_instance_info.json'
 
 class Test_AWS:
 
-    test_instance = {
-        'image_id': 'ami-36a8754c',
-        'inst_type': 't2.small',
-        'subnet_id': 'subnet-00664ce7230870c66',
-        'key_name': 'starlab-virtue-te',
-        'tag_key': 'Project',
-        'tag_value': 'Virtue',
-        'sec_group': 'sg-0e125c01c684e7f6c',
-        'inst_profile_name': '',
-        'inst_profile_arn': ''
-    }
-
+    def __init__(self):
+        file = open(aws_instance_info, "r")
+        test_string = json.dumps(file.read())
+        self.test_instance = ast.literal_eval(json.loads(test_string))
 
 
     def test_that_creating_an_instance_succeeds(self):
