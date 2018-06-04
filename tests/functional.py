@@ -63,6 +63,7 @@ if (__name__ == '__main__'):
         if args.stack_name != None:
             excalibur = Excalibur(args.stack_name, args.sshkey)
             excalibur.checkout_repo('galahad', args.branch_name)
+            excalibur.setup_aws_instance_info()
         else:
             logger.error('Please specify stack_name to update the repo')
             sys.exit()
