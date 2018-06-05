@@ -1,7 +1,9 @@
+import json
+
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
-import json
+from routes.aws import AWS
 
 DEBUG_PERMISSIONS = False
 
@@ -67,12 +69,17 @@ class EndPoint():
             if( DEBUG_PERMISSIONS or roleId in user['authorizedRoleIds'] ):
 
                 # Now get the IP address of the virtue associated with this user/role
-                # Get the virtue ID from the role
-                virtueId = role['virtId']
-                # Get the virtue info from LDAP
-                virtue = json.loads(self.virtue_get( username, virtueId ))
-                # Now add the IP address of the virtue to the return data
-                role['ipAddress'] = virtue['ipAddress']
+                virtue_ip = 'NULL'
+
+                ldap_virtues = self.inst.get_objs_of_type( 'OpenLDAPvirtue' )
+                virtues = ldap_tools.parse_ldap_list( ldap_virtues )
+
+                for v in virtues:
+                    if( v['username'] == username and v['roleId'] == roleId ):
+                        virtue_ip = v['ipAddress']
+                        break
+
+                role['ipAddress'] = virtue_ip
 
                 return json.dumps(role)
 
@@ -93,6 +100,9 @@ class EndPoint():
 
             roles = []
 
+            ldap_virtues = self.inst.get_objs_of_type( 'OpenLDAPvirtue' )
+            virtues = ldap_tools.parse_ldap_list( ldap_virtues )
+
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj( 'cid', roleId, 'openLDAProle' )
                 if( role == None or role == () ):
@@ -100,15 +110,14 @@ class EndPoint():
                 ldap_tools.parse_ldap( role )
 
                 # Now get the IP address of the virtue associated with this user/role
-                # Get the virtue ID from the role
-                virtueId = role['virtId']
-                if virtueId != 'null':
-                    # Get the virtue info from LDAP
-                    virtue = json.loads(self.virtue_get( username, virtueId ))
-                    # Now add the IP address of the virtue to the return data
-                    role['ipAddress'] = virtue['ipAddress']
-                else:
-                    role['ipAddress'] = 'null'
+                virtue_ip = 'NULL'
+
+                for v in virtues:
+                    if( v['username'] == username and v['roleId'] == roleId ):
+                        virtue_ip = v['ipAddress']
+                        break
+
+                role['ipAddress'] = virtue_ip
 
                 roles.append( role )
 
@@ -161,7 +170,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Create a virtue for the specified role, but do not launch it yet
-    def virtue_create( self, username, roleId ):
+    def virtue_create( self, username, roleId, use_aws=True ):
 
         try:
             user = None
@@ -216,9 +225,10 @@ class EndPoint():
 
             virtue['username'] = username
 
-            virtue_ldap = self.to_ldap( virtue, 'OpenLDAPvirtue' )
+            virtue_ldap = ldap_tools.to_ldap( virtue, 'OpenLDAPvirtue' )
 
-            ret = self.inst.modify_obj( 'cid', virtue_ldap['cid'], virtue_ldap, objectClass='OpenLDAPvirtue', throw_error=True )
+            ret = self.inst.modify_obj( 'cid', virtue_ldap['cid'], virtue_ldap,
+                                        objectClass='OpenLDAPvirtue', throw_error=True )
 
             if( ret != 0 ):
                 return json.dumps( ErrorCodes.user['resourceCreationError'] )
@@ -234,7 +244,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Launch the specified virtue, which must have already been created
-    def virtue_launch( self, username, virtueId ):
+    def virtue_launch( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -259,7 +269,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Stop the specified virtue, but do not destroy it
-    def virtue_stop( self, username, virtueId ):
+    def virtue_stop( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -284,7 +294,7 @@ class EndPoint():
             return json.dumps( ErrorCodes.user['unspecifiedError'] )
 
     # Destroy the specified stopped virtue
-    def virtue_destroy( self, username, virtueId ):
+    def virtue_destroy( self, username, virtueId, use_aws=True ):
 
         try:
             virtue = self.inst.get_obj( 'cid', virtueId, 'OpenLDAPvirtue', True )
@@ -298,9 +308,33 @@ class EndPoint():
             if( virtue['state'] != 'STOPPED' ):
                 return json.dumps( ErrorCodes.user['virtueNotStopped'] )
 
-            # Todo: Destroy it
-        
-            return json.dumps( ErrorCodes.user['notImplemented'] )
+            if( use_aws == False ):
+                self.inst.del_obj( 'cid', virtue['id'], throw_error=True )
+                return
+
+            aws = AWS()
+            aws_id = aws.get_id_from_ip( virtue['ipAddress'] )
+
+            aws_res = aws.instance_destroy( aws_id, block=False )
+
+            aws_state = aws_res.state['Name']
+
+            # Wait for it to finish terminating?
+
+            del_virtue = False
+
+            if( aws_state == 'shutting-down' ):
+                virtue['state'] = 'DELETING'
+                ldap_virtue = ldap_tools.to_ldap( virtue, 'OpenLDAPvirtue' )
+                self.inst.modify_obj( 'cid', virtueId, ldap_virtue, objectClass='OpenLDAPvirtue', throw_error=True )
+                return # Success!
+
+            elif( aws_state == 'terminated' ):
+                self.inst.del_obj( 'cid', virtue['id'], throw_error=True )
+                return # Success!
+
+            else:
+                return json.dumps( ErrorCodes.user['serverDestroyError'] )
 
         except Exception as e:
             print( "Error: {0}".format(e) )
