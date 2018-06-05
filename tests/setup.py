@@ -281,7 +281,7 @@ class Excalibur():
             IpProtocol='TCP'
             )
         response3 = security_group.authorize_ingress(
-            CidrIp='54.236.36.79/32',
+            CidrIp='35.170.157.4/32',
             FromPort=22,
             ToPort=22,
             IpProtocol='TCP'
@@ -305,7 +305,7 @@ class Excalibur():
             IpProtocol='TCP'
             )
         response7 = security_group.authorize_ingress(
-            CidrIp='54.236.36.79/32',
+            CidrIp='35.170.157.4/32',
             FromPort=5002,
             ToPort=5002,
             IpProtocol='TCP'
