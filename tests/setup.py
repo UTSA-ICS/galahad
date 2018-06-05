@@ -6,15 +6,7 @@
 # - Start to collect system information to be able to run tests
 # -  - Get IP for LDAP/AD
 # - Checkout latest code
-# - Run SSO Test to get access Token
-# - Run API Tests
-# - Run Canvas Test - manually
-# -
-# -
-# -
-# -
-# -
-#
+# - 
 ###
 
 import boto3
