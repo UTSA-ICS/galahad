@@ -436,7 +436,7 @@ Resources:
         id: 8b2f1290-e334-4658-a135-cc1c90490a95
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-2565bf5a
+      ImageId: ami-0762877f1b4728d8e
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -458,7 +458,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-edd57092 # note that this is a custom BBN build of Excalibur w/ CLI
+      ImageId: ami-0a0733e45c74451d6 # note that this is a custom BBN build of Excalibur w/ CLI
       InstanceType: t2.micro
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -478,7 +478,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-b1459ece
+      ImageId: ami-0abd33cde76960d90
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -519,7 +519,7 @@ Resources:
         id: 1c434563-0095-4e81-a6e3-dec53250469c
     DependsOn: VirtUELoggingSubnet
     Properties:
-      ImageId: ami-77d50e08
+      ImageId: ami-05f321f770c6ea359
       InstanceType: t2.large
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -543,7 +543,7 @@ Resources:
         id: 2391e029-6d3b-4dc9-a37d-904afa122da4
     DependsOn: VirtUELoggingSubnet        
     Properties:
-      ImageId: ami-62538a1d
+      ImageId: ami-04b887e2a2d0bdccd
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -567,7 +567,7 @@ Resources:
         id: c00ebe8a-862d-4090-910d-3b662cd21f08
     DependsOn: VirtUELoggingSubnet        
     Properties:
-      ImageId: ami-d020f9af
+      ImageId: ami-0ed807fbaf869a4f5
       InstanceType: t2.small
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -589,7 +589,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-502d8c2f
+      ImageId: ami-0370b054006c55b26
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -606,7 +606,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-9f2f8ee0
+      ImageId: ami-0ebca5cb7de0a84cb
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -623,7 +623,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-c32a8bbc
+      ImageId: ami-04809960e3e33bd5c
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -640,7 +640,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-b52f8eca
+      ImageId: ami-003c8afdab514a5eb
       InstanceType: t2.small
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -657,7 +657,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-1334956c
+      ImageId: ami-0e762687cb0f6ed43
       InstanceType: t2.xlarge
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
@@ -674,7 +674,7 @@ Resources:
       Placeholder: Placeholder
     DependsOn: VirtUEUserSubnet
     Properties:
-      ImageId: ami-c52e8fba
+      ImageId: ami-0c444b6c31279a348
       InstanceType: t2.xlarge
       KeyName: !Ref KeyName
       SubnetId: !Ref VirtUEUserSubnet
