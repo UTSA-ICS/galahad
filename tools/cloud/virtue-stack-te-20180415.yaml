@@ -35,7 +35,7 @@ Resources:
     Type: 'AWS::EC2::Subnet'
     Properties:
       CidrBlock: 172.30.0.0/18
-      MapPublicIpOnLaunch: true
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Project
           Value: Virtue
@@ -197,7 +197,7 @@ Resources:
     Type: 'AWS::EC2::Subnet'
     Properties:
       CidrBlock: 172.30.64.0/18
-      MapPublicIpOnLaunch: true
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Project
           Value: Virtue
