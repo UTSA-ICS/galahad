@@ -495,7 +495,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: VirtUEAdminSubnet
     Properties:
-      ImageId: ami-99dc07e6
+      ImageId: ami-048511a9b0e0a9b61
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
