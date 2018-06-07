@@ -20,6 +20,19 @@ def add_subtree( name, gid ):
 
     inst.conn.add_s( 'cn={0},{1}'.format( name, LDAP_VIRTUE_DN ), tree )
 
+def add_person( cn, sn, password ):
+
+    dn = 'cn={0},ou=People,dc=canvas,dc=virtue,dc=com'.format( cn )
+
+    user = ldap.modlist.addModlist( {
+        'objectClass': ['simpleSecurityObject', 'inetOrgPerson'],
+        'cn': cn,
+        'sn': sn,
+        'userPassword': password
+    } )
+
+    inst.conn.add_s( dn, user )
+
 def add_application( id, name, version, os ):
 
     app = {
@@ -103,7 +116,14 @@ if( __name__ == '__main__' ):
         'description': 'VirtUE organizational unit for binding with AD'
     } )
 
+    people_ou = ldap.modlist.addModlist( {
+        'objectClass': ['top', 'organizationalUnit'],
+        'ou': 'People',
+        'description': 'AD People integration OU'
+    } )
+
     inst.conn.add_s( LDAP_VIRTUE_DN, virtue_ou )
+    inst.conn.add_s( 'ou=People,dc=canvas,dc=virtue,dc=com', people_ou )
 
     add_subtree( 'applications', 205 )
     add_subtree( 'resources', 206 )
@@ -123,3 +143,7 @@ if( __name__ == '__main__' ):
     add_user( 'jmitchell', '[]' )
     add_user( 'fpatwa', '[]' )
     add_user( 'klittle', '[]' )
+
+    add_person( 'jmitchell', 'Mitchell', 'Test123!' )
+    add_person( 'klittle', 'Little', 'Test123!' )
+    add_person( 'jmartin', 'Martin', 'Test123!' )
