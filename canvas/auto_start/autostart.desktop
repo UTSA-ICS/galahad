@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Script
+Type=Application
+Exec=/home/ubuntu/start_canvas.sh
+Terminal=false
+StartupNotify=false

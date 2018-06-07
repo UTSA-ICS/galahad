@@ -1,0 +1,2 @@
+Place start_canvas.sh in /home/ubuntu
+Copy canvas.desktop to /home/ubuntu/.config/autostart/canvas.desktop
