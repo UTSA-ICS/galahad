@@ -420,7 +420,7 @@ Resources:
     DependsOn:
       - VirtUEUserSubnet
     Properties:
-      ImageId: ami-b1459ece
+      ImageId: ami-0abd33cde76960d90
       InstanceType: t2.small
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -465,7 +465,7 @@ Resources:
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-62538a1d
+      ImageId: ami-04b887e2a2d0bdccd
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
