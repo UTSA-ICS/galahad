@@ -42,7 +42,7 @@ def test_get_token():
                                     '/application/get').format(settings['ip']),
                            headers={'Authorization': 'Bearer {0}'.format(token)},
                            params={'appId': 'DoesNotExist'},
-                           verify=False)
+                           verify=settings['verify'])
 
     assert json.loads(res.text) == [10, 'The given ID is invalid.']
 
