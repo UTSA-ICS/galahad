@@ -67,3 +67,19 @@ class ErrorCodes():
         'notImplemented': { 'status': 'failed', 'result': [254, 'This function has not been implemented.']},
         'unspecifiedError': { 'status': 'failed', 'result': [255, 'An otherwise-unspecified error. Check user messages and/or error logs.']}
     } 
+
+    security = {
+        'success': { 'status': 'success', 'result': [0, 'Successfully completed operation.']},
+        'invalidOrMissingParameters': { 'status': 'failed', 'result': [1, 'Invalid or missing parameters']},
+        'userNotAuthorized': { 'status': 'failed', 'result': [2, 'The User is not authorized for this operation.']},
+        'userTokenExpired': { 'status': 'failed', 'result': [3, 'The provided UserToken has expired. Refresh your session and try again.']},
+        'invalidId': { 'status': 'failed', 'result': [10, 'The given ID is invalid.']},
+        'invalidTransducerId': { 'status': 'failed', 'result': [10, 'The given Transducer ID is invalid.']},
+        'invalidVirtueId': { 'status': 'failed', 'result': [11, 'The given Virtue ID is invalid.']},
+        'virtueStateError': { 'status': 'failed', 'result': [12, 'The Virtue\'s current state prevents the Transducer from being enabled.']},
+        'invalidConfigurationFormat': { 'status': 'failed', 'result': [13, 'The configuration provided cannot be understood by this implementation.']},
+        'transducerNotEnabled': { 'status': 'failed', 'result': [13, 'The indicated Transducer is not enabled in the indicated Virtue.']},
+        'notImplemented': { 'status': 'failed', 'result': [254, 'This function has not been implemented.']},
+        'unspecifiedError': { 'status': 'failed', 'result': [255, 'An otherwise unspecified error. Check user messages and/or error logs ' +
+                'for more information.']}
+    }
