@@ -17,6 +17,7 @@ import time
 import aws
 
 from ..services.oauth2 import require_oauth
+from ..services.errorcodes import ErrorCodes
 from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
@@ -29,13 +30,19 @@ def security_endpoint():
     return EndPoint_Security( 'jmitchell@virtue.com', 'Test123!' )
 
 def make_response(message):
-    message = json.loads(message)
-    if 'status' in message:
-        if message['status'] == 'failed':
-            response = Response(json.dumps(message['result']), status=400, mimetype='application/json')
-            response.headers['status'] = 'failed'
-    else:
-        response = Response(json.dumps(message), status=200, mimetype='application/json')
+
+    result = ErrorCodes.user['unspecifiedError']
+    try:
+        # Will throw an error if message is not a real json, or the result is a failure
+        result = json.loads(message)
+        if(type(result) == dict):
+            assert result.get('status', 'success') != 'failed'
+
+        response = Response(message, status=200, mimetype='application/json')
+    except Exception as e:
+        response = Response(json.dumps(result['result']), status=400, mimetype='application/json')
+        response.headers['status'] = 'failed'
+
     return response
 
 def get_user():

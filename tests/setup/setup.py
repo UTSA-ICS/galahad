@@ -108,6 +108,12 @@ class Excalibur():
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.server_ip = self.get_excalibur_server_ip()
+        # Write out excalibur IP to a file
+        self.write_excalibur_ip(self.server_ip)
+
+    def write_excalibur_ip(self, excalibur_ip):
+        with open('excalibur_ip', 'w') as f:
+            f.write(excalibur_ip)
 
     def get_excalibur_server_ip(self):
         client = boto3.client('ec2')
@@ -189,11 +195,11 @@ class Excalibur():
         self.setup_aws_access(aws_config, aws_keys)
 
         # Call the setup_excalibur.sh script for system and pip packages.
-        _cmd1 = "cd('galahad/tests').and_().bash('./setup_excalibur.sh')"
+        _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_excalibur.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
 
         # Call the setup_ldap.sh script for openldap installation and config.
-        _cmd2 = "cd('galahad/tests').and_().bash('./setup_ldap.sh')"
+        _cmd2 = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
         # Start the flask-server (excalibur)
@@ -204,7 +210,7 @@ class Excalibur():
 
         logger.info('Setup LDAP config for Tests')
         # Call setup_ldap on the server
-        _cmd = "cd('galahad/tests').and_().bash('./setup_ldap.sh')"
+        _cmd = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def setup_aws_instance_info(self):

@@ -29,7 +29,7 @@ def authorize():
         payload = dict(error.get_body())
         return jsonify(payload), error.status_code
 
-    client = OAuth2Client.get_by_client_id(request.args['client_id'])
+    client = OAuth2Client.query.filter_by(id=request.args['client_id']).first()
     return render_template(
         'account/authorize.html',
         grant=grant,

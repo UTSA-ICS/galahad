@@ -23,3 +23,4 @@ flask-authlib/website/sqlite.db
 kernel-source
 artful-server-cloudimg-amd64.img
 lsm
+tests/setup/excalibur_ip
