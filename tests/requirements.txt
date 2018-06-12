@@ -1,2 +1,2 @@
--r ../flask-authlib/requirements.txt
+-r ../excalibur/requirements.txt
 pytest

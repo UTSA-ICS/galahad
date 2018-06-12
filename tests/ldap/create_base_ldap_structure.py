@@ -4,7 +4,7 @@ import sys
 import ldap
 import ldap.modlist
 
-sys.path.insert( 0, '/home/ubuntu/galahad/flask-authlib' )
+sys.path.insert( 0, '/home/ubuntu/galahad/excalibur' )
 from website.ldaplookup import LDAP
 from website.ldap_tools import to_ldap
 

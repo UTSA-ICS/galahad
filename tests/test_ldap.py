@@ -5,7 +5,7 @@ import sys
 import copy
 import traceback
 
-sys.path.insert( 0, '/home/ubuntu/galahad/flask-authlib' )
+sys.path.insert( 0, '/home/ubuntu/galahad/excalibur' )
 from website.ldaplookup import LDAP
 from website import ldap_tools
 

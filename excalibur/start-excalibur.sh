@@ -18,44 +18,40 @@ current_dir=$(pwd)
 dir=$(echo ${current_dir##*/})
 
 # Ensure that this script is being run from the correct directory
-if [[ $dir != "flask-authlib" ]]; then
+if [[ $dir != "excalibur" ]]; then
   echo "#########################################################################################"
   echo "ERROR: Incorrect directory detected!!"
-  echo "ERROR: The current parent directory is not [flask-authlib]"
-  echo "ERROR: Please ensure this script is being run from \$HOME/galahad/flask-authlib directory"
+  echo "ERROR: The current parent directory is not [excalibur]"
+  echo "ERROR: Please ensure this script is being run from \$HOME/galahad/excalibur directory"
   echo "#########################################################################################"
 else
-  # Check if the virtual environment directory exists
-  # If not then create a virtual environment called "vnev"
-  # Then install all the python dependencies and as this is the
-  # first time flask is being run initialize the SQLALCHEMY database.
+
   if [ ! -d "venv" ]; then
     sudo apt install virtualenv
     virtualenv venv
     source ./venv/bin/activate
     pip install -r ./requirements.txt
   fi
-  # Source the virtual environment
+
   source ./venv/bin/activate
+
   # These are needed to initialize flask's database
   export FLASK_APP=app.py
   export FLASK_DEBUG=1
 
-  # If database config file is not found then create it.
   if [ ! -f "conf/dev.config.py" ]; then
     # Specify the SQLite DB file's location in the generated config
-    # Get the directory path without the 'flask-authlib' dir
-    directory_path=$(sed 's/\/flask-authlib//' <<< $current_dir)
+    # Get the directory path without the 'excalibur' dir
+    directory_path=$(sed 's/\/excalibur//' <<< $current_dir)
     # Now create the config file for the database.
     mkdir -p conf
     cat <<-EOF > conf/dev.config.py
 	SECRET_KEY = 'your_secret'
-	SQLALCHEMY_DATABASE_URI = 'sqlite:///$directory_path/flask-authlib/website/sqlite.db'
+	SQLALCHEMY_DATABASE_URI = 'sqlite:///$directory_path/excalibur/website/sqlite.db'
 	OAUTH_CACHE_DIR = '_cache'
 	EOF
   fi
 
-  # If database does not exist then intialize it
   if [ ! -f "website/sqlite.db" ]; then
     # Initialize the database.
     flask initdb
@@ -64,8 +60,8 @@ else
   # Copy SSL Certs from galahad-config repo
   if [ ! -d "ssl" ] || [ ! -f "ssl/flask_ssl.cert" ] || [ ! -f "ssl/flask_ssl.key" ]; then
     mkdir -p ssl
-    # Remove the flask-authlib dir
-    base_dir=$(sed 's/\/flask-authlib//' <<< $current_dir)
+    # Remove the excalibur dir
+    base_dir=$(sed 's/\/excalibur//' <<< $current_dir)
     # Get the directory name that the repo is checked out in
     galahad_dir=$(echo ${base_dir##*/})
     # Remove the base repo checked out dir name

@@ -4,7 +4,7 @@ import sys
 import json
 import time
 
-sys.path.insert( 0, '/home/ubuntu/galahad/flask-authlib' )
+sys.path.insert( 0, '/home/ubuntu/galahad/excalibur' )
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.apiendpoint import EndPoint

@@ -5,14 +5,17 @@ import os
 import ast
 
 file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/flask-authlib'
+base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
 from website.routes.aws import AWS
+
 
 # Name of the file storing the instance information
 aws_instance_info = 'aws_instance_info.json'
 
+
 class Test_AWS:
+
 
     def setup_class(self):
         self.instance_list = []
@@ -20,6 +23,8 @@ class Test_AWS:
         file = open(aws_instance_info, "r")
         test_string = json.dumps(file.read())
         self.test_instance = ast.literal_eval(json.loads(test_string))
+
+
 
     def teardown_class(self):
 
@@ -35,10 +40,14 @@ class Test_AWS:
 
         assert abandoned_instances == 0
 
+
+
     def create_test_instance(self, aws):
         instance = aws.instance_create(**self.test_instance)
         self.instance_list.append(instance)
         return instance
+
+
 
     def test_that_creating_an_instance_succeeds(self):
 

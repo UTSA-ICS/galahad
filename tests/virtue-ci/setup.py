@@ -63,7 +63,7 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.ssh( 'ssh -o StrictHostKeyChecking=no git@github.com', test=False )
 
     ssh_inst.ssh( 'rm -rf ~/galahad' )
-    ssh_inst.ssh( 'git clone -b ci-firstcut git@github.com:starlab-io/galahad.git ~/galahad' )
+    ssh_inst.ssh( 'git clone -b 110.refactor_excalibur git@github.com:starlab-io/galahad.git ~/galahad' )
     ssh_inst.ssh( 'rm -rf ~/galahad-config' )
     ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad-config.git ~/galahad-config' )
 
@@ -85,4 +85,4 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.scp_to( awskeys, '~/.aws/credentials' )
 
     # Start Excalibur
-    ssh_inst.ssh( 'cd galahad/flask-authlib && ./start-screen.sh' )
+    ssh_inst.ssh( 'cd galahad/excalibur && ./start-screen.sh' )

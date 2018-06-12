@@ -197,7 +197,7 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
         # Start the flask-server (excalibur)
-        _cmd3 = "cd('galahad/flask-authlib').and_().bash('./start-screen.sh')"
+        _cmd3 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
 
     def setup_ldap(self):
