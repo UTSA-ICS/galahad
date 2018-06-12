@@ -74,6 +74,21 @@ def add_role( id, name, version, appIds, resIds, transIds ):
 
     inst.add_obj( ldap_role, 'roles', 'cid', throw_error=True )
 
+def add_transducer( id_, name, type_, startEnabled, startingConfiguration, requiredAccess ):
+
+    transducer = {
+        'id': id_,
+        'name': name,
+        'type': type_,
+        'startEnabled': str(startEnabled),
+        'startingConfiguration': str(startingConfiguration),
+        'requiredAccess': str(requiredAccess)
+    }
+
+    ldap_transducer = to_ldap( transducer, 'OpenLDAPtransducer' )
+
+    inst.add_obj( ldap_transducer, 'transducers', 'cid', throw_error=True )
+
 def add_user( username, authRoleIds ):
 
     user = {
@@ -147,3 +162,18 @@ if( __name__ == '__main__' ):
     add_person( 'jmitchell', 'Mitchell', 'Test123!' )
     add_person( 'klittle', 'Little', 'Test123!' )
     add_person( 'jmartin', 'Martin', 'Test123!' )
+
+    add_transducer('path_mkdir', 'Directory Creation', 'SENSOR', True, '{}', [])
+    add_transducer('bprm_set_creds', 'Process Start', 'SENSOR', True, '{}', [])
+    add_transducer('task_create', 'Thread Start', 'SENSOR', True, '{}', [])
+    add_transducer('task_alloc', 'Thread Allocation', 'SENSOR', True, '{}', [])
+    add_transducer('inode_create', 'File Creation', 'SENSOR', True, '{}', [])
+    add_transducer('socket_connect', 'Socket Connect', 'SENSOR', True, '{}', [])
+    add_transducer('socket_bind', 'Socket Bind', 'SENSOR', True, '{}', [])
+    add_transducer('socket_accept', 'Socket Accept', 'SENSOR', True, '{}', [])
+    add_transducer('socket_listen', 'Socket Listen', 'SENSOR', True, '{}', [])
+    add_transducer('create_process', 'Process Creation', 'SENSOR', True, '{}', [])
+    add_transducer('process_start', 'Process Start', 'SENSOR', True, '{}', [])
+    add_transducer('process_died', 'Process Death', 'SENSOR', True, '{}', [])
+    add_transducer('srv_create_proc', 'Process Creation', 'SENSOR', True, '{}', [])
+    add_transducer('open_fd', 'File Open', 'SENSOR', True, '{}', [])
