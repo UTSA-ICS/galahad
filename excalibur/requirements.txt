@@ -7,5 +7,10 @@ authlib
 wtforms
 flask_wtf
 boto3
-pyopenssl
+pyopenssl==17.5.0
 Authlib
+configparser==3.5.0
+gnureadline==6.3.8
+pycryptodome==3.5.1
+rethinkdb==2.3.0.post6
+
