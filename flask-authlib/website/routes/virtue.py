@@ -31,7 +31,8 @@ def make_response(message):
     try:
         # Will throw an error if message is not a real json, or the result is a failure
         result = json.loads(message)
-        assert result.get('status', 'success') != 'failed'
+        if(type(result) == dict):
+            assert result.get('status', 'success') != 'failed'
 
         response = Response(message, status=200, mimetype='application/json')
     except Exception as e:
