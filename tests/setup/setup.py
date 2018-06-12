@@ -108,6 +108,12 @@ class Excalibur():
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.server_ip = self.get_excalibur_server_ip()
+        # Write out excalibur IP to a file
+        self.write_excalibur_ip(self.server_ip)
+
+    def write_excalibur_ip(self, excalibur_ip):
+        with open('excalibur_ip', 'w') as f:
+            f.write(excalibur_ip)
 
     def get_excalibur_server_ip(self):
         client = boto3.client('ec2')
