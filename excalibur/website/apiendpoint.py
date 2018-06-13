@@ -3,7 +3,7 @@ import json
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
-from routes.aws import AWS
+from aws.aws import AWS
 
 DEBUG_PERMISSIONS = False
 

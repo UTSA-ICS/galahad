@@ -1,6 +1,6 @@
 from ldaplookup import LDAP
 import ldap_tools
-from routes.aws import AWS
+from aws.aws import AWS
 import threading
 import copy
 import time

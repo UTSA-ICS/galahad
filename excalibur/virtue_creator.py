@@ -3,7 +3,7 @@
 import sys
 import random
 from website.ldaplookup import LDAP
-#from website.routes.aws import AWS
+#from website.aws.aws import AWS
 
 
 if( __name__ == '__main__' ):
