@@ -24,3 +24,6 @@ kernel-source
 artful-server-cloudimg-amd64.img
 lsm
 tests/setup/excalibur_ip
+transducers/listener.deb
+transducers/listener/opt/heartbeatlistener/keys
+transducers/listener/opt/heartbeatlistener/listener.py
