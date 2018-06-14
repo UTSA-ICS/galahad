@@ -10,6 +10,7 @@ from ..forms.client import (
     Client2Form, OAuth2ClientWrapper
 )
 from ..apiendpoint import EndPoint
+from ..apiendpoint_admin import EndPoint_Admin
 from ..apiendpoint_security import EndPoint_Security
 from ..services.oauth2 import require_oauth
 from ..services.errorcodes import ErrorCodes
@@ -26,6 +27,9 @@ bp = Blueprint('virtue', __name__)
 
 def endpoint():
     return EndPoint( 'jmitchell@virtue.com', 'Test123!' )
+
+def admin_endpoint():
+    return EndPoint_Admin( 'jmitchell@virtue.com', 'Test123!' )
 
 def security_endpoint():
     return EndPoint_Security( 'jmitchell@virtue.com', 'Test123!' )
@@ -51,6 +55,7 @@ def get_user():
     user = user.email.replace('@virtue.com', '')
     return user
 
+################ User API ##################
 
 @bp.route('/user/role/get', methods=['GET'])
 @require_oauth()
@@ -210,6 +215,237 @@ def virtue_test():
     for arg in request.args:
         test += arg + ':' + request.args[arg] + '&'
     return test
+
+################ Admin API ##################
+
+@bp.route('/admin/application/list', methods=['GET'])
+@require_oauth()
+def admin_application_list():
+    ret = ''
+    try:
+        # Lists all Applications currently available in the system.
+        ep = admin_endpoint()
+        ret = ep.application_list()
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/resource/get', methods=['GET'])
+@require_oauth()
+def admin_resource_get():
+    ret = ''
+    try:
+        # Gets information about the indicated Resource.
+        ep = admin_endpoint()
+        ret = ep.resource_get(request.args['resourceId'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/resource/list', methods=['GET'])
+@require_oauth()
+def admin_resource_list():
+    ret = ''
+    try:
+        # Lists all Resources currently available in the system.
+        ep = admin_endpoint()
+        ret = ep.resource_list()
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/resource/attach', methods=['GET'])
+@require_oauth()
+def admin_resource_attach():
+    ret = ''
+    try:
+        # Attaches the indicated Resource to the indicated Virtue.
+        # Does not change the underlying Role.
+        ep = admin_endpoint()
+        ret = ep.resource_attach(request.args['resourceId'], request.args['virtueId'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/resource/detach', methods=['GET'])
+@require_oauth()
+def admin_resource_detach():
+    ret = ''
+    try:
+        # Detaches the indicated Resource from the indicated Virtue.
+        # Does not change the underlying Role.
+        ep = admin_endpoint()
+        ret = ep.resource_detach(request.args['resourceId'], request.args['virtueId'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/role/create', methods=['GET'])
+@require_oauth()
+def admin_role_create():
+    ret = ''
+    try:
+        # Creates a new Role with the given parameters.
+        ep = admin_endpoint()
+        ret = ep.role_create(json.loads(request.args['role']))
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/role/list', methods=['GET'])
+@require_oauth()
+def admin_role_list():
+    ret = ''
+    try:
+        # Lists all Roles currently available in the system.
+        ep = admin_endpoint()
+        ret = ep.role_list()
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/system/export', methods=['GET'])
+@require_oauth()
+def admin_system_export():
+    ret = ''
+    try:
+        # Export the Virtue system to a file.
+        ep = admin_endpoint()
+        ret = ep.system_export()
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/system/import', methods=['GET'])
+@require_oauth()
+def admin_system_import():
+    ret = ''
+    try:
+        # Import the Virtue system from the input bytestream data.
+        ep = admin_endpoint()
+        ret = ep.system_import(request.args['data'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/test/import/user', methods=['GET'])
+@require_oauth()
+def admin_test_import_user():
+    ret = ''
+    try:
+        # Imports a pre-defined User that will be used for testing.
+        # If called multiple times for the same User, the same username should be returned.
+        ep = admin_endpoint()
+        ret = ep.test_import_user(request.args['which'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/test/import/application', methods=['GET'])
+@require_oauth()
+def admin_test_import_application():
+    ret = ''
+    try:
+        # Imports a pre-defined Application that will be used for testing.
+        # If called multiple times for the same Application, the same ID should be returned.
+        ep = admin_endpoint()
+        ret = ep.test_import_application(request.args['which'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/test/import/role', methods=['GET'])
+@require_oauth()
+def admin_test_import_role():
+    ret = ''
+    try:
+        # Imports a pre-defined Role that will be used for testing.
+        # If called multiple times for the same Role, the same ID should be returned.
+        ep = admin_endpoint()
+        ret = ep.test_import_role(request.args['which'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/user/list', methods=['GET'])
+@require_oauth()
+def admin_user_list():
+    ret = ''
+    try:
+        # Lists all Users currently present in the system.
+        ep = admin_endpoint()
+        ret = ep.user_list()
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/user/get', methods=['GET'])
+@require_oauth()
+def admin_user_get():
+    ret = ''
+    try:
+        # Gets information about the indicated User.
+        ep = admin_endpoint()
+        ret = ep.user_get(request.args['username'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/user/virtue/list', methods=['GET'])
+@require_oauth()
+def admin_user_virtue_list():
+    ret = ''
+    try:
+        # Lists the current Virtue instantiations for the given User.
+        ep = admin_endpoint()
+        ret = ep.user_virtue_list(request.args['username'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/user/role/authorize', methods=['GET'])
+@require_oauth()
+def admin_user_role_authorize():
+    ret = ''
+    try:
+        # Authorizes the indicated Role for the given User.
+        # This should also post a message to the User to let them know what happened.
+        ep = admin_endpoint()
+        ret = ep.user_role_authorize(request.args['username'], request.args['roleId'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+@bp.route('/admin/user/role/unauthorize', methods=['GET'])
+@require_oauth()
+def admin_user_role_unauthorize():
+    ret = ''
+    try:
+        # Unauthorizes the indicated Role for the given User.
+        ep = admin_endpoint()
+        ret = ep.user_role_unauthorize(request.args['username'], request.args['roleId'])
+        return make_response(ret)
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(ret)
+
+
 
 ################ Security API ##################
 
