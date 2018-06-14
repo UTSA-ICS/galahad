@@ -34,10 +34,15 @@ class SSHStage():
                     print("Waiting for cloud-init to finish setup...")
                     self._cloudinit_is_done = False
                     sleep(5)
+                elif e.returncode == 255:
+                    print("Endpoint is unreachable, trying again shortly...")
+                    self._cloudinit_is_done = False
+                    sleep(5)
                 else:
                     raise e
         
     def _exec_cmd(self, cmd):
+        self._ssh_cmd_is_done = False
         ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._args.ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._args.ssh_host)]
         if type(cmd) is list:
             ssh.extend(cmd)
@@ -45,6 +50,31 @@ class SSHStage():
             ssh.append(cmd)
         print(' '.join(ssh))
         subprocess.check_call(ssh)
+
+
+    def _exec_cmd_with_retry(self, cmd):
+        self._ssh_cmd_is_done = False
+        ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._args.ssh_port), '-o',
+               'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._args.ssh_host)]
+        if type(cmd) is list:
+            ssh.extend(cmd)
+        else:
+            ssh.append(cmd)
+        print(' '.join(ssh))
+        # It seems like, occasionally, ssh connections will be unavailable for a small amount of time
+        # Adding retrys to try and mitigate this crashing the asemmbly
+        while not self._ssh_cmd_is_done:
+            try:
+                subprocess.check_call(ssh)
+                self._ssh_cmd_is_done = True
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 255:
+                    self._ssh_cmd_is_done = False
+                    print("Endpoint is unreachable, trying again shortly...")
+                    sleep(5)
+                else:
+                    raise e
+
 
     def _copy_file(self, local_source_path, remote_destination_path):
         scp = ['scp', '-i', os.path.join(self._work_dir, 'id_rsa'), '-P', str(self._args.ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', local_source_path, 'virtue@%s:%s' % (self._args.ssh_host, remote_destination_path)]

@@ -174,5 +174,5 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             self._copy_file(trust_path, truststore_filename)
             self._copy_file(sshd_payload_path, sshd_config_filename)
 
-            self._exec_cmd('chmod +x %s' % (install_script_filename))
-            self._exec_cmd('sudo ./%s' % (install_script_filename))
+            self._exec_cmd_with_retry('chmod +x %s' % (install_script_filename))
+            self._exec_cmd_with_retry('sudo ./%s' % (install_script_filename))

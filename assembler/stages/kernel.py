@@ -16,9 +16,9 @@ class KernelStage(SSHStage):
             files = ['linux-headers-4.13.0-38_4.13.0-38.43+unity1_all.deb', 'linux-image-4.13.0-38-generic_4.13.0-38.43+unity1_amd64.deb']
             for f in files:
                 self._copy_file(os.path.join(deb_file_path, f), f)
-            self._exec_cmd('sudo dpkg -i --force-all '+' '.join(files))
+            self._exec_cmd_with_retry('sudo dpkg -i --force-all '+' '.join(files))
             for f in files:
-                self._exec_cmd('rm %s' % (f))
+                self._exec_cmd_with_retry('rm %s' % (f))
             try:
                 self._exec_cmd('sudo reboot')
             except subprocess.CalledProcessError as e:
