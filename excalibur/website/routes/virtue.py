@@ -12,11 +12,13 @@ from ..forms.client import (
 from ..apiendpoint import EndPoint
 from ..apiendpoint_security import EndPoint_Security
 from ..services.oauth2 import require_oauth
+from ..services.errorcodes import ErrorCodes
 import json
 import time
 import aws
 
 from ..services.oauth2 import require_oauth
+from ..services.errorcodes import ErrorCodes
 from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
@@ -29,13 +31,19 @@ def security_endpoint():
     return EndPoint_Security( 'jmitchell@virtue.com', 'Test123!' )
 
 def make_response(message):
-    message = json.loads(message)
-    if 'status' in message:
-        if message['status'] == 'failed':
-            response = Response(json.dumps(message['result']), status=400, mimetype='application/json')
-            response.headers['status'] = 'failed'
-    else:
-        response = Response(json.dumps(message), status=200, mimetype='application/json')
+
+    result = ErrorCodes.user['unspecifiedError']
+    try:
+        # Will throw an error if message is not a real json, or the result is a failure
+        result = json.loads(message)
+        if(type(result) == dict):
+            assert result.get('status', 'success') != 'failed'
+
+        response = Response(message, status=200, mimetype='application/json')
+    except Exception as e:
+        response = Response(json.dumps(result['result']), status=400, mimetype='application/json')
+        response.headers['status'] = 'failed'
+
     return response
 
 def get_user():
@@ -206,116 +214,108 @@ def virtue_test():
 ################ Security API ##################
 
 @bp.route('/security/api_config', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def security_api_config():
     ep = security_endpoint()
-    ret = ''
     try:
-        ret = ep.set_api_config(get_user(), request.args)
+        ret = ep.set_api_config(request.args)
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/list', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_list():
     ep = security_endpoint()
-    ret = ''
     try:
-        ret = ep.list(get_user())
+        ret = ep.transducer_list()
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/get', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_get():
     ep = security_endpoint()
     if 'transducerId' not in request.args:
         return make_response('ERROR: Required arguments: transducerId')
 
-    ret = ''
     try:
-        ret = ep.get(get_user(), request.args['transducerId'])
+        ret = ep.transducer_get(request.args['transducerId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/enable', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_enable():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args or 'configuration' not in request.args:
         return make_response('ERROR: Required arguments: transducerId, virtueId, configuration')
 
-    ret = ''
     try:
-        ret = ep.enable(get_user(), request.args['transducerId'], request.args['virtueId'], request.args['configuration'])
+        ret = ep.transducer_enable(request.args['transducerId'], request.args['virtueId'], request.args['configuration'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/disable', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_disable():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
         return make_response('ERROR: Required arguments: transducerId, virtueId')
 
-    ret = ''
     try:
-        ret = ep.disable(get_user(), request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_disable(request.args['transducerId'], request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/get_enabled', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_get_enabled():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
         return make_response('ERROR: Required arguments: transducerId, virtueId')
 
-    ret = ''
     try:
-        ret = ep.get_enabled(get_user(), request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_get_enabled(request.args['transducerId'], request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/get_configuration', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_get_configuration():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
         return make_response('ERROR: Required arguments: transducerId, virtueId')
 
-    ret = ''
     try:
-        ret = ep.get_configuration(get_user(), request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_get_configuration(request.args['transducerId'], request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 
 @bp.route('/security/transducer/list_enabled', methods=['GET'])
-#require_oauth()
+@require_oauth()
 def transducer_list_enabled():
     ep = security_endpoint()
     if 'virtueId' not in request.args:
         return make_response('ERROR: Required arguments: virtueId')
 
-    ret = ''
     try:
-        ret = ep.list_enabled(get_user())
+        ret = ep.transducer_list_enabled(request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(ret)
+        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
 

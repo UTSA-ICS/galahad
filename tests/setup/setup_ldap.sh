@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Setup LDAP from scratch and install all pertinent data for Testing
-BASE_DIR="galahad/tests"
+BASE_DIR="galahad/tests/setup"
 LDAP_SCRIPTS_DIR="ldap"
 
 # Install openldap and virtue specific schema and data

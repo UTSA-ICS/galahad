@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install everything required for testing, except the openldap server
-BASE_DIR="galahad/tests"
+BASE_DIR="galahad/tests/setup"
 
 sudo apt-get update
 # Cannot yet automate responses to three-way merge prompts

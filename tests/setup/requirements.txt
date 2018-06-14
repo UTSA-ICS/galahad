@@ -1,0 +1,3 @@
+-r ../../flask-authlib/requirements.txt
+pytest
+requests
