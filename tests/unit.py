@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--test_user_api', action='store_true',
                         help='The USER API Tests')
     parser.add_argument('--run_all_tests', action='store_true',
-                        help='Run All available functional Tests')
+                        help='Run All available unit Tests')
 
     arg = parser.parse_args()
 
@@ -71,10 +71,10 @@ if (__name__ == '__main__'):
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
     if args.test_ldap_api:
-        ssh_inst.ssh('cd galahad/tests/functional && pytest test_ldap.py')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest test_ldap.py')
     if args.test_admin_api:
-        ssh_inst.ssh('cd galahad/tests/functional && pytest test_admin_api.py')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest test_admin_api.py')
     if args.test_user_api:
-        ssh_inst.ssh('cd galahad/tests/functional && pytest test_user_api.py')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest test_user_api.py')
     if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests && pytest')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest')

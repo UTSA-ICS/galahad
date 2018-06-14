@@ -9,7 +9,7 @@ sys.path.insert(0, base_excalibur_dir)
 from website.services.errorcodes import ErrorCodes
 
 ##
-# Functionality of these API commands is tested by functional/test_user_api.py.
+# Functionality of these API commands is tested by user/test_admin_api.py.
 # These tests verify that the return values get into the https response correctly.
 ##
 
