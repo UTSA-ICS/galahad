@@ -7,7 +7,7 @@ import ast
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
-from website.aws.aws import AWS
+from website.aws import AWS
 
 
 # Name of the file storing the instance information

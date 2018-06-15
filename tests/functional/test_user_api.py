@@ -10,7 +10,7 @@ from website.ldaplookup import LDAP
 from website.apiendpoint import EndPoint
 from website.apiendpoint_admin import EndPoint_Admin
 from website.services.errorcodes import ErrorCodes
-from website.aws.aws import AWS
+from website.aws import AWS
 
 def setup_module():
 
