@@ -486,6 +486,30 @@ Resources:
         id: fe4cb710-9d04-4d36-ad75-a4618b061225
     DependsOn:
       - VirtUEAdminSubnet
+  GalahadAggregator:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-05f321f770c6ea359
+      InstanceType: t2.large
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.46
+          SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Aggregator'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 8ec5f0f9-4760-4b01-8173-36cd5a15e77a
+    DependsOn:
+      - VirtUEAdminSubnet
 Outputs: {}
 Metadata:
   'AWS::CloudFormation::Designer':
@@ -501,11 +525,11 @@ Metadata:
       embeds: []
     10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f:
       size:
-        width: 1110
-        height: 1000
+        width: 1020
+        height: 910
       position:
         x: -2220
-        'y': -340
+        'y': -250
       z: 1
       embeds:
         - ad59040a-ea74-4f74-9b2a-227ef777b2fd
@@ -528,6 +552,13 @@ Metadata:
       embeds:
         - 38f4321f-2e39-4d4d-9ae3-f284858e467a
       iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
@@ -573,6 +604,13 @@ Metadata:
         - 813df16b-433c-4abb-8a3e-f9cea9a2f070
         - 813df16b-433c-4abb-8a3e-f9cea9a2f070
         - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
+        - 813df16b-433c-4abb-8a3e-f9cea9a2f070
     adaa05ff-59a4-46f4-9abb-fa6c41be11fc:
       size:
         width: 390
@@ -585,6 +623,13 @@ Metadata:
       embeds:
         - 055fd5b2-8ba1-4922-b981-6d7b32654477
       iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
@@ -614,6 +659,13 @@ Metadata:
       isassociatedwith:
         - ad59040a-ea74-4f74-9b2a-227ef777b2fd
       iscontainedinside:
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
+        - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
         - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
         - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
         - adaa05ff-59a4-46f4-9abb-fa6c41be11fc
@@ -663,6 +715,13 @@ Metadata:
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
     6b05a85d-589e-42c1-8a1b-30a7d31e59a5:
       size:
         width: 60
@@ -674,6 +733,13 @@ Metadata:
       parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
       embeds: []
       iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
@@ -718,6 +784,13 @@ Metadata:
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
     5a8894e4-f19e-4b53-a8f2-375d0afbd44f:
       source:
         id: adaa05ff-59a4-46f4-9abb-fa6c41be11fc
@@ -735,6 +808,13 @@ Metadata:
       parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
       embeds: []
       iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
@@ -816,11 +896,19 @@ Metadata:
       z: 2
       parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
       embeds:
+        - 8ec5f0f9-4760-4b01-8173-36cd5a15e77a
+        - fe4cb710-9d04-4d36-ad75-a4618b061225
         - 68877995-2688-4f77-ada0-d5a20f1993a1
         - e9c93c29-c0da-46b8-ace8-eb676a19f75b
         - 8b2f1290-e334-4658-a135-cc1c90490a95
-        - fe4cb710-9d04-4d36-ad75-a4618b061225
       iscontainedinside:
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+        - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
         - 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
@@ -875,6 +963,13 @@ Metadata:
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
       dependson:
         - ad81820f-7d1f-40c1-b150-f3a261eed78e
     68877995-2688-4f77-ada0-d5a20f1993a1:
@@ -899,8 +994,23 @@ Metadata:
       z: 3
       parent: 67738caa-8f4c-4750-9a1d-46c08c1432ad
       embeds: []
-      iscontainedinside:
-        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
       dependson:
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
-
+    8ec5f0f9-4760-4b01-8173-36cd5a15e77a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -1770
+        'y': 270
+      z: 3
+      parent: 67738caa-8f4c-4750-9a1d-46c08c1432ad
+      embeds: []
+      iscontainedinside:
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
