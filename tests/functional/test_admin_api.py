@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-import sys
 import json
+import os
+import sys
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/../excalibur'

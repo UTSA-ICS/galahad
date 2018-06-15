@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
+import copy
 import os
 import sys
-import copy
 import traceback
 
 file_path = os.path.realpath(__file__)
