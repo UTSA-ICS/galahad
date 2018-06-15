@@ -30,7 +30,7 @@ else
   # Then install all the python dependencies and as this is the
   # first time flask is being run initialize the SQLALCHEMY database.
   if [ ! -d "venv" ]; then
-    sudo apt install virtualenv
+    sudo apt install -y virtualenv
     virtualenv venv
     source ./venv/bin/activate
     pip install -r ./requirements.txt
