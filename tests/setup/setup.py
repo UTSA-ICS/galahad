@@ -194,6 +194,12 @@ class Excalibur():
         # Setup the config and keys for AWS communication
         self.setup_aws_access(aws_config, aws_keys)
 
+        # Update /etc/hosts to resolve DNS records not using service discovery
+        _cmd = "sudo('su - root -c \"echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts\"')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        _cmd = "sudo('su - root -c \"echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts\"')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
         # Call the setup_excalibur.sh script for system and pip packages.
         _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_excalibur.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
@@ -205,6 +211,10 @@ class Excalibur():
         # Start the flask-server (excalibur)
         _cmd3 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
+
+        # Setup the transducer heartbeat Listener and Start it
+        _cmd4 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
 
     def setup_ldap(self):
 

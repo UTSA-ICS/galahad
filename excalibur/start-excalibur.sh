@@ -27,7 +27,7 @@ if [[ $dir != "excalibur" ]]; then
 else
 
   if [ ! -d "venv" ]; then
-    sudo apt install virtualenv
+    sudo apt install -y virtualenv
     virtualenv venv
     source ./venv/bin/activate
     pip install -r ./requirements.txt
