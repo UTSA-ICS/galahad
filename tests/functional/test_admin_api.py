@@ -3,7 +3,9 @@
 import sys
 import json
 
-sys.path.insert( 0, '/home/ubuntu/galahad/excalibur' )
+file_path = os.path.realpath(__file__)
+base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/../excalibur'
+sys.path.insert(0, base_excalibur_dir)
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.apiendpoint_admin import EndPoint_Admin
