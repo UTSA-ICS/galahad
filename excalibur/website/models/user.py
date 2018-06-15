@@ -5,11 +5,10 @@ import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Column
 from sqlalchemy import UniqueConstraint
-from sqlalchemy import (
-    Integer, String, DateTime
-)
+from sqlalchemy import (Integer, String, DateTime)
 from .base import db, Base
 from ..ldaplookup import LDAP
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -39,10 +38,10 @@ class User(Base):
         print('WAT    : query_name')
         self.conn = LDAP(self.email, password)
         if self.conn.bind_ad():
-            r = self.conn.query_ad('userPrincipalName',self.email)
+            r = self.conn.query_ad('userPrincipalName', self.email)
         else:
-            print ('WAT    : query_name bind error')
-        self.name = r['cn'][0] 
+            print('WAT    : query_name bind error')
+        self.name = r['cn'][0]
 
     def get_user_id(self):
         return self.id

@@ -1,8 +1,8 @@
 import boto3
 import json
 
-class AWS:
 
+class AWS:
     def __init__(self):
         self.id = ''
         self.username = ''
@@ -14,14 +14,16 @@ class AWS:
         self.ipAddress = ''
 
     def get_json(self):
-        return json.dumps({'id': self.id,
+        return json.dumps({
+            'id': self.id,
             'username': self.username,
             'roleId': self.roleId,
             'applicationIds': self.applicationIds,
             'resourceIds': self.resourceIds,
             'transducerIds': self.transducerIds,
             'state': self.state,
-            'ipAddress': self.ipAddress})
+            'ipAddress': self.ipAddress
+        })
 
     def __repr__(self):
         return self.get_json()
@@ -33,13 +35,12 @@ class AWS:
     def get_id_from_ip(ip_address):
         ec2 = boto3.client('ec2')
 
-        res = ec2.describe_instances(
-            Filters=[{
-                'Name': 'private-ip-address',
-                'Values': [ ip_address ]
-            }] )
+        res = ec2.describe_instances(Filters=[{
+            'Name': 'private-ip-address',
+            'Values': [ip_address]
+        }])
 
-        if( len(res['Reservations'][0]['Instances']) == 0 ):
+        if (len(res['Reservations'][0]['Instances']) == 0):
             return None
 
         return res['Reservations'][0]['Instances'][0]['InstanceId']
@@ -60,20 +61,21 @@ class AWS:
         Ref: http://boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.ServiceResource.create_instances
         """
 
-        ec2 = boto3.resource('ec2',region_name='us-east-1')
+        ec2 = boto3.resource('ec2', region_name='us-east-1')
 
-        res = ec2.create_instances(ImageId=image_id,
+        res = ec2.create_instances(
+            ImageId=image_id,
             InstanceType=inst_type,
             KeyName=key_name,
             MinCount=1,
             MaxCount=1,
-            Monitoring={'Enabled':False},
+            Monitoring={'Enabled': False},
             SecurityGroupIds=[sec_group],
             SubnetId=subnet_id,
             IamInstanceProfile={
-                                    'Name': inst_profile_name,
-                                    #'Arn': inst_profile_arn
-                                },
+                'Name': inst_profile_name,
+                #'Arn': inst_profile_arn
+            },
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
@@ -93,8 +95,7 @@ class AWS:
                         },
                     ]
                 },
-            ]
-        )
+            ])
 
         instance = res[0]
         self.id = instance.id
@@ -106,7 +107,6 @@ class AWS:
         self.state = instance.state['Name']
 
         return instance
-
 
     def instance_launch(self, instId, block=True):
         """Start the specified AWS instance
@@ -120,13 +120,12 @@ class AWS:
 
         instance.start()
 
-        if(block):
+        if (block):
             instance.wait_until_running()
 
         instance.reload()
 
         return instance
-
 
     def instance_stop(self, instId, block=True):
         """Stop the specified AWS instance
@@ -139,13 +138,12 @@ class AWS:
 
         instance.stop()
 
-        if(block):
+        if (block):
             instance.wait_until_stopped()
 
         instance.reload()
 
         return instance
-
 
     def instance_destroy(self, instId, block=True):
         """Terminate the AWS instance
@@ -158,7 +156,7 @@ class AWS:
 
         instance.terminate()
 
-        if( block ):
+        if (block):
             instance.wait_until_terminated()
 
         instance.reload()

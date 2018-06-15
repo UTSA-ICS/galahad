@@ -1,9 +1,5 @@
-from wtforms.fields import (
-    StringField,
-    TextAreaField,
-    BooleanField,
-    SelectMultipleField
-)
+from wtforms.fields import (StringField, TextAreaField, BooleanField,
+                            SelectMultipleField)
 from wtforms.fields.html5 import URLField
 from wtforms.validators import DataRequired
 from werkzeug.security import gen_salt
@@ -12,12 +8,10 @@ from ..services.oauth2 import scopes
 from ..models import db, OAuth2Client
 
 SCOPES = [(k, k) for k in scopes]
-GRANTS = [
-    ('authorization_code', 'Authorization Code'),
-    ('implicit', 'Implicit'),
-    ('password', 'Password'),
-    ('client_credentials', 'Client Credentials')
-]
+GRANTS = [('authorization_code', 'Authorization Code'),
+          ('implicit', 'Implicit'), ('password', 'Password'),
+          ('client_credentials', 'Client Credentials')]
+
 
 class OAuth2ClientWrapper(object):
     def __init__(self, client):
@@ -49,10 +43,11 @@ class Client2Form(BaseForm):
         client.website = self.website.data
         client.is_confidential = self.is_confidential.data
         client.redirect_uris = self.redirect_uris.data.splitlines()
-        client.token_endpoint_auth_method='none'
+        client.token_endpoint_auth_method = 'none'
         #client.default_redirect_uri = self.default_redirect_uri.data
         print(self.redirect_uris.data)
-        print('WAT    : REDIRECT_URIS - update     : %s' % client.redirect_uris)
+        print(
+            'WAT    : REDIRECT_URIS - update     : %s' % client.redirect_uris)
         client.allowed_scopes = ' '.join(self.allowed_scopes.data)
         client.allowed_grants = ' '.join(self.allowed_grants.data)
         with db.auto_commit():
@@ -69,7 +64,8 @@ class Client2Form(BaseForm):
         else:
             client_secret = ''
 
-        print('WAT    : REDIRECT_URIS - save    : %s' % self.redirect_uris.data)
+        print(
+            'WAT    : REDIRECT_URIS - save    : %s' % self.redirect_uris.data)
 
         client = OAuth2Client(
             user_id=user.id,
@@ -83,7 +79,7 @@ class Client2Form(BaseForm):
             allowed_grants=' '.join(self.allowed_grants.data),
         )
         client.redirect_uris = self.redirect_uris.data.splitlines()
-        client.token_endpoint_auth_method='none'
+        client.token_endpoint_auth_method = 'none'
         with db.auto_commit():
             db.session.add(client)
         return client

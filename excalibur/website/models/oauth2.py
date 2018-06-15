@@ -1,8 +1,6 @@
 import time
 from sqlalchemy import Column
-from sqlalchemy import (
-    Integer, String, Text, Boolean
-)
+from sqlalchemy import (Integer, String, Text, Boolean)
 from authlib.flask.oauth2.sqla import (
     OAuth2ClientMixin,
     OAuth2AuthorizationCodeMixin,

@@ -18,4 +18,3 @@ class BaseForm(FlaskForm):
 
             if field and not isinstance(field.widget, HiddenInput):
                 yield field
-

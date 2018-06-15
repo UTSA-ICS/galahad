@@ -6,7 +6,6 @@ from ..auth import current_user
 from ..forms.auth import ConfirmForm, LoginConfirmForm
 from ..services.oauth2 import authorization, scopes
 
-
 bp = Blueprint('oauth2', __name__)
 
 
@@ -42,7 +41,7 @@ def authorize():
 @bp.route('/token', methods=['POST'])
 def issue_token():
     for a in request.form:
-        print ('WAT    : %s=%s' % (a, request.form[a]))
+        print('WAT    : %s=%s' % (a, request.form[a]))
     print('WAT    : %s' % request.form)
     return authorization.create_token_response()
 

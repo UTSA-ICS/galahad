@@ -49,9 +49,9 @@ class UserCreationForm(BaseForm):
 
     def validate_email(self, field):
         email = field.data.lower()
-	user = User.query.filter_by(email=email).first()
-	if user:
-        	raise StopValidation('Email has been registered.')
+        user = User.query.filter_by(email=email).first()
+        if user:
+            raise StopValidation('Email has been registered.')
 
     def signup(self):
         name = self.name.data

@@ -6,9 +6,7 @@ from flask import abort, redirect, render_template
 from authlib.flask.oauth2 import current_token
 from ..auth import require_login
 from ..models import OAuth2Client, User
-from ..forms.client import (
-    Client2Form, OAuth2ClientWrapper
-)
+from ..forms.client import (Client2Form, OAuth2ClientWrapper)
 from ..apiendpoint import EndPoint
 from ..apiendpoint_security import EndPoint_Security
 from ..services.oauth2 import require_oauth
@@ -24,10 +22,12 @@ bp = Blueprint('virtue', __name__)
 
 
 def endpoint():
-    return EndPoint( 'jmitchell@virtue.com', 'Test123!' )
+    return EndPoint('jmitchell@virtue.com', 'Test123!')
+
 
 def security_endpoint():
-    return EndPoint_Security( 'jmitchell@virtue.com', 'Test123!' )
+    return EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+
 
 def make_response(message):
 
@@ -35,15 +35,19 @@ def make_response(message):
     try:
         # Will throw an error if message is not a real json, or the result is a failure
         result = json.loads(message)
-        if(type(result) == dict):
+        if (type(result) == dict):
             assert result.get('status', 'success') != 'failed'
 
         response = Response(message, status=200, mimetype='application/json')
     except Exception as e:
-        response = Response(json.dumps(result['result']), status=400, mimetype='application/json')
+        response = Response(
+            json.dumps(result['result']),
+            status=400,
+            mimetype='application/json')
         response.headers['status'] = 'failed'
 
     return response
+
 
 def get_user():
     user = User.query.filter_by(id=current_token.user_id).first()
@@ -55,10 +59,10 @@ def get_user():
 @require_oauth()
 def role_get():
     role = ''
-    try :
+    try:
         # Information about the indicated Role. Type: Role
         ep = endpoint()
-        role = ep.role_get( get_user(), request.args['roleId'] )
+        role = ep.role_get(get_user(), request.args['roleId'])
         return make_response(role)
     except:
         print("Unexpected error:", sys.exc_info())
@@ -69,10 +73,10 @@ def role_get():
 @require_oauth()
 def user_role_list():
     roleList = ''
-    try :
+    try:
         # A set of Roles available to the given User. Type: set of Role
         ep = endpoint()
-        roleList = ep.user_role_list( get_user() )
+        roleList = ep.user_role_list(get_user())
         return make_response(roleList)
     except:
         print("Unexpected error:", sys.exc_info())
@@ -83,10 +87,10 @@ def user_role_list():
 @require_oauth()
 def user_virtue_list():
     virtueList = ''
-    try :
+    try:
         # A set of Virtues for the given User. Type: set of Virtue.
         ep = endpoint()
-        virtueList = ep.user_virtue_list( get_user() )
+        virtueList = ep.user_virtue_list(get_user())
         return make_response(virtueList)
     except:
         print("Unexpected error:", sys.exc_info())
@@ -97,24 +101,24 @@ def user_virtue_list():
 @require_oauth()
 def virtue_get():
     virtueId = ''
-    try :
+    try:
         # Information about the indicated Virtue. Type: Virtue.
         ep = endpoint()
-        virtueId = ep.virtue_get( get_user(), request.args['virtueId'] )
+        virtueId = ep.virtue_get(get_user(), request.args['virtueId'])
         return make_response(virtueId)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(virtueId )
+        return make_response(virtueId)
 
 
 @bp.route('/user/virtue/create', methods=['GET'])
 @require_oauth()
 def virtue_create():
     roleId = ''
-    try :
+    try:
         # Information about the created Virtue. Type: Virtue
         ep = endpoint()
-        roleId = ep.virtue_create( get_user(), request.args['roleId'] )
+        roleId = ep.virtue_create(get_user(), request.args['roleId'])
         return make_response(roleId)
     except:
         print("Unexpected error:", sys.exc_info())
@@ -128,11 +132,12 @@ def virtue_launch():
     try:
         # Information about the launched Virtue. Type: Virtue
         ep = endpoint()
-        virtue = ep.virtue_launch( get_user(), request.args['virtueId'] )
-        return make_response( virtue )
+        virtue = ep.virtue_launch(get_user(), request.args['virtueId'])
+        return make_response(virtue)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( virtue )
+        return make_response(virtue)
+
 
 @bp.route('/user/virtue/stop', methods=['GET'])
 @require_oauth()
@@ -141,11 +146,12 @@ def virtue_stop():
     try:
         # Information about the stopped Virtue. Type: Virtue
         ep = endpoint()
-        virtue = ep.virtue_stop( get_user(), request.args['virtueId'] )
-        return make_response( virtue )
+        virtue = ep.virtue_stop(get_user(), request.args['virtueId'])
+        return make_response(virtue)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( virtue )
+        return make_response(virtue)
+
 
 @bp.route('/user/virtue/destroy', methods=['GET'])
 @require_oauth()
@@ -154,11 +160,13 @@ def virtue_destroy():
     try:
         # Destroys a Virtue. Releases all resources.
         ep = endpoint()
-        ret = ep.virtue_destroy( get_user(), request.args['virtueId'] )
-        return make_response( ret )
+        ret = ep.virtue_destroy(get_user(), request.args['virtueId'])
+        return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
         return make_response(ret)
+
+
 @bp.route('/user/application/get', methods=['GET'])
 @require_oauth()
 def application_get():
@@ -166,11 +174,12 @@ def application_get():
     try:
         # The Application with the given ID. Type: Application
         ep = endpoint()
-        application = ep.application_get( get_user(), request.args['appId'] )
-        return make_response( application )
+        application = ep.application_get(get_user(), request.args['appId'])
+        return make_response(application)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( application )
+        return make_response(application)
+
 
 @bp.route('/user/application/launch', methods=['GET'])
 @require_oauth()
@@ -179,13 +188,13 @@ def virtue_application_launch():
     try:
         # Information about the launched Application. Format is implementation-specific. Type: object
         ep = endpoint()
-        application = ep.virtue_application_launch( get_user(),
-                                                    request.args['virtueId'],
-                                                    request.args['appId'] )
-        return make_response( application )
+        application = ep.virtue_application_launch(
+            get_user(), request.args['virtueId'], request.args['appId'])
+        return make_response(application)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( application )
+        return make_response(application)
+
 
 @bp.route('/user/application/stop', methods=['GET'])
 @require_oauth()
@@ -194,13 +203,13 @@ def virtue_application_stop():
     try:
         # Stops a running Application in the indicated Virtue.
         ep = endpoint()
-        ret = ep.virtue_application_stop( get_user(),
-                                          request.args['virtueId'],
-                                          request.args['appId'] )
-        return make_response( ret)
+        ret = ep.virtue_application_stop(get_user(), request.args['virtueId'],
+                                         request.args['appId'])
+        return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( ret )
+        return make_response(ret)
+
 
 @bp.route('/test', methods=['GET'])
 @require_login
@@ -210,7 +219,9 @@ def virtue_test():
         test += arg + ':' + request.args[arg] + '&'
     return test
 
+
 ################ Security API ##################
+
 
 @bp.route('/security/api_config', methods=['GET'])
 @require_oauth()
@@ -221,7 +232,9 @@ def security_api_config():
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/list', methods=['GET'])
 @require_oauth()
@@ -232,7 +245,9 @@ def transducer_list():
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/get', methods=['GET'])
 @require_oauth()
@@ -246,63 +261,82 @@ def transducer_get():
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/enable', methods=['GET'])
 @require_oauth()
 def transducer_enable():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args or 'configuration' not in request.args:
-        return make_response('ERROR: Required arguments: transducerId, virtueId, configuration')
+        return make_response(
+            'ERROR: Required arguments: transducerId, virtueId, configuration')
 
     try:
-        ret = ep.transducer_enable(request.args['transducerId'], request.args['virtueId'], request.args['configuration'])
+        ret = ep.transducer_enable(request.args['transducerId'],
+                                   request.args['virtueId'],
+                                   request.args['configuration'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/disable', methods=['GET'])
 @require_oauth()
 def transducer_disable():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
-        return make_response('ERROR: Required arguments: transducerId, virtueId')
+        return make_response(
+            'ERROR: Required arguments: transducerId, virtueId')
 
     try:
-        ret = ep.transducer_disable(request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_disable(request.args['transducerId'],
+                                    request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/get_enabled', methods=['GET'])
 @require_oauth()
 def transducer_get_enabled():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
-        return make_response('ERROR: Required arguments: transducerId, virtueId')
+        return make_response(
+            'ERROR: Required arguments: transducerId, virtueId')
 
     try:
-        ret = ep.transducer_get_enabled(request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_get_enabled(request.args['transducerId'],
+                                        request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/get_configuration', methods=['GET'])
 @require_oauth()
 def transducer_get_configuration():
     ep = security_endpoint()
     if 'transducerId' not in request.args or 'virtueId' not in request.args:
-        return make_response('ERROR: Required arguments: transducerId, virtueId')
+        return make_response(
+            'ERROR: Required arguments: transducerId, virtueId')
 
     try:
-        ret = ep.transducer_get_configuration(request.args['transducerId'], request.args['virtueId'])
+        ret = ep.transducer_get_configuration(request.args['transducerId'],
+                                              request.args['virtueId'])
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 
 @bp.route('/security/transducer/list_enabled', methods=['GET'])
 @require_oauth()
@@ -316,5 +350,5 @@ def transducer_list_enabled():
         return make_response(ret)
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response( json.dumps(ErrorCodes.security['unspecifiedError']) )
-
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))

@@ -7,9 +7,7 @@ from flask import Flask as _Flask
 from flask.json import JSONEncoder as _JSONEncoder
 
 
-
 class JSONEncoder(_JSONEncoder):
-
     def default(self, obj):
 
         if hasattr(obj, 'to_dict'):
@@ -27,7 +25,6 @@ class JSONEncoder(_JSONEncoder):
         return _JSONEncoder.default(self, obj)
 
 
-
 class Flask(_Flask):
 
     json_encoder = JSONEncoder
@@ -38,9 +35,7 @@ class Flask(_Flask):
         extensions=[
             'jinja2.ext.autoescape',
             'jinja2.ext.with_',
-        ]
-    )
-
+        ])
 
 
 def create_flask_app(config=None):

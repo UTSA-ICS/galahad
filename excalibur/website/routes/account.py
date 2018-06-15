@@ -5,7 +5,6 @@ from ..forms.user import AuthenticateForm, UserCreationForm
 
 bp = Blueprint('account', __name__)
 
-
 # CONVERT to LDAP:
 # from flask.ext.login import []
 # def load_user

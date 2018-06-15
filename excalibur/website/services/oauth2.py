@@ -17,7 +17,8 @@ from authlib.specs.rfc6750 import BearerTokenValidator
 from authlib.specs.rfc7009 import RevocationEndpoint as _RevocationEndpoint
 from werkzeug.security import gen_salt
 from ..models import (
-    db, User,
+    db,
+    User,
     OAuth2Client,
     OAuth2AuthorizationCode,
     OAuth2Token,
@@ -52,8 +53,7 @@ class AuthorizationCodeGrant(_AuthorizationCodeGrant):
         item = OAuth2Token(
             client_id=client.client_id,
             user_id=authorization_code.user_id,
-            **token
-        )
+            **token)
         db.session.add(item)
         db.session.commit()
         token['user_id'] = authorization_code.user_id
@@ -62,10 +62,7 @@ class AuthorizationCodeGrant(_AuthorizationCodeGrant):
 class ImplicitGrant(_ImplicitGrant):
     def create_access_token(self, token, client, grant_user):
         item = OAuth2Token(
-            client_id=client.client_id,
-            user_id=grant_user.id,
-            **token
-        )
+            client_id=client.client_id, user_id=grant_user.id, **token)
         db.session.add(item)
         db.session.commit()
 
@@ -80,10 +77,7 @@ class PasswordGrant(_PasswordGrant):
     def create_access_token(self, token, client, user):
         print('WAT    : create_access_token')
         item = OAuth2Token(
-            client_id=client.client_id,
-            user_id=user.id,
-            **token
-        )
+            client_id=client.client_id, user_id=user.id, **token)
         db.session.add(item)
         db.session.commit()
         token['user_id'] = user.id
@@ -92,10 +86,7 @@ class PasswordGrant(_PasswordGrant):
 class ClientCredentialsGrant(_ClientCredentialsGrant):
     def create_access_token(self, token, client):
         item = OAuth2Token(
-            client_id=client.client_id,
-            user_id=client.user_id,
-            **token
-        )
+            client_id=client.client_id, user_id=client.user_id, **token)
         db.session.add(item)
         db.session.commit()
 
@@ -110,8 +101,7 @@ class RefreshTokenGrant(_RefreshTokenGrant):
         item = OAuth2Token(
             client_id=authenticated_token.client_id,
             user_id=authenticated_token.user_id,
-            **token
-        )
+            **token)
         db.session.add(item)
         db.session.delete(authenticated_token)
         db.session.commit()
@@ -153,6 +143,7 @@ scopes = {
     'email': 'Access to your email address.',
 }
 
+
 class MyBearerTokenValidator(BearerTokenValidator):
     def authenticate_token(self, token_string):
         print('WAT    : token_string = %s' % token_string)
@@ -163,6 +154,7 @@ class MyBearerTokenValidator(BearerTokenValidator):
 
     def token_revoked(self, token):
         token.revoked
+
 
 # protect resource
 query_token = create_query_token_func(db.session, OAuth2Token)

@@ -8,7 +8,6 @@ from werkzeug.contrib.cache import FileSystemCache
 
 
 class SQLAlchemy(_SQLAlchemy):
-
     @contextmanager
     def auto_commit(self, throw=True):
         try:
@@ -20,11 +19,11 @@ class SQLAlchemy(_SQLAlchemy):
                 raise e
 
 
-
 db = SQLAlchemy()
+
+
 class Base(db.Model):
     __abstract__ = True
-
 
 
 def _get_cache():
@@ -34,7 +33,6 @@ def _get_cache():
     _cache = FileSystemCache(current_app.config['OAUTH_CACHE_DIR'])
     g._oauth_cache = _cache
     return _cache
-
 
 
 cache = LocalProxy(_get_cache)

@@ -14,7 +14,7 @@ from apiendpoint import EndPoint
 from apiendpoint_admin import EndPoint_Admin
 from apiendpoint_security import EndPoint_Security
 
-# Note that the backslashes are escaped 
+# Note that the backslashes are escaped
 banner = '''            /<        _____              _ _ _                
            /<        |  ___|            | (_) |               
  |\_______{o}--------| |____  _____ __ _| |_| |__  _   _ _ __------------_
@@ -27,11 +27,12 @@ verbose = False
 
 dotfile = '.excalibur'
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1", "y")
 
-class ExcaliburCmd(cmd.Cmd):
 
+class ExcaliburCmd(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "==> "
@@ -44,9 +45,9 @@ class ExcaliburCmd(cmd.Cmd):
         """Initialization before prompting user for commands.
            Despite the claims in the Cmd documentaion, Cmd.preloop() is not a stub.
         """
-        cmd.Cmd.preloop(self)   ## sets up command completion
-        self._hist    = []      ## No history yet
-        self._locals  = {}      ## Initialize execution namespace for user
+        cmd.Cmd.preloop(self)  ## sets up command completion
+        self._hist = []  ## No history yet
+        self._locals = {}  ## Initialize execution namespace for user
         self._globals = {}
 
         # Need to add a pre-hook to figure out the user token stuff
@@ -58,7 +59,7 @@ class ExcaliburCmd(cmd.Cmd):
 
         # Invalidate user token
 
-        cmd.Cmd.postloop(self)   ## Clean up command completion
+        cmd.Cmd.postloop(self)  ## Clean up command completion
         print "Exiting..."
 
     def do_exit(self, line):
@@ -157,6 +158,7 @@ class ExcaliburCmd(cmd.Cmd):
             print json.dumps(j, indent=2)
         except:
             print result
+
 
 if __name__ == '__main__':
     import sys

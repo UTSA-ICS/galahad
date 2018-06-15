@@ -14,6 +14,7 @@ from ..auth import login
 class ConfirmForm(BaseForm):
     pass
 
+
 class LoginConfirmForm(ConfirmForm):
     email = EmailField(validators=[DataRequired()])
     password = PasswordField(validators=[DataRequired()])
