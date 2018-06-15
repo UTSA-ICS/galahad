@@ -32,6 +32,8 @@ def parse_args():
                          help='The name for the ec2 instance' )
     parser.add_argument( '-u', '--username', type=str, required=False, default='ubuntu',
                          help='The username with which to ssh into the ec2 instance' )
+    parser.add_argument( '-b', '--branch', type=str, required=False, default='master',
+                         help='The branch name to checkout on the Excalibur VM' )
 
     arg = parser.parse_args()
 
@@ -54,7 +56,7 @@ if( __name__ == '__main__' ):
     ssh_inst = ssh_tool( args.username, aws_ip, sshkey=args.sshkey )
 
     # Setup the VM
-    setup.setup_aws_inst( ssh_inst, args.github_key, args.awskeys )
+    setup.setup_aws_inst( ssh_inst, args.github_key, args.awskeys, args.branch )
 
     # Run individual tests
     ssh_inst.ssh( 'cd galahad/tests/functional && pytest test_ldap.py' )

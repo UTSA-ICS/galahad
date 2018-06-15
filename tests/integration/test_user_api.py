@@ -4,7 +4,7 @@ import json
 import requests
 
 file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(os.path.dirname(os.path.dirname(file_path))) + '/flask-authlib'
+base_excalibur_dir = os.path.dirname(os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
 from website.services.errorcodes import ErrorCodes
 

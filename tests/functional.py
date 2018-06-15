@@ -3,7 +3,7 @@
 import argparse
 import logging
 import sys
-from setup import Excalibur
+from setup.setup import Excalibur
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -46,13 +46,13 @@ def create_aws_inst( ami, subnet, iam, name, key_name ):
     print( instance.id )
 
     instance.wait_until_running()
-    time.sleep(5)
+    time.sleep(10)
     instance.reload()
 
     return instance.public_ip_address
 
 
-def setup_aws_inst( ssh_inst, github_key, awskeys ):
+def setup_aws_inst( ssh_inst, github_key, awskeys, branch_name ):
 
     # Clone the galahad repository to the instance
     ssh_inst.scp_to( github_key, '~/id_rsa' )
@@ -63,7 +63,7 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     ssh_inst.ssh( 'ssh -o StrictHostKeyChecking=no git@github.com', test=False )
 
     ssh_inst.ssh( 'rm -rf ~/galahad' )
-    ssh_inst.ssh( 'git clone -b 110.refactor_excalibur git@github.com:starlab-io/galahad.git ~/galahad' )
+    ssh_inst.ssh( 'git clone -b {0} git@github.com:starlab-io/galahad.git ~/galahad'.format(branch_name) )
     ssh_inst.ssh( 'rm -rf ~/galahad-config' )
     ssh_inst.ssh( 'git clone git@github.com:starlab-io/galahad-config.git ~/galahad-config' )
 
@@ -72,16 +72,16 @@ def setup_aws_inst( ssh_inst, github_key, awskeys ):
     #ssh_inst.scp_to( '/home/jeffrey/galahad/tests', '~/galahad' )
 
     # Install dependencies
-    ssh_inst.ssh( '~/galahad/tests/setup_excalibur.sh' )
+    ssh_inst.ssh( '~/galahad/tests/setup/setup_excalibur.sh' )
 
     # Install and configure slapd
-    ssh_inst.ssh( '~/galahad/tests/setup_ldap.sh' )
+    ssh_inst.ssh( '~/galahad/tests/setup/setup_ldap.sh' )
     ssh_inst.ssh( 'echo \'export LDAPSEARCH="ldapsearch -H ldap://localhost -D cn=admin,dc=canvas,dc=virtue,dc=com -W -b dc=canvas,dc=virtue,dc=com"\' >> ~/.bashrc' )
 
     # Setup AWS client on AWS inst
     ssh_inst.ssh( 'sudo apt-get install -y awscli' )
     ssh_inst.ssh( 'mkdir .aws', test=False )
-    ssh_inst.ssh( 'cp ~/galahad/tests/aws_config ~/.aws/config' )
+    ssh_inst.ssh( 'cp ~/galahad/tests/setup/aws_config ~/.aws/config' )
     ssh_inst.scp_to( awskeys, '~/.aws/credentials' )
 
     # Start Excalibur
