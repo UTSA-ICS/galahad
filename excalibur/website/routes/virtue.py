@@ -15,7 +15,6 @@ from ..services.oauth2 import require_oauth
 from ..services.errorcodes import ErrorCodes
 import json
 import time
-import aws
 
 from ..services.oauth2 import require_oauth
 from ..services.errorcodes import ErrorCodes
