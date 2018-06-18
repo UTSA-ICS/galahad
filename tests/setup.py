@@ -16,8 +16,15 @@ import argparse
 import logging
 from sultan.api import Sultan, SSHConfig
 
-stack_template = 'virtue-ci-stack.yaml'
+# File names
+STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
+EXCALIBUR_IP = 'setup/excalibur_ip'
+AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
+
+# aws public key name used for the instances
 key_name = 'starlab-virtue-te'
+
+# Configure the Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -112,7 +119,7 @@ class Excalibur():
         self.write_excalibur_ip(self.server_ip)
 
     def write_excalibur_ip(self, excalibur_ip):
-        with open('excalibur_ip', 'w') as f:
+        with open(EXCALIBUR_IP, 'w') as f:
             f.write(excalibur_ip)
 
     def get_excalibur_server_ip(self):
@@ -240,7 +247,7 @@ class Excalibur():
         aws_instance_info['inst_profile_arn'] = ''
 
         # Now write this to a file
-        with open('aws_instance_info.json', 'w') as f:
+        with open(AWS_INSTANCE_INFO, 'w') as f:
             json.dump(aws_instance_info, f)
 
         return aws_instance_info
@@ -324,11 +331,18 @@ class Excalibur():
             ToPort=5002,
             IpProtocol='TCP'
             )
+        response9 = security_group.authorize_ingress(
+            CidrIp='{}/32'.format(self.server_ip),
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP'
+            )
         return dict(
             list(response1.items()) + list(response2.items()) +
             list(response3.items()) + list(response4.items()) +
             list(response5.items()) + list(response6.items()) +
-            list(response7.items()) + list(response8.items()))
+            list(response7.items()) + list(response8.items()) +
+            list(response9.items()))
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
@@ -347,7 +361,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
           aws_keys, branch):
     stack = Stack()
-    stack.setup_stack(stack_template, stack_name, stack_suffix)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
