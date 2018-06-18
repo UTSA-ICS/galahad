@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NL=`echo -ne '\015'`
-EXCALIBUR_CMD="./start-test.sh 5002"
+EXCALIBUR_CMD="./start-excalibur.sh 5002"
 EXCALIBUR_LOGFILE="screen-excalibur.log"
 SCREEN=$(which screen)
 if [[ -n "$SCREEN" ]]; then
