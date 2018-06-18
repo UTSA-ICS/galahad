@@ -56,76 +56,6 @@ apt update && apt install syslog-ng-core curl git -y
         rm runme.sh
         '''
 
-    SYSLOG_VIRTUE_NODE_CONF = '''@version: 3.14
-@module mod-java
-@include "scl.conf"
-
-
-source s_local { systemd-journal(); internal(); };
-
-destination d_file { file("/var/log/syslog-ng-msg"); };
-
-destination d_elastic {
-	elasticsearch2(
-		client-lib-dir("/etc/syslog-ng/jars/")
-		index("syslog-${YEAR}.${MONTH}.${DAY}")
-		type("syslog")
-		time-zone("UTC")
-		client-mode("https")
-		cluster("docker-cluster")
-		cluster-url("%s")
-		java_keystore_filepath("/etc/syslog-ng/kirk-keystore.jks")
-		java_keystore_password("changeit")
-		java_truststore_filepath("/etc/syslog-ng/truststore.jks")
-		java_truststore_password("changeit")
-		http_auth_type("clientcert")
-		resource("/etc/syslog-ng/elasticsearch.yml")
-		template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE @timestamp=${ISODATE} @virtue_ip=${HOST})")
-	);
-};
-
-destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${HOST} ${MESSAGE}")); };
-
-
-parser message_parser {
-	kv-parser(value-separator(":"));
-};
-
-parser transducer_controller {
-	transducer_controller();
-};
-
-filter remove_self_reports {
-        not (match("syslog-ng" value("ProcName")) or
-        match("syslog-ng" value("ParentName")));
-};
-
-filter remove_merlin_reports {
-        not match("/var/run/receiver_to_filter" value("Addr"));
-};
-
-log { 
-    source(s_local); 
-    filter { match("kernel" value("PROGRAM")) or match("winesrv" value("PROGRAM")) };
-    parser(message_parser);
-    parser(transducer_controller);
-    filter(remove_self_reports);
-    filter(remove_merlin_reports);
-    destination(d_file);
-    destination(d_elastic);
-    destination(d_network);
-};
-
-
-log {
-    source(s_local);
-    filter{ facility(auth); };
-    destination(d_file);
-    destination(d_elastic);
-    destination(d_network);
-};
-    '''
-
     ELASTIC_YML = '''cluster:
   name: docker-cluster
 network:
@@ -140,6 +70,8 @@ searchguard.ssl.transport.enforce_hostname_verification: false
         if not self._has_run:
             super().run()
 
+
+            syslog_template = 'syslog-ng-virtue-node.conf.template'
             syslog_conf_filename = 'syslog-ng.conf'
             elasticsearch_filename = 'elasticsearch.yml'
             kirk_filename = 'kirk-keystore.jks'
@@ -152,14 +84,17 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             kirk_path = os.path.join(self.PAYLOAD_PATH, kirk_filename)
             trust_path = os.path.join(self.PAYLOAD_PATH, truststore_filename)
             sshd_payload_path = os.path.join(self.PAYLOAD_PATH, sshd_config_filename)
+            syslog_template_path = os.path.join(self.PAYLOAD_PATH, syslog_template)
             syslog_conf_path = os.path.join(self._work_dir, syslog_conf_filename)
             elasticsearch_path = os.path.join(self._work_dir, elasticsearch_filename)
             install_path = os.path.join(self._work_dir, install_script_filename)
 
-            
-            with open(syslog_conf_path, 'w') as f:
-                f.write(self.SYSLOG_VIRTUE_NODE_CONF % (self._args.elastic_search_node, self._args.syslog_server))
-            self._copy_file(syslog_conf_path, syslog_conf_filename)
+
+            with open(syslog_template_path, 'r') as syslog_ng_file:
+                syslog_ng_config = syslog_ng_file.read()
+                with open(syslog_conf_path, 'w') as f:
+                    f.write(syslog_ng_config % (self._args.elastic_search_node, self._args.syslog_server))
+                self._copy_file(syslog_conf_path, syslog_conf_filename)
             
             with open(elasticsearch_path, 'w') as f:
                 f.write(self.ELASTIC_YML % (self._args.elastic_search_host))
