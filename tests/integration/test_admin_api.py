@@ -3,6 +3,8 @@ import sys
 import json
 import requests
 
+from sso_login import sso_tool
+
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
@@ -23,16 +25,31 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    # Need to get admin token eventually
-    with open('token_data.json', 'r') as infile:
-        token_data = json.load(infile)
+    with open('../setup/excalibur_ip', 'r') as infile:
+        ip = infile.read().strip() + ':' + settings['port']
+
+    redirect = settings['redirect'].format(ip)
+
+    sso = sso_tool(ip)
+    assert sso.login(settings['user'], settings['password'])
+
+    client_id = sso.get_app_client_id(settings['app_name'])
+    if (client_id == None):
+        client_id = sso.create_app(settings['app_name'], redirect)
+        assert client_id
+
+    code = sso.get_oauth_code(client_id, redirect)
+    assert code
+
+    token = sso.get_oauth_token(client_id, code, redirect)
+    assert 'access_token' in token
 
     session = requests.Session()
     session.headers = {'Authorization':
-                       'Bearer {0}'.format(token_data['access_token'])}
+                       'Bearer {0}'.format(token['access_token'])}
     session.verify = settings['verify']
 
-    base_url = 'https://{0}/virtue/admin'.format(settings['ip'])
+    base_url = 'https://{0}/virtue/admin'.format(ip)
 
 def test_application_list():
 
