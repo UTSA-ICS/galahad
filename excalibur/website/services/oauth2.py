@@ -132,7 +132,8 @@ class RevocationEndpoint(_RevocationEndpoint):
 
 query_client = create_query_client_func(db.session, OAuth2Client)
 save_token = create_save_token_func(db.session, OAuth2Token)
-authorization = AuthorizationServer(query_client=query_client, save_token=save_token)
+authorization = AuthorizationServer(
+    query_client=query_client, save_token=save_token)
 
 # support all grants
 authorization.register_grant(AuthorizationCodeGrant)

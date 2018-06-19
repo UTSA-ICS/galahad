@@ -5,26 +5,22 @@ import sys
 import time
 
 file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(os.path.dirname(file_path)) + '/../excalibur'
+base_excalibur_dir = os.path.dirname(
+    os.path.dirname(file_path)) + '/../excalibur'
 sys.path.insert(0, base_excalibur_dir)
 from website.aws import AWS
-
 
 # Name of the file storing the instance information
 aws_instance_info = 'aws_instance_info.json'
 
 
 class Test_AWS:
-
-
     def setup_class(self):
         self.instance_list = []
 
         file = open(aws_instance_info, "r")
         test_string = json.dumps(file.read())
         self.test_instance = ast.literal_eval(json.loads(test_string))
-
-
 
     def teardown_class(self):
 
@@ -34,20 +30,17 @@ class Test_AWS:
         for i in self.instance_list:
             i.reload()
 
-            if(i.state['Name'] != 'terminated' and i.state['Name'] != 'shutting-down'):
+            if (i.state['Name'] != 'terminated'
+                    and i.state['Name'] != 'shutting-down'):
                 abandoned_instances = abandoned_instances + 1
                 aws.instance_destroy(i.id)
 
         assert abandoned_instances == 0
 
-
-
     def create_test_instance(self, aws):
         instance = aws.instance_create(**self.test_instance)
         self.instance_list.append(instance)
         return instance
-
-
 
     def test_that_creating_an_instance_succeeds(self):
 
@@ -62,8 +55,6 @@ class Test_AWS:
         assert instance.instance_type == self.test_instance['inst_type']
 
         aws.instance_destroy(instance.id, block=False)
-
-
 
     def test_that_stopping_an_instance_succeeds(self):
 
@@ -84,8 +75,6 @@ class Test_AWS:
         assert instance3.state['Name'] == 'stopping'
 
         aws.instance_destroy(instance.id, block=False)
-
-
 
     def test_that_starting_an_instance_succeeds(self):
 
@@ -110,8 +99,6 @@ class Test_AWS:
         instance3.wait_until_running()
 
         aws.instance_destroy(instance.id, block=False)
-
-
 
     def test_that_destroying_an_instance_succeeds(self):
 

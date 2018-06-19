@@ -20,7 +20,8 @@ def authorize():
 
     if form.validate_on_submit():
         grant_user = current_user
-        return authorization.create_authorization_response(grant_user=grant_user)
+        return authorization.create_authorization_response(
+            grant_user=grant_user)
     try:
         grant = authorization.validate_consent_request(end_user=current_user)
     except OAuth2Error as error:

@@ -26,6 +26,7 @@ def initdb():
     db.create_all()
     print('WAT: db created')
 
+
 def main():
     # proces command line arguments
     flask_port = int(sys.argv[1])
@@ -38,6 +39,7 @@ def main():
 
     # Run the flask server with appropriate options
     app.run(host='0.0.0.0', port=flask_port, debug=True, ssl_context=context)
- 
+
+
 if __name__ == "__main__":
     main()

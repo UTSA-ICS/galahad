@@ -3,7 +3,6 @@ import boto3
 
 
 class ssh_tool():
-
     def __init__(self, username, ip_address, sshkey=None):
         self.rem_username = username
         self.ip = ip_address
@@ -16,9 +15,10 @@ class ssh_tool():
         else:
             keyls = ['-i', self.sshkey]
 
-        call_list = ['ssh'] + keyls + ['-o', 'StrictHostKeyChecking=no',
-                                       self.rem_username + '@' + self.ip,
-                                       command]
+        call_list = ['ssh'] + keyls + [
+            '-o', 'StrictHostKeyChecking=no',
+            self.rem_username + '@' + self.ip, command
+        ]
 
         print
         print
@@ -43,8 +43,10 @@ class ssh_tool():
         else:
             keyls = ['-i', self.sshkey]
 
-        call_list = ['scp', '-r'] + keyls + [file_path_local,
-                                             self.rem_username + '@' + self.ip + ':' + file_path_remote]
+        call_list = ['scp', '-r'] + keyls + [
+            file_path_local,
+            self.rem_username + '@' + self.ip + ':' + file_path_remote
+        ]
 
         print
         print
@@ -65,12 +67,16 @@ class ssh_tool():
 
 def get_excalibur_server_ip(stack_name):
     client = boto3.client('ec2')
-    server = client.describe_instances(Filters=[
-        {'Name': 'tag:aws:cloudformation:logical-id',
-         'Values': ['ExcaliburServer']},
-        {'Name': 'tag:aws:cloudformation:stack-name',
-         'Values': [stack_name]},
-        {'Name': 'instance-state-name', 'Values': ['running']}
-        ])
+    server = client.describe_instances(
+        Filters=[{
+            'Name': 'tag:aws:cloudformation:logical-id',
+            'Values': ['ExcaliburServer']
+        }, {
+            'Name': 'tag:aws:cloudformation:stack-name',
+            'Values': [stack_name]
+        }, {
+            'Name': 'instance-state-name',
+            'Values': ['running']
+        }])
     # Return public IP
     return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
