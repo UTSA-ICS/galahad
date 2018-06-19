@@ -9,6 +9,8 @@
 # -
 ###
 
+import os
+import sys
 import boto3
 import json
 import time
@@ -386,12 +388,12 @@ def parse_args():
     parser.add_argument(
         "--aws_config",
         type=str,
-        required=False,
+        required=True,
         help="AWS config to be used to communicate with AWS")
     parser.add_argument(
         "--aws_keys",
         type=str,
-        required=False,
+        required=True,
         help="AWS keys to be used for AWS communication")
     parser.add_argument(
         "--setup",
@@ -419,6 +421,16 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # Check if the required files exist
+    required_files = '{} {} {} {}'.format(args.path_to_key,
+                                          args.github_repo_key,
+                                          args.aws_config, args.aws_keys)
+    for file in required_files.split():
+        if not os.path.isfile(file):
+            logger.error( 'Specified file [{}] does not exit!\n'.format(file))
+            sys.exit()
+
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
