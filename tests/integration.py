@@ -3,7 +3,6 @@
 import argparse
 import logging
 import sys
-from setup.setup import Excalibur
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,16 +33,6 @@ def parse_args():
         type=str,
         required=False,
         help='The IP address of an existing aws excalibur instance.')
-    parser.add_argument(
-        '--update_galahad_repo',
-        action='store_true',
-        help='The galahad repo will be updated if true')
-    parser.add_argument(
-        "-b",
-        "--branch_name",
-        type=str,
-        default="master",
-        help="The branch name to be used for excalibur repo")
     parser.add_argument(
         '--test_sso', action='store_true', help='The ldap API Tests')
     parser.add_argument(
@@ -77,15 +66,6 @@ if (__name__ == '__main__'):
     logger.info(
         '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
         format(excalibur_ip))
-
-    if args.update_galahad_repo:
-        if args.stack_name != None:
-            excalibur = Excalibur(args.stack_name, args.sshkey)
-            excalibur.checkout_repo('galahad', args.branch_name)
-            excalibur.setup_aws_instance_info()
-        else:
-            logger.error('Please specify stack_name to update the repo')
-            sys.exit()
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
