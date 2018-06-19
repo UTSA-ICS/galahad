@@ -5,6 +5,7 @@ from authlib.flask.oauth2 import (
 from authlib.flask.oauth2.sqla import (
     create_query_token_func,
     create_query_client_func,
+    create_save_token_func,
 )
 from authlib.specs.rfc6749.grants import (
     AuthorizationCodeGrant as _AuthorizationCodeGrant,
@@ -57,6 +58,10 @@ class AuthorizationCodeGrant(_AuthorizationCodeGrant):
         db.session.add(item)
         db.session.commit()
         token['user_id'] = authorization_code.user_id
+
+    def authenticate_user(self, authorization_code):
+        print('WAT    : auth_code=%s' % (authorization_code))
+        return User.query.get(authorization_code.user_id)
 
 
 class ImplicitGrant(_ImplicitGrant):
@@ -126,7 +131,8 @@ class RevocationEndpoint(_RevocationEndpoint):
 
 
 query_client = create_query_client_func(db.session, OAuth2Client)
-authorization = AuthorizationServer(query_client=query_client)
+save_token = create_save_token_func(db.session, OAuth2Token)
+authorization = AuthorizationServer(query_client=query_client, save_token=save_token)
 
 # support all grants
 authorization.register_grant(AuthorizationCodeGrant)
