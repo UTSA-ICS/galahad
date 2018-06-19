@@ -137,7 +137,7 @@ class Excalibur():
     def setup_keys(self, github_key):
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/github_key '.format(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.format(
                     self.ssh_key, github_key,
                     self.server_ip)).run()
 
@@ -173,11 +173,11 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/.aws/config '.format(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.format(
                     self.ssh_key, aws_config,
                     self.server_ip)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {}* ubuntu@{}:~/.aws/credentials '.format(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.format(
                     self.ssh_key, aws_keys,
                     self.server_ip)).run()
 
