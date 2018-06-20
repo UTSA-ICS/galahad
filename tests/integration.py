@@ -34,7 +34,7 @@ def parse_args():
         required=False,
         help='The IP address of an existing aws excalibur instance.')
     parser.add_argument(
-        '--test_ldap_api', action='store_true', help='The ldap API Tests')
+        '--test_sso', action='store_true', help='The ldap API Tests')
     parser.add_argument(
         '--test_admin_api', action='store_true', help='The ADMIN API Tests')
     parser.add_argument(
@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument(
         '--run_all_tests',
         action='store_true',
-        help='Run All available unit Tests')
+        help='Run All available Integration Tests')
 
     arg = parser.parse_args()
 
@@ -69,11 +69,16 @@ if (__name__ == '__main__'):
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
-    if args.test_ldap_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_ldap.py')
+    # Populate the excalibur_ip file needed for all the tests.
+    ssh_inst.ssh('cd galahad/tests/setup && echo {} > excalibur_ip'.format(
+        excalibur_ip))
+
+    if args.test_sso:
+        ssh_inst.ssh('cd galahad/tests/integration && pytest test_sso.py')
     if args.test_admin_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_admin_api.py')
+        ssh_inst.ssh(
+            'cd galahad/tests/integration && pytest test_admin_api.py')
     if args.test_user_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_user_api.py')
+        ssh_inst.ssh('cd galahad/tests/integration && pytest test_user_api.py')
     if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest')
+        ssh_inst.ssh('cd galahad/tests/integration && pytest')

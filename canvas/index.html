@@ -1,124 +1,124 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Canvas</title>
-		<!-- FontAwesome -->
+  <head>
+    <title>Canvas</title>
+    <!-- FontAwesome -->
     <script defer src="./assets/svg-with-js/js/fontawesome-all.js"></script>
-		<link rel="stylesheet" href="./assets/css/animate.css">
-		<link rel="stylesheet" href="./assets/css/index.css">
-	</head>
-	<body style="background-color:rgba(0,0,0,0);">
+    <link rel="stylesheet" href="./assets/css/animate.css">
+    <link rel="stylesheet" href="./assets/css/index.css">
+  </head>
+  <body style="background-color:rgba(0,0,0,0);">
 
-		<div id="appArea"></div>
+    <div id="appArea"></div>
 
-		<div id="login" class="fadeIn animated">
-			<div class="greeting">
-				<div>Welcome to VirtUE!</div>
-				<img src="./assets/img/virtue.png" alt="VirtUE icon">
-			</div>
-			<!--
-			<div class="form-group">
-				<label for="userId">User ID: </label>
-				<input type="text" name="userId" id="userId" value="">
-			</div>
-			<div class="form-group">
-				<label for="password">Password: </label>
-				<input type="password" name="password" id="password" onkeypress="login(event);">
-			</div>
-		-->
-			<div style="text-align: right; margin: 10px; display: flex;">
-				<div id="loginMsg"></div>
-				<input class="submit" type="submit" value="Log In" onclick="check_oauth(event);">
-			</div>
-		</div>
+    <div id="login" class="fadeIn animated">
+      <div class="greeting">
+        <div>Welcome to VirtUE!</div>
+        <img src="./assets/img/virtue.png" alt="VirtUE icon">
+      </div>
+      <!--
+      <div class="form-group">
+        <label for="userId">User ID: </label>
+        <input type="text" name="userId" id="userId" value="">
+      </div>
+      <div class="form-group">
+        <label for="password">Password: </label>
+        <input type="password" name="password" id="password" onkeypress="login(event);">
+      </div>
+    -->
+      <div style="text-align: right; margin: 10px; display: flex;">
+        <div id="loginMsg"></div>
+        <input class="submit" type="submit" value="Log In" onclick="check_oauth(event);">
+      </div>
+    </div>
 
-		<div id="dockWrapper" class="fadeInRight animated" style="display: none;">
-			<ul class="dock">
-				<div id="options0" class="optionsWrapper" style="display: none;">
-					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-		        <i class="fab fa-black-tie fa-2x"></i>
-						<div id="dock0" style="margin-top: 5px;">Admin</div>
-						<div id="optionsinner0" class="options admin">
-							<!--
-							<div class="icon-pair circle-bg" onclick="openApp('word', 'admin', '2000');">
-								<i class="fas fa-file-word fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('notepad', 'admin', '2000');">
-								<i class="far fa-file-edit fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('firefox', 'admin', '2000');">
-								<i class="fab fa-firefox fa-2x"></i>
-							</div> -->
-						</div>
-		      </li>
-					<div id="minimized_admin_drawer" class="minimizedWrapper" style="display: none;">
-						<div class="minimizedActuator admin" onclick="toggleMinimizedDrawer('admin');">
-							<div id="minimized_admin_count" class="count"></div>
-							<i id="minimized_admin_close" class="fas fa-chevron-right" style="display: none;"></i>
-						</div>
-						<div id="minimized_admin" class="minimized" style="display: none;"></div>
-					</div>
-				</div>
+    <div id="dockWrapper" class="fadeInRight animated" style="display: none;">
+      <ul class="dock">
+        <div id="options0" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="fab fa-black-tie fa-2x"></i>
+            <div id="dock0" style="margin-top: 5px;">Admin</div>
+            <div id="optionsinner0" class="options admin">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'admin', '2000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'admin', '2000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('firefox', 'admin', '2000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_admin_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator admin" onclick="toggleMinimizedDrawer('admin');">
+              <div id="minimized_admin_count" class="count"></div>
+              <i id="minimized_admin_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_admin" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
 
-				<div id="options1" class="optionsWrapper" style="display: none;">
-					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-		        <i class="far fa-file-edit fa-2x"></i>
-						<div id="dock1" style="margin-top: 5px;">Editor</div>
-						<div id=optionsinner1 class="options editor">
-							<!--
-							<div class="icon-pair circle-bg" onclick="openApp('word', 'editor', '3000');">
-								<i class="fas fa-file-word fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('notepad', 'editor', '3000');">
-								<i class="far fa-file-edit fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('firefox', 'editor', '3000');">
-								<i class="fab fa-firefox fa-2x"></i>
-							</div> -->
-						</div>
-		      </li>
-					<div id="minimized_editor_drawer" class="minimizedWrapper" style="display: none;">
-						<div class="minimizedActuator editor" onclick="toggleMinimizedDrawer('editor');">
-							<div id="minimized_editor_count" class="count"></div>
-							<i id="minimized_editor_close" class="fas fa-chevron-right" style="display: none;"></i>
-						</div>
-						<div id="minimized_editor" class="minimized" style="display: none;"></div>
-					</div>
-				</div>
+        <div id="options1" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="far fa-file-edit fa-2x"></i>
+            <div id="dock1" style="margin-top: 5px;">Editor</div>
+            <div id=optionsinner1 class="options editor">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'editor', '3000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'editor', '3000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('firefox', 'editor', '3000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_editor_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator editor" onclick="toggleMinimizedDrawer('editor');">
+              <div id="minimized_editor_count" class="count"></div>
+              <i id="minimized_editor_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_editor" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
 
-				<div id="options2" class="optionsWrapper" style="display: none;">
-					<li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
-		        <i class="far fa-eye fa-2x"></i>
-						<div id="dock2" style="margin-top: 5px;">Viewer</div>
-						<div id="optionsinner2" class="options viewer">
-							<!--
-							<div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
-								<i class="fas fa-file-word fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('notepad', 'viewer', '4000');">
-								<i class="far fa-file-edit fa-2x"></i>
-							</div>
-							<div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
-								<i class="fab fa-firefox fa-2x"></i>
-							</div> -->
-						</div>
-		      </li>
-					<div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
-						<div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
-							<div id="minimized_viewer_count" class="count"></div>
-							<i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
-						</div>
-						<div id="minimized_viewer" class="minimized" style="display: none;"></div>
-					</div>
-				</div>
+        <div id="options2" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="far fa-eye fa-2x"></i>
+            <div id="dock2" style="margin-top: 5px;">Viewer</div>
+            <div id="optionsinner2" class="options viewer">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'viewer', '4000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
+              <div id="minimized_viewer_count" class="count"></div>
+              <i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_viewer" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
 
-				<div id="logout">
-					<input class="submit" type="submit" value="Logout" onclick="logout(event);">
-				</div>
-	    </ul>
-		</div>
+        <div id="logout">
+          <input class="submit" type="submit" value="Logout" onclick="logout(event);">
+        </div>
+      </ul>
+    </div>
 
-	</body>
+  </body>
 
-	<script src="./output.js" charset="utf-8"></script>
+  <script src="./output.js" charset="utf-8"></script>
 </html>

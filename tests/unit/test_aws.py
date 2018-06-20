@@ -1,19 +1,20 @@
-import time
-import json
-import sys
-import os
 import ast
+import json
+import os
+import sys
+import time
 
 file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(os.path.dirname(os.path.dirname(file_path))) + '/flask-authlib'
+base_excalibur_dir = os.path.dirname(
+    os.path.dirname(file_path)) + '/../excalibur'
 sys.path.insert(0, base_excalibur_dir)
-from website.routes.aws import AWS
+from website.aws import AWS
 
 # Name of the file storing the instance information
 aws_instance_info = 'aws_instance_info.json'
 
-class Test_AWS:
 
+class Test_AWS:
     def setup_class(self):
         self.instance_list = []
 
@@ -29,7 +30,8 @@ class Test_AWS:
         for i in self.instance_list:
             i.reload()
 
-            if(i.state['Name'] != 'terminated' and i.state['Name'] != 'shutting-down'):
+            if (i.state['Name'] != 'terminated'
+                    and i.state['Name'] != 'shutting-down'):
                 abandoned_instances = abandoned_instances + 1
                 aws.instance_destroy(i.id)
 
@@ -54,8 +56,6 @@ class Test_AWS:
 
         aws.instance_destroy(instance.id, block=False)
 
-
-
     def test_that_stopping_an_instance_succeeds(self):
 
         aws = AWS()
@@ -75,8 +75,6 @@ class Test_AWS:
         assert instance3.state['Name'] == 'stopping'
 
         aws.instance_destroy(instance.id, block=False)
-
-
 
     def test_that_starting_an_instance_succeeds(self):
 
@@ -101,8 +99,6 @@ class Test_AWS:
         instance3.wait_until_running()
 
         aws.instance_destroy(instance.id, block=False)
-
-
 
     def test_that_destroying_an_instance_succeeds(self):
 

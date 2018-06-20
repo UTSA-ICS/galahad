@@ -3,8 +3,8 @@ import requests
 
 verify_https = False
 
-class sso_tool():
 
+class sso_tool():
     def __init__(self, address):
         self.url = 'https://{0}'.format(address)
         self.session = requests.Session()
@@ -16,24 +16,27 @@ class sso_tool():
 
         for s in html.split('\n'):
             s = s.strip()
-            if( s[0:22] == '<input id="csrf_token"' ):
+            if (s[0:22] == '<input id="csrf_token"'):
                 csrf = s.split('"')[-2]
                 break
-            
+
         return csrf
 
     def login(self, email, password):
 
-        login_prompt = self.session.get(self.url + '/account/login',
-                                        verify=verify_https)
+        login_prompt = self.session.get(
+            self.url + '/account/login', verify=verify_https)
 
         csrf = self.get_csrf(login_prompt.text)
-        
-        login_payload = { 'csrf_token': csrf,
-                          'email': email, 'password': password }
 
-        login_response = self.session.post(self.url + '/account/login',
-                                           login_payload, verify=verify_https)
+        login_payload = {
+            'csrf_token': csrf,
+            'email': email,
+            'password': password
+        }
+
+        login_response = self.session.post(
+            self.url + '/account/login', login_payload, verify=verify_https)
 
         success = 'You are logged in' in login_response.text
 
@@ -46,18 +49,18 @@ class sso_tool():
 
         for s in lines:
             s = s.strip()
-            if(name in s):
+            if (name in s):
                 tmp = s.split('"')
-                if(len(tmp) != 3):
+                if (len(tmp) != 3):
                     return None
                 return tmp[1].split('/')[3]
 
     def create_app(self, name, redirect_uri):
 
-        app_prompt = self.session.get(self.url + '/client/2/create',
-                                      verify=verify_https)
+        app_prompt = self.session.get(
+            self.url + '/client/2/create', verify=verify_https)
 
-        csrf = self.get_csrf( app_prompt.text )
+        csrf = self.get_csrf(app_prompt.text)
 
         app_payload = {
             'csrf_token': csrf,
@@ -69,8 +72,8 @@ class sso_tool():
             'website': self.url
         }
 
-        app_response = self.session.post(self.url + '/client/2/create',
-                                         app_payload, verify=verify_https)
+        app_response = self.session.post(
+            self.url + '/client/2/create', app_payload, verify=verify_https)
 
         return self.get_app_client_id(name)
 
@@ -82,22 +85,24 @@ class sso_tool():
             'redirect_uri': redirect_uri
         }
 
-        auth_prompt = self.session.get(self.url + '/oauth2/authorize',
-                                       params=auth_payload, verify=verify_https)
+        auth_prompt = self.session.get(
+            self.url + '/oauth2/authorize',
+            params=auth_payload,
+            verify=verify_https)
 
         csrf = self.get_csrf(auth_prompt.text)
 
-        if( csrf == None ):
+        if (csrf == None):
             return None
 
         auth_payload['csrf_token'] = csrf
 
-        auth_code_response = self.session.post(self.url + '/oauth2/authorize',
-                                               auth_payload, verify=verify_https)
+        auth_code_response = self.session.post(
+            self.url + '/oauth2/authorize', auth_payload, verify=verify_https)
 
-        if('code:' not in auth_code_response.text):
+        if ('code:' not in auth_code_response.text):
             return None
-        
+
         code = auth_code_response.text.split(':')[1]
 
         # For some reason, the code displayed on the page has an & at the end
@@ -113,19 +118,19 @@ class sso_tool():
             'redirect_uri': redirect_uri
         }
 
-        token_response = self.session.post(self.url + '/oauth2/token',
-                                           token_payload, verify=verify_https)
+        token_response = self.session.post(
+            self.url + '/oauth2/token', token_payload, verify=verify_https)
 
-        if(token_response.status_code != 200):
+        if (token_response.status_code != 200):
             return None
 
         return token_response.json()
 
 
-if(__name__ == '__main__'):
+if (__name__ == '__main__'):
 
     print('Retrieving token')
-    
+
     sso = sso_tool('35.172.121.143:5002')
     sso.login('jmitchell@virtue.com', 'Test123!')
 

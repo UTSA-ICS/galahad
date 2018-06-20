@@ -1,3 +1,0 @@
-LDAP_DATABASE_URI = "ldap://ip-172-30-1-44.ec2.internal"
-AD_DATABASE_URI = "ldap://EC2AMAZ-UPCI42G.virtue.com"
-LDAP_PROTOCOL_VERSION = 3
