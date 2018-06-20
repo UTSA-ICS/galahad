@@ -135,9 +135,10 @@ int init_module(){
 
 	map_int_t m;
 	map_init(&m);
-	//map_set(&m, "testkey", 123);
-	//int *val = map_get(&m, "testkey");
-	//printk(KERN_INFO "Got value %d\n", *val);
+	map_set(&m, "testkey", 123);
+	int *val = map_get(&m, "testkey");
+	printk(KERN_INFO "Got value %d\n", *val);
+	map_deinit(&m);
 	return 0;
 }
 
