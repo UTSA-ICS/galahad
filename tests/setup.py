@@ -423,12 +423,11 @@ def main():
     args = parse_args()
 
     # Check if the required files exist
-    required_files = '{} {} {} {}'.format(args.path_to_key,
-                                          args.github_repo_key,
-                                          args.aws_config, args.aws_keys)
+    required_files = '{} {} {} {}'.format(
+        args.path_to_key, args.github_repo_key, args.aws_config, args.aws_keys)
     for file in required_files.split():
         if not os.path.isfile(file):
-            logger.error( 'Specified file [{}] does not exit!\n'.format(file))
+            logger.error('Specified file [{}] does not exit!\n'.format(file))
             sys.exit()
 
     if args.setup:
