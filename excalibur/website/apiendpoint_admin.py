@@ -176,7 +176,7 @@ class EndPoint_Admin():
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            new_role['ami'] = 'ami-36a8754c'
+            new_role['amiId'] = 'ami-36a8754c'
 
             ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 
