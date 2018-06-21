@@ -17,53 +17,50 @@
 #include "map.h"
 
 //netfilter hook options
-static struct nf_hook_ops nfho;
+static struct nf_hook_ops nfho_in;
+static struct nf_hook_ops nfho_out;
 
 //Unix Domain Socket Kernel Thread
 static struct task_struct *uds_thread;
+static const char UDS_THREAD_NAME[14] = "portblock_uds";
 
-//function for printing IPv4 addresses
-void printIP(unsigned int addr){
-	unsigned char bytes[4];
-	bytes[0] = addr & 0xFF;
-	bytes[1] = (addr >> 8) & 0xFF;
-	bytes[2] = (addr >> 16) & 0xFF;
-	bytes[3] = (addr >> 24) & 0xFF;
-	printk("%d.%d.%d.%d\n", bytes[3],bytes[2],bytes[1],bytes[0]);
-}
+struct packetRules {
+	//Struct for holding different types of rules
+	map_int_t in_ports;
+	map_int_t out_ports;
+	map_int_t in_ip;
+	map_int_t out_ip;
+};
 
-
-//Convert an IP address into a decimal value
-//Will change later... using for testing
-unsigned int decimalIP(unsigned int a, unsigned int b, unsigned int c, unsigned int d){
-	unsigned int ip;
-	ip = 0;
-	ip = (a << 24) + (b << 16) + (c << 8) + d;
-	return ip;
-}
+static struct packetRules rules;
 
 
 //Unix Domain Socket Thread
+//Responsible for receiving actuator commands
 int uds_func(void *data){
+
 	while(!kthread_should_stop()){
 		printk(KERN_INFO "Running UDS thread...");
-		msleep(5000);
+		msleep(15000);
+		//Test: Remove IP address block
+		map_remove(&rules.in_ip, "216.58.219.206");
 	}
 
 	return 0;
 }
 
 
-//Function called when init_module conditions are met
-unsigned int port_blocker_hook(void* priv, struct sk_buff *skb, const struct nf_hook_state *state){
+//Incoming packets hook
+unsigned int port_blocker_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_state *state){
 
 	struct iphdr* ip_header;
 	struct tcphdr* tcp_header;
-	unsigned int dst_addr;
-	unsigned int src_addr;
-	unsigned int ip;
 	uint16_t dst_port;
 	uint16_t src_port;
+
+	char ip_src[16];
+	char ip_dst[16];
+	int* val;
 
 	if(!skb){
 		return NF_ACCEPT;
@@ -75,36 +72,39 @@ unsigned int port_blocker_hook(void* priv, struct sk_buff *skb, const struct nf_
 		return NF_ACCEPT;
 	}
 
-	//retrieve source and destination ports for the packet
-	dst_addr = ntohl(ip_header->daddr);
-	src_addr = ntohl(ip_header->saddr);
+	//retrieve source and destination addresses for the packet
+	//Convert Source IP Decimal into IPv4 string
+	snprintf(ip_src, 16, "%pI4", &ip_header->saddr);
+
+	//Convert Destination IP Decimal into IPv4 string
+	snprintf(ip_dst, 16, "%pI4", &ip_header->daddr);
 
 
-	printk(KERN_INFO "Destination address: ");
-	printIP(dst_addr);
-	printk(KERN_INFO "Source address: ");
-	printIP(src_addr);
-
-	//Test for blocking all traffic from an IP
-	//IP Address (Google Server): 216.58.219.206
-	ip = decimalIP(216,58,219,206);
-	if(ip == 3627736014){
-		printk(KERN_INFO "Blocking IP Address...\n");
+	val = map_get(&rules.in_ip, ip_src);
+	if(val != NULL){
+		//drop traffic
+		*val = *val + 1;
+		printk(KERN_INFO "Blocking IP Address from %s\n", ip_src);
 		return NF_DROP;
 	}
 
+
 	if (ip_header->protocol == IPPROTO_TCP){
+
 
 		tcp_header = (struct tcphdr*)((__u32*)ip_header + ip_header->ihl);
 		if(!tcp_header){
 			return NF_ACCEPT;
 		}
 
+		printk(KERN_INFO "Incoming TCP packet\n");
+
 		dst_port = ntohs(tcp_header->dest);
 		src_port = ntohs(tcp_header->source);
 
-		printk(KERN_INFO "Source Port: %u\n", src_port);
-		printk(KERN_INFO "Dest port: %u\n", dst_port);
+
+		printk(KERN_INFO "Source Port: %d\n", src_port);
+		printk(KERN_INFO "Dest port: %d\n", dst_port);
 
 		//test for blocking all traffic incoming on port 80
 		if(dst_port == 80){
@@ -117,28 +117,106 @@ unsigned int port_blocker_hook(void* priv, struct sk_buff *skb, const struct nf_
 }
 
 
+//Outgoing packets hook
+unsigned int port_blocker_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook_state *state){
+
+	struct iphdr* ip_header;
+	struct tcphdr* tcp_header;
+	uint16_t dst_port;
+	uint16_t src_port;
+
+	char ip_src[16];
+	char ip_dst[16];
+	char sport[6];
+	int* val;
+
+	if(!skb){
+		return NF_ACCEPT;
+	}
+
+
+	ip_header = ip_hdr(skb);
+	if(!ip_header){
+		return NF_ACCEPT;
+	}
+
+	//retrieve source and destination addresses for the packet
+	//Convert Source IP Decimal into IPv4 string
+	snprintf(ip_src, 16, "%pI4", &ip_header->saddr);
+
+	//Convert Destination IP Decimal into IPv4 string
+	snprintf(ip_dst, 16, "%pI4", &ip_header->daddr);
+
+
+	if (ip_header->protocol == IPPROTO_TCP){
+
+
+		tcp_header = (struct tcphdr*)((__u32*)ip_header + ip_header->ihl);
+		if(!tcp_header){
+			return NF_ACCEPT;
+		}
+
+		printk(KERN_INFO "Outgoing TCP packet\n");
+
+		dst_port = ntohs(tcp_header->dest);
+		src_port = ntohs(tcp_header->source);
+		snprintf(sport, 6, "%d", src_port);
+		val = map_get(&rules.out_ports, sport);
+
+		printk(KERN_INFO "Source Port: %d\n", src_port);
+		printk(KERN_INFO "Dest port: %d\n", dst_port);
+
+		if(val != NULL){
+			printk(KERN_INFO "Block outgoing traffic on port %d\n", src_port);
+			return NF_DROP;
+		}
+
+
+
+	}
+
+	return NF_ACCEPT;
+}
+
 
 //Called when the module is loaded
 int init_module(){
 
 	printk(KERN_INFO "Loading port blocker module");
 	//Set up Netfilter hook
-	nfho.hook = port_blocker_hook;
-	nfho.hooknum = NF_INET_PRE_ROUTING;
-	nfho.pf = PF_INET;
-	nfho.priority = NF_IP_PRI_FIRST;
-	nf_register_net_hook(&init_net, &nfho);
+	nfho_in.hook = port_blocker_in_hook;
+	nfho_in.hooknum = NF_INET_LOCAL_IN;
+	nfho_in.pf = PF_INET;
+	nfho_in.priority = NF_IP_PRI_FIRST;
+	nf_register_net_hook(&init_net, &nfho_in);
+
+	nfho_out.hook = port_blocker_out_hook;
+	nfho_out.hooknum = NF_INET_LOCAL_OUT;
+	nfho_out.pf = PF_INET;
+	nfho_out.priority = NF_IP_PRI_FIRST;
+	nf_register_net_hook(&init_net, &nfho_out);
 
 	//start Unix Domain Socket thread
-	char udsthrd[14] = "portblock_uds";
-	uds_thread = kthread_run(uds_func, NULL, udsthrd);
+	uds_thread = kthread_run(uds_func, NULL, UDS_THREAD_NAME);
 
-	map_int_t m;
-	map_init(&m);
-	map_set(&m, "testkey", 123);
-	int *val = map_get(&m, "testkey");
-	printk(KERN_INFO "Got value %d\n", *val);
-	map_deinit(&m);
+	//initialize hashmaps
+	map_init(&rules.in_ports);
+	map_init(&rules.out_ports);
+	map_init(&rules.in_ip);
+	map_init(&rules.out_ip);
+
+	//set up initial rules
+	//Test: Block all incoming traffic to ports 80 and 8080
+	map_set(&rules.in_ports, "80", 0);
+	map_set(&rules.in_ports, "8080", 0);
+
+	//Test: Block all incoming traffic from this Google Server
+	map_set(&rules.in_ip, "216.58.219.206", 0);
+
+	//Test: Block all outgoing traffic from port 4444
+	map_set(&rules.out_ports, "4444", 0);
+
+	
 	return 0;
 }
 
@@ -146,6 +224,11 @@ int init_module(){
 //Called when the module is removed/unloaded
 void cleanup_module(){
 	kthread_stop(uds_thread);
-	nf_unregister_net_hook(&init_net, &nfho);
+	map_deinit(&rules.in_ports);
+	map_deinit(&rules.out_ports);
+	map_deinit(&rules.in_ip);
+	map_deinit(&rules.out_ip);
+	nf_unregister_net_hook(&init_net, &nfho_in);
+	nf_unregister_net_hook(&init_net, &nfho_out);
 }
 
