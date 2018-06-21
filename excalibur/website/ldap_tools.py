@@ -13,7 +13,8 @@ def parse_ldap(data):
         'creqAccess': 'requiredAccess',
         'cauthRoleIds': 'authorizedRoleIds',
         'cresIds': 'resourceIds',
-        'ctransIds': 'transducerIds'
+        'ctransIds': 'transducerIds',
+        'cAmiId': 'amiId'
     }
 
     entries_with_lists = [
@@ -67,7 +68,8 @@ def to_ldap(data, objectClass):
         'resourceIds': 'cresIds',
         'transducerIds': 'ctransIds',
         'state': 'cstate',
-        'ipAddress': 'cipAddress'
+        'ipAddress': 'cipAddress',
+        'amiId': 'cAmiId'
     }
 
     modified_data = {'objectClass': objectClass, 'ou': 'virtue'}

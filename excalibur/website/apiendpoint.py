@@ -81,6 +81,7 @@ class EndPoint():
                         break
 
                 role['ipAddress'] = virtue_ip
+                del role['amiId']
 
                 return json.dumps(role)
 
@@ -119,6 +120,7 @@ class EndPoint():
                         break
 
                 role['ipAddress'] = virtue_ip
+                del role['amiId']
 
                 roles.append(role)
 
