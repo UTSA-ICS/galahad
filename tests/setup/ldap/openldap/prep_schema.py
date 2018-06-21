@@ -11,7 +11,7 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir('{0}/galahad'.format(os.environ['HOME']))
 
 # slapcat will fail if ldif_output doesn't exist yet
-if (os.path.exists(base_dir + '/ldif_output')):
+if (not os.path.exists(base_dir + '/ldif_output')):
     os.mkdir(base_dir + '/ldif_output')
 
 # Call slapcat -f schema_convert.conf -F ldif_output -n 0
