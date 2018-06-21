@@ -339,6 +339,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
         result = eval('s.{}.run()'.format(cmd))
         logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
             result.stdout, result.stderr, result.is_success))
+        assert result.rc == 0
         return result
 
 
