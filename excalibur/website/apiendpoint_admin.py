@@ -6,6 +6,7 @@ from . import ldap_tools
 import json
 import random
 import time
+import copy
 
 DEBUG_PERMISSIONS = False
 
@@ -128,13 +129,21 @@ class EndPoint_Admin():
     def role_create(self, role, use_aws=True):
 
         try:
-            if ('name' not in role or type(role['name']) != str
-                    or 'version' not in role or type(role['version']) != str
-                    or 'applicationIds' not in role
+            role_keys = [
+                'name',
+                'version',
+                'applicationIds',
+                'startingResourceIds',
+                'startingTransducerIds'
+            ]
+            if (set(role.keys()) != set(role_keys)
+                    and set(role.keys()) != set(role_keys + ['id'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (type(role['name']) != str
+                    or type(role['version']) != str
                     or type(role['applicationIds']) != list
-                    or 'startingResourceIds' not in role
                     or type(role['startingResourceIds']) != list
-                    or 'startingTransducerIds' not in role
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
@@ -162,12 +171,14 @@ class EndPoint_Admin():
                 if (tr_test == ()):
                     return json.dumps(ErrorCodes.admin['invalidTransducerId'])
 
-            role['id'] = '{0}{1}'.format(role['name'], int(time.time()))
+            new_role = copy.deepcopy(role)
+
+            new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            #role['ami'] = AWS.aws_image_id
+            new_role['amiId'] = 'ami-36a8754c'
 
-            ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
+            ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 
             ret = self.inst.add_obj(ldap_role, 'roles', 'cid')
 
@@ -176,26 +187,26 @@ class EndPoint_Admin():
 
             if (use_aws == True):
                 # Call a controller thread to create a new standby virtue on a new thread
-                thr = CreateVirtueThread(
-                    self.inst.email, self.inst.password, role['id'], role=role)
+                thr = CreateVirtueThread(self.inst.email, self.inst.password,
+                                         new_role['id'], role=new_role)
                 thr.start()
             else:
                 # Write a dummy virtue to LDAP
                 virtue = {
-                    'id': 'virtue_{0}{1}'.format(role['name'],
+                    'id': 'virtue_{0}{1}'.format(new_role['name'],
                                                  int(time.time())),
                     'username': 'NULL',
-                    'roleId': role['id'],
+                    'roleId': new_role['id'],
                     'applicationIds': [],
-                    'resourceIds': role['startingResourceIds'],
-                    'transducerIds': role['startingTransducerIds'],
+                    'resourceIds': new_role['startingResourceIds'],
+                    'transducerIds': new_role['startingTransducerIds'],
                     'state': 'STOPPED',
                     'ipAddress': '8.8.8.8'
                 }
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+                self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
 
-            return json.dumps(role)
+            return json.dumps({'id': new_role['id'], 'name': new_role['name']})
 
         except Exception as e:
             print("Error: {0}".format(e))
@@ -208,6 +219,9 @@ class EndPoint_Admin():
             assert ldap_roles != None
 
             roles = ldap_tools.parse_ldap_list(ldap_roles)
+
+            for role in roles:
+                del role['amiId']
 
             return json.dumps(roles)
 

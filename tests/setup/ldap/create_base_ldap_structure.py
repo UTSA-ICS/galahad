@@ -61,15 +61,16 @@ def add_resource(id, type, unc, credentials):
     inst.add_obj(ldap_res, 'resources', 'cid', throw_error=True)
 
 
-def add_role(id, name, version, appIds, resIds, transIds):
+def add_role(id, name, version, appIds, resIds, transIds, ami):
 
     role = {
-        'cid': id,
+        'id': id,
         'name': name,
-        'cversion': version,
-        'cappIds': str(appIds),
-        'cstartResIds': str(resIds),
-        'cstartTransIds': str(transIds)
+        'version': version,
+        'applicationIds': str(appIds),
+        'startingResourceIds': str(resIds),
+        'startingTransducerIds': str(transIds),
+        'amiId': ami
     }
 
     ldap_role = to_ldap(role, 'OpenLDAProle')
@@ -161,7 +162,7 @@ if (__name__ == '__main__'):
     add_resource('fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare',
                  'token')
 
-    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
+    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]', 'NULL')
 
     add_user('jmitchell', '[]')
     add_user('fpatwa', '[]')

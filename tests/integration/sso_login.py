@@ -22,12 +22,33 @@ class sso_tool():
 
         return csrf
 
+    def get_flask_traceback(self, html, print_output=True):
+
+        if ('Traceback' not in html or 'DON\'T PANIC' not in html):
+            # This is not a flask error traceback.
+            return None
+
+        split1 = html.split('-->')
+
+        split2 = split1[-2].split('<!--')
+
+        traceback = split2[-1].strip()
+
+        if (print_output):
+            print('Flask error:\n' + traceback)
+
+        return traceback
+
     def login(self, email, password):
 
         login_prompt = self.session.get(
             self.url + '/account/login', verify=verify_https)
 
         csrf = self.get_csrf(login_prompt.text)
+
+        if (csrf == None):
+            traceback = self.get_flask_traceback(login_prompt.text)
+            return None
 
         login_payload = {
             'csrf_token': csrf,
@@ -62,6 +83,10 @@ class sso_tool():
 
         csrf = self.get_csrf(app_prompt.text)
 
+        if (csrf == None):
+            self.get_flask_traceback(app_prompt.text)
+            return None
+
         app_payload = {
             'csrf_token': csrf,
             'name': name,
@@ -74,6 +99,8 @@ class sso_tool():
 
         app_response = self.session.post(
             self.url + '/client/2/create', app_payload, verify=verify_https)
+
+        self.get_flask_traceback(app_response.text)
 
         return self.get_app_client_id(name)
 
@@ -93,6 +120,7 @@ class sso_tool():
         csrf = self.get_csrf(auth_prompt.text)
 
         if (csrf == None):
+            self.get_flask_traceback(auth_prompt.text)
             return None
 
         auth_payload['csrf_token'] = csrf
@@ -101,6 +129,7 @@ class sso_tool():
             self.url + '/oauth2/authorize', auth_payload, verify=verify_https)
 
         if ('code:' not in auth_code_response.text):
+            self.get_flask_traceback(auth_code_response.text)
             return None
 
         code = auth_code_response.text.split(':')[1]
@@ -122,6 +151,7 @@ class sso_tool():
             self.url + '/oauth2/token', token_payload, verify=verify_https)
 
         if (token_response.status_code != 200):
+            self.get_flask_traceback(token_response.text)
             return None
 
         return token_response.json()

@@ -36,7 +36,8 @@ def setup_module():
         'version': '1.0',
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'amiId': 'NULL'
     }
 
     virtue = {
@@ -125,6 +126,7 @@ def test_role_calls():
     # role_get also returns an ip address for that user/role's virtue.
     # The user shouldn't have one, because virtue_create hasn't been tested/called.
     real_role['ipAddress'] = 'NULL'
+    del real_role['amiId']
 
     assert role == real_role
 
@@ -138,11 +140,11 @@ def test_role_calls():
 
     for r in user['authorizedRoleIds']:
         role = inst.get_obj('cid', r, 'OpenLDAProle', True)
-        ldap_tools.parse_ldap(role)
 
         if (role != ()):
             ldap_tools.parse_ldap(role)
             role['ipAddress'] = 'NULL'
+            del role['amiId']
             real_roles.append(role)
 
     if (roles != real_roles):

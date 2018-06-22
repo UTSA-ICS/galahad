@@ -125,12 +125,10 @@ class CreateVirtueThread(threading.Thread):
         else:
             role = self.role
 
-        ami_id = 'ami-36a8754c'
-
         # Create by calling AWS
         aws = AWS()
         instance = aws.instance_create(
-            image_id=ami_id,
+            image_id=role['amiId'],
             inst_type='t2.small',
             subnet_id='subnet-00664ce7230870c66',
             key_name='starlab-virtue-te',
