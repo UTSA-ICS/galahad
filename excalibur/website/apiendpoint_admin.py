@@ -126,7 +126,7 @@ class EndPoint_Admin():
             print("Error: {0}".format(e))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_aws=True):
+    def role_create(self, role, use_aws=True, hard_code_ami='ami-36a8754c'):
 
         try:
             role_keys = [
@@ -176,7 +176,7 @@ class EndPoint_Admin():
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            new_role['amiId'] = 'ami-36a8754c'
+            new_role['amiId'] = hard_code_ami
 
             ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 

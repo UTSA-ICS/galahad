@@ -130,14 +130,18 @@ class CreateVirtueThread(threading.Thread):
         instance = aws.instance_create(
             image_id=role['amiId'],
             inst_type='t2.small',
-            subnet_id='subnet-00664ce7230870c66',
+            subnet_id='subnet-026ad3430d66940d7',
             key_name='starlab-virtue-te',
             tag_key='Project',
             tag_value='Virtue',
-            sec_group='sg-0e125c01c684e7f6c',
+            sec_group='sg-0b3cb1d7da878eb68',
             inst_profile_name='',
             inst_profile_arn='')
         #instance = {'id': 'id_of_aws_inst', 'state': 'state_of_aws_inst', 'ip': '10.20.30.40'}
+
+        instance.stop()
+        instance.wait_until_stopped()
+        instance.reload()
 
         virtue = {
             'id': 'Virtue_{0}{1}'.format(role['name'], int(time.time())),
