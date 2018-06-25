@@ -36,7 +36,7 @@ class AWS:
         ec2 = boto3.client('ec2')
 
         res = ec2.describe_instances(Filters=[{
-            'Name': 'public-ip-address',
+            'Name': 'ip-address',
             'Values': [ip_address]
         }])
 
