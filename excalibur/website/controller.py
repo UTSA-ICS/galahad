@@ -151,7 +151,7 @@ class CreateVirtueThread(threading.Thread):
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
             'state': aws_state_to_virtue_state[instance.state['Name']],
-            'ipAddress': instance.private_ip_address
+            'ipAddress': instance.public_ip_address
         }
 
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')

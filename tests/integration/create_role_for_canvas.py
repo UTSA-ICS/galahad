@@ -108,6 +108,12 @@ if (__name__ == '__main__'):
     instance.start()
     instance.wait_until_running()
 
+    ldap_virtue = inst.get_obj('cid', virtue['id'], objectClass='OpenLDAPvirtue',
+                               throw_error=True)
+    ldap_virtue['cstate'] = 'RUNNING'
+    inst.modify_obj('cid', virtue['id'], ldap_virtue,
+                    objectClass='OpenLDAPvirtue', throw_error=True)
+
     user_virtue = json.loads(ep.virtue_create('jmitchell', role['id']))
 
     assert set(user_virtue.keys()) == set(['id', 'ipAddress'])

@@ -36,7 +36,7 @@ class AWS:
         ec2 = boto3.client('ec2')
 
         res = ec2.describe_instances(Filters=[{
-            'Name': 'private-ip-address',
+            'Name': 'public-ip-address',
             'Values': [ip_address]
         }])
 
@@ -103,7 +103,7 @@ class AWS:
         instance.wait_until_running()
         instance.reload()
 
-        self.ipAddress = instance.private_ip_address
+        self.ipAddress = instance.public_ip_address
         self.state = instance.state['Name']
 
         return instance
