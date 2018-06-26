@@ -34,18 +34,18 @@ parser message_parser {
 };    
 
 parser transducer_controller {
-        transducer_controller(
-                socket("/var/run/receiver_to_filter")
-        );
+    transducer_controller(
+            socket("/var/run/receiver_to_filter")
+    );
 };
 
 filter remove_self_reports {
-        not (match("syslog-ng" value("ProcName")) or
-        match("syslog-ng" value("ParentName")));
+    not (match("syslog-ng" value("ProcName")) or
+    match("syslog-ng" value("ParentName")));
 };
 
 filter remove_merlin_reports {
-        not match("/var/run/receiver_to_filter" value("Addr"));
+    not match("/var/run/receiver_to_filter" value("Addr"));
 };
 
 log { 
@@ -63,6 +63,18 @@ log {
 log {
     source(s_local);
     filter{ facility(auth); };
+
+    junction {
+        channel {
+            filter(apparmor_logs);
+            parser(apparmor_parser);
+            flags(final);
+        };
+        channel {
+            flags(final);
+        };
+    };
+
     destination(d_file);
     destination(d_elastic);
     destination(d_network);
