@@ -17,10 +17,10 @@ class TransducerStage(SSHStage):
         # install latest syslog-ng
 	wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
 echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list
-apt update && apt install syslog-ng-core curl git -y
+apt update && apt install syslog-ng-core=3.14.1-3 curl git -y
         # install syslog modules and its prereqs
         add-apt-repository ppa:eugenesan/ppa
-        apt install syslog-ng-mod-elastic openjdk-8-jdk -y
+        apt install syslog-ng-mod-elastic=3.14.1-3 syslog-ng-mod-elastic=3.14.1-3 syslog-ng-mod-java=3.14.1-3 syslog-ng-mod-java-common-lib=3.14.1-3 openjdk-8-jdk -y
         echo /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server >> /etc/ld.so.conf.d/java.conf
 	ldconfig
 
