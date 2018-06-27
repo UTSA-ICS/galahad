@@ -28,6 +28,13 @@ destination d_elastic {
 
 destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${HOST} ${MESSAGE}")); };
 
+parser apparmor_parser {
+    kv-parser(value-separator("="));
+};
+
+filter apparmor_logs {
+    match("*" type(glob) value("apparmor"));  
+};
 
 parser message_parser {
     kv-parser(value-separator(":"));
