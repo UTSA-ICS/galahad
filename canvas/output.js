@@ -1,4 +1,5 @@
 'use strict';
+
 var exec = require('child_process').exec;
 var fs = require('fs');
 var debug = require('debug')('connector');
@@ -31,10 +32,28 @@ app.use(session({secret: 'grant',
 app.use(grant);
 var Client = require('node-rest-client').Client;
 var client = new Client();
+
 function execTunnel(options) {
-    var str = "ssh -i " + options.privateKey + " " + options.username + "@" + options.host + " -p " + options.port + " -4 -L " + options.localPort + ":" + options.dstHost + ":" + options.dstPort + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
+
+    var str = "ssh -i "
+      + options.privateKey
+      + " "
+      + options.username
+      + "@"
+      + options.host
+      + " -p "
+      + options.port
+      + " -4 -L "
+      + options.localPort
+      + ":"
+      + options.dstHost
+      + ":"
+      + options.dstPort
+      + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
+
     console.warn('execTunnel str: ', str);
     debug('trying to connect with: ', str);
+
     exec(str, function (error, stdout, stderr) {
         console.warn('stdout: ', stdout);
         console.warn('stderr: ', stderr);
@@ -47,15 +66,20 @@ function execTunnel(options) {
         debug("stderr: " + stderr);
     });
 }
+
 var connector = require('./assets/js/connect');
 function showOptions(target) {
     return target.lastElementChild.style.visibility = "visible";
 }
+
 function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
+
 function openApp(role, port_local, appId, ip) {
+
     var roleIcon = 'fab fa-black-tie';
+
     console.log("openApp");
     console.log(appId);
 
@@ -63,11 +87,14 @@ function openApp(role, port_local, appId, ip) {
       parameters: { "appId" : appId },
       headers: { "Authorization" : "Bearer " + data['access_token']}
     }
+
     client.methods.userApplicationGet(args, function(dat, resp){
+
+      console.log("data = " + JSON.stringify(dat));
       console.log("methods.userApplicationGet");
 
       var local_config = {
-        username: "virtue",
+        username: "ubuntu",
         host: ip,
         port: dat['port'],
         dstHost: "127.0.0.1",
@@ -260,13 +287,15 @@ function bringToFront(appId) {
         }
     });
 }
+
+
 function login(e) {
     var msg = '';
     var color = 'admin';
     var id = document.getElementById('userId').value;
     var pw = document.getElementById('password').value;
-    var loginMsg = document.getElementById('loginMsg');
     var login = document.getElementById('login');
+    var loginMsg = document.getElementById('loginMsg');
     var dockWrapper = document.getElementById('dockWrapper');
     // Ignore unless user pressed enter in pwd field OR clicked submit button
     if (e.type === 'keypress' && e.charCode === 13 || e.type === 'click') {
@@ -298,40 +327,44 @@ function login(e) {
     loginMsg.className = ''; // Clear out old color
     loginMsg.classList.add(color);
 }
+
+
 function check_oauth(e) {
+
   // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-  var msg = '';
-  var color = 'admin';
-  var loginMsg = document.getElementById('loginMsg');
-  var login = document.getElementById('login');
-  var dockWrapper = document.getElementById('dockWrapper');
-  //var win = document.getElementById('oauth2');
+  var login = document.getElementById("login");
   var iframe = document.createElement("iframe");
+  var dockWrapper = document.getElementById("dockWrapper");
+
   //window.open("http://canvas.com:3000/connect/excalibur")
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
   iframe.style.background = "white";
-  iframe.setAttribute("seamless", true);
   iframe.setAttribute("width", "100%");
   iframe.setAttribute("height", "100%");
 
   app.get("/excalibur_callback", function (req, res) {
+
     console.log('/callback');
-    iframe.parentElement.removeChild(iframe)
     console.log(req.query);
+
+    iframe.parentElement.removeChild(iframe)
     res.end(JSON.stringify(req.query, null, 2));
 
     if (req.query.hasOwnProperty('access_token')) {
+
+      console.log('in if statement');
+
       login.classList.remove('fadeIn');
       login.classList.add('fadeOut');
-      //dockWrapper.style.display = 'flex';
-      msg = 'Welcome';
-      color = 'viewer';
+      dockWrapper.style.display = 'flex';
       data = req.query;
-      retrieve_info();
+      getVirtueData();
+
       console.log('exit retrieve')
-    } else {
+    }
+    else {
       console.log('error - error_description');
     }
   });
@@ -343,7 +376,10 @@ function check_oauth(e) {
   login.parentElement.appendChild(iframe);
   login.parentElement.removeChild(login);
 }
-function retrieve_info(){
+
+
+function getVirtueData(){
+
   var dockWrapper = document.getElementById('dockWrapper');
   var client = methods();
   var args = {
@@ -351,36 +387,56 @@ function retrieve_info(){
   }
 
   client.methods.userRoleList(args, function (dat, resp){
+
     console.log("methods.userRoleList");
-    var count = dat.length;
+
+    var number_of_roles = dat.length;
 
     dockWrapper.style.display = 'flex';
 
-    for(var i = 0; i < count; i++){
-      var option = document.getElementById("options" + i);
-      var name = document.getElementById("dock" + i);
-      name.innerHTML = dat[i]['name'];
+    for(var role_index = 0; role_index < number_of_roles; role_index++) {
+
+      var option = document.getElementById("options" + role_index);
+      var name = document.getElementById("dock" + role_index);
+
+      name.innerHTML = dat[role_index]['name'];
       option.style.display = 'flex';
 
-      console.log("role - " + i);
-      console.log(dat[i]);
-      console.log(dat[i]['ipAddress']);
-      console.log(dat[i]['applicationIds']);
+      console.log("role - " + role_index);
+      console.log(dat[role_index]);
+      console.log(dat[role_index]['ipAddress']);
+      console.log(dat[role_index]['applicationIds']);
 
-      var inner_count = dat[i]['applicationIds'].length;
-      console.log(inner_count)
-      for(var k = 0; k < inner_count; k++){
-        var appId = dat[i]['applicationIds'][k];
+      var number_of_apps = dat[role_index]['applicationIds'].length;
+      console.log(number_of_apps)
+
+      for(var app_index = 0;
+          app_index < number_of_apps;
+          app_index++) {
+
+        var appId = dat[role_index]['applicationIds'][app_index];
+        var port_local = '1' + role_index + app_index + '00';
+
         console.log(appId);
-        var port_local = '1' + i + k + '00';
-        console.log(i);
+        console.log(role_index);
 
         // Updates app dock
-        var optionsinner = document.getElementById("optionsinner" + i);
         var div = document.createElement("div");
-        div.setAttribute("class","icon-pair circle-bg");
-        if(dat[i]['ipAddress'] != "null"){
-          div.setAttribute("onclick","openApp('" + dat[i]['name'] + "','" + port_local + "','" + appId + "','" + dat[i]['ipAddress'] + "');");
+        var optionsinner = document.getElementById("optionsinner" + role_index);
+
+        div.setAttribute("class", "icon-pair circle-bg");
+        if(dat[role_index]['ipAddress'] != "null") {
+          div.setAttribute(
+            "onclick",
+            "openApp('"
+              + dat[role_index]['name']
+              + "','"
+              + port_local
+              + "','"
+              + appId
+              + "','"
+              + dat[role_index]['ipAddress']
+              + "');");
         }
         var itag = document.createElement("I");
         itag.setAttribute("class","far fa-file-edit fa-2x");
@@ -391,26 +447,54 @@ function retrieve_info(){
     }
   });
 }
+
+
 function logout(e){
+
   var gui = require('nw.gui');
   gui.App.quit();
 }
-function methods() {
-  var host = "https://18.232.179.188:5002/virtue"
 
-  client.registerMethod("logout", "https://18.232.179.188:5002/oauth2/revoke", "POST");
+
+function methods() {
+
+  var excalibur = "https://54.147.151.224:5002/virtue"
+
+  client.registerMethod(
+    "logout",
+    "https://54.147.151.224:5002/oauth2/revoke",
+    "POST");
 
   // ### Virtue User API
-  client.registerMethod("userRoleGet", host + "/user/role/get", "GET");
-  client.registerMethod("userRoleList", host + "/user/role/list", "GET");
-  client.registerMethod("userApplicationGet", host + "/user/application/get", "GET");
+  client.registerMethod("userRoleGet", excalibur + "/user/role/get", "GET");
+  client.registerMethod("userRoleList", excalibur + "/user/role/list", "GET");
+
+  client.registerMethod("userApplicationGet", excalibur + "/user/application/get", "GET");
+  client.registerMethod("userApplicationLaunch", excalibur + "/user/application/launch", "GET");
+  client.registerMethod("userApplicationStop", excalibur + "/user/application/stop", "GET");
+
+  client.registerMethod("userVirtueGet", excalibur + "/user/virtue/get", "GET");
+  client.registerMethod("userVirtueList", excalibur + "/user/virtue/list", "GET");
+  client.registerMethod("userVirtueCreate", excalibur + "/user/virtue/create", "GET");
+  client.registerMethod("userVirtueLaunch", excalibur + "/user/virtue/launch", "GET");
+  client.registerMethod("userVirtueStop", excalibur + "/user/virtue/stop", "GET");
+  client.registerMethod("userVirtueDestroy", excalibur + "/user/virtue/destroy", "GET");
 
   // ### Virtue Administrative API
+  client.registerMethod("adminApplicationList", excalibur + "/admin/application/list", "GET");
+  client.registerMethod("adminResourceGet", excalibur + "/admin/resource/get", "GET");
+  client.registerMethod("adminResourceList", excalibur + "/admin/resource/list", "GET");
+  client.registerMethod("adminResourceAttach", excalibur + "/admin/resource/attach", "GET");
+  client.registerMethod("adminResourceDetach", excalibur + "/admin/resource/detach", "GET");
+  client.registerMethod("adminRoleCreate", excalibur + "/admin/role/create", "GET");
+  client.registerMethod("adminRoleList", excalibur + "/admin/role/list", "GET");
+  client.registerMethod("adminSystemExport", excalibur + "/admin/system/export", "GET");
+  client.registerMethod("adminSystemImport", excalibur + "/admin/system/import", "GET");
 
 
   // ### Virtue Security API
 
-
   console.log('client');
+
   return client;
 }

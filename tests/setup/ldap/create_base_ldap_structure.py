@@ -104,7 +104,7 @@ def add_user(username, authRoleIds):
     inst.add_obj(ldap_user, 'users', 'cusername', throw_error=True)
 
 
-def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ip):
+def add_virtue(id, username, roleid, appIds, resIds, transIds, awsId):
 
     virtue = {
         'id': id,
@@ -113,8 +113,7 @@ def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ip):
         'applicationIds': str(appIds),
         'resourceIds': str(resIds),
         'transducerIds': str(transIds),
-        'state': state,
-        'ipAddress': ip
+        'awsInstanceId': awsId
     }
 
     ldap_virtue = to_ldap(virtue, 'OpenLDAPvirtue')

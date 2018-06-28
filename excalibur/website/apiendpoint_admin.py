@@ -84,6 +84,8 @@ class EndPoint_Admin():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'DELETING'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
@@ -200,8 +202,7 @@ class EndPoint_Admin():
                     'applicationIds': [],
                     'resourceIds': new_role['startingResourceIds'],
                     'transducerIds': new_role['startingTransducerIds'],
-                    'state': 'STOPPED',
-                    'ipAddress': '8.8.8.8'
+                    'awsInstanceId': 'NULL'
                 }
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                 self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)

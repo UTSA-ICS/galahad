@@ -20,17 +20,49 @@ var config = {
       debug:console.log
     };
 
+
 function execTunnel(options) {
 
-  debug('trying: ssh -i ' + config.privateKey + ' ' + config.username + '@' + config.host+' -p '+config.port+' -4 -L '+config.localPort+':'+config.dstHost+':'+config.dstPort+' -N');
-  exec('ssh -i '+config.privateKey+' ' +config.username+'@'+config.host+' -p '+config.port+' -4 -L '+config.localPort+':'+config.dstHost+':'+config.dstPort+' -N', (error, stdout, stderr) => {
+  debug(
+    'trying: ssh -i '
+      + config.privateKey
+      + ' '
+      + config.username
+      + '@'
+      + config.host
+      + ' -p '+config.port
+      + ' -4 -L '
+      + config.localPort
+      + ':'
+      + config.dstHost
+      + ':'
+      + config.dstPort
+      + ' -N');
+
+  exec(
+    'ssh -i '
+      + config.privateKey
+      + ' '
+      + config.username
+      + '@'
+      + config.host
+      + ' -p '
+      + config.port
+      + ' -4 -L '
+      + config.localPort
+      + ':'
+      + config.dstHost
+      + ':'
+      + config.dstPort
+      + ' -N',
+    (error, stdout, stderr) => {
       if (error) {
         debug(`exec error: ${error}`);
         return;
       }
-    debug(`stdout: ${stdout}`);
+      debug(`stdout: ${stdout}`);
       debug(`stderr: ${stderr}`);
-      });
+    });
 }
 
 

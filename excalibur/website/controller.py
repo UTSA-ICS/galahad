@@ -61,24 +61,12 @@ class BackgroundThread(threading.Thread):
                 if (v['roleId'] in roles_dict and v['username'] == 'NULL'):
                     roles_dict[v['roleId']] += 1
 
-                aws_inst_id = AWS.get_id_from_ip(v['ipAddress'])
+                aws_inst_id = v['awsInstanceId']
                 if (aws_inst_id == None):
                     # Delete the LDAP entry
                     print('Virtue was not found on AWS: {0}.'.format(
-                        v['ipAddress']))
+                        v['awsInstanceId']))
                     #self.inst.del_obj( 'cid', v['id'], objectClass='OpenLDAPvirtue' )
-
-                vm_state = ec2.describe_instances(InstanceIds=[aws_inst_id])[
-                    'Reservations'][0]['Instances'][0]['State']['Name']
-
-                if (aws_state_to_virtue_state[vm_state] != v['state']):
-                    # Update LDAP's virtue object
-                    print('Virtue state has changed: {0} {1} -> {2}'.format(
-                        v['id'], v['state'],
-                        aws_state_to_virtue_state[vm_state]))
-                    v['state'] = aws_state_to_virtue_state[vm['State']['Name']]
-                    ldap_v = ldap_tools.to_ldap(v)
-                    #self.inst.modify_obj( 'cid', v['id'], ldap_v, objectClass='OpenLDAPvirtue' )
 
             for t in thread_list:
                 if (not t.is_alive()):
@@ -150,8 +138,7 @@ class CreateVirtueThread(threading.Thread):
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
-            'state': aws_state_to_virtue_state[instance.state['Name']],
-            'ipAddress': instance.public_ip_address
+            'awsInstanceId': instance.id
         }
 
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')

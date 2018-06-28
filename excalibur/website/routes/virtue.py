@@ -80,11 +80,10 @@ def role_get():
         ep = get_endpoint()
         role = ep.role_get(get_user(), request.args['roleId'])
 
-        return make_response(role)
-
     except:
         print("Unexpected error:", sys.exc_info())
-        return make_response(role)
+
+    return make_response(role)
 
 
 @bp.route('/user/role/list', methods=['GET'])
@@ -98,13 +97,10 @@ def user_role_list():
         ep = get_endpoint()
         roleList = ep.user_role_list(get_user())
 
-        return make_response(roleList)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(roleList)
+    return make_response(roleList)
 
 
 @bp.route('/user/virtue/list', methods=['GET'])
@@ -118,13 +114,10 @@ def user_virtue_list():
         ep = get_endpoint()
         virtueList = ep.user_virtue_list(get_user())
 
-        return make_response(virtueList)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(virtueList)
+    return make_response(virtueList)
 
 
 @bp.route('/user/virtue/get', methods=['GET'])
@@ -138,13 +131,10 @@ def virtue_get():
         ep = get_endpoint()
         virtueId = ep.virtue_get(get_user(), request.args['virtueId'])
 
-        return make_response(virtueId)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(virtueId)
+    return make_response(virtueId)
 
 
 @bp.route('/user/virtue/create', methods=['GET'])
@@ -158,13 +148,10 @@ def virtue_create():
         ep = get_endpoint()
         roleId = ep.virtue_create(get_user(), request.args['roleId'])
 
-        return make_response(roleId)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(roleId)
+    return make_response(roleId)
 
 
 @bp.route('/user/virtue/launch', methods=['GET'])
@@ -178,13 +165,10 @@ def virtue_launch():
         ep = get_endpoint()
         virtue = ep.virtue_launch(get_user(), request.args['virtueId'])
 
-        return make_response(virtue)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(virtue)
+    return make_response(virtue)
 
 
 @bp.route('/user/virtue/stop', methods=['GET'])
@@ -198,13 +182,10 @@ def virtue_stop():
         ep = get_endpoint()
         virtue = ep.virtue_stop(get_user(), request.args['virtueId'])
 
-        return make_response(virtue)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(virtue)
+    return make_response(virtue)
 
 
 @bp.route('/user/virtue/destroy', methods=['GET'])
@@ -218,13 +199,10 @@ def virtue_destroy():
         ep = get_endpoint()
         ret = ep.virtue_destroy(get_user(), request.args['virtueId'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/user/application/get', methods=['GET'])
@@ -238,13 +216,10 @@ def application_get():
         ep = get_endpoint()
         application = ep.application_get(get_user(), request.args['appId'])
 
-        return make_response(application)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(application)
+    return make_response(application)
 
 
 @bp.route('/user/application/launch', methods=['GET'])
@@ -259,14 +234,14 @@ def virtue_application_launch():
 
         ep = get_endpoint()
         application = ep.virtue_application_launch(
-            get_user(), request.args['virtueId'], request.args['appId'])
-        return make_response(application)
+            get_user(),
+            request.args['virtueId'],
+            request.args['appId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(application)
+    return make_response(application)
 
 
 @bp.route('/user/application/stop', methods=['GET'])
@@ -276,18 +251,16 @@ def virtue_application_stop():
     ret = ''
 
     try:
-        # Stops a running Application in the indicated Virtue.
         ep = get_endpoint()
-        ret = ep.virtue_application_stop(get_user(), request.args['virtueId'],
-                                         request.args['appId'])
-
-        return make_response(ret)
+        ret = ep.virtue_application_stop(
+            get_user(),
+            request.args['virtueId'],
+            request.args['appId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/test', methods=['GET'])
@@ -312,17 +285,13 @@ def admin_application_list():
     ret = ''
 
     try:
-        # Lists all Applications currently available in the system.
         ep = get_admin_endpoint()
         ret = ep.application_list()
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/resource/get', methods=['GET'])
@@ -336,13 +305,10 @@ def admin_resource_get():
         ep = get_admin_endpoint()
         ret = ep.resource_get(request.args['resourceId'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/resource/list', methods=['GET'])
@@ -356,13 +322,10 @@ def admin_resource_list():
         ep = get_admin_endpoint()
         ret = ep.resource_list()
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/resource/attach', methods=['GET'])
@@ -375,16 +338,14 @@ def admin_resource_attach():
         # Attaches the indicated Resource to the indicated Virtue.
         # Does not change the underlying Role.
         ep = get_admin_endpoint()
-        ret = ep.resource_attach(request.args['resourceId'],
-                                 request.args['virtueId'])
-
-        return make_response(ret)
+        ret = ep.resource_attach(
+            request.args['resourceId'],
+            request.args['virtueId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/resource/detach', methods=['GET'])
@@ -397,16 +358,14 @@ def admin_resource_detach():
         # Detaches the indicated Resource from the indicated Virtue.
         # Does not change the underlying Role.
         ep = get_admin_endpoint()
-        ret = ep.resource_detach(request.args['resourceId'],
-                                 request.args['virtueId'])
-
-        return make_response(ret)
+        ret = ep.resource_detach(
+            request.args['resourceId'],
+            request.args['virtueId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/role/create', methods=['GET'])
@@ -420,13 +379,10 @@ def admin_role_create():
         ep = get_admin_endpoint()
         ret = ep.role_create(json.loads(request.args['role']))
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/role/list', methods=['GET'])
@@ -440,13 +396,10 @@ def admin_role_list():
         ep = get_admin_endpoint()
         ret = ep.role_list()
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/system/export', methods=['GET'])
@@ -460,13 +413,10 @@ def admin_system_export():
         ep = get_admin_endpoint()
         ret = ep.system_export()
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/system/import', methods=['GET'])
@@ -480,13 +430,10 @@ def admin_system_import():
         ep = get_admin_endpoint()
         ret = ep.system_import(request.args['data'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/test/import/user', methods=['GET'])
@@ -502,13 +449,10 @@ def admin_test_import_user():
         ep = get_admin_endpoint()
         ret = ep.test_import_user(request.args['which'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/test/import/application', methods=['GET'])
@@ -524,13 +468,10 @@ def admin_test_import_application():
         ep = get_admin_endpoint()
         ret = ep.test_import_application(request.args['which'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/test/import/role', methods=['GET'])
@@ -545,13 +486,10 @@ def admin_test_import_role():
         ep = get_admin_endpoint()
         ret = ep.test_import_role(request.args['which'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/user/list', methods=['GET'])
@@ -565,13 +503,10 @@ def admin_user_list():
         ep = get_admin_endpoint()
         ret = ep.user_list()
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/user/get', methods=['GET'])
@@ -585,13 +520,10 @@ def admin_user_get():
         ep = get_admin_endpoint()
         ret = ep.user_get(request.args['username'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/user/virtue/list', methods=['GET'])
@@ -605,13 +537,10 @@ def admin_user_virtue_list():
         ep = get_admin_endpoint()
         ret = ep.user_virtue_list(request.args['username'])
 
-        return make_response(ret)
-
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/user/role/authorize', methods=['GET'])
@@ -624,16 +553,14 @@ def admin_user_role_authorize():
         # Authorizes the indicated Role for the given User.
         # This should also post a message to the User to let them know what happened.
         ep = get_admin_endpoint()
-        ret = ep.user_role_authorize(request.args['username'],
-                                     request.args['roleId'])
-
-        return make_response(ret)
+        ret = ep.user_role_authorize(
+            request.args['username'],
+            request.args['roleId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 @bp.route('/admin/user/role/unauthorize', methods=['GET'])
@@ -645,16 +572,14 @@ def admin_user_role_unauthorize():
     try:
         # Unauthorizes the indicated Role for the given User.
         ep = get_admin_endpoint()
-        ret = ep.user_role_unauthorize(request.args['username'],
-                                       request.args['roleId'])
-
-        return make_response(ret)
+        ret = ep.user_role_unauthorize(
+            request.args['username'],
+            request.args['roleId'])
 
     except:
-
         print("Unexpected error:", sys.exc_info())
 
-        return make_response(ret)
+    return make_response(ret)
 
 
 ################ Security API ##################

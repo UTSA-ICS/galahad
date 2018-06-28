@@ -143,6 +143,11 @@ attributeType ( 1.3.6.1.4.1.62000.1.24
         DESC 'Canvas AMI ID attribute'
         SUP name )
 
+attributeType ( 1.3.6.1.4.1.62000.1.25
+        NAME 'cawsInstId'
+        DESC 'Canvas AWS Instance ID attribute'
+        SUP name )
+
 
 objectClass ( 1.3.6.1.4.1.62000.0.1
 	NAME 'OpenLDAPapplication'
@@ -188,5 +193,5 @@ objectClass ( 1.3.6.1.4.1.62000.0.7
 	NAME 'OpenLDAPvirtue'
 	DESC 'OpenLDAP Virtue'
 	SUP organizationalUnit
-	MUST ( cusername $ croleId $ cappIds $ cresIds $ ctransIds $ cstate )
-	MAY ( cid $ cipAddress ) )
+	MUST ( cusername $ croleId $ cappIds $ cresIds $ ctransIds $ cawsInstId )
+	MAY ( cid ) )
