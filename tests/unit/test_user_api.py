@@ -47,8 +47,7 @@ def setup_module():
         'applicationIds': [],
         'resourceIds': [],
         'transducerIds': [],
-        'state': 'STOPPED',
-        'ipAddress': '1.2.3.4'
+        'awsInstanceId': 'NULL'
     }
 
     ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
@@ -89,6 +88,9 @@ def teardown_module():
 
     inst.del_obj(
         'cid', 'usertestrole0', objectClass='OpenLDAProle', throw_error=True)
+
+    inst.del_obj(
+        'cid', 'usertestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True)
 
 
 def test_application_calls():
@@ -176,8 +178,10 @@ def test_virtue_calls():
         throw_error=True)
     ldap_tools.parse_ldap(real_virtue)
 
-    assert result['id'] == 'usertestvirtue0'
-    assert result['ipAddress'] == real_virtue['ipAddress']
+    assert result == {
+        'id': 'usertestvirtue0',
+        'ipAddress': 'NULL'
+    }
 
     assert real_virtue['username'] == 'jmitchell'
 
@@ -194,6 +198,16 @@ def test_virtue_calls():
 
     virtue = json.loads(ep.virtue_get('jmitchell', 'usertestvirtue0'))
 
+    real_virtue = {
+        'id': real_virtue['id'],
+        'username': real_virtue['username'],
+        'roleId': real_virtue['roleId'],
+        'applicationIds': real_virtue['applicationIds'],
+        'resourceIds': real_virtue['resourceIds'],
+        'transducerIds': real_virtue['transducerIds'],
+        'state': 'NULL',
+        'ipAddress': 'NULL'
+    }
     assert virtue == real_virtue
 
     # user_virtue_list
@@ -212,23 +226,6 @@ def test_virtue_calls():
     assert json.dumps(
         ErrorCodes.user['userNotAuthorized']) == ep.virtue_destroy(
             'fpatwa', 'usertestvirtue0', use_aws=False)
-
-    ldap_virtue = inst.get_obj(
-        'cid',
-        'usertestvirtue0',
-        objectClass='OpenLDAPvirtue',
-        throw_error=True)
-    ldap_virtue['cstate'] = 'RUNNING'
-    inst.modify_obj(
-        'cid', 'usertestvirtue0', ldap_virtue, objectClass='OpenLDAPvirtue')
-
-    assert json.dumps(
-        ErrorCodes.user['virtueNotStopped']) == ep.virtue_destroy(
-            'jmitchell', 'usertestvirtue0')
-
-    ldap_virtue['cstate'] = 'STOPPED'
-    inst.modify_obj(
-        'cid', 'usertestvirtue0', ldap_virtue, objectClass='OpenLDAPvirtue')
 
     assert ep.virtue_destroy(
         'jmitchell', 'usertestvirtue0', use_aws=False) == None
