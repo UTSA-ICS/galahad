@@ -77,7 +77,9 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        virtue_ip = v['ipAddress']
+                        aws = AWS()
+                        virtue = aws.populate_virtue_dict(v)
+                        virtue_ip = virtue['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
@@ -105,6 +107,7 @@ class EndPoint():
             ldap_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
             virtues = ldap_tools.parse_ldap_list(ldap_virtues)
 
+            aws = AWS()
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj('cid', roleId, 'openLDAProle')
                 if (role == None or role == ()):
@@ -116,7 +119,8 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        virtue_ip = v['ipAddress']
+                        virtue = aws.populate_virtue_dict(v)
+                        virtue_ip = virtue['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
@@ -140,12 +144,14 @@ class EndPoint():
 
             virtues_ret = []
 
+            aws = AWS()
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
 
                 if (virtue[1]['username'] == username):
-
-                    virtues_ret.append(virtue[1])
+                    v = aws.populate_virtue_dict(virtue[1])
+                    del v['awsInstanceId']
+                    virtues_ret.append(v)
 
             return json.dumps(virtues_ret)
 
@@ -163,7 +169,9 @@ class EndPoint():
             ldap_tools.parse_ldap(virtue)
 
             if (virtue['username'] == username or DEBUG_PERMISSIONS):
-
+                aws = AWS()
+                virtue = aws.populate_virtue_dict(virtue)
+                del virtue['awsInstanceId']
                 return json.dumps(virtue)
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
@@ -248,6 +256,8 @@ class EndPoint():
             # return json.dumps( virtue )
 
             # Return a json of the id and ip address
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
             return json.dumps({
                 'ipAddress': virtue['ipAddress'],
                 'id': virtue['id']
@@ -265,6 +275,9 @@ class EndPoint():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
@@ -293,6 +306,9 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
+
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
@@ -319,36 +335,24 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
+
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
-
-            if (virtue['state'] != 'STOPPED'):
-                return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
             if (use_aws == False):
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
                 return
 
-            aws = AWS()
-            aws_id = aws.get_id_from_ip(virtue['ipAddress'])
+            if (virtue['state'] != 'STOPPED'):
+                return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
-            aws_res = aws.instance_destroy(aws_id, block=False)
+            aws_res = aws.instance_destroy(virtue['awsInstanceId'], block=False)
 
             aws_state = aws_res.state['Name']
 
-            # Wait for it to finish terminating?
-
-            del_virtue = False
-
             if (aws_state == 'shutting-down'):
-                virtue['state'] = 'DELETING'
-                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.modify_obj(
-                    'cid',
-                    virtueId,
-                    ldap_virtue,
-                    objectClass='OpenLDAPvirtue',
-                    throw_error=True)
                 return  # Success!
 
             elif (aws_state == 'terminated'):
@@ -370,6 +374,9 @@ class EndPoint():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.user['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
@@ -411,6 +418,9 @@ class EndPoint():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.user['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])

@@ -1,9 +1,23 @@
 import boto3
+import botocore
+import copy
 import json
 
 
 class AWS:
+
+    aws_state_to_virtue_state = {
+        'pending': 'CREATING',
+        'running': 'RUNNING',
+        'shutting-down': 'DELETING',
+        'terminated': 'STOPPED',
+        'stopping': 'STOPPING',
+        'stopped': 'STOPPED'
+    }
+
     def __init__(self):
+        self.ec2 = boto3.resource('ec2')
+
         self.id = ''
         self.username = ''
         self.roleId = ''
@@ -31,12 +45,26 @@ class AWS:
     def __str__(self):
         return self.get_json()
 
+    def populate_virtue_dict(self, virtue):
+        instance = self.ec2.Instance(virtue['awsInstanceId'])
+
+        virtue = copy.deepcopy(virtue)
+        try:
+            virtue['state'] = \
+                self.aws_state_to_virtue_state[instance.state['Name']]
+            virtue['ipAddress'] = str(instance.public_ip_address)
+        except botocore.exceptions.ClientError:
+            virtue['state'] = 'NULL'
+            virtue['ipAddress'] = 'NULL'
+
+        return virtue
+
     @staticmethod
     def get_id_from_ip(ip_address):
         ec2 = boto3.client('ec2')
 
         res = ec2.describe_instances(Filters=[{
-            'Name': 'private-ip-address',
+            'Name': 'ip-address',
             'Values': [ip_address]
         }])
 
@@ -103,7 +131,7 @@ class AWS:
         instance.wait_until_running()
         instance.reload()
 
-        self.ipAddress = instance.private_ip_address
+        self.ipAddress = instance.public_ip_address
         self.state = instance.state['Name']
 
         return instance

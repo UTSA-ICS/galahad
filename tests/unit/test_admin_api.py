@@ -276,6 +276,9 @@ def test_user_calls():
 
     for v in parsed_virtue_list:
         if (v['username'] == 'jmitchell'):
+            del v['awsInstanceId']
+            v['state'] = 'NULL'
+            v['ipAddress'] = 'NULL'
             real_virtue_list.append(v)
 
     assert json.loads(virtue_list) == real_virtue_list
