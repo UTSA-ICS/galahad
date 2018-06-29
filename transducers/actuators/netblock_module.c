@@ -14,6 +14,7 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/fs.h>
+#include <linux/string.h>
 #include "kmap.h"
 
 MODULE_AUTHOR("Raytheon BBN Technologies");
@@ -48,6 +49,16 @@ static struct file_operations fops = {
 //   Character Device
 #define  DEVICE_NAME "netblockchar"
 #define  CLASS_NAME  "netblock"
+
+//   Rule operations
+#define REMOVE_OUTGOING_PORT 0
+#define ADD_OUTGOING_PORT 1
+#define REMOVE_INCOMING_PORT 2
+#define ADD_INCOMING_PORT 3
+#define REMOVE_OUTGOING_IP 4
+#define ADD_OUTGOING_IP 5
+#define REMOVE_INCOMING_IP 6
+#define ADD_INCOMING_IP 7
 
 
 
@@ -268,15 +279,86 @@ static int device_open(struct inode *inodep, struct file *filep){
    	return 0;
 }
 
+/*
+	Will use a byte to format rules in the format of:
+	[action][direction][ip/port]
+	
+	Ex: the number 7 i.e. 101 in binary --> add outgoing ip [value]
+*/
+
 static ssize_t device_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+
 	int* val;
+	char* cursor;
+	char* token;
+	int count;
+	unsigned char rule;
    	sprintf(message, "%s", buffer);
    	size_of_message = strlen(message);
+	
+	//Parse the incoming rule
+	cursor = &message[0];
+	rule = 0;
 
-	map_set(&rules.in_ip, message, 0);
-	val = map_get(&rules.in_ip, message);
+	while(cursor != NULL){
+		token = strsep(&cursor," ");
+		if(strcmp(token, "add") == 0){
+			rule = rule | 0x1;
+		}else if(strcmp(token, "rm") == 0){
+			//do nothing
+		}else if(strcmp(token, "incoming") == 0){
+			rule = rule | 0x2;
+		}else if(strcmp(token, "outgoing") == 0){
+			//do nothing
+		}else if(strcmp(token, "ip") == 0){
+			rule = rule | 0x4;
+		}else if(strcmp(token, "port") == 0){
+			//do nothing
+		}else{
+			if(cursor != NULL){
+				printk(KERN_INFO "Invalid command sent to netblock module\n");
+				return -1;
+			}
+		}
+	}
 
-	printk(KERN_INFO "Blocking IP address %s\n", message);
+	switch(rule){
+		case REMOVE_OUTGOING_PORT:
+			map_remove(&rules.out_ports, token);
+			break;
+		case ADD_OUTGOING_PORT:
+			map_set(&rules.out_ports, token, 0);
+			break;
+		case REMOVE_INCOMING_PORT:
+			map_remove(&rules.in_ports, token);
+			break;
+		case ADD_INCOMING_PORT:
+			map_set(&rules.in_ports, token, 0);
+			break;
+		case REMOVE_OUTGOING_IP:
+			map_remove(&rules.out_ip, token);
+			break;
+		case ADD_OUTGOING_IP:
+			map_set(&rules.out_ip, token, 0);
+			break;
+		case REMOVE_INCOMING_IP:
+			map_remove(&rules.in_ip, token);
+			break;
+		case ADD_INCOMING_IP:
+			map_set(&rules.in_ip, token, 0);
+			break;
+		default:
+			printk(KERN_INFO "netblock: received invalid command\n");
+			return -1;
+	}
+
+	printk(KERN_INFO "Peformed action %d on %s\n", rule, token);
+ 
+
+	//map_set(&rules.in_ip, message, 0);
+	//val = map_get(&rules.in_ip, message);
+
+	//printk(KERN_INFO "Blocking IP address %s\n", message);
    	return len;
 }
 
