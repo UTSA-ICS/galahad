@@ -1,9 +1,11 @@
-//*****************************************************************
-//      Netfilter Module for blocking network access              *
-//							          *
-//	Copyright (c) 2018 by Raytheon BBN Technologies Corp.     *
-//							          *
-//*****************************************************************
+/*
+*****************************************************************
+      Netfilter Module for blocking network access              *
+							        *
+      Copyright (c) 2018 by Raytheon BBN Technologies Corp.     *
+							        *
+*****************************************************************
+*/
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -384,7 +386,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		return NF_DROP;
 	}
 
-	
+
 	if (ip_header->nexthdr == IPPROTO_TCP){
 
 		tcp_header = (struct tcphdr*) ipipv6_hdr;
@@ -422,7 +424,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		}
 
 	}
-	
+
 
 	return NF_ACCEPT;
 }
@@ -528,18 +530,36 @@ static int device_open(struct inode *inodep, struct file *filep){
    	return 0;
 }
 
+/*
+	Commands are read in as strings:
+		[command:1bit] [direction:1bit] [protocol:2bits] <value>
+
+	1st Bit: (unblock=0, block=1)
+	2nd Bit: (outgoing=0, incoming=1)
+	3rd & 4th bit: (ipv4=0,ipv6=1,tcp=2,udp=3)
+
+	Examples:
+		"block outgoing udp 122" ===> 1101 = 13
+		(Therefore, execute command #13 with value 122.)
+
+		"unblock incoming ipv4 192.168.0.2" ===> 0010 = 2
+		"unblock outgoing tcp 80" ===> 1000 = 8
+*/
+
 static ssize_t device_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 
 	char* cursor;
 	char* token;
 	unsigned char rule;
+	int count;
    	snprintf(message, 255,"%s", buffer);
 
 	//Parse the incoming rule
 	cursor = &message[0];
 	rule = 0;
-
+	count = 0;
 	while(cursor != NULL){
+		count++;
 		token = strsep(&cursor," ");
 		if(strcmp(token, UNBLOCK) == 0){
 			//do nothing
@@ -563,6 +583,11 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 				return -1;
 			}
 		}
+	}
+
+	if(count != 4){
+		printk(KERN_INFO "netblock: incorrectly formatted command\n");
+		return -1;
 	}
 
 	//Apply action to ruleset
