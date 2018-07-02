@@ -95,10 +95,7 @@ if (__name__ == '__main__'):
         if (v['roleId'] == role['id'] and v['username'] == 'NULL'):
             virtue = v
 
-    aws = AWS()
-    inst_id = aws.get_id_from_ip(virtue['ipAddress'])
-
-    assert inst_id != None
+    inst_id = virtue['awsInstanceId']
 
     ec2 = boto3.resource('ec2')
     instance = ec2.Instance(inst_id)
@@ -108,16 +105,10 @@ if (__name__ == '__main__'):
     instance.start()
     instance.wait_until_running()
 
-    ldap_virtue = inst.get_obj('cid', virtue['id'], objectClass='OpenLDAPvirtue',
-                               throw_error=True)
-    ldap_virtue['cstate'] = 'RUNNING'
-    inst.modify_obj('cid', virtue['id'], ldap_virtue,
-                    objectClass='OpenLDAPvirtue', throw_error=True)
-
     user_virtue = json.loads(ep.virtue_create('jmitchell', role['id']))
 
     assert set(user_virtue.keys()) == set(['id', 'ipAddress'])
 
     print('Instance ID: {0}'.format(inst_id))
-
-    
+    print('Virtue ID: {0}'.format(user_virtue['id']))
+    print('Virtue IP: {0}'.format(user_virtue['ipAddress']))
