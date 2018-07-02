@@ -11,6 +11,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/fs.h>
@@ -213,6 +214,7 @@ unsigned int ipv4_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 	//Convert Destination IP Decimal into IPv4 string
 	snprintf(ip_dst, 16, "%pI4", &ip_header->daddr);
 
+
 	val = map_get(&rules.out_ipv4, ip_dst);
 	if(val != NULL){
 		printk(KERN_INFO "netblock: blocking outgoing traffic to IP address: %s\n", ip_dst);
@@ -264,25 +266,27 @@ unsigned int ipv4_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 //   Incoming IPv6 packets hook
 unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_state *state){
 
-	struct iphdr* ip_header;
+	struct ipv6hdr* ip_header;
 	struct tcphdr* tcp_header;
 	struct udphdr* udp_header;
 	uint16_t dst_port;
 	uint16_t src_port;
 	char dport[6];
-	char ip_src[16];
-	char ip_dst[16];
+	char ip_src[40];
+	char ip_dst[40];
 	int* val;
+
 
 	if(!skb){
 		return NF_ACCEPT;
 	}
 
 
-	ip_header = ip_hdr(skb);
+	ip_header = ipv6_hdr(skb);
 	if(!ip_header){
 		return NF_ACCEPT;
 	}
+
 
 	//retrieve source and destination addresses for the packet
 	//Convert Source IP Decimal into IPv6 string
@@ -290,6 +294,8 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 
 	//Convert Destination IP Decimal into IPv6 string
 	snprintf(ip_dst, 40, "%pI6", &ip_header->daddr);
+
+	printk(KERN_INFO "netblock: incoming IPv6 traffic from %s\n", ip_src);
 
 	val = map_get(&rules.in_ipv6, ip_src);
 	if(val != NULL){
@@ -299,11 +305,10 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 		return NF_DROP;
 	}
 
+	if (ip_header->nexthdr == IPPROTO_TCP){
 
-	if (ip_header->protocol == IPPROTO_TCP){
 
-
-		tcp_header = (struct tcphdr*)((__u32*)ip_header + ip_header->ihl);
+		tcp_header = (struct tcphdr*)ipipv6_hdr;
 		if(!tcp_header){
 			return NF_ACCEPT;
 		}
@@ -318,10 +323,10 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 			return NF_DROP;
 		}
 
-	}else if (ip_header->protocol == IPPROTO_UDP){
+	}else if (ip_header->nexthdr == IPPROTO_UDP){
 
 
-		udp_header = (struct udphdr*)((__u32*)ip_header + ip_header->ihl);
+		udp_header = (struct udphdr*)ipipv6_hdr;
 		if(!udp_header){
 			return NF_ACCEPT;
 		}
@@ -344,23 +349,24 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 //   Outgoing IPv6 packets hook
 unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook_state *state){
 
-	struct iphdr* ip_header;
+	struct ipv6hdr* ip_header;
 	struct tcphdr* tcp_header;
 	struct udphdr* udp_header;
 	uint16_t dst_port;
 	uint16_t src_port;
 
-	char ip_src[16];
-	char ip_dst[16];
+	char ip_src[40];
+	char ip_dst[40];
 	char sport[6];
 	int* val;
+
 
 	if(!skb){
 		return NF_ACCEPT;
 	}
 
 
-	ip_header = ip_hdr(skb);
+	ip_header = ipv6_hdr(skb);
 	if(!ip_header){
 		return NF_ACCEPT;
 	}
@@ -378,10 +384,10 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		return NF_DROP;
 	}
 
+	
+	if (ip_header->nexthdr == IPPROTO_TCP){
 
-	if (ip_header->protocol == IPPROTO_TCP){
-
-		tcp_header = (struct tcphdr*)((__u32*)ip_header + ip_header->ihl);
+		tcp_header = (struct tcphdr*) ipipv6_hdr;
 		if(!tcp_header){
 			return NF_ACCEPT;
 		}
@@ -398,9 +404,9 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 
 
 
-	}else if (ip_header->protocol == IPPROTO_UDP){
+	}else if (ip_header->nexthdr == IPPROTO_UDP){
 
-		udp_header = (struct udphdr*)((__u32*)ip_header + ip_header->ihl);
+		udp_header = (struct udphdr*)ipipv6_hdr;
 		if(!udp_header){
 			return NF_ACCEPT;
 		}
@@ -416,6 +422,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		}
 
 	}
+	
 
 	return NF_ACCEPT;
 }
@@ -470,13 +477,13 @@ int init_module(){
 	nfho_ipv6_in.hook = ipv6_in_hook;
 	nfho_ipv6_in.hooknum = NF_INET_LOCAL_IN;
 	nfho_ipv6_in.pf = PF_INET6;
-	nfho_ipv6_in.priority = NF_IP_PRI_FIRST;
+	nfho_ipv6_in.priority = NF_IP6_PRI_FIRST;
 	nf_register_net_hook(&init_net, &nfho_ipv6_in);
 
 	nfho_ipv6_out.hook = ipv6_out_hook;
 	nfho_ipv6_out.hooknum = NF_INET_LOCAL_OUT;
 	nfho_ipv6_out.pf = PF_INET6;
-	nfho_ipv6_out.priority = NF_IP_PRI_FIRST;
+	nfho_ipv6_out.priority = NF_IP6_PRI_FIRST;
 	nf_register_net_hook(&init_net, &nfho_ipv6_out);
 
 	//initialize hashmaps
