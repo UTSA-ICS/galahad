@@ -18,7 +18,7 @@
 #include <linux/udp.h>
 #include <linux/fs.h>
 #include <linux/string.h>
-#include "kmap.h"
+#include "include/kmap.h"
 
 MODULE_AUTHOR("Raytheon BBN Technologies");
 MODULE_LICENSE("GPL");
@@ -72,13 +72,14 @@ static struct device* netblockcharDevice = NULL;
 static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
-
+static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 
 //   File Operations structure for character device driver callbacks
 static struct file_operations fops = {
 	.write = device_write,
 	.open = device_open,
 	.release = device_release,
+	.read = device_read,
 };
 
 
@@ -648,6 +649,20 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 	printk(KERN_INFO "Peformed action %d on %s\n", rule, token);
 
    	return len;
+}
+
+static ssize_t device_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+	int error_count = 0;
+   	// copy_to_user has the format ( * to, *from, size) and returns 0 on success
+   	error_count = copy_to_user(buffer, "Hello World", 11);
+
+   	if (error_count==0){
+      		printk(KERN_INFO "netblock: Sent %d characters to the user\n", 11);
+      		return 0;
+   	}else {
+      		printk(KERN_INFO "netblock: Failed to send %d characters to the user\n", error_count);
+      		return -EFAULT;
+   	}
 }
 
 static int device_release(struct inode *inodep, struct file *filep){

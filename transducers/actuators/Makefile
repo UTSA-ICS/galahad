@@ -2,7 +2,7 @@ KDIR :=/lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
 obj-m := actuator_network.o
-actuator_network-objs := kmap.o netblock_module.o
+actuator_network-objs := include/kmap.o netblock_module.o
 
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
