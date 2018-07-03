@@ -72,14 +72,12 @@ static struct device* netblockcharDevice = NULL;
 static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
-static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 
 //   File Operations structure for character device driver callbacks
 static struct file_operations fops = {
 	.write = device_write,
 	.open = device_open,
 	.release = device_release,
-	.read = device_read,
 };
 
 
@@ -158,6 +156,7 @@ unsigned int ipv4_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 		val = map_get(&rules.in_tcp_ports, dport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking TCP traffic incoming to port: %d\n", dst_port);
 			return NF_DROP;
 		}
@@ -176,6 +175,7 @@ unsigned int ipv4_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 		val = map_get(&rules.in_udp_ports, dport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking UDP traffic incoming to port: %d\n", dst_port);
 			return NF_DROP;
 		}
@@ -220,6 +220,7 @@ unsigned int ipv4_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 
 	val = map_get(&rules.out_ipv4, ip_dst);
 	if(val != NULL){
+		*val = *val + 1;
 		printk(KERN_INFO "netblock: blocking outgoing traffic to IP address: %s\n", ip_dst);
 		return NF_DROP;
 	}
@@ -238,6 +239,7 @@ unsigned int ipv4_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		val = map_get(&rules.out_tcp_ports, sport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking outgoing TCP traffic originating from port: %d\n", src_port);
 			return NF_DROP;
 		}
@@ -257,6 +259,7 @@ unsigned int ipv4_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		val = map_get(&rules.out_udp_ports, sport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking outgoing UDP traffic originating from port: %d\n", src_port);
 			return NF_DROP;
 		}
@@ -298,8 +301,6 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 	//Convert Destination IP Decimal into IPv6 string
 	snprintf(ip_dst, 40, "%pI6", &ip_header->daddr);
 
-	printk(KERN_INFO "netblock: incoming IPv6 traffic from %s\n", ip_src);
-
 	val = map_get(&rules.in_ipv6, ip_src);
 	if(val != NULL){
 		//drop traffic
@@ -322,6 +323,7 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 		val = map_get(&rules.in_tcp_ports, dport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking TCP traffic incoming to port: %d\n", dst_port);
 			return NF_DROP;
 		}
@@ -340,6 +342,7 @@ unsigned int ipv6_in_hook(void* priv, struct sk_buff *skb, const struct nf_hook_
 		val = map_get(&rules.in_udp_ports, dport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking UDP traffic incoming to port: %d\n", dst_port);
 			return NF_DROP;
 		}
@@ -383,6 +386,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 
 	val = map_get(&rules.out_ipv6, ip_dst);
 	if(val != NULL){
+		*val = *val + 1;
 		printk(KERN_INFO "netblock: blocking outgoing traffic to IPv6 address: %s\n", ip_dst);
 		return NF_DROP;
 	}
@@ -401,6 +405,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		val = map_get(&rules.out_tcp_ports, sport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking outgoing TCP traffic originating from port: %d\n", src_port);
 			return NF_DROP;
 		}
@@ -420,6 +425,7 @@ unsigned int ipv6_out_hook(void* priv, struct sk_buff *skb, const struct nf_hook
 		val = map_get(&rules.out_udp_ports, sport);
 
 		if(val != NULL){
+			*val = *val + 1;
 			printk(KERN_INFO "netblock: blocking outgoing UDP traffic originating from port: %d\n", src_port);
 			return NF_DROP;
 		}
@@ -531,21 +537,6 @@ static int device_open(struct inode *inodep, struct file *filep){
    	return 0;
 }
 
-/*
-	Commands are read in as strings:
-		[command:1bit] [direction:1bit] [protocol:2bits] <value>
-
-	1st Bit: (unblock=0, block=1)
-	2nd Bit: (outgoing=0, incoming=1)
-	3rd & 4th bit: (ipv4=0,ipv6=1,tcp=2,udp=3)
-
-	Examples:
-		"block outgoing udp 122" ===> 1101 = 13
-		(Therefore, execute command #13 with value 122.)
-
-		"unblock incoming ipv4 192.168.0.2" ===> 0010 = 2
-		"unblock outgoing tcp 80" ===> 1000 = 8
-*/
 
 static ssize_t device_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 
@@ -649,20 +640,6 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 	printk(KERN_INFO "Peformed action %d on %s\n", rule, token);
 
    	return len;
-}
-
-static ssize_t device_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
-	int error_count = 0;
-   	// copy_to_user has the format ( * to, *from, size) and returns 0 on success
-   	error_count = copy_to_user(buffer, "Hello World", 11);
-
-   	if (error_count==0){
-      		printk(KERN_INFO "netblock: Sent %d characters to the user\n", 11);
-      		return 0;
-   	}else {
-      		printk(KERN_INFO "netblock: Failed to send %d characters to the user\n", error_count);
-      		return -EFAULT;
-   	}
 }
 
 static int device_release(struct inode *inodep, struct file *filep){
