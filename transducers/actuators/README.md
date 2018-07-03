@@ -19,10 +19,10 @@ Writing **unblock outgoing ipv4 127.0.0.1** to the file */dev/netblockchar* will
 
 
 ##### Supported Commands
-* block incoming ipv4 **IPv6 address**
-* block outgoing ipv4 **IPv6 address**
-* block incoming ipv6 **IPv6 address**
-* block outgoing ipv6 **IPv6 address**
+* block incoming ipv4 **IPv4 address**
+* block outgoing ipv4 **IPv4 address**
+* block incoming ipv6 **IPv4 address**
+* block outgoing ipv6 **IPv4 address**
 * block incoming tcp **port**
 * block outgoing tcp **port**
 * block incoming udp **port**
