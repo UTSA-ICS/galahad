@@ -637,7 +637,7 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 			return -1;
 	}
 
-	printk(KERN_INFO "Peformed action %d on %s\n", rule, token);
+	printk(KERN_INFO "netblock: command completed successfully");
 
    	return len;
 }

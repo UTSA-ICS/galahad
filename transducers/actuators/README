@@ -1,0 +1,21 @@
+Network actuator for blocking ports, IP addresses, etc.
+Must have root permissions to run.
+
+To install:
+   
+   ./setup.sh 
+
+
+A user can add new rules by running the "netblock" command.
+
+Example: sudo netblock block incoming tcp 80
+
+   - this blocks all incoming TCP traffic on port 80
+
+
+A program can add new rules by writing to the character
+device at "/dev/netblockchar"
+
+Example: Writing "unblock outgoing ipv4 127.0.0.1" to
+         the file /dev/netblockchar will unblock all
+         outgoing IPv4 traffic from the localhost.
