@@ -21,7 +21,7 @@ from sultan.api import Sultan, SSHConfig
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
 EXCALIBUR_IP = 'setup/excalibur_ip'
-AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
+AWS_INSTANCE_INFO = 'aws_instance_info.json'
 
 # aws public key name used for the instances
 key_name = 'starlab-virtue-te'
@@ -139,11 +139,14 @@ class Excalibur():
         # Return public IP
         return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
-    def setup_keys(self, github_key):
+    def setup_keys(self, github_key, user_key):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
                 format(self.ssh_key, github_key, self.server_ip)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
+                format(self.ssh_key, user_key, self.server_ip)).run()
 
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
@@ -184,13 +187,13 @@ class Excalibur():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                 format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup_excalibur(self, branch, github_key, aws_config, aws_keys):
+    def setup_excalibur(self, branch, github_key, aws_config, aws_keys, user_key):
 
         logger.info('Setting up key for github access')
         self.update_security_rules()
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
+        self.setup_keys(github_key, user_key)
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
@@ -217,6 +220,8 @@ class Excalibur():
         # Call the setup_ldap.sh script for openldap installation and config.
         _cmd2 = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+
+        self.setup_aws_instance_info()
 
         # Start the flask-server (excalibur)
         _cmd3 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
@@ -250,8 +255,14 @@ class Excalibur():
         aws_instance_info['inst_profile_arn'] = ''
 
         # Now write this to a file
-        with open(AWS_INSTANCE_INFO, 'w') as f:
+        filename = AWS_INSTANCE_INFO.split('/')[-1]
+        with open('/tmp/{0}'.format(filename), 'w') as f:
             json.dump(aws_instance_info, f)
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/tests/{3}'.
+                format(self.ssh_key, filename, self.server_ip, AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info
 
@@ -344,12 +355,12 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
 
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
-          aws_keys, branch):
+          aws_keys, branch, user_key):
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
 
     excalibur = Excalibur(stack_name, path_to_key)
-    excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
+    excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
 
 
 def parse_args():
@@ -416,7 +427,16 @@ def parse_args():
         "--delete_stack",
         action="store_true",
         help="delete the specified stack")
+
+    # Temporary:
+    parser.add_argument(
+        "--default_user_key",
+        type=str,
+        required=True,
+        help="Default private key for users to get (Will be replaced with generated keys)")
+
     args = parser.parse_args()
+
     return args
 
 
@@ -434,7 +454,7 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name)
+              args.branch_name, args.default_user_key)
     if args.setup_ldap:
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.setup_ldap()

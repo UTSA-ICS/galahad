@@ -63,7 +63,7 @@ class ErrorCodes():
                 'The indicated Virtue is not stopped. Please stop it and try again.'
             ]
         },
-        'invalidApplicationID': {
+        'invalidApplicationId': {
             'status': 'failed',
             'result': [11, 'The given Application ID is invalid.']
         },
@@ -134,6 +134,11 @@ class ErrorCodes():
             'status': 'failed',
             'result':
             [14, 'The indicated Application has already been launched.']
+        },
+        'applicationAlreadyStopped': {
+            'status': 'failed',
+            'result':
+            [14, 'The indicated Application is already stopped.']
         },
         'resourceCreationError': {
             'status':
