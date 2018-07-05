@@ -51,7 +51,7 @@ function execTunnel(options) {
       + options.dstPort
       + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
 
-    console.warn('execTunnel str: ', str);
+    console.log('execTunnel str: ', str);
     debug('trying to connect with: ', str);
 
     exec(str, function (error, stdout, stderr) {
@@ -94,9 +94,10 @@ function openApp(role, port_local, appId, ip) {
       console.log("methods.userApplicationGet");
 
       var local_config = {
-        username: "ubuntu",
+        username: "virtue",
         host: ip,
-        port: dat['port'],
+        //port: dat['port'],
+        port: 6768,
         dstHost: "127.0.0.1",
         dstPort: 2023,
         localHost: "0.0.0.0",
@@ -389,6 +390,8 @@ function getVirtueData(){
   client.methods.userRoleList(args, function (dat, resp){
 
     console.log("methods.userRoleList");
+    console.log("userRoleList data = " + JSON.stringify(dat));
+    console.log("dat.length = " + dat.length);
 
     var number_of_roles = dat.length;
 
@@ -458,38 +461,38 @@ function logout(e){
 
 function methods() {
 
-  var excalibur = "https://54.147.151.224:5002/virtue"
+  var excalibur = "https://18.207.181.128:5002/virtue"
 
   client.registerMethod(
     "logout",
-    "https://54.147.151.224:5002/oauth2/revoke",
+    "https://18.207.181.128:5002/oauth2/revoke",
     "POST");
 
   // ### Virtue User API
-  client.registerMethod("userRoleGet", excalibur + "/user/role/get", "GET");
+  client.registerMethod("userRoleGet",  excalibur + "/user/role/get",  "GET");
   client.registerMethod("userRoleList", excalibur + "/user/role/list", "GET");
 
-  client.registerMethod("userApplicationGet", excalibur + "/user/application/get", "GET");
+  client.registerMethod("userApplicationGet",    excalibur + "/user/application/get",    "GET");
   client.registerMethod("userApplicationLaunch", excalibur + "/user/application/launch", "GET");
-  client.registerMethod("userApplicationStop", excalibur + "/user/application/stop", "GET");
+  client.registerMethod("userApplicationStop",   excalibur + "/user/application/stop",   "GET");
 
-  client.registerMethod("userVirtueGet", excalibur + "/user/virtue/get", "GET");
-  client.registerMethod("userVirtueList", excalibur + "/user/virtue/list", "GET");
-  client.registerMethod("userVirtueCreate", excalibur + "/user/virtue/create", "GET");
-  client.registerMethod("userVirtueLaunch", excalibur + "/user/virtue/launch", "GET");
-  client.registerMethod("userVirtueStop", excalibur + "/user/virtue/stop", "GET");
+  client.registerMethod("userVirtueGet",     excalibur + "/user/virtue/get",     "GET");
+  client.registerMethod("userVirtueList",    excalibur + "/user/virtue/list",    "GET");
+  client.registerMethod("userVirtueCreate",  excalibur + "/user/virtue/create",  "GET");
+  client.registerMethod("userVirtueLaunch",  excalibur + "/user/virtue/launch",  "GET");
+  client.registerMethod("userVirtueStop",    excalibur + "/user/virtue/stop",    "GET");
   client.registerMethod("userVirtueDestroy", excalibur + "/user/virtue/destroy", "GET");
 
   // ### Virtue Administrative API
   client.registerMethod("adminApplicationList", excalibur + "/admin/application/list", "GET");
-  client.registerMethod("adminResourceGet", excalibur + "/admin/resource/get", "GET");
-  client.registerMethod("adminResourceList", excalibur + "/admin/resource/list", "GET");
-  client.registerMethod("adminResourceAttach", excalibur + "/admin/resource/attach", "GET");
-  client.registerMethod("adminResourceDetach", excalibur + "/admin/resource/detach", "GET");
-  client.registerMethod("adminRoleCreate", excalibur + "/admin/role/create", "GET");
-  client.registerMethod("adminRoleList", excalibur + "/admin/role/list", "GET");
-  client.registerMethod("adminSystemExport", excalibur + "/admin/system/export", "GET");
-  client.registerMethod("adminSystemImport", excalibur + "/admin/system/import", "GET");
+  client.registerMethod("adminResourceGet",     excalibur + "/admin/resource/get",     "GET");
+  client.registerMethod("adminResourceList",    excalibur + "/admin/resource/list",    "GET");
+  client.registerMethod("adminResourceAttach",  excalibur + "/admin/resource/attach",  "GET");
+  client.registerMethod("adminResourceDetach",  excalibur + "/admin/resource/detach",  "GET");
+  client.registerMethod("adminRoleCreate",      excalibur + "/admin/role/create",      "GET");
+  client.registerMethod("adminRoleList",        excalibur + "/admin/role/list",        "GET");
+  client.registerMethod("adminSystemExport",    excalibur + "/admin/system/export",    "GET");
+  client.registerMethod("adminSystemImport",    excalibur + "/admin/system/import",    "GET");
 
 
   // ### Virtue Security API
