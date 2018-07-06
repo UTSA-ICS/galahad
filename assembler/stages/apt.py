@@ -12,6 +12,7 @@ class AptStage(CIStage):
         if not self._has_run:
             super().run()
             self._ci.install_package('docker.io')
+            self._ci.install_package('auditd')
             self._ci.install_package('git')
             self._ci.install_package('python3')
             self._ci.install_package('python3-pip')
