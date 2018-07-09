@@ -1,0 +1,6 @@
+gaius/__init__.py
+gaius.egg-info/PKG-INFO
+gaius.egg-info/SOURCES.txt
+gaius.egg-info/dependency_links.txt
+gaius.egg-info/not-zip-safe
+gaius.egg-info/top_level.txt
