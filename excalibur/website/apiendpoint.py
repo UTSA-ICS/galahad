@@ -2,6 +2,7 @@ import os
 import json
 import traceback
 import subprocess
+import shlex
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -418,13 +419,14 @@ class EndPoint():
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
             if (use_ssh):
-                docker_exit = subprocess.call(
-                    ['ssh', '-o', 'StrictHostKeyChecking=no', '-i',
-                     '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username),
-                     'virtue@{0}'.format(virtue['ipAddress']),
-                     'sudo docker start $(sudo docker ps -af name="{0}" -q)'.format(
-                         app['name'].lower())]
-                )
+                args = shlex.split((
+                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                    + ' virtue@{2} sudo docker start $(sudo docker ps -af'
+                    + ' name="{3}" -q)').format(
+                        os.environ['HOME'], username, virtue['ipAddress'],
+                        app['name'].lower()))
+
+                docker_exit = subprocess.call(args)
 
                 if (docker_exit != 0):
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
@@ -482,13 +484,14 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['applicationAlreadyStopped'])
 
             if (use_ssh):
-                docker_exit = subprocess.call(
-                    ['ssh', '-o', 'StrictHostKeyChecking=no', '-i',
-                     '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username),
-                     'virtue@{0}'.format(virtue['ipAddress']),
-                     'sudo docker stop $(sudo docker ps -af name="{0}" -q)'.format(
-                         app['name'].lower())]
-                )
+                args = shlex.split((
+                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                    + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
+                    + ' name="{3}" -q)').format(
+                        os.environ['HOME'], username, virtue['ipAddress'],
+                        app['name'].lower()))
+
+                docker_exit = subprocess.call(args)
 
                 if (docker_exit != 0):
                     return json.dumps(ErrorCodes.user['serverStopError'])

@@ -30,7 +30,7 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../aws_instance_info.json', 'r') as infile:
+    with open('../setup/aws_instance_info.json', 'r') as infile:
         tmp = json.load(infile)
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']
@@ -299,11 +299,11 @@ def test_virtue_destroy():
 
 def test_virtue_application_launch():
 
-    response = session.get(base_url + '/application/launch')
+    response = session.get(base_url + '/virtue/application/launch')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
     response = session.get(
-        base_url + '/application/launch',
+        base_url + '/virtue/application/launch',
         params={
             'virtueId': 'DoesNotExist',
             'appId': 'DoesNotExist'
@@ -315,11 +315,11 @@ def test_virtue_application_launch():
 
 def test_virtue_application_stop():
 
-    response = session.get(base_url + '/application/stop')
+    response = session.get(base_url + '/virtue/application/stop')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
     response = session.get(
-        base_url + '/application/stop',
+        base_url + '/virtue/application/stop',
         params={
             'virtueId': 'DoesNotExist',
             'appId': 'DoesNotExist'

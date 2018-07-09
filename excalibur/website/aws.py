@@ -47,23 +47,23 @@ class AWS:
         return self.get_json()
 
     @staticmethod
-    def get_current_instance_info():
+    def get_instance_info():
         return get_instance_metadata(timeout=0.5, num_retries=2)
 
-    def get_current_public_ip(self):
-        info = self.get_current_instance_info()
+    def get_public_ip(self):
+        info = self.get_instance_info()
 
         instance = self.ec2.Instance(info['instance-id'])
         return instance.public_ip_address
 
-    def get_current_subnet_id(self):
-        info = self.get_current_instance_info()
+    def get_subnet_id(self):
+        info = self.get_instance_info()
 
         instance = self.ec2.Instance(info['instance-id'])
         return instance.subnet.id
 
-    def get_current_sec_group(self):
-        info = self.get_current_instance_info()
+    def get_sec_group(self):
+        info = self.get_instance_info()
 
         sg_id = self.ec2.Instance(
             info['instance-id']).security_groups[0]['GroupId']

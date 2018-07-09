@@ -161,6 +161,7 @@ def test_role_create():
         test_virtue = inst.get_obj(
             'croleId', role_id, objectClass='OpenLDAPvirtue', throw_error=True
         )
+        i = i + 1
     assert test_virtue != ()
 
     ldap_tools.parse_ldap(test_virtue)

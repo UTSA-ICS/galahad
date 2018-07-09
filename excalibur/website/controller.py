@@ -4,6 +4,7 @@ from aws import AWS
 import threading
 import copy
 import time
+import botocore
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -105,9 +106,9 @@ class CreateVirtueThread(threading.Thread):
 
         # Create by calling AWS
         aws = AWS()
-        ip = '{0}/32'.format(aws.get_current_public_ip())
-        subnet = aws.get_current_subnet_id()
-        sec_group = aws.get_current_sec_group()
+        ip = '{0}/32'.format(aws.get_public_ip())
+        subnet = aws.get_subnet_id()
+        sec_group = aws.get_sec_group()
 
         try:
             sec_group.authorize_ingress(
@@ -116,8 +117,9 @@ class CreateVirtueThread(threading.Thread):
                 IpProtocol='tcp',
                 ToPort=22
             )
-        except:# botocore.exceptions.ClientError:
-            None
+        except botocore.exceptions.ClientError:
+            print('ClientError encountered while adding sec group rule. ' +
+                  'Rule probably exists already.')
 
         instance = aws.instance_create(
             image_id=role['amiId'],

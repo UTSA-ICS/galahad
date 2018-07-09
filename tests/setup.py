@@ -21,7 +21,7 @@ from sultan.api import Sultan, SSHConfig
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
 EXCALIBUR_IP = 'setup/excalibur_ip'
-AWS_INSTANCE_INFO = 'aws_instance_info.json'
+AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 
 # aws public key name used for the instances
 key_name = 'starlab-virtue-te'
