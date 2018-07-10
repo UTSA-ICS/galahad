@@ -28,9 +28,10 @@ class Rethink():
 			print 'Error deleting values'
 
 	def get_guestnet(self):
-		highest = r.db('routing').table('galahad').filter(lambda doc: (doc['function'] == 'compute') \
-			or (doc['function'] == 'valor')).order_by(r.desc('guestnet')).limite(1).run()
+		highest = r.db('routing').table('galahad').filter(lambda doc: (doc['function'] == 'virtue') \
+			or (doc['function'] == 'valor')).order_by(r.desc('guestnet')).limit(1).run()
 		old = highest[0]['guestnet']
 		new = int(old.rpartition('.')[-1]) + 1
 		final = old.rpartition('.')[0] + '.' + str(new)
 		return final
+
