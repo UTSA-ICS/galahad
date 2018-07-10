@@ -539,10 +539,7 @@ void cleanup_module(){
 }
 
 static int device_open(struct inode *inodep, struct file *filep){
-   	if(!mutex_trylock(&netblockchar_mutex)){
-		printk(KERN_INFO "netblock: character device busy");
-		return -EBUSY;
-	}
+   	mutex_lock(&netblockchar_mutex);
    	return 0;
 }
 
