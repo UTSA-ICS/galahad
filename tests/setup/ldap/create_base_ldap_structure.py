@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shutil
 import ldap
 import ldap.modlist
 
@@ -102,6 +103,20 @@ def add_user(username, authRoleIds):
     ldap_user = to_ldap(user, 'OpenLDAPuser')
 
     inst.add_obj(ldap_user, 'users', 'cusername', throw_error=True)
+
+    if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
+        os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
+
+    # Temporary code:
+    shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
+                '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username))
+
+    # Future code will look like this:
+    '''subprocess.run(
+        ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(username),
+         '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
+        check=True
+    )'''
 
 
 def add_virtue(id, username, roleid, appIds, resIds, transIds, awsId):

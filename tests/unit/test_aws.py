@@ -11,7 +11,7 @@ sys.path.insert(0, base_excalibur_dir)
 from website.aws import AWS
 
 # Name of the file storing the instance information
-aws_instance_info = 'aws_instance_info.json'
+aws_instance_info = '../setup/aws_instance_info.json'
 
 
 class Test_AWS:

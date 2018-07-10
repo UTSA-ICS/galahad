@@ -7,6 +7,8 @@ import json
 import random
 import time
 import copy
+import traceback
+import subprocess
 
 DEBUG_PERMISSIONS = False
 
@@ -28,9 +30,9 @@ class EndPoint_Admin():
 
             return json.dumps(applications)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
-            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def resource_get(self, resourceId):
 
@@ -47,7 +49,7 @@ class EndPoint_Admin():
             return json.dumps(resource)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_list(self):
@@ -61,7 +63,7 @@ class EndPoint_Admin():
             return json.dumps(resources)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_attach(self, resourceId, virtueId):
@@ -96,7 +98,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['notImplemented'])
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_detach(self, resourceId, virtueId):
@@ -125,10 +127,10 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.admin['notImplemented'])
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_aws=True):
+    def role_create(self, role, use_aws=True, hard_code_ami='ami-36a8754c'):
 
         try:
             role_keys = [
@@ -142,8 +144,8 @@ class EndPoint_Admin():
                     and set(role.keys()) != set(role_keys + ['id'])):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
-            if (type(role['name']) != str
-                    or type(role['version']) != str
+            if (not isinstance(role['name'], basestring)
+                    or not isinstance(role['version'], basestring)
                     or type(role['applicationIds']) != list
                     or type(role['startingResourceIds']) != list
                     or type(role['startingTransducerIds']) != list):
@@ -178,7 +180,7 @@ class EndPoint_Admin():
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            new_role['amiId'] = 'ami-36a8754c'
+            new_role['amiId'] = hard_code_ami
 
             ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 
@@ -210,7 +212,7 @@ class EndPoint_Admin():
             return json.dumps({'id': new_role['id'], 'name': new_role['name']})
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def role_list(self):
@@ -227,7 +229,7 @@ class EndPoint_Admin():
             return json.dumps(roles)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def system_export(self):
@@ -256,7 +258,7 @@ class EndPoint_Admin():
             return json.dumps(users)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_get(self, username):
@@ -274,7 +276,7 @@ class EndPoint_Admin():
             return json.dumps(user)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_virtue_list(self, username):
@@ -327,7 +329,7 @@ class EndPoint_Admin():
                 throw_error=True)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_role_unauthorize(self, username, roleId):
@@ -378,5 +380,5 @@ class EndPoint_Admin():
                 throw_error=True)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])

@@ -6,6 +6,7 @@ python_ldap == 2.5.2
 authlib
 wtforms
 flask_wtf
+boto
 boto3
 pyopenssl==17.5.0
 Authlib

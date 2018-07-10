@@ -4,6 +4,7 @@ from aws import AWS
 import threading
 import copy
 import time
+import botocore
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -13,16 +14,6 @@ BACKUP_VIRTUE_COUNT = 2
 POLL_TIME = 300
 
 thread_list = []
-
-# Copy/Pasted from virtue.py
-aws_state_to_virtue_state = {
-    'pending': 'CREATING',
-    'running': 'RUNNING',
-    'shutting-down': 'DELETING',
-    'terminated': 'STOPPED',
-    'stopping': 'STOPPING',
-    'stopped': 'STOPPED'
-}
 
 
 class BackgroundThread(threading.Thread):
@@ -46,23 +37,23 @@ class BackgroundThread(threading.Thread):
             # List all AWS instances
 
             roles = self.inst.get_objs_of_type('OpenLDAProle')
-            roles_dict = {}
+            roles = ldap_tools.parse_ldap_list(roles)
 
             for r in roles:
-                ldap_tools.parse_ldap(r)
-                roles_dict[r['id']] = 0
+                backup_virtue_counts[r['id']] = 0
 
             virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            virtues = ldap_tools.parse_ldap_list(virtues)
 
-            ec2 = boto3.client('ec2')
+            aws = AWS()
 
             for v in virtues:
-                ldap_tools.parse_ldap(v)
+
                 if (v['roleId'] in roles_dict and v['username'] == 'NULL'):
                     roles_dict[v['roleId']] += 1
 
-                aws_inst_id = v['awsInstanceId']
-                if (aws_inst_id == None):
+                v = aws.populate_virtue_dict(v)
+                if (v['state'] == 'NULL' and v['awsInstanceId'] != 'NULL'):
                     # Delete the LDAP entry
                     print('Virtue was not found on AWS: {0}.'.format(
                         v['awsInstanceId']))
@@ -73,8 +64,8 @@ class BackgroundThread(threading.Thread):
                     del t
                     continue
 
-                if (t.role_id in roles_dict):
-                    roles_dict[t.role_id] += 1
+                if (t.role_id in backup_virtue_counts):
+                    backup_virtue_counts[t.role_id] += 1
 
             for r in roles:
                 if (roles_dict[r['id']] < BACKUP_VIRTUE_COUNT):
@@ -115,14 +106,29 @@ class CreateVirtueThread(threading.Thread):
 
         # Create by calling AWS
         aws = AWS()
+        ip = '{0}/32'.format(aws.get_public_ip())
+        subnet = aws.get_subnet_id()
+        sec_group = aws.get_sec_group()
+
+        try:
+            sec_group.authorize_ingress(
+                CidrIp=ip,
+                FromPort=22,
+                IpProtocol='tcp',
+                ToPort=22
+            )
+        except botocore.exceptions.ClientError:
+            print('ClientError encountered while adding sec group rule. ' +
+                  'Rule probably exists already.')
+
         instance = aws.instance_create(
             image_id=role['amiId'],
             inst_type='t2.small',
-            subnet_id='subnet-00664ce7230870c66',
+            subnet_id=subnet,
             key_name='starlab-virtue-te',
             tag_key='Project',
             tag_value='Virtue',
-            sec_group='sg-0e125c01c684e7f6c',
+            sec_group=sec_group.id,
             inst_profile_name='',
             inst_profile_arn='')
         #instance = {'id': 'id_of_aws_inst', 'state': 'state_of_aws_inst', 'ip': '10.20.30.40'}

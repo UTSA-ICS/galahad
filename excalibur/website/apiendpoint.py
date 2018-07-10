@@ -1,4 +1,8 @@
+import os
 import json
+import traceback
+import subprocess
+import shlex
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -48,8 +52,8 @@ class EndPoint():
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Retrieve data about the specified role
@@ -89,8 +93,8 @@ class EndPoint():
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Retrieve a list of roles available to user
@@ -130,8 +134,8 @@ class EndPoint():
 
             return json.dumps(roles)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Retrieve a list of virtues available to user
@@ -155,8 +159,8 @@ class EndPoint():
 
             return json.dumps(virtues_ret)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Retrieve information about the specified virtue
@@ -176,8 +180,8 @@ class EndPoint():
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Create a virtue for the specified role, but do not launch it yet
@@ -263,8 +267,8 @@ class EndPoint():
                 'id': virtue['id']
             })
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Launch the specified virtue, which must have already been created
@@ -276,11 +280,14 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+            if (use_aws == False):
+                return json.dumps(ErrorCodes.user['success'])
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'RUNNING'
                     or virtue['state'] == 'LAUNCHING'):
@@ -289,12 +296,15 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeLaunched'])
 
-            # Todo: Launch it
+            instance = aws.instance_launch(virtue['awsInstanceId'])
 
-            return json.dumps(ErrorCodes.user['notImplemented'])
+            if (instance.state['Name'] != 'running'):
+                return json.dumps(ErrorCodes.user['serverLaunchError'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Stop the specified virtue, but do not destroy it
@@ -306,11 +316,14 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+            if (use_aws == False):
+                return json.dumps(ErrorCodes.user['success'])
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueAlreadyStopped'])
@@ -318,12 +331,15 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeStopped'])
 
-            # Todo: Stop it
+            instance = aws.instance_stop(virtue['awsInstanceId'])
 
-            return json.dumps(ErrorCodes.user['notImplemented'])
+            if (instance.state['Name'] != 'stopped'):
+                return json.dumps(ErrorCodes.user['serverStopError'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Destroy the specified stopped virtue
@@ -335,15 +351,15 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
             if (use_aws == False):
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return
+                return json.dumps(ErrorCodes.user['success'])
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueNotStopped'])
@@ -353,21 +369,21 @@ class EndPoint():
             aws_state = aws_res.state['Name']
 
             if (aws_state == 'shutting-down'):
-                return  # Success!
+                return json.dumps(ErrorCodes.user['success'])
 
             elif (aws_state == 'terminated'):
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return  # Success!
+                return json.dumps(ErrorCodes.user['success'])
 
             else:
                 return json.dumps(ErrorCodes.user['serverDestroyError'])
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Launch an application on the specified virtue
-    def virtue_application_launch(self, username, virtueId, applicationId):
+    def virtue_application_launch(self, username, virtueId, applicationId, use_ssh=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -381,7 +397,7 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (virtue['state'] != 'RUNNING'):
+            if (virtue['state'] != 'RUNNING' and use_ssh):
                 return json.dumps(ErrorCodes.user['virtueNotRunning'])
 
             app = self.inst.get_obj('cid', applicationId,
@@ -402,16 +418,38 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
-            # Todo: Launch app through ssh to virtue's ip address
+            if (use_ssh):
+                args = shlex.split((
+                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                    + ' virtue@{2} sudo docker start $(sudo docker ps -af'
+                    + ' name="{3}" -q)').format(
+                        os.environ['HOME'], username, virtue['ipAddress'],
+                        app['name'].lower()))
 
-            return json.dumps(ErrorCodes.user['notImplemented'])
+                docker_exit = subprocess.call(args)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+                if (docker_exit != 0):
+                    return json.dumps(ErrorCodes.user['serverLaunchError'])
+
+            virtue['applicationIds'].append(applicationId)
+
+            del virtue['state']
+            del virtue['ipAddress']
+
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+
+            assert 0 == self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
+                                             objectClass='OpenLDAPvirtue',
+                                             throw_error=True)
+
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Stop an application on the specified virtue
-    def virtue_application_stop(self, username, virtueId, applicationId):
+    def virtue_application_stop(self, username, virtueId, applicationId, use_ssh=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -425,7 +463,7 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (virtue['state'] != 'RUNNING'):
+            if (virtue['state'] != 'RUNNING' and use_ssh):
                 return json.dumps(ErrorCodes.user['virtueNotRunning'])
 
             app = self.inst.get_obj('cid', applicationId,
@@ -445,12 +483,47 @@ class EndPoint():
             if (app['id'] not in virtue['applicationIds']):
                 return json.dumps(ErrorCodes.user['applicationAlreadyStopped'])
 
-            # Todo: Stop app through ssh to virtue's ip address
+            if (use_ssh):
+                args = shlex.split((
+                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                    + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
+                    + ' name="{3}" -q)').format(
+                        os.environ['HOME'], username, virtue['ipAddress'],
+                        app['name'].lower()))
 
-            return json.dumps(ErrorCodes.user['notImplemented'])
+                docker_exit = subprocess.call(args)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
+                if (docker_exit != 0):
+                    return json.dumps(ErrorCodes.user['serverStopError'])
+
+            virtue['applicationIds'].remove(applicationId)
+
+            del virtue['state']
+            del virtue['ipAddress']
+
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+
+            assert 0 == self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
+                                             objectClass='OpenLDAPvirtue',
+                                             throw_error=True)
+
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def key_get(self, username):
+
+        try:
+            with open('{0}/galahad-keys/{1}.pem'.format(
+                    os.environ['HOME'],username), 'r') as keyfile:
+                data = keyfile.read()
+
+            return json.dumps(data)
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
