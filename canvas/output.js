@@ -33,6 +33,8 @@ app.use(grant);
 var Client = require('node-rest-client').Client;
 var client = new Client();
 
+var excaliburIpAddress;
+
 function execTunnel(options) {
 
     var str = "ssh -i "
@@ -290,7 +292,7 @@ function bringToFront(appId) {
 }
 
 
-function login(e) {
+function old_login(e) {
     var msg = '';
     var color = 'admin';
     var id = document.getElementById('userId').value;
@@ -329,6 +331,57 @@ function login(e) {
     loginMsg.classList.add(color);
 }
 
+
+
+function validateIp(ip) {
+
+  var ip = ip.split(".");
+
+  if (ip.length != 4) {
+      return false;
+  }
+
+
+  for (var c = 0; c < 4; c++) {
+
+    if (ip[c] <= -1
+        || ip[c] > 255
+        || isNaN(parseFloat(ip[c]))
+        || !isFinite(ip[c])
+        || ip[c].indexOf(" ") !== -1 ) {
+
+	  return false;
+    }
+  }
+
+  return true;
+}
+
+
+function getExcaliburIpAddress() {
+
+  console.log("getExcaliburIpAddress()");
+
+  excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
+
+  if (!validateIp(excaliburIpAddress)) {
+    return false;
+  }
+
+  console.log("getExcaliburIpAddress = " + excaliburIpAddress);
+}
+
+
+
+function login(e) {
+
+  console.log("login() entry");
+
+  getExcaliburIpAddress();
+  check_oauth(e);
+
+  console.log("login() exit");
+}
 
 function check_oauth(e) {
 
@@ -461,11 +514,11 @@ function logout(e){
 
 function methods() {
 
-  var excalibur = "https://18.207.181.128:5002/virtue"
+  var excalibur = "https://" + excaliburIpAddress + ":5002/virtue"
 
   client.registerMethod(
     "logout",
-    "https://18.207.181.128:5002/oauth2/revoke",
+    "https://" + excaliburIpAddress + " :5002/oauth2/revoke",
     "POST");
 
   // ### Virtue User API
