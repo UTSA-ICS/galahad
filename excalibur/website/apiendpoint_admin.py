@@ -3,6 +3,7 @@ from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread
 from . import ldap_tools
+from aws import AWS
 import json
 import random
 import time
@@ -328,6 +329,8 @@ class EndPoint_Admin():
                 objectClass='OpenLDAPuser',
                 throw_error=True)
 
+            return json.dumps(ErrorCodes.admin['success'])
+
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
@@ -378,6 +381,8 @@ class EndPoint_Admin():
                 ldap_user,
                 objectClass='OpenLDAPuser',
                 throw_error=True)
+
+            return json.dumps(ErrorCodes.admin['success'])
 
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
