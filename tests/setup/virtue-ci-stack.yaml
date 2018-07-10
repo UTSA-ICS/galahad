@@ -23,7 +23,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -40,7 +40,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -61,7 +61,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -184,7 +184,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -202,7 +202,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -226,7 +226,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -293,7 +293,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -302,6 +302,19 @@ Resources:
     Metadata:
       'AWS::CloudFormation::Designer':
         id: b654bec3-933c-4fdc-9bad-9370e057a2aa
+  VirtueNFSServerSecGroupNFSIngressRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow NFS Server to be contacted from local EFS Server
+      CidrIp: !Join
+        - ''
+        - - !GetAtt ValorEFSServer.PublicIp
+          - '/32'
+      FromPort: 2049
+      IpProtocol: tcp
+      ToPort: 2049
+      GroupId: sg-08dabbf530b426156
+    DependsOn: ValorEFSServer
   VirtueInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
@@ -309,7 +322,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -333,7 +346,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -366,7 +379,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -410,7 +423,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -431,7 +444,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -454,7 +467,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -476,7 +489,7 @@ Resources:
         - Key: Project
           Value: Virtue
         - Key: Name
-          Value: !Join 
+          Value: !Join
             - ''
             - - VirtUE-
               - !Ref NameSuffix
@@ -510,7 +523,68 @@ Resources:
         id: 8ec5f0f9-4760-4b01-8173-36cd5a15e77a
     DependsOn:
       - VirtUEAdminSubnet
-Outputs: {}
+  VirtUEValorEFS:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      FileSystemTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorEFS'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a1cf044b-7ab1-4535-afd6-ec43b850c884
+    DependsOn:
+      - VirtUEAdminSubnet
+  VirtUEValorEFSTarget:
+    Type: 'AWS::EFS::MountTarget'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b0333682-d8dc-4ea0-a1cc-498181ec4111
+    DependsOn:
+      - VirtUEValorEFS
+    Properties:
+      FileSystemId: !Ref VirtUEValorEFS
+      SecurityGroups:
+        - !Ref VirtUEAdminSecGroup
+      SubnetId: !Ref VirtUEAdminSubnet
+  ValorEFSServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-aa2ea6d0
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.47
+          SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorEFSServer'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 8c066d1b-8c1c-4c52-8b3a-2fabe6be01c5
+    DependsOn:
+      - VirtUEAdminSubnet
+Outputs:
+  MountTargetID:
+    Description: Mount target ID
+    Value:
+      !Ref VirtUEValorEFSTarget
+  FileSystemID:
+    Description: File system ID
+    Value:
+      !Ref VirtUEValorEFS
 Metadata:
   'AWS::CloudFormation::Designer':
     ad59040a-ea74-4f74-9b2a-227ef777b2fd:
@@ -540,6 +614,9 @@ Metadata:
         - ad81820f-7d1f-40c1-b150-f3a261eed78e
         - 71832af2-469e-4141-a01c-46cc9148bca8
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+        - 8c066d1b-8c1c-4c52-8b3a-2fabe6be01c5
+        - a1cf044b-7ab1-4535-afd6-ec43b850c884
+        - b0333682-d8dc-4ea0-a1cc-498181ec4111
     813df16b-433c-4abb-8a3e-f9cea9a2f070:
       size:
         width: 390
@@ -788,5 +865,45 @@ Metadata:
       z: 3
       parent: 67738caa-8f4c-4750-9a1d-46c08c1432ad
       embeds: []
+      dependson:
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+    a1cf044b-7ab1-4535-afd6-ec43b850c884:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -1560
+        'y': 380
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      dependson:
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+    b0333682-d8dc-4ea0-a1cc-498181ec4111:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -1480
+        'y': 380
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      isassociatedwith:
+        - 6956c45c-f724-45a2-bd2a-51bad1a6aa31
       iscontainedinside:
+        - 67738caa-8f4c-4750-9a1d-46c08c1432ad
+      dependson:
+        - a1cf044b-7ab1-4535-afd6-ec43b850c884
+    8c066d1b-8c1c-4c52-8b3a-2fabe6be01c5:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -1640
+        'y': 380
+      z: 2
+      parent: 10d4fe6c-4d3d-4c8f-b975-8b7cd6603a7f
+      embeds: []
+      dependson:
         - 67738caa-8f4c-4750-9a1d-46c08c1432ad
