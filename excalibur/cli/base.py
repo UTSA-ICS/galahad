@@ -20,15 +20,9 @@ class BaseCLI:
 
     def handle_command(self, command):
 
-        command_stuff = command.split(' ')
+        command_tokens = command.split()
 
-        real_command_stuff = []
-
-        for word in command_stuff:
-            if (word.strip() != ''):
-                real_command_stuff.append(word.strip())
-
-        real_command = ' '.join(real_command_stuff)
+        real_command = ' '.join(command_tokens)
 
         if (real_command in self.commands):
             print(self.commands[real_command]())
