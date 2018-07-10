@@ -68,6 +68,17 @@ class Stack():
         # Wait a min to Ensure that the Stack resources are completely online.
         time.sleep(60)
 
+        # Process EFS information and setup additional stak for valor nodes
+        cloudformation = boto3.resource('cloudformation')
+        EFSStack = cloudformation.Stack(self.stack_name)
+
+        for output in EFSStack.outputs:
+            if output['OutputKey'] == 'FileSystemID':
+                efsFileSystemID = output['OutputValue']
+
+        efsFileSystemID = '{}.us-east-1.amazonaws.com'.format(efsFileSystemID)
+        logger.info('EFS File System ID is {}'.format(efsFileSystemID))
+
         return stack
 
     def delete_stack(self, stack_name):
