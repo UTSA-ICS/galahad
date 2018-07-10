@@ -12,6 +12,7 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6.h>
+#include <linux/mutex.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -24,6 +25,8 @@ MODULE_AUTHOR("Raytheon BBN Technologies");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Network and Transport Layer Firewall");
 MODULE_VERSION("0.1");
+
+static DEFINE_MUTEX(netblockchar_mutex);
 
 
 //   Rule operations
@@ -470,6 +473,8 @@ int init_module(){
 
 	printk(KERN_INFO "Loading netblock module");
 
+	mutex_init(&netblockchar_mutex);
+
 	//Set up Netfilter hook
 	nfho_ipv4_in.hook = ipv4_in_hook;
 	nfho_ipv4_in.hooknum = NF_INET_LOCAL_IN;
@@ -517,6 +522,7 @@ void cleanup_module(){
    	class_destroy(netblockcharClass);
    	unregister_chrdev(majorNumber, DEVICE_NAME);
    	printk(KERN_INFO "netblock: unregistering netblock character device\n");
+	mutex_destroy(&netblockchar_mutex);
 
 	map_deinit(&rules.in_tcp_ports);
 	map_deinit(&rules.out_tcp_ports);
@@ -533,7 +539,10 @@ void cleanup_module(){
 }
 
 static int device_open(struct inode *inodep, struct file *filep){
-   	printk(KERN_INFO "netblock: character device successfully opened\n");
+   	if(!mutex_trylock(&netblockchar_mutex)){
+		printk(KERN_INFO "netblock: character device busy");
+		return -EBUSY;
+	}
    	return 0;
 }
 
@@ -643,6 +652,6 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 }
 
 static int device_release(struct inode *inodep, struct file *filep){
-   	printk(KERN_INFO "netblock: character device successfully closed\n");
+   	mutex_unlock(&netblockchar_mutex);
    	return 0;
 }
