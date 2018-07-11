@@ -27,3 +27,5 @@ tests/setup/excalibur_ip
 transducers/listener.deb
 transducers/listener/opt/heartbeatlistener/keys
 transducers/listener/opt/heartbeatlistener/listener.py
+gaius/rethinkdb_data/
+
