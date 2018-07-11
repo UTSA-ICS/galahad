@@ -1,7 +1,13 @@
+import os
+import sys
 import json
 import requests
 
-from sso_login import sso_tool
+file_path = os.path.realpath(__file__)
+base_excalibur_dir = os.path.dirname(
+    os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
+sys.path.insert(0, base_excalibur_dir)
+from cli.sso_login import sso_tool
 
 
 def setup_module():

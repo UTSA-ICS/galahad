@@ -7,6 +7,7 @@ from authlib.flask.oauth2 import current_token
 from ..auth import require_login
 from ..models import OAuth2Client, User
 from ..forms.client import (Client2Form, OAuth2ClientWrapper)
+from ..ldaplookup import LDAP
 from ..apiendpoint import EndPoint
 from ..apiendpoint_admin import EndPoint_Admin
 from ..apiendpoint_security import EndPoint_Security
@@ -23,15 +24,39 @@ bp = Blueprint('virtue', __name__)
 
 
 def get_endpoint():
-    return EndPoint('jmitchell@virtue.com', 'Test123!')
+    inst = LDAP( '', '' )
+    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+    inst.get_ldap_connection()
+    inst.conn.simple_bind_s( dn, 'Test123!' )
+
+    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep.inst = inst
+
+    return ep
 
 
 def get_admin_endpoint():
-    return EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
+    inst = LDAP( '', '' )
+    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+    inst.get_ldap_connection()
+    inst.conn.simple_bind_s( dn, 'Test123!' )
+
+    epa = EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
+    epa.inst = inst
+
+    return epa
 
 
 def get_security_endpoint():
-    return EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+    inst = LDAP( '', '' )
+    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+    inst.get_ldap_connection()
+    inst.conn.simple_bind_s( dn, 'Test123!' )
+
+    eps = EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+    eps.inst = inst
+
+    return eps
 
 
 def make_response(message):
@@ -222,7 +247,7 @@ def application_get():
     return make_response(application)
 
 
-@bp.route('/user/application/launch', methods=['GET'])
+@bp.route('/user/virtue/application/launch', methods=['GET'])
 @require_oauth()
 def virtue_application_launch():
 
@@ -244,7 +269,7 @@ def virtue_application_launch():
     return make_response(application)
 
 
-@bp.route('/user/application/stop', methods=['GET'])
+@bp.route('/user/virtue/application/stop', methods=['GET'])
 @require_oauth()
 def virtue_application_stop():
 

@@ -1,3 +1,4 @@
+from boto.utils import get_instance_metadata
 import boto3
 import botocore
 import copy
@@ -45,6 +46,30 @@ class AWS:
     def __str__(self):
         return self.get_json()
 
+    @staticmethod
+    def get_instance_info():
+        return get_instance_metadata(timeout=0.5, num_retries=2)
+
+    def get_public_ip(self):
+        info = self.get_instance_info()
+
+        instance = self.ec2.Instance(info['instance-id'])
+        return instance.public_ip_address
+
+    def get_subnet_id(self):
+        info = self.get_instance_info()
+
+        instance = self.ec2.Instance(info['instance-id'])
+        return instance.subnet.id
+
+    def get_sec_group(self):
+        info = self.get_instance_info()
+
+        sg_id = self.ec2.Instance(
+            info['instance-id']).security_groups[0]['GroupId']
+
+        return self.ec2.SecurityGroup(sg_id)
+
     def populate_virtue_dict(self, virtue):
         instance = self.ec2.Instance(virtue['awsInstanceId'])
 
@@ -53,7 +78,7 @@ class AWS:
             virtue['state'] = \
                 self.aws_state_to_virtue_state[instance.state['Name']]
             virtue['ipAddress'] = str(instance.public_ip_address)
-        except botocore.exceptions.ClientError:
+        except (botocore.exceptions.ClientError, AttributeError):
             virtue['state'] = 'NULL'
             virtue['ipAddress'] = 'NULL'
 
@@ -82,7 +107,8 @@ class AWS:
                         tag_value, \
                         sec_group, \
                         inst_profile_name, \
-                        inst_profile_arn):
+                        inst_profile_arn, \
+                        block=True):
         """Create a new AWS instance - a virtue
         This will create a AWS instance based on a
         given AMI ID.
@@ -128,7 +154,9 @@ class AWS:
         instance = res[0]
         self.id = instance.id
 
-        instance.wait_until_running()
+        if (block):
+            instance.wait_until_running()
+
         instance.reload()
 
         self.ipAddress = instance.public_ip_address
