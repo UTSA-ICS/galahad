@@ -78,7 +78,7 @@ class AWS:
             virtue['state'] = \
                 self.aws_state_to_virtue_state[instance.state['Name']]
             virtue['ipAddress'] = str(instance.public_ip_address)
-        except botocore.exceptions.ClientError:
+        except (botocore.exceptions.ClientError, AttributeError):
             virtue['state'] = 'NULL'
             virtue['ipAddress'] = 'NULL'
 

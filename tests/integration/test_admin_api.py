@@ -4,12 +4,11 @@ import time
 import json
 import requests
 
-from sso_login import sso_tool
-
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
+from cli.sso_login import sso_tool
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.aws import AWS
