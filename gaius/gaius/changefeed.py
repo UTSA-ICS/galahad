@@ -13,6 +13,10 @@ migrate = Migrate()
 
 #test for all changes and starts the start file with argument saying what type of insert it is if something is inserted
 class changes():
+	def __init__(self):
+		hostname = socket.gethostname()
+		IPAddr = socket.gethostbyname(hostname)
+		self.IP = IPAddr
 	#what it should do if an object whose function is compute is inserted
         def compute(self):
                 r.connect("172.30.93.138",28015).repl()
@@ -28,13 +32,14 @@ class changes():
 		virtuecursor = r.db("routing").table("galahad").changes().filter(lambda change: \
 			(change["old_val"] == None) and (change["new_val"]["function"]=="virtue")).run()
 		for virtue in virtuecursor:
-			valor = rethink.filter('galahad', 
+			valor = rethink.filter('galahad',
 				{'address'	: virtue['new_val']['address'],
 				 'function'	: 'valor'}).next()
-			print valor
-			migrate.start_instance(virtue["new_val"]["host"], virtue["new_val"]["guestnet"], \
-				valor["guestnet"])
-	def virtue_migrate(self):
+			#print valor
+			if virtue["new_val"]["address"] == self.IP:
+				migrate.start_instance(virtue["new_val"]["host"], virtue["new_val"]["guestnet"], \
+					valor["guestnet"])
+ 	def virtue_migrate(self):
 		r.connect("172.30.93.138",28015).repl()
 		cursor = r.db('routing').table('transducer').changes().filter(lambda change: \
 			(change['old_val']['flag']=='FALSE') & (change['new_val']['flag']=='TRUE')).run()
@@ -42,18 +47,20 @@ class changes():
 			host = flag['new_val']['config']['host']
 			newHost = flag['new_val']['config']['newHost']
 			dest = rethink.filter('galahad', {'host':newHost}).next()
+			object = rethink.filter("galahad", {"host":host}).next()
 			# migrate.sh host dest['address']
-			migrate.migrate_instance(host, dest['address'])
-			old = rethink.filter('galahad',
-				{'function':'virtue',
-				 'host':host}).next()
-			oldValor = rethink.filter('galahad',
-				{'function'	: 'valor',
-				 'address'	: old['address']}).next()
-			history = flag['new_val']['history']
-			history.append(oldValor['host'])
-			print flag
-			# update virtue object
+			if object["address"] == self.IP:
+				migrate.migrate_instance(host, dest['address'])
+				old = rethink.filter('galahad',
+					{'function':'virtue',
+					 'host':host}).next()
+				oldValor = rethink.filter('galahad',
+					{'function'	: 'valor',
+					 'address'	: old['address']}).next()
+				history = flag['new_val']['history']
+				history.append(oldValor['host'])
+				#print flag
+				# update virtue object
 
 	def virtue_cleanup(self):
 		r.connect("172.30.93.138",28015).repl()
@@ -61,9 +68,10 @@ class changes():
 			(change['old_val']['function']=='virtue') & (change['new_val']==None)).run()
 		for virtue in cursor:
 			# cleanup.sh virtue['old_val']['host']
-			migrate.cleanup_instance(virtue["old_val"]["host"])
-			print virtue['old_val']['host']
-			print virtue
+			if virtue["old_val"]["address"] == self.IP:
+				migrate.cleanup_instance(virtue["old_val"]["host"])
+				print virtue['old_val']['host']
+				print virtue
 
         #what it should do if an object whose function is valor is inserted
         def valor(self):
