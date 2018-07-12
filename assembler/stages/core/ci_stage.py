@@ -9,10 +9,9 @@ class CIStage():
     NAME = 'CoreCI'
     DEPENDS = []
 
-    def __init__(self, args, work_dir='.'):
+    def __init__(self, work_dir='.'):
         self._ci = CloudInitUserData()
         self._work_dir = work_dir
-        self._args = args
         self._has_run = False
 
     def run(self):

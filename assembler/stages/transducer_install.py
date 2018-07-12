@@ -66,6 +66,12 @@ path:
 searchguard.ssl.transport.enforce_hostname_verification: false
     '''
 
+    def __init__(self, elastic_host, elastic_node, syslog_server, ssh_host, ssh_port, work_dir='.'):
+        super().__init__(ssh_host, ssh_port, work_dir=work_dir)
+        self._elastic_search_host = elastic_host
+        self._elastic_search_node = elastic_node
+        self._syslog_server = syslog_server
+
     def run(self):
         if not self._has_run:
             super().run()
@@ -93,11 +99,11 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             with open(syslog_template_path, 'r') as syslog_ng_file:
                 syslog_ng_config = syslog_ng_file.read()
                 with open(syslog_conf_path, 'w') as f:
-                    f.write(syslog_ng_config % (self._args.elastic_search_node, self._args.syslog_server))
+                    f.write(syslog_ng_config % (self._elastic_search_node, self._syslog_server))
                 self._copy_file(syslog_conf_path, syslog_conf_filename)
-            
+
             with open(elasticsearch_path, 'w') as f:
-                f.write(self.ELASTIC_YML % (self._args.elastic_search_host))
+                f.write(self.ELASTIC_YML % (self._elastic_search_host))
             self._copy_file(elasticsearch_path, elasticsearch_filename)
 
             with open(install_path, 'w') as f:

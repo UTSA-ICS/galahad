@@ -7,9 +7,10 @@ class SSHStage():
     NAME = 'CoreSSH'
     DEPENDS = ['UserStage']
 
-    def __init__(self, args, work_dir='.'):
+    def __init__(self, ssh_host, ssh_port, work_dir='.'):
+        self._ssh_host = ssh_host
+        self._ssh_port = ssh_port
         self._work_dir = work_dir
-        self._args = args
         self._has_run = False
         self._is_up = False
         self._cloudinit_is_done = False
@@ -40,10 +41,10 @@ class SSHStage():
                     sleep(5)
                 else:
                     raise e
-        
+
     def _exec_cmd(self, cmd):
         self._ssh_cmd_is_done = False
-        ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._args.ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._args.ssh_host)]
+        ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._ssh_host)]
         if type(cmd) is list:
             ssh.extend(cmd)
         else:
@@ -54,8 +55,8 @@ class SSHStage():
 
     def _exec_cmd_with_retry(self, cmd):
         self._ssh_cmd_is_done = False
-        ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._args.ssh_port), '-o',
-               'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._args.ssh_host)]
+        ssh = ['ssh', '-i', os.path.join(self._work_dir, 'id_rsa'), '-p', str(self._ssh_port), '-o',
+               'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', 'virtue@%s' % (self._ssh_host)]
         if type(cmd) is list:
             ssh.extend(cmd)
         else:
@@ -77,7 +78,7 @@ class SSHStage():
 
 
     def _copy_file(self, local_source_path, remote_destination_path):
-        scp = ['scp', '-i', os.path.join(self._work_dir, 'id_rsa'), '-P', str(self._args.ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', local_source_path, 'virtue@%s:%s' % (self._args.ssh_host, remote_destination_path)]
+        scp = ['scp', '-i', os.path.join(self._work_dir, 'id_rsa'), '-P', str(self._ssh_port), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no', local_source_path, 'virtue@%s:%s' % (self._ssh_host, remote_destination_path)]
         print(' '.join(scp))
         subprocess.check_call(scp)
 

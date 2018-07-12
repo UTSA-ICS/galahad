@@ -19,8 +19,13 @@ class DockerVirtueStage(SSHStage):
         sudo rm -rf docker-virtue
         '''
 
+    def __init__(self, docker_login, containers, ssh_host, ssh_port, work_dir='.'):
+        super().__init__(ssh_host, ssh_port, work_dir=work_dir)
+        self._docker_login = docker_login
+        self._containers = containers
+
     def run(self):
         if not self._has_run:
             super().run()
 
-            self._exec_cmd(self.USER_SCRIPT % (self._args.docker_login, ' '.join(self._args.containers)))
+            self._exec_cmd(self.USER_SCRIPT % (self._docker_login, ' '.join(self._containers)))

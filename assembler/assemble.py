@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 import argparse, os, subprocess, sys, re, shutil, json, time
 
@@ -19,6 +19,7 @@ WORK_DIR = 'tmp/' # where all the generated files will live
 ISO_FILE = 'virtue.cloudinit.iso'
 LOG_FILE = 'SERIAL.log'
 
+# Todo: Remove args:
 def start_aws_vm(args, userdata, name, disk_size):
     print("Starting VM, %s" % (name))
     cmd = ['aws', 'ec2', 'run-instances', \
@@ -41,7 +42,7 @@ def start_aws_vm(args, userdata, name, disk_size):
         print(output)
         raise Exception("Can't start aws vm")
 
-def get_vm_ip(args, instanceId):
+def get_vm_ip(instanceId):
     cmd = ['aws', 'ec2', 'describe-instances', '--instance-ids', instanceId, '--query', 'Reservations[*].Instances[*].PublicIpAddress']
     print("Calling %s" % (' '.join(cmd)))
     is_vm_up = False
@@ -99,17 +100,9 @@ if __name__ == '__main__':
 
 
     stage_dict = {}
-    stage_dict[UserStage.NAME] = UserStage(args, WORK_DIR)
-    stage_dict[AptStage.NAME] = AptStage(args, WORK_DIR)
-    stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
-    stage_dict[KernelStage.NAME] = KernelStage(args, WORK_DIR)
-    stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
-    stage_dict[MerlinStage.NAME] = MerlinStage(args, WORK_DIR)
+    stage_dict[UserStage.NAME] = UserStage(WORK_DIR)
+    stage_dict[AptStage.NAME] = AptStage(WORK_DIR)
 
-    # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
-    # worth commenting this out to keep the vm running after the assembly is complete
-    #stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
-    
     if not os.path.exists(WORK_DIR):
         os.makedirs(WORK_DIR)
 
@@ -119,7 +112,7 @@ if __name__ == '__main__':
 
     print("All Cloud-Init stages are finished")
     print("Waiting for a VM to come up for ssh stages...")
-    
+
     vm = None
     instance = ''
     vmname = args.name
@@ -164,11 +157,32 @@ if __name__ == '__main__':
         with open(os.path.join(WORK_DIR, 'user-data'), 'r') as f:
             instance = start_aws_vm(args, f.read(), vmname, args.aws_disk_size)
             print("New instance id: %s" % (instance))
-            args.ssh_host = get_vm_ip(args, instance)
+            args.ssh_host = get_vm_ip(instance)
             print("New instance ip: %s" % (args.ssh_host))
             args.ssh_port = '22'
         print("Waiting for VM to start...")
         time.sleep(10)
+
+
+    stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(
+            args.docker_login,
+            args.containers,
+            args.ssh_host,
+            args.ssh_port,
+            WORK_DIR)
+    stage_dict[KernelStage.NAME] = KernelStage(args.ssh_host, args.ssh_port, WORK_DIR)
+    stage_dict[TransducerStage.NAME] = TransducerStage(
+            args.elastic_search_host,
+            args.elastic_search_node,
+            args.syslog_server,
+            args.ssh_host,
+            args.ssh_port,
+            WORK_DIR)
+    stage_dict[MerlinStage.NAME] = MerlinStage(args.ssh_host, args.ssh_port, WORK_DIR)
+
+    # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's
+    # worth commenting this out to keep the vm running after the assembly is complete
+    #stage_dict[ShutdownStage.NAME] = ShutdownStage(args.ssh_host, args.ssh_port, WORK_DIR)
 
     for stage in stage_dict:
         if isinstance(stage_dict[stage], SSHStage):
