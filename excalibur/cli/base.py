@@ -16,7 +16,8 @@ class BaseCLI:
 
         print(self.login())
 
-        self.commands = {'exit': self.logout}
+        self.commands = {'help': self.help,
+                         'exit': self.logout}
 
     def handle_command(self, command):
 
@@ -28,6 +29,9 @@ class BaseCLI:
             print(self.commands[real_command]())
         else:
             print('Unknown command: "{0}"'.format(real_command))
+
+    def help(self):
+        return '\n'.join(sorted(self.commands.keys()))
 
     def login(self):
         self.username = input('Email: ').strip()

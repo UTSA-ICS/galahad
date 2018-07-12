@@ -87,11 +87,11 @@ class AdminCLI(base.BaseCLI):
 
         try:
             with open(role_path, 'r') as json_file:
-                config = json.load(json_file)
+                role = json.load(json_file)
         except FileNotFoundError:
-            return '{0} does not exist.'.format(config_path)
+            return '{0} does not exist.'.format(role_path)
         except IsADirectoryError:
-            return '{0} is a directory.'.format(config_path)
+            return '{0} is a directory.'.format(role_path)
         except json.decoder.JSONDecodeError:
             return 'Json file has invalid format.'
 
@@ -121,11 +121,11 @@ class AdminCLI(base.BaseCLI):
 
         try:
             with open(data_path, 'r') as json_file:
-                config = json.load(json_file)
+                data = json.load(json_file)
         except FileNotFoundError:
-            return '{0} does not exist.'.format(config_path)
+            return '{0} does not exist.'.format(data_path)
         except IsADirectoryError:
-            return '{0} is a directory.'.format(config_path)
+            return '{0} is a directory.'.format(data_path)
         except json.decoder.JSONDecodeError:
             return 'Json file has invalid format.'
 
