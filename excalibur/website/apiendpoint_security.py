@@ -269,6 +269,8 @@ class EndPoint_Security:
         if transducer is None or transducer == ():
             return self.__error('invalidTransducerId')
 
+        transducerType = transducer['ctype']
+
         # Make sure virtue exists
         virtue = self.inst.get_obj('cid', virtueId, 'openLDAPvirtue', True)
         if virtue is None or virtue == ():
@@ -276,7 +278,7 @@ class EndPoint_Security:
 
         # Change the ruleset
         ret = self.__change_ruleset(
-            virtueId, transducerId, isEnable, config=configuration)
+            virtueId, transducerId, transducerType, isEnable, config=configuration)
         if ret == False:
             return ret
 
@@ -294,15 +296,15 @@ class EndPoint_Security:
 
     def __sign_message(self, row):
         required_keys = [
-            'virtue_id', 'transducer_id', 'configuration', 'enabled',
-            'timestamp'
+            'virtue_id', 'transducer_id', 'type', 'configuration', 
+            'enabled', 'timestamp'
         ]
         if not all([(key in row) for key in required_keys]):
             return self.__error('unspecifiedError', details='Missing required keys in row: ' +\
                 str(filter((lambda key: key not in row),required_keys)))
 
         message = '|'.join([
-            row['virtue_id'], row['transducer_id'],
+            row['virtue_id'], row['transducer_id'], row['type'],
             str(row['configuration']),
             str(row['enabled']),
             str(row['timestamp'])
@@ -318,15 +320,15 @@ class EndPoint_Security:
                 'unspecifiedError', details='No match found in database')
 
         required_keys = [
-            'virtue_id', 'transducer_id', 'configuration', 'enabled',
-            'timestamp', 'signature'
+            'virtue_id', 'transducer_id', 'type', 'configuration',
+            'enabled', 'timestamp', 'signature'
         ]
         if not all([(key in row) for key in required_keys]):
             return self.__error('unspecifiedError', details='Missing required keys in row: ' +\
                 str(filter((lambda key: key not in row),required_keys)))
 
         message = '|'.join([
-            row['virtue_id'], row['transducer_id'],
+            row['virtue_id'], row['transducer_id'], row['type'],
             str(row['configuration']),
             str(row['enabled']),
             str(row['timestamp'])
@@ -352,7 +354,7 @@ class EndPoint_Security:
                 'Unable to validate signature of ACK message: ' + \
                 json.dumps(printable_msg, indent=2))
 
-    def __change_ruleset(self, virtue_id, trans_id, enable, config=None):
+    def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, config=None):
         if self.__class__.conn is None:
             self.__connect_rethinkdb()
 
@@ -362,6 +364,7 @@ class EndPoint_Security:
             'id': [virtue_id, trans_id],
             'virtue_id': virtue_id,
             'transducer_id': trans_id,
+            'type': transducer_type,
             'configuration': config,
             'enabled': enable,
             'timestamp': timestamp
