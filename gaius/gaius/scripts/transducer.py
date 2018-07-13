@@ -2,7 +2,17 @@
 import rethinkdb as r
 r.connect("172.30.93.138",28015).repl()
 
-print r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').update({'flag':'TRUE'}).run()
-print r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').run()
-print r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').update({'flag':'FALSE'}).run()
-print r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').run()
+r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').update({'flag':'TRUE'}).run()
+r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').run()
+r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').update({'flag':'FALSE'}).run()
+r.db('routing').table('transducer').filter(r.row['transducerId']=='m1').run()
+
+#config = {'host':'test1','newHost':'TestNode.100'}
+#r.db("routing").table("transducer").insert({
+#    "transducerId" : "m1",
+#    "flag" : "FALSE",
+#    "config": config,
+#    "history" : []
+#}).run()
+
+#r.db("routing").table("transducer").filter(r.row["transducerId"]=="test").delete().run()

@@ -4,6 +4,6 @@ r.connect("172.30.93.138",28015).repl()
 
 r.db('routing').table('galahad').insert([{
 	'function':'virtue',
-	'host':'centos-test',
+	'host':'test1',
 	'address':'172.30.87.99',
-	'guestnet':'10.91.0.5'}]).run()
+	'guestnet':'10.91.0.11'}]).run()
