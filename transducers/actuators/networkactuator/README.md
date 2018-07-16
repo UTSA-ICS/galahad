@@ -6,6 +6,9 @@ Must have root permissions to run.
 ##### To install:
 **./setup.sh** 
 
+##### Installing via Debian Package File (galahad/assembler/payload/)
+**dpkg -i netblock_actuator.deb**
+**sudo insmod /lib/modules/4.13.0-38-generic/updates/dkms/actuator_network.ko**
 
 A user can add new rules by running the **netblock** command.
 
