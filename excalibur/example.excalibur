@@ -1,5 +1,0 @@
-[transducer]
-rethinkdb_host = ec2-54-145-211-31.compute-1.amazonaws.com
-rethinkdb_ca_cert = /home/ubuntu/excalibur/rethinkdb_cert_excal.pem
-excalibur_private_key = /home/ubuntu/excalibur/excalibur_key.pem
-virtue_public_key_dir = /home/ubuntu/excalibur/

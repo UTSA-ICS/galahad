@@ -39,16 +39,16 @@ def signal_handler(signal, frame):
 	sys.exit(0)
 
 # Generate a signature for a given message
-def sign_message(virtue_id, transducer_id, config, enabled, timestamp, virtue_key):
-	message = '|'.join([virtue_id, transducer_id, str(config), str(enabled), str(timestamp)])
+def sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key):
+	message = '|'.join([virtue_id, transducer_id, transducer_type, str(config), str(enabled), str(timestamp)])
 	h = SHA.new(str(message))
 	signer = PKCS1_v1_5.new(virtue_key)
 	signature = signer.sign(h)
 	return signature
 
 # Verify a signature for a given message
-def verify_message(virtue_id, transducer_id, config, enabled, timestamp, signature, excalibur_key):
-	message = '|'.join([virtue_id, transducer_id, str(config), str(enabled), str(timestamp)])
+def verify_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, signature, excalibur_key):
+	message = '|'.join([virtue_id, transducer_id, transducer_type, str(config), str(enabled), str(timestamp)])
 	h = SHA.new(str(message))
 	verifier = PKCS1_v1_5.new(excalibur_key)
 	return verifier.verify(h, signature)
@@ -63,6 +63,17 @@ def connect_socket(path):
 		return None
 	return sock
 
+# Connect to a netlink socket
+def connect_socket_netlink():
+	sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, 31)
+	try:
+		# pid 0 is kernel
+		sock.connect((0, 0))
+	except socket.error, msg:
+		log.error('Failed to connect to socket: %s', msg)
+		return None
+	return sock
+
 # Send given message over a unix domain socket
 def send_message(sock, message):
 	try:
@@ -70,6 +81,23 @@ def send_message(sock, message):
 		sock.sendall(pack('!i', len(message)))
 		# Send actual message
 		sock.sendall(message)
+		return True
+	except socket.error, msg:
+		log.error('Failed to send message: %s', msg)
+		return False
+
+# Send given message over a netlink socket
+def send_message_netlink(sock, array):
+	try:
+		# Send length of array
+		sock.sendall(pack('!i', len(array)))
+		for msg in array:
+			if type(msg) is not str:
+				log.error('Invalid array element type: %s', str(type(msg)))
+				continue
+			# Send each element
+			sock.sendall(pack('!i', len(msg)))
+			sock.sendall(msg)
 		return True
 	except socket.error, msg:
 		log.error('Failed to send message: %s', msg)
@@ -102,13 +130,14 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 	ruleset = {}
 	for row in rows:
 		# Check keys and retrieve values
-		required_keys = ['virtue_id', 'transducer_id', 'configuration', 
+		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
 			'enabled', 'timestamp', 'signature']
 		if not all( [ (key in row) for key in required_keys ] ):
 			log.error('Missing required keys in row: %s',\
 				str(filter((lambda key: key not in row), required_keys)))
 			continue
 		transducer_id = row['transducer_id']
+		transducer_type = row['type']
 		config = row['configuration']
 		enabled = row['enabled']
 		timestamp = row['timestamp']
@@ -117,7 +146,7 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 		# Validate message's signature
 		printable_msg = deepcopy(row)
 		del printable_msg['signature']
-		new_signature = sign_message(virtue_id, transducer_id, config, enabled, timestamp, virtue_key)
+		new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
 		if new_signature == signature:
 			log.info('Retrieved valid ACK: %s', \
 				json.dumps(printable_msg, indent=2))
@@ -152,11 +181,13 @@ def process_update(virtue_id, heartbeat_conn, current_ruleset):
 		# TODO: We don't care about the config right now but eventually we should
 		#config = current_ruleset[transducer_id]
 		config = '{}'
-		row_signature = sign_message(virtue_id, transducer_id, config, enabled, timestamp, virtue_key)
+		transducer_type = 'SENSOR'
+		row_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
 		transducers.append({
 			'id': [virtue_id, transducer_id],
 			'virtue_id': virtue_id,
 			'transducer_id': transducer_id,
+			'type': transducer_type,
 			'configuration': config,
 			'enabled': enabled,
 			'timestamp': timestamp,
@@ -211,7 +242,7 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 
 				# If the filter restarted and lost its ruleset, repopulate it
 				if len(current_ruleset) == 0:
-					repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key)
+					repopulate_ruleset(virtue_id, heartbeat_conn, path_to_socket, virtue_key)
 				else:
 					process_update(virtue_id, heartbeat_conn, current_ruleset)
 			do_heartbeat()
@@ -219,6 +250,34 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 		# Wait until the next heartbeat
 		# Do not call this inside `with lock` above!!!
 		exit.wait(interval_len)
+
+
+def do_actuator(transducer_id, config_str, enabled):
+	config = json.loads(config_str)
+
+	if transducer_id == 'kill_process':
+		if 'processes' not in config or \
+			type(config['processes']) is not list or \
+			any(type(e) is not str for e in config['processes']):
+
+			log.error('The actuator kill_process MUST contain a "processes" key in its configuration that corresponds to a list of strings')
+			return False
+
+		processes = config['processes']
+
+		sock = connect_socket_netlink()
+		if sock is None:
+			log.error('Unable to connect to net socket')
+			return
+
+		if not send_message_netlink(sock, config['processes']):
+			log.error('Failed to send command over netlink socket')
+			return
+
+	else:
+		log.warning('This type of actuator has not been defined yet: %s', transducer_id)
+		return False
+
 
 def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, socket_to_filter):
 	conn = None
@@ -242,13 +301,14 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		row = change['new_val']
 
 		# Check keys and retrieve values
-		required_keys = ['virtue_id', 'transducer_id', 'configuration', 
+		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
                         'enabled', 'timestamp', 'signature']
 		if not all( [ (key in row) for key in required_keys ] ):
                         log.error('Missing required keys in row: %s',\
                                 str(filter((lambda key: key not in row),required_keys)))
 			continue
 		transducer_id = row['transducer_id']
+		transducer_type = row['type']
 		config = row['configuration']
 		enabled = row['enabled']
 		timestamp = row['timestamp']
@@ -257,12 +317,17 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		# Validate message's signature
 		printable_msg = deepcopy(row)
 		del printable_msg['signature']
-		if verify_message(virtue_id, transducer_id, config, enabled, timestamp, signature, excalibur_key):
+		if verify_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, signature, excalibur_key):
 			log.info('Received valid command message: %s', \
 				json.dumps(printable_msg, indent=2))
 		else:
 			log.error('Unable to validate signature of command message: %s', \
 				json.dumps(printable_msg, indent=2))
+			continue
+
+		if transducer_type == 'ACTUATOR':
+			do_actuator(transducer_id, config, enabled)
+			# TODO ideally the giant block below would live in a separate function and this would be a tidy little if/else
 			continue
 
 		with lock:
@@ -285,13 +350,14 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 				continue
 
 			# Confirm to excalibur that changes were successful
-			new_signature = sign_message(virtue_id, transducer_id, config, enabled, timestamp, virtue_key)
+			new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
 
 			try:
 				res = r.db('transducers').table('acks').insert({
 					'id': [virtue_id, transducer_id],
 					'virtue_id': virtue_id,
 					'transducer_id': transducer_id,
+					'type': transducer_type,
 					'configuration': config,
 					'enabled': enabled,
 					'timestamp': timestamp,
@@ -352,5 +418,5 @@ if __name__ == '__main__':
 		virtue_key, args.socket,))
 	heartbeat_thread.start()
 
-	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, socket_to_filter)
+	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, args.socket)
 

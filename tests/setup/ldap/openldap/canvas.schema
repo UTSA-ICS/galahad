@@ -1,0 +1,197 @@
+# $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 1998-2015 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+#
+#
+# OpenLDAP Project's directory schema items
+#
+# depends upon:
+#	core.schema
+#	cosine.schema
+#	inetorgperson.schema
+#	openldap.schema
+#
+# These are provided for informational purposes only.
+
+attributeType ( 1.3.6.1.4.1.62000.1.1
+	NAME 'cid'
+	DESC 'Canvas ID attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.2
+	NAME 'cversion'
+	DESC 'Canvas Name attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.3
+	NAME 'cos'
+	DESC 'Canvas OS attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.4
+	NAME 'ctype'
+	DESC 'Canvas Type attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.5
+	NAME 'cunc'
+	DESC 'Canvas UNC attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.6
+	NAME 'ccredentials'
+	DESC 'Canvas Credentials attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.7
+	NAME 'cappIds'
+	DESC 'Canvas Application IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.8
+	NAME 'cstartResIds'
+	DESC 'Canvas Starting Resource IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.9
+	NAME 'cstartTransIds'
+	DESC 'Canvas Starting Transducer IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.10
+	NAME 'cstartEnabled'
+	DESC 'Canvas Start Enabled attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.11
+	NAME 'cstartConfig'
+	DESC 'Canvas Starting Configuration attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.12
+	NAME 'creqAccess'
+	DESC 'Canvas Required Access attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.13
+	NAME 'cusername'
+	DESC 'Canvas Username attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.14
+	NAME 'cauthRoleIds'
+	DESC 'Canvas Authorized Role IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.15
+	NAME 'ctoken'
+	DESC 'Canvas Token attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.16
+	NAME 'cexpiration'
+	DESC 'Canvas Expiration attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.17
+	NAME 'croleId'
+	DESC 'Canvas Role ID attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.18
+	NAME 'cresIds'
+	DESC 'Canvas Resource IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.19
+	NAME 'ctransIds'
+	DESC 'Canvas Transducer IDs attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.20
+	NAME 'cstate'
+	DESC 'Canvas State attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.21
+	NAME 'cipAddress'
+	DESC 'Canvas IP Address attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.22
+	NAME 'cport'
+	DESC 'Canvas Port attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.23
+	NAME 'cvirtId'
+	DESC 'Canvas Virtue ID attribute'
+	SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.24
+        NAME 'cAmiId'
+        DESC 'Canvas AMI ID attribute'
+        SUP name )
+
+attributeType ( 1.3.6.1.4.1.62000.1.25
+        NAME 'cawsInstId'
+        DESC 'Canvas AWS Instance ID attribute'
+        SUP name )
+
+
+objectClass ( 1.3.6.1.4.1.62000.0.1
+	NAME 'OpenLDAPapplication'
+	DESC 'OpenLDAP Application'
+	SUP organizationalUnit
+	MUST ( name $ cversion $ cos )
+	MAY ( cid $ cport ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.2
+	NAME 'OpenLDAPresource'
+	DESC 'OpenLDAP Resource'
+	SUP organizationalUnit
+	MUST ( ctype $ cunc )
+	MAY ( cid $ ccredentials ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.3
+	NAME 'OpenLDAProle'
+	DESC 'OpenLDAP Role'
+	SUP organizationalUnit
+	MUST ( name $ cversion $ cappIds $ cstartResIds $ cstartTransIds $ cAmiId )
+	MAY ( cid $ cvirtId ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.4
+	NAME 'OpenLDAPtransducer'
+	DESC 'OpenLDAP Transducer'
+	SUP organizationalUnit
+	MUST ( name $ ctype $ cstartEnabled $ cstartConfig )
+	MAY ( cid $ creqAccess ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.5
+	NAME 'OpenLDAPuser'
+	DESC 'OpenLDAP User'
+	SUP organizationalUnit
+	MUST ( cusername $ cauthRoleIds ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.6
+	NAME 'OpenLDAPusertoken'
+	DESC 'OpenLDAP UserToken'
+	SUP organizationalUnit
+	MUST ( cusername $ ctoken $ cexpiration ) )
+
+objectClass ( 1.3.6.1.4.1.62000.0.7
+	NAME 'OpenLDAPvirtue'
+	DESC 'OpenLDAP Virtue'
+	SUP organizationalUnit
+	MUST ( cusername $ croleId $ cappIds $ cresIds $ ctransIds $ cawsInstId )
+	MAY ( cid ) )
