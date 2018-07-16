@@ -8,7 +8,7 @@ PWD := $(shell pwd)
 obj-m := actuator_network.o
 actuator_network-objs := include/kmap.o netblock_module.o
 
-default:
+all:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 clean:
 	make -C $(KDIR) M=$(PWD) clean
