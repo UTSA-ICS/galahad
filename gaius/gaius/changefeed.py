@@ -57,8 +57,10 @@ class changes():
 					 'address'	: old['address']}).next()
 				history = flag['new_val']['history']
 				history.append(oldValor['host'])
+				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
+				config = {'host':host,'newHost':'x'}
+				r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
 				print flag
-				#update virtue object
 
 	def virtue_cleanup(self):
 		r.connect("172.30.93.138",28015).repl()
