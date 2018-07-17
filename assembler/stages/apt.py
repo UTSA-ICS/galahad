@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ci_stage import CIStage
+from assembler.stages.core.ci_stage import CIStage
 
 import subprocess, os
 
@@ -10,7 +10,7 @@ class AptStage(CIStage):
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(AptStage, self).run()
             self._ci.install_package('docker.io')
             self._ci.install_package('git')
             self._ci.install_package('python3')

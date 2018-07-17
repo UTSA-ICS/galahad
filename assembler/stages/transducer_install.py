@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ssh_stage import SSHStage
+from assembler.stages.core.ssh_stage import SSHStage
 import time
 import subprocess, os
 
@@ -67,14 +67,14 @@ searchguard.ssl.transport.enforce_hostname_verification: false
     '''
 
     def __init__(self, elastic_host, elastic_node, syslog_server, ssh_host, ssh_port, work_dir='.'):
-        super().__init__(ssh_host, ssh_port, work_dir=work_dir)
+        super(TransducerStage, self).__init__(ssh_host, ssh_port, work_dir=work_dir)
         self._elastic_search_host = elastic_host
         self._elastic_search_node = elastic_node
         self._syslog_server = syslog_server
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(TransducerStage, self).run()
 
 
             syslog_template = 'syslog-ng-virtue-node.conf.template'

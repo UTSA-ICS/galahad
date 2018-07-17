@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ssh_stage import SSHStage
+from assembler.stages.core.ssh_stage import SSHStage
 import time
 import subprocess, os
 
@@ -25,7 +25,7 @@ WantedBy=multi-user.target
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(MerlinStage, self).run()
             deb_file_path = os.path.join(self.PAYLOAD_PATH, self.DEB_FILE)
             systemctl_vmpath = '/etc/systemd/system/merlin.service'
             systemctl_filename = os.path.basename(systemctl_vmpath)

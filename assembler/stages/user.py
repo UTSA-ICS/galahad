@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ci_stage import CIStage
+from assembler.stages.core.ci_stage import CIStage
 
 import subprocess, os
 
@@ -11,7 +11,7 @@ class UserStage(CIStage):
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(UserStage, self).run()
             key_file = os.path.join(self._work_dir, 'id_rsa')
             try:
                 subprocess.check_call(['ssh-keygen', '-N', '', '-f', key_file])

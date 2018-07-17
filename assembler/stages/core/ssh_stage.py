@@ -3,7 +3,7 @@
 import tempfile, subprocess, os
 from time import sleep
 
-class SSHStage():
+class SSHStage(object):
     NAME = 'CoreSSH'
     DEPENDS = ['UserStage']
 

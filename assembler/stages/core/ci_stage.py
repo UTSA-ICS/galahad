@@ -2,10 +2,10 @@
 
 import tempfile
 
-from stages.core.ci import CloudInitUserData
+from assembler.stages.core.ci import CloudInitUserData
 
 
-class CIStage():
+class CIStage(object):
     NAME = 'CoreCI'
     DEPENDS = []
 
