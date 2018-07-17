@@ -48,7 +48,7 @@ class changes():
 			dest = rethink.filter('galahad', {'host':newHost}).next()
 			object = rethink.filter("galahad", {"host":host}).next()
 			if object["address"] == self.IP:
-				migrate.migrate_instance(object["address"], dest['address'])
+				migrate.migrate_instance(host, dest['address'])
 				old = rethink.filter('galahad',
 					{'function':'virtue',
 					 'host':host}).next()
