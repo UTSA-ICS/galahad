@@ -69,15 +69,15 @@ class Stack():
         time.sleep(60)
 
         # Process EFS information and setup additional stak for valor nodes
-        cloudformation = boto3.resource('cloudformation')
-        EFSStack = cloudformation.Stack(self.stack_name)
+        #cloudformation = boto3.resource('cloudformation')
+        #EFSStack = cloudformation.Stack(self.stack_name)
 
-        for output in EFSStack.outputs:
-            if output['OutputKey'] == 'FileSystemID':
-                efsFileSystemID = output['OutputValue']
+        #for output in EFSStack.outputs:
+        #    if output['OutputKey'] == 'FileSystemID':
+        #        efsFileSystemID = output['OutputValue']
 
-        efsFileSystemID = '{}.us-east-1.amazonaws.com'.format(efsFileSystemID)
-        logger.info('EFS File System ID is {}'.format(efsFileSystemID))
+        #efsFileSystemID = '{}.us-east-1.amazonaws.com'.format(efsFileSystemID)
+        #logger.info('EFS File System ID is {}'.format(efsFileSystemID))
 
         return stack
 
@@ -334,13 +334,42 @@ class Excalibur():
             FromPort=5002,
             ToPort=5002,
             IpProtocol='TCP')
+        response10 = security_group.authorize_ingress(
+            CidrIp='24.35.122.60/32',
+            FromPort=22,
+            ToPort=22,
+            IpProtocol='TCP')
+        response11 = security_group.authorize_ingress(
+            CidrIp='24.35.122.60/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP')
         return dict(
             list(response1.items()) + list(response2.items()) +
             list(response3.items()) + list(response4.items()) +
             list(response5.items()) + list(response6.items()) +
             list(response7.items()) + list(response8.items()) +
-            list(response9.items()))
+            list(response9.items()) + list(response10.items()) +
+            list(response11.items()))
 
+class EFS():
+    def __init__(self, stack_name, ssh_key):
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.efs_id = self.get_efs_id()
+
+    def get_efs_id():
+        cloudformation = boto3.resource('cloudformation')
+        EFSStack = cloudformation.Stack(self.stack_name)
+
+        for output in EFSStack.outputs:
+            if output['OutputKey'] == 'FileSystemID':
+                self.efs_id = output['OutputValue']
+
+        efs_id = '{}.us-east-1.amazonaws.com'.format(efs_id)
+        logger.info('EFS File System ID is {}'.format(efs_id))
+
+        return efs_id
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
     config = SSHConfig(
@@ -361,6 +390,9 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
 
+    ### WAT ###
+    #efs = EFS(stack_name, path_to_key)
+    #efs.setup_efs(...)
 
 def parse_args():
     parser = argparse.ArgumentParser()
