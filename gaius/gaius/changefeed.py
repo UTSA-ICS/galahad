@@ -57,10 +57,21 @@ class changes():
 					 'address'	: old['address']}).next()
 				history = flag['new_val']['history']
 				history.append(oldValor['host'])
-				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
-				config = {'host':host,'newHost':'x'}
-				r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
 				print flag
+
+	def virtue_alert(self):
+		r.connect("172.30.93.138",28015).repl()
+                cursor = r.db('routing').table('transducer').changes().filter(lambda change: \
+                        (change['old_val']['flag']=='TRUE') & (change['new_val']['flag']=='FALSE')).run()
+                for flag in cursor:
+                        host = flag['new_val']['config']['host']
+                        newHost = flag['new_val']['config']['newHost']
+                        dest = rethink.filter('galahad', {'host':newHost}).next()
+                        if dest["address"] == self.IP:
+                                print "hurray"
+				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
+                                config = {'host':host,'newHost':'x'}
+                                r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
 
 	def virtue_cleanup(self):
 		r.connect("172.30.93.138",28015).repl()
@@ -90,6 +101,7 @@ class changes():
 			#computeThread = threading.Thread(target=self.compute)
                         virtueThread = threading.Thread(target=self.virtue_new)
 			virtueMigrate = threading.Thread(target=self.virtue_migrate)
+			virtueAlert = threading.Thread(target=self.virtue_alert)
 			virtueCleanup = threading.Thread(target=self.virtue_cleanup)
                         #valorThread = threading.Thread(target=self.valor)
                         #try:
@@ -102,6 +114,10 @@ class changes():
                                 pass
 			try:
 				virtueMigrate.start()
+			except:
+				pass
+			try:
+				virtueAlert()
 			except:
 				pass
 			try:
