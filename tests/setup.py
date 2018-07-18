@@ -357,19 +357,56 @@ class EFS():
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
+        self.nfs_ip = '18.210.83.5'
 
-    def get_efs_id():
+    def get_efs_id(self):
         cloudformation = boto3.resource('cloudformation')
         EFSStack = cloudformation.Stack(self.stack_name)
 
         for output in EFSStack.outputs:
             if output['OutputKey'] == 'FileSystemID':
-                self.efs_id = output['OutputValue']
+                efs_id = output['OutputValue']
 
         efs_id = '{}.us-east-1.amazonaws.com'.format(efs_id)
         logger.info('EFS File System ID is {}'.format(efs_id))
 
         return efs_id
+
+    def setup_efs(self):
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ValorEFSServer']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+        _cmd = "sudo('apt update')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+        _cmd = "sudo('apt install --assume-yes nfs-common')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+
+        _cmd = "sudo('mkdir /mnt/efs')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+        _cmd = "sudo('mount -t {}:/ /mnt/efs')".format(self.efs_id)
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+
+        _cmd = "sudo('mkdir /mnt/nfs')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+        ### WAT ### Need to make the NFS mount ip dynamic
+        _cmd = "sudo('mount -t nfs 18.210.83.5:/ /mnt/nfs')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+
+        _cmd = "sudo('cp -R /mnt/nfs/export/deploy /mnt/efs')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+        _cmd = "sudo('cp /mnt/nfs/export/vms/images/centos7.img /mnt/efs')"
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
     config = SSHConfig(
@@ -391,8 +428,8 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
 
     ### WAT ###
-    #efs = EFS(stack_name, path_to_key)
-    #efs.setup_efs(...)
+    efs = EFS(stack_name, path_to_key)
+    efs.setup_efs()
 
 def parse_args():
     parser = argparse.ArgumentParser()
