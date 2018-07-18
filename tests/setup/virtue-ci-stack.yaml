@@ -215,6 +215,19 @@ Resources:
               - !Ref NameSuffix
               - '-EFSSecGroup'
       VpcId: !Ref VirtUEVPC
+  VirtueNFSServerSecGroupNFSIngressRule:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: Allow NFS Server to be contacted from local EFS Server
+      CidrIp: !Join
+        - ''
+        - - !GetAtt ValorEFSServer.PublicIp
+          - '/32'
+      FromPort: 2049
+      IpProtocol: tcp
+      ToPort: 2049
+      GroupId: sg-08dabbf530b426156
+    DependsOn: ValorEFSServer
   VirtueInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
