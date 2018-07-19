@@ -367,7 +367,7 @@ class EFS():
             if output['OutputKey'] == 'FileSystemID':
                 efs_id = output['OutputValue']
 
-        efs_id = '{}.us-east-1.amazonaws.com'.format(efs_id)
+        efs_id = '{}.efs.us-east-1.amazonaws.com'.format(efs_id)
         logger.info('EFS File System ID is {}'.format(efs_id))
 
         return efs_id
@@ -387,26 +387,48 @@ class EFS():
             }])
         efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
-        _cmd = "sudo('apt update')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-        _cmd = "sudo('apt install --assume-yes nfs-common')"
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
+                format(self.ssh_key, 'setup/setup_efs.sh', efs_ip)).run()
+
+        # Call the setup_efs.sh script
+        _cmd = "bash('./setup_efs.sh {} {}')".format(self.efs_id, self.nfs_ip)
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
-        _cmd = "sudo('mkdir /mnt/efs')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-        _cmd = "sudo('mount -t {}:/ /mnt/efs')".format(self.efs_id)
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+    def setup_valorNodes(self):
+        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
+        self.configure_instance('ValorRethinkDB', 'setup_valor_rethinkdb.sh')
+        self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
+        self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
 
-        _cmd = "sudo('mkdir /mnt/nfs')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-        ### WAT ### Need to make the NFS mount ip dynamic
-        _cmd = "sudo('mount -t nfs 18.210.83.5:/ /mnt/nfs')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+    def configure_instance(self, tag_logical_id, setup_filename):
+        # Get the IP for the instances specified by the logical-id tag
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': [tag_logical_id]
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        logger.info('Public IP for instance with logica-id [{}] is [{}]'.format(tag_logical_id, public_ip))
 
-        _cmd = "sudo('cp -R /mnt/nfs/export/deploy /mnt/efs')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-        _cmd = "sudo('cp /mnt/nfs/export/vms/images/centos7.img /mnt/efs')"
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+        # SCP over the setup file to the instance
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/{} ubuntu@{}:~/.'.
+                format(self.ssh_key, setup_filename, public_ip)).run()
+
+        # Execute the setup file on the instance
+        _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
+        run_ssh_cmd(public_ip, self.ssh_key, _cmd)
+
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
     config = SSHConfig(
@@ -427,9 +449,9 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys)
 
-    ### WAT ###
     efs = EFS(stack_name, path_to_key)
     efs.setup_efs()
+    efs.setup_valorNodes()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -484,6 +506,10 @@ def parse_args():
         action="store_true",
         help="setup the ldap related test environment")
     parser.add_argument(
+        "--setup_efs",
+        action="store_true",
+        help="setup the EFS related test environment")
+    parser.add_argument(
         "--update_excalibur",
         action="store_true",
         help="Update the excalibur server/code")
@@ -517,6 +543,13 @@ def main():
     if args.setup_ldap:
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.setup_ldap()
+    if args.setup_efs:
+        stack = Stack()
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+
+        efs = EFS(args.stack_name, args.path_to_key)
+        efs.setup_efs()
+        efs.setup_valorNodes()
     if args.update_excalibur:
         logger.warn('Not yet implemented!')
     if args.list_stacks:
