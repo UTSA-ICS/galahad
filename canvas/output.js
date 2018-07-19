@@ -351,7 +351,7 @@ function validateIp(ip) {
         || ip[c].indexOf(" ") !== -1 ) {
 
 	  return false;
-    }
+   }
   }
 
   return true;
@@ -383,7 +383,7 @@ function login(e) {
   console.log("login() exit");
 }
 
-function check_oauth(e) {
+function login(e) {
 
   // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -531,24 +531,8 @@ function methods() {
 
   client.registerMethod("userVirtueGet",     excalibur + "/user/virtue/get",     "GET");
   client.registerMethod("userVirtueList",    excalibur + "/user/virtue/list",    "GET");
-  client.registerMethod("userVirtueCreate",  excalibur + "/user/virtue/create",  "GET");
   client.registerMethod("userVirtueLaunch",  excalibur + "/user/virtue/launch",  "GET");
   client.registerMethod("userVirtueStop",    excalibur + "/user/virtue/stop",    "GET");
-  client.registerMethod("userVirtueDestroy", excalibur + "/user/virtue/destroy", "GET");
-
-  // ### Virtue Administrative API
-  client.registerMethod("adminApplicationList", excalibur + "/admin/application/list", "GET");
-  client.registerMethod("adminResourceGet",     excalibur + "/admin/resource/get",     "GET");
-  client.registerMethod("adminResourceList",    excalibur + "/admin/resource/list",    "GET");
-  client.registerMethod("adminResourceAttach",  excalibur + "/admin/resource/attach",  "GET");
-  client.registerMethod("adminResourceDetach",  excalibur + "/admin/resource/detach",  "GET");
-  client.registerMethod("adminRoleCreate",      excalibur + "/admin/role/create",      "GET");
-  client.registerMethod("adminRoleList",        excalibur + "/admin/role/list",        "GET");
-  client.registerMethod("adminSystemExport",    excalibur + "/admin/system/export",    "GET");
-  client.registerMethod("adminSystemImport",    excalibur + "/admin/system/import",    "GET");
-
-
-  // ### Virtue Security API
 
   console.log('client');
 
