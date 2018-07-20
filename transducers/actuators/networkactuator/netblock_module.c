@@ -57,6 +57,7 @@ static DEFINE_MUTEX(netblockchar_mutex);
 #define IPV6 "ipv6"
 #define TCP "tcp"
 #define UDP "udp"
+#define RESET "reset"
 
 //   Character Device
 #define  DEVICE_NAME "netblockchar"
@@ -550,7 +551,63 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 	char* token;
 	unsigned char rule;
 	int count;
+	const char* key;
+	map_iter_t iter;
    	snprintf(message, 255,"%s", buffer);
+
+	if(strcmp(message, RESET) == 0){
+		//Remove all rules in the kmaps
+		printk(KERN_INFO "Removing all rulesets");
+		//remove ougoing ipv4 rules
+		iter = map_iter(&rules.out_ipv4);
+		while ((key = map_next(&rules.out_ipv4, &iter))) {
+  			map_remove(&rules.out_ipv4, key);
+		}
+
+		//remove incoming ipv4 rules
+		iter = map_iter(&rules.in_ipv4);
+		while ((key = map_next(&rules.in_ipv4, &iter))) {
+                        map_remove(&rules.in_ipv4, key);
+                }
+
+		//remove outgoing ipv6 rules
+		iter = map_iter(&rules.out_ipv6);
+                while ((key = map_next(&rules.out_ipv6, &iter))) {
+                        map_remove(&rules.out_ipv6, key);
+                }
+
+		//remove incoming ipv6 rules
+		iter = map_iter(&rules.in_ipv6);
+                while ((key = map_next(&rules.in_ipv6, &iter))) {
+                        map_remove(&rules.in_ipv6, key);
+                }
+
+		//remove outgoing tcp traffic rules
+		iter = map_iter(&rules.out_tcp_ports);
+                while ((key = map_next(&rules.out_tcp_ports, &iter))) {
+                        map_remove(&rules.out_tcp_ports, key);
+                }
+
+		//remove incoming tcp traffic rules
+		iter = map_iter(&rules.in_tcp_ports);
+                while ((key = map_next(&rules.in_tcp_ports, &iter))) {
+                        map_remove(&rules.in_tcp_ports, key);
+                }
+
+		//remove outgoing udp traffic rules
+		iter = map_iter(&rules.out_udp_ports);
+                while ((key = map_next(&rules.out_udp_ports, &iter))) {
+                        map_remove(&rules.out_udp_ports, key);
+                }
+
+		//remove incoming udp traffic rules
+		iter = map_iter(&rules.in_udp_ports);
+                while ((key = map_next(&rules.in_udp_ports, &iter))) {
+                        map_remove(&rules.in_udp_ports, key);
+                }
+
+		return len;
+	}
 
 	//Parse the incoming rule
 	cursor = &message[0];
