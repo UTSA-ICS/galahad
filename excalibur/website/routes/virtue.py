@@ -27,8 +27,11 @@ def get_endpoint():
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
+
+    #TODO: Remove hardcoded password
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
+    #TODO: Remove hardcoded credentials
     ep = EndPoint('jmitchell@virtue.com', 'Test123!')
     ep.inst = inst
 
@@ -39,8 +42,10 @@ def get_admin_endpoint():
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
+    #TODO: Remove hardcoded password
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
+    #TODO: Remove hardcoded credentials
     epa = EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
     epa.inst = inst
 
@@ -51,8 +56,10 @@ def get_security_endpoint():
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
+    #TODO: Remove hardcoded password
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
+    #TODO: Remove hardcoded credentials
     eps = EndPoint_Security('jmitchell@virtue.com', 'Test123!')
     eps.inst = inst
 

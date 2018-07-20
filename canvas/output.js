@@ -37,6 +37,8 @@ var excaliburIpAddress;
 
 function execTunnel(options) {
 
+    console.log('entry: execTunnel()');
+
     var str = "ssh -i "
       + options.privateKey
       + " "
@@ -53,8 +55,7 @@ function execTunnel(options) {
       + options.dstPort
       + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
 
-    console.log('execTunnel str: ', str);
-    debug('trying to connect with: ', str);
+    debug('    trying to connect with: ', str);
 
     exec(str, function (error, stdout, stderr) {
         console.warn('stdout: ', stdout);
@@ -64,9 +65,11 @@ function execTunnel(options) {
             debug("exec error: " + error);
             return;
         }
-        debug("stdout: " + stdout);
-        debug("stderr: " + stderr);
+        debug("    stdout: " + stdout);
+        debug("    stderr: " + stderr);
     });
+
+    console.log('exit: execTunnel()');
 }
 
 var connector = require('./assets/js/connect');
@@ -78,28 +81,37 @@ function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
 
-function openApp(role, port_local, appId, ip) {
+function openApp(role, port_local, appId, roleId) {
+
+    console.log("entry: openApp()");
+    console.log('    appId =' + appId);
 
     var roleIcon = 'fab fa-black-tie';
 
-    console.log("openApp");
-    console.log(appId);
+    var args1 = {
+      parameters: { "roleId" : roleId },
+      headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
 
-    var args = {
+    client.methods.userRoleGet(args1, function(dat1, resp) {
+
+    var ip = dat1["ipAddress"];
+
+    var args2 = {
       parameters: { "appId" : appId },
       headers: { "Authorization" : "Bearer " + data['access_token']}
     }
 
-    client.methods.userApplicationGet(args, function(dat, resp){
+    client.methods.userApplicationGet(args2, function(dat, resp) {
 
-      console.log("data = " + JSON.stringify(dat));
-      console.log("methods.userApplicationGet");
+      console.log("    entry: client.methods.userApplicationGet()");
+      console.log("    data = " + JSON.stringify(dat));
 
       var local_config = {
         username: "virtue",
         host: ip,
         //port: dat['port'],
-        port: 6768,
+        port: 6766,
         dstHost: "127.0.0.1",
         dstPort: 2023,
         localHost: "0.0.0.0",
@@ -118,8 +130,51 @@ function openApp(role, port_local, appId, ip) {
       view.setAttribute("ondragend", "dragend(event)");
       view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
       document.getElementById('appArea').appendChild(view);
+
+      console.log("    exit: client.methods.userApplicationGet()");
     });
+    });
+    console.log("exit: openApp()");
 }
+
+function startApp(virtueId) {
+
+    console.log("entry: startApp()");
+
+    var args = {
+      parameters: { "virtueId" : virtueId },
+      headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
+
+    client.methods.userVirtueLaunch(args, function(data, response) {
+
+      console.log("    entry: client.methods.userVirtueLaunch()");
+      console.log("    data = " + JSON.stringify(data));
+
+    });
+
+    console.log("exit: startApp()");
+}
+
+function stopApp(virtueId) {
+
+    console.log("entry: stopApp()");
+
+    var args = {
+      parameters: { "virtueId" : virtueId },
+      headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
+
+    client.methods.userVirtueStop(args, function(data, response) {
+
+      console.log("    entry: client.methods.userVirtueStop()");
+      console.log("    data = " + JSON.stringify(data));
+
+    });
+
+    console.log("exit: stopApp()");
+}
+
 function toggleMaximizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
     if (app.style.width === '100%' && app.style.height === '100%') {
@@ -333,7 +388,7 @@ function old_login(e) {
 
 
 
-function validateIp(ip) {
+function is_ipv4_address_valid(ip) {
 
   var ip = ip.split(".");
 
@@ -360,15 +415,16 @@ function validateIp(ip) {
 
 function getExcaliburIpAddress() {
 
-  console.log("getExcaliburIpAddress()");
+  console.log("entry: getExcaliburIpAddress()");
 
   excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
 
-  if (!validateIp(excaliburIpAddress)) {
+  if (!is_ipv4_address_valid(excaliburIpAddress)) {
     return false;
   }
 
   console.log("getExcaliburIpAddress = " + excaliburIpAddress);
+  console.log("exit: getExcaliburIpAddress()");
 }
 
 
@@ -378,12 +434,14 @@ function login(e) {
   console.log("login() entry");
 
   getExcaliburIpAddress();
-  check_oauth(e);
+  check_oauth();
 
   console.log("login() exit");
 }
 
-function login(e) {
+function check_oauth() {
+
+  console.log('entry: check_oauth()')
 
   // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -400,23 +458,21 @@ function login(e) {
 
   app.get("/excalibur_callback", function (req, res) {
 
-    console.log('/callback');
-    console.log(req.query);
+    console.log('    received /callback');
+    console.log('    query = ' + req.query);
 
     iframe.parentElement.removeChild(iframe)
     res.end(JSON.stringify(req.query, null, 2));
 
     if (req.query.hasOwnProperty('access_token')) {
 
-      console.log('in if statement');
+      console.log('    access_token found in query');
 
       login.classList.remove('fadeIn');
       login.classList.add('fadeOut');
       dockWrapper.style.display = 'flex';
       data = req.query;
       getVirtueData();
-
-      console.log('exit retrieve')
     }
     else {
       console.log('error - error_description');
@@ -429,10 +485,14 @@ function login(e) {
 
   login.parentElement.appendChild(iframe);
   login.parentElement.removeChild(login);
+
+  console.log('exit: check_oauth()')
 }
 
 
-function getVirtueData(){
+function getVirtueData() {
+
+  console.log('entry: getVirtueData()');
 
   var dockWrapper = document.getElementById('dockWrapper');
   var client = methods();
@@ -440,7 +500,7 @@ function getVirtueData(){
     headers: { "Authorization" : "Bearer " + data['access_token']}
   }
 
-  client.methods.userRoleList(args, function (dat, resp){
+  client.methods.userRoleList(args, function (dat, resp) {
 
     console.log("methods.userRoleList");
     console.log("userRoleList data = " + JSON.stringify(dat));
@@ -460,7 +520,7 @@ function getVirtueData(){
 
       console.log("role - " + role_index);
       console.log(dat[role_index]);
-      console.log(dat[role_index]['ipAddress']);
+      console.log(dat[role_index]['id']);
       console.log(dat[role_index]['applicationIds']);
 
       var number_of_apps = dat[role_index]['applicationIds'].length;
@@ -477,12 +537,19 @@ function getVirtueData(){
         console.log(role_index);
 
         // Updates app dock
-        var div = document.createElement("div");
-        var optionsinner = document.getElementById("optionsinner" + role_index);
 
-        div.setAttribute("class", "icon-pair circle-bg");
-        if(dat[role_index]['ipAddress'] != "null") {
-          div.setAttribute(
+        var app_dock = document.createElement("div");
+        var optionsinner = document.getElementById("optionsinner" + role_index);
+        optionsinner.setAttribute("name", dat[role_index]['id']);
+
+        var open_app = document.createElement("input");
+
+        if(dat[role_index]['id'] != "null") {
+
+          open_app.setAttribute("class", "control_button");
+          open_app.setAttribute("type", "control_button");
+          open_app.setAttribute("value", "OPEN");
+          open_app.setAttribute(
             "onclick",
             "openApp('"
               + dat[role_index]['name']
@@ -491,19 +558,96 @@ function getVirtueData(){
               + "','"
               + appId
               + "','"
-              + dat[role_index]['ipAddress']
+              + dat[role_index]['id']
               + "');");
+
         }
-        var itag = document.createElement("I");
-        itag.setAttribute("class","far fa-file-edit fa-2x");
-        div.appendChild(itag);
-        optionsinner.appendChild(div);
-        // ### NEED TO FIX DYNAMIC EXEC_TUNNEL IN OPEN_APP WITH OPTIONS
+        //var itag = document.createElement("I");
+        //itag.setAttribute("class","far fa-file-edit fa-2x");
+        //open_app.appendChild(itag);
+        app_dock.appendChild(open_app);
+        optionsinner.appendChild(app_dock);
       }
     }
+
+    client.methods.userVirtueList(args, function (data, resp) {
+
+      console.log("methods.userVirtueList");
+      console.log("userVirtueList data = " + JSON.stringify(data));
+      console.log("data.length = " + data.length);
+
+      var number_of_virtues = data.length;
+
+      for (var virtue_index = 0; virtue_index < number_of_virtues; virtue_index++) {
+
+        var roleId = data[virtue_index]["roleId"];
+        console.log("after");
+        var optionsinner = document.getElementsByName(roleId)[0];
+        console.log("optionsinner = " + optionsinner);
+        var app_dock = optionsinner.getElementsByTagName("div")[0];
+  
+        var start_app = document.createElement("input");
+        var stop_app = document.createElement("input");
+
+        start_app.setAttribute("class", "control_button");
+        start_app.setAttribute("type", "control_button");
+        start_app.setAttribute("value", "START");
+        start_app.setAttribute(
+          "onclick",
+          "startApp('"
+          + data[virtue_index]['id'] 
+          + "');");
+
+        stop_app.setAttribute("class", "control_button");
+        stop_app.setAttribute("type", "control_button");
+        stop_app.setAttribute("value", "STOP");
+        stop_app.setAttribute(
+          "onclick",
+          "stopApp('"
+          + data[virtue_index]['id'] 
+          + "');");
+
+        app_dock.appendChild(start_app);
+        app_dock.appendChild(stop_app);
+        optionsinner.appendChild(app_dock);
+      }
+    });
   });
+
+
+  console.log('exit: getVirtueData()');
 }
 
+/////////////////////
+/*
+
+virtue_data = client.methods.userVirtueList(args, function (data, resp) {
+              return data;
+          });
+
+            start_app.setAttribute("class", "control_button");
+            start_app.setAttribute("type", "control_button");
+            start_app.setAttribute("value", "START");
+            start_app.setAttribute(
+                "onclick",
+                "startApp('"
+                  + virtue_data[role_index]['id'] 
+                  + "');");
+
+            stop_app.setAttribute("class", "control_button");
+            stop_app.setAttribute("type", "control_button");
+            stop_app.setAttribute("value", "STOP");
+            stop_app.setAttribute(
+                "onclick",
+                "stopApp('"
+                  + virtue_data[role_index]['id'] 
+                  + "');");
+          });
+
+        app_dock.appendChild(start_app);
+        app_dock.appendChild(stop_app);
+*/
+/////////////////////
 
 function logout(e){
 
@@ -513,6 +657,8 @@ function logout(e){
 
 
 function methods() {
+
+  console.log('entry: methods()');
 
   var excalibur = "https://" + excaliburIpAddress + ":5002/virtue"
 
@@ -534,7 +680,7 @@ function methods() {
   client.registerMethod("userVirtueLaunch",  excalibur + "/user/virtue/launch",  "GET");
   client.registerMethod("userVirtueStop",    excalibur + "/user/virtue/stop",    "GET");
 
-  console.log('client');
+  console.log('exit: methods()');
 
   return client;
 }
