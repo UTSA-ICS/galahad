@@ -293,6 +293,10 @@ def do_actuator(transducer_id, config_str, enabled):
 			rules.append(str(j))
 			log.info('Received rule: %s',str(j))
 
+		#Clean up later... For now just delete ruleset on new configuration
+		dev = os.open("/dev/netblockchar", os.O_RDWR)
+		os.write(dev, "reset")
+		os.close(dev)
 		for rule in rules:
 			rule = rule.replace('_',' ')
 			log.info('Working on: %s', rule)
