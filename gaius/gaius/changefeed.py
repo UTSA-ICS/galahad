@@ -11,6 +11,9 @@ from gaius.migration import Migrate
 rethink = Rethink()
 migrate = Migrate()
 
+s = socket.socket()
+port = 12345
+
 #watch for changes to the table and start, migrate, and cleanup instances accourdionly
 class changes():
 	def __init__(self):
@@ -67,8 +70,15 @@ class changes():
                         host = flag['new_val']['config']['host']
                         newHost = flag['new_val']['config']['newHost']
                         dest = rethink.filter('galahad', {'host':newHost}).next()
+			s.bind(('', port))
+			s.listen(5)
+			while True:
+                                c, addr = s.accept()
+                                c.send("TRUE")
+                                c.close()
+                                break
                         if dest["address"] == self.IP:
-                                print "hurray"
+				print "hurray"
 				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
                                 config = {'host':host,'newHost':'x'}
                                 r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
@@ -117,7 +127,7 @@ class changes():
 			except:
 				pass
 			try:
-				virtueAlert()
+				virtueAlert.start()
 			except:
 				pass
 			try:
@@ -131,6 +141,7 @@ class changes():
                         #computeThread.join()
                         virtueThread.join()
 			virtueMigrate.join()
+			virtueAlert.join()
 			virtueCleanup.join()
                         #valorThread.join()
 

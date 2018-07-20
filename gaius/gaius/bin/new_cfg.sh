@@ -5,4 +5,3 @@ sed -i "s/\$VIRTUE/$2/g" ./config/$1.cfg
 sed -i "s/\$VALOR/$3/g" ./config/$1.cfg
 
 xl create ./config/$1.cfg
-
