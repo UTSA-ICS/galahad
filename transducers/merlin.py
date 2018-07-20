@@ -394,8 +394,31 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 			continue
 
 		if transducer_type == 'ACTUATOR':
-			do_actuator(transducer_id, config, enabled)
+			if do_actuator(transducer_id, config, enabled) == False:
+				continue
+
 			# TODO ideally the giant block below would live in a separate function and this would be a tidy little if/else
+			# do_actuator successful... send ACK
+                        new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
+
+                        try:
+                                res = r.db('transducers').table('acks').insert({
+                                        'id': [virtue_id, transducer_id],
+                                        'virtue_id': virtue_id,
+                                        'transducer_id': transducer_id,
+                                        'type': transducer_type,
+                                        'configuration': config,
+                                        'enabled': enabled,
+                                        'timestamp': timestamp,
+                                        'signature': r.binary(new_signature)
+                                }, conflict='replace').run(conn)
+                                if res['errors'] > 0:
+                                        log.error('Failed to insert into ACKs table; first error: %s', str(res['first_error']))
+                                        continue
+                        except r.ReqlError as e:
+                                log.error('Failed to publish ACK to Excalibur because: %s', str(e))
+                                continue
+
 			continue
 
 		with lock:
