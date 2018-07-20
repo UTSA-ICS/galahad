@@ -277,13 +277,14 @@ def do_actuator(transducer_id, config_str, enabled):
 			log.error('Failed to send command over netlink socket')
 			return
 	elif transducer_id == 'block_net':
-		log.info('Received block_net actuator configuration')
 		#WORK IN PROGRESS
+		log.info('Received block_net actuator configuration')
 		regexFormat = r'^((block|unblock){1}\s(incoming|outgoing){1}'
 		regexFormat += r'\s(ipv4|ipv6|tcp|udp){1}\s)(.*)$'
 		#These are used for accessing fields in the regular expression
 		proto = 4
 		value = 5
+
 		portRegex = r'^[0-9]{1,5}$'
 		ipv4Regex = r'^((\d{1,3}\.){3}\d{1,3})$'
 		#IPv6 address must be expanded for now
@@ -291,61 +292,56 @@ def do_actuator(transducer_id, config_str, enabled):
 		rules = []
 		for j in config["rules"]:
 			rules.append(str(j))
-			log.info('Received rule: %s',str(j))
 
 		#Clean up later... For now just delete ruleset on new configuration
-		dev = os.open("/dev/netblockchar", os.O_RDWR)
+		chardev = "/dev/netblockchar"
+		dev = os.open(chardev, os.O_RDWR)
 		os.write(dev, "reset")
 		os.close(dev)
+		validRules = []
+
+		#Make sure all rules in the configuration are valid
 		for rule in rules:
 			rule = rule.replace('_',' ')
-			log.info('Working on: %s', rule)
 			if re.match(regexFormat, rule):
-				log.info('Found match for: %s', rule)
 				g = re.search(regexFormat, rule)
-				log.info('Group proto=%s, Group value=%s', g.group(proto), g.group(value))
 				if g.group(proto) == 'tcp' or g.group(proto) == 'udp':
 					v = re.search(portRegex, g.group(value))
 					if v != None and int(v.group(0)) < 65536:
-						dev = os.open("/dev/netblockchar", os.O_RDWR)
-						os.write(dev,rule)
-						os.close(dev)
-						log.info('Added firewall rule: %s', rule)
-						return True
+						validRules.append(rule)
+						continue
 					else:
-						log.error('Invalid actuator configuration (%s) for %s', rule, transducer_id)
+						log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 						return False
 				elif g.group(proto) == 'ipv4':
-					log.info('Adding ipv4 rule')
 					v = re.search(ipv4Regex, g.group(value))
 					if v != None and all(int(i) <= 255 for i in v.group(0).split('.')):
-						log.info('Writing to netblockchar')
-						dev = os.open("/dev/netblockchar", os.O_RDWR)
-                                                os.write(dev,rule)
-                                                os.close(dev)
-                                                log.info('Added firewall rule: %s', rule)
-                                                return True
+						validRules.append(rule)
+						continue
 					else:
-						log.info('Invalid actuator configuration (%s) for transducer %s', rule, transducer_id)
+						log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 						return False
 				elif g.group(proto) == 'ipv6':
 					v = re.search(ipv6Regex, g.group(value).lower())
 					if v != None:
-						dev = os.open("/dev/netblockchar", os.O_RDWR)
-                                                os.write(dev,rule)
-                                                os.close(dev)
-                                                log.info('Added firewall rule: %s', rule)
-                                                return True
+						validRules.append(rule)
+						continue
 					else:
-						log.error('Invalid actuator configuration (%s) for transducer %s', rule, transducer_id)
+						log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 						return False
 				else:
-					log.info('Invalid actuator configuration (%s)', rule)
-					log.info('Group proto=%s, Group value=%s',g.group(proto), g.group(value))
+					log.error('Invalid actuator configuration (%s)', rule)
 					return False
 			else:
 				log.info('Invalid actuator configuration (%s) for transducer %s', rule, transducer_id)
 				return False
+
+		#Write valid ruleset to character device
+		for rule in validRules:
+			fd = os.open(chardev, os.O_RDWR)
+			os.write(fd, rule)
+			os.close(fd)
+		return True
 	else:
 		log.warning('This type of actuator has not been defined yet: %s', transducer_id)
 		return False
