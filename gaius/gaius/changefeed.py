@@ -70,18 +70,23 @@ class changes():
                         host = flag['new_val']['config']['host']
                         newHost = flag['new_val']['config']['newHost']
                         dest = rethink.filter('galahad', {'host':newHost}).next()
-			s.bind(('', port))
-			s.listen(5)
-			while True:
-                                c, addr = s.accept()
-                                c.send("TRUE")
-                                c.close()
-                                break
-                        if dest["address"] == self.IP:
-				print "hurray"
+			print "TEST1"
+			#s.bind(('', port))
+			#s.listen(5)
+			#while True:
+                        #        c, addr = s.accept()
+                        #        c.send("TRUE")
+                        #        c.close()
+                        #        break
+                        #print dest["address"]
+			#print self.IP
+			print dest["address"]
+			if dest["address"] == self.IP:
+				print "TEST2"
 				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
-                                config = {'host':host,'newHost':'x'}
+                                config = {'host':host,'newHost':'TestNode.101'}
                                 r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
+				print subprocess.Popen("xl create ./config/" + host + ".cfg", shell=True, stdout=subprocess.PIPE).stdout.read()
 
 	def virtue_cleanup(self):
 		r.connect("172.30.93.138",28015).repl()
