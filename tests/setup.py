@@ -68,17 +68,6 @@ class Stack():
         # Wait a min to Ensure that the Stack resources are completely online.
         time.sleep(60)
 
-        # Process EFS information and setup additional stak for valor nodes
-        #cloudformation = boto3.resource('cloudformation')
-        #EFSStack = cloudformation.Stack(self.stack_name)
-
-        #for output in EFSStack.outputs:
-        #    if output['OutputKey'] == 'FileSystemID':
-        #        efsFileSystemID = output['OutputValue']
-
-        #efsFileSystemID = '{}.us-east-1.amazonaws.com'.format(efsFileSystemID)
-        #logger.info('EFS File System ID is {}'.format(efsFileSystemID))
-
         return stack
 
     def delete_stack(self, stack_name):
@@ -397,8 +386,8 @@ class EFS():
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
     def setup_valorNodes(self):
-        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
         self.configure_instance('ValorRethinkDB', 'setup_valor_rethinkdb.sh')
+        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
         self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
         self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
 
@@ -502,17 +491,9 @@ def parse_args():
         action="store_true",
         help="setup the galahad/virtue test environment")
     parser.add_argument(
-        "--setup_ldap",
-        action="store_true",
-        help="setup the ldap related test environment")
-    parser.add_argument(
         "--setup_efs",
         action="store_true",
         help="setup the EFS related test environment")
-    parser.add_argument(
-        "--update_excalibur",
-        action="store_true",
-        help="Update the excalibur server/code")
     parser.add_argument(
         "--list_stacks",
         action="store_true",
@@ -540,18 +521,16 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
               args.branch_name)
-    if args.setup_ldap:
-        excalibur = Excalibur(args.stack_name, args.path_to_key)
-        excalibur.setup_ldap()
     if args.setup_efs:
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
-
+        #
+        excalibur = Excalibur(args.stack_name, args.path_to_key)
+        excalibur.update_security_rules()
+        #
         efs = EFS(args.stack_name, args.path_to_key)
         efs.setup_efs()
         efs.setup_valorNodes()
-    if args.update_excalibur:
-        logger.warn('Not yet implemented!')
     if args.list_stacks:
         Stack().list_stacks()
     if args.delete_stack:
