@@ -503,9 +503,9 @@ def parse_args():
         action="store_true",
         help="setup the galahad/virtue test environment")
     parser.add_argument(
-        "--setup_efs",
+        "--setup_valor",
         action="store_true",
-        help="setup the EFS related test environment")
+        help="setup EFS and Valor migration ecosystem test environment")
     parser.add_argument(
         "--list_stacks",
         action="store_true",
@@ -542,7 +542,7 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
               args.branch_name, args.default_user_key)
-    if args.setup_efs:
+    if args.setup_valor:
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
         #
