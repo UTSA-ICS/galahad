@@ -352,5 +352,5 @@ if __name__ == '__main__':
 		virtue_key, args.socket,))
 	heartbeat_thread.start()
 
-	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, socket_to_filter)
+	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, args.socket)
 

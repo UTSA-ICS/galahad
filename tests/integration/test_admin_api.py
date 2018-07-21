@@ -1,14 +1,17 @@
 import os
 import sys
+import time
 import json
 import requests
-
-from sso_login import sso_tool
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
+from cli.sso_login import sso_tool
+from website import ldap_tools
+from website.ldaplookup import LDAP
+from website.aws import AWS
 from website.services.errorcodes import ErrorCodes
 
 ##
@@ -19,16 +22,20 @@ from website.services.errorcodes import ErrorCodes
 
 def setup_module():
 
-    global settings
-    global token_data
     global session
     global base_url
+    global inst
 
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
     with open('../setup/excalibur_ip', 'r') as infile:
         ip = infile.read().strip() + ':' + settings['port']
+
+    inst = LDAP( '', '' )
+    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+    inst.get_ldap_connection()
+    inst.conn.simple_bind_s( dn, 'Test123!' )
 
     redirect = settings['redirect'].format(ip)
 
@@ -122,13 +129,49 @@ def test_role_create():
     response = session.get(base_url + '/role/create')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
+    role = {
+        'name': 'TestRole',
+        'version': '1.0',
+        'applicationIds': [],
+        'startingResourceIds': [],
+        'startingTransducerIds': []
+    }
+
     response = session.get(
         base_url + '/role/create',
-        params={'role': json.dumps({
-            'name': 'BadRole',
-            'version': '42'
-        })})
-    assert response.json() == ErrorCodes.admin['invalidFormat']['result']
+        params={'role': json.dumps(role)}
+    )
+    print(response.json())
+    assert set(response.json().keys()) == set(['id', 'name'])
+
+    role_id = response.json()['id']
+
+    role = inst.get_obj('cid', role_id, objectClass='OpenLDAProle', throw_error=True)
+    assert role != ()
+    ldap_tools.parse_ldap(role)
+    assert role['amiId'][0:4] == 'ami-'
+
+    test_virtue = inst.get_obj('croleId', role_id,
+                               objectClass='OpenLDAPvirtue', throw_error=True)
+
+    i = 0
+    while (test_virtue == () and i < 60):
+        time.sleep(1)
+        test_virtue = inst.get_obj(
+            'croleId', role_id, objectClass='OpenLDAPvirtue', throw_error=True
+        )
+        i = i + 1
+    assert test_virtue != ()
+
+    ldap_tools.parse_ldap(test_virtue)
+    assert test_virtue['username'] == 'NULL'
+    assert test_virtue['applicationIds'] == []
+    assert test_virtue['awsInstanceId'][0:2] == 'i-'
+
+    aws = AWS()
+    test_virtue = aws.populate_virtue_dict(test_virtue)
+    assert test_virtue['state'] in aws.aws_state_to_virtue_state.values()
+    aws.instance_destroy(test_virtue['awsInstanceId'], block=False)
 
 
 def test_role_list():

@@ -20,6 +20,7 @@
 #include <grp.h>
 
 #include "parser/parser-expr.h"
+#include "syslog-ng.h"
 #include "map/src/map.h"
 #include "cjson/cJSON.h"
 

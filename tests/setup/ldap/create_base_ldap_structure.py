@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shutil
 import ldap
 import ldap.modlist
 
@@ -61,15 +62,16 @@ def add_resource(id, type, unc, credentials):
     inst.add_obj(ldap_res, 'resources', 'cid', throw_error=True)
 
 
-def add_role(id, name, version, appIds, resIds, transIds):
+def add_role(id, name, version, appIds, resIds, transIds, ami):
 
     role = {
-        'cid': id,
+        'id': id,
         'name': name,
-        'cversion': version,
-        'cappIds': str(appIds),
-        'cstartResIds': str(resIds),
-        'cstartTransIds': str(transIds)
+        'version': version,
+        'applicationIds': str(appIds),
+        'startingResourceIds': str(resIds),
+        'startingTransducerIds': str(transIds),
+        'amiId': ami
     }
 
     ldap_role = to_ldap(role, 'OpenLDAProle')
@@ -102,8 +104,22 @@ def add_user(username, authRoleIds):
 
     inst.add_obj(ldap_user, 'users', 'cusername', throw_error=True)
 
+    if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
+        os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
 
-def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ip):
+    # Temporary code:
+    shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
+                '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username))
+
+    # Future code will look like this:
+    '''subprocess.run(
+        ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(username),
+         '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
+        check=True
+    )'''
+
+
+def add_virtue(id, username, roleid, appIds, resIds, transIds, awsId):
 
     virtue = {
         'id': id,
@@ -112,8 +128,7 @@ def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ip):
         'applicationIds': str(appIds),
         'resourceIds': str(resIds),
         'transducerIds': str(transIds),
-        'state': state,
-        'ipAddress': ip
+        'awsInstanceId': awsId
     }
 
     ldap_virtue = to_ldap(virtue, 'OpenLDAPvirtue')
@@ -161,7 +176,7 @@ if (__name__ == '__main__'):
     add_resource('fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare',
                  'token')
 
-    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
+    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]', 'NULL')
 
     add_user('jmitchell', '[]')
     add_user('fpatwa', '[]')

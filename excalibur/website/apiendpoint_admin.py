@@ -3,9 +3,13 @@ from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread
 from . import ldap_tools
+from aws import AWS
 import json
 import random
 import time
+import copy
+import traceback
+import subprocess
 
 DEBUG_PERMISSIONS = False
 
@@ -27,9 +31,9 @@ class EndPoint_Admin():
 
             return json.dumps(applications)
 
-        except Exception as e:
-            print("Error: {0}".format(e))
-            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def resource_get(self, resourceId):
 
@@ -46,7 +50,7 @@ class EndPoint_Admin():
             return json.dumps(resource)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_list(self):
@@ -60,7 +64,7 @@ class EndPoint_Admin():
             return json.dumps(resources)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_attach(self, resourceId, virtueId):
@@ -83,6 +87,8 @@ class EndPoint_Admin():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'DELETING'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
@@ -93,7 +99,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['notImplemented'])
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_detach(self, resourceId, virtueId):
@@ -122,19 +128,27 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.admin['notImplemented'])
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_aws=True):
+    def role_create(self, role, use_aws=True, hard_code_ami='ami-36a8754c'):
 
         try:
-            if ('name' not in role or type(role['name']) != str
-                    or 'version' not in role or type(role['version']) != str
-                    or 'applicationIds' not in role
+            role_keys = [
+                'name',
+                'version',
+                'applicationIds',
+                'startingResourceIds',
+                'startingTransducerIds'
+            ]
+            if (set(role.keys()) != set(role_keys)
+                    and set(role.keys()) != set(role_keys + ['id'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (not isinstance(role['name'], basestring)
+                    or not isinstance(role['version'], basestring)
                     or type(role['applicationIds']) != list
-                    or 'startingResourceIds' not in role
                     or type(role['startingResourceIds']) != list
-                    or 'startingTransducerIds' not in role
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
@@ -162,12 +176,14 @@ class EndPoint_Admin():
                 if (tr_test == ()):
                     return json.dumps(ErrorCodes.admin['invalidTransducerId'])
 
-            role['id'] = '{0}{1}'.format(role['name'], int(time.time()))
+            new_role = copy.deepcopy(role)
+
+            new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            #role['ami'] = AWS.aws_image_id
+            new_role['amiId'] = hard_code_ami
 
-            ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
+            ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 
             ret = self.inst.add_obj(ldap_role, 'roles', 'cid')
 
@@ -176,29 +192,28 @@ class EndPoint_Admin():
 
             if (use_aws == True):
                 # Call a controller thread to create a new standby virtue on a new thread
-                thr = CreateVirtueThread(
-                    self.inst.email, self.inst.password, role['id'], role=role)
+                thr = CreateVirtueThread(self.inst.email, self.inst.password,
+                                         new_role['id'], role=new_role)
                 thr.start()
             else:
                 # Write a dummy virtue to LDAP
                 virtue = {
-                    'id': 'virtue_{0}{1}'.format(role['name'],
+                    'id': 'virtue_{0}{1}'.format(new_role['name'],
                                                  int(time.time())),
                     'username': 'NULL',
-                    'roleId': role['id'],
+                    'roleId': new_role['id'],
                     'applicationIds': [],
-                    'resourceIds': role['startingResourceIds'],
-                    'transducerIds': role['startingTransducerIds'],
-                    'state': 'STOPPED',
-                    'ipAddress': '8.8.8.8'
+                    'resourceIds': new_role['startingResourceIds'],
+                    'transducerIds': new_role['startingTransducerIds'],
+                    'awsInstanceId': 'NULL'
                 }
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+                self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
 
-            return json.dumps(role)
+            return json.dumps({'id': new_role['id'], 'name': new_role['name']})
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def role_list(self):
@@ -209,10 +224,13 @@ class EndPoint_Admin():
 
             roles = ldap_tools.parse_ldap_list(ldap_roles)
 
+            for role in roles:
+                del role['amiId']
+
             return json.dumps(roles)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def system_export(self):
@@ -241,7 +259,7 @@ class EndPoint_Admin():
             return json.dumps(users)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_get(self, username):
@@ -259,7 +277,7 @@ class EndPoint_Admin():
             return json.dumps(user)
 
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_virtue_list(self, username):
@@ -311,8 +329,10 @@ class EndPoint_Admin():
                 objectClass='OpenLDAPuser',
                 throw_error=True)
 
+            return json.dumps(ErrorCodes.admin['success'])
+
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def user_role_unauthorize(self, username, roleId):
@@ -362,6 +382,8 @@ class EndPoint_Admin():
                 objectClass='OpenLDAPuser',
                 throw_error=True)
 
+            return json.dumps(ErrorCodes.admin['success'])
+
         except Exception as e:
-            print("Error: {0}".format(e))
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])

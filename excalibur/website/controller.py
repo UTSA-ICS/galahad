@@ -4,6 +4,7 @@ from aws import AWS
 import threading
 import copy
 import time
+import botocore
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -13,16 +14,6 @@ BACKUP_VIRTUE_COUNT = 2
 POLL_TIME = 300
 
 thread_list = []
-
-# Copy/Pasted from virtue.py
-aws_state_to_virtue_state = {
-    'pending': 'CREATING',
-    'running': 'RUNNING',
-    'shutting-down': 'DELETING',
-    'terminated': 'STOPPED',
-    'stopping': 'STOPPING',
-    'stopped': 'STOPPED'
-}
 
 
 class BackgroundThread(threading.Thread):
@@ -46,47 +37,35 @@ class BackgroundThread(threading.Thread):
             # List all AWS instances
 
             roles = self.inst.get_objs_of_type('OpenLDAProle')
-            roles_dict = {}
+            roles = ldap_tools.parse_ldap_list(roles)
 
             for r in roles:
-                ldap_tools.parse_ldap(r)
-                roles_dict[r['id']] = 0
+                backup_virtue_counts[r['id']] = 0
 
             virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            virtues = ldap_tools.parse_ldap_list(virtues)
 
-            ec2 = boto3.client('ec2')
+            aws = AWS()
 
             for v in virtues:
-                ldap_tools.parse_ldap(v)
+
                 if (v['roleId'] in roles_dict and v['username'] == 'NULL'):
                     roles_dict[v['roleId']] += 1
 
-                aws_inst_id = AWS.get_id_from_ip(v['ipAddress'])
-                if (aws_inst_id == None):
+                v = aws.populate_virtue_dict(v)
+                if (v['state'] == 'NULL' and v['awsInstanceId'] != 'NULL'):
                     # Delete the LDAP entry
                     print('Virtue was not found on AWS: {0}.'.format(
-                        v['ipAddress']))
+                        v['awsInstanceId']))
                     #self.inst.del_obj( 'cid', v['id'], objectClass='OpenLDAPvirtue' )
-
-                vm_state = ec2.describe_instances(InstanceIds=[aws_inst_id])[
-                    'Reservations'][0]['Instances'][0]['State']['Name']
-
-                if (aws_state_to_virtue_state[vm_state] != v['state']):
-                    # Update LDAP's virtue object
-                    print('Virtue state has changed: {0} {1} -> {2}'.format(
-                        v['id'], v['state'],
-                        aws_state_to_virtue_state[vm_state]))
-                    v['state'] = aws_state_to_virtue_state[vm['State']['Name']]
-                    ldap_v = ldap_tools.to_ldap(v)
-                    #self.inst.modify_obj( 'cid', v['id'], ldap_v, objectClass='OpenLDAPvirtue' )
 
             for t in thread_list:
                 if (not t.is_alive()):
                     del t
                     continue
 
-                if (t.role_id in roles_dict):
-                    roles_dict[t.role_id] += 1
+                if (t.role_id in backup_virtue_counts):
+                    backup_virtue_counts[t.role_id] += 1
 
             for r in roles:
                 if (roles_dict[r['id']] < BACKUP_VIRTUE_COUNT):
@@ -125,18 +104,31 @@ class CreateVirtueThread(threading.Thread):
         else:
             role = self.role
 
-        ami_id = 'ami-36a8754c'
-
         # Create by calling AWS
         aws = AWS()
+        ip = '{0}/32'.format(aws.get_public_ip())
+        subnet = aws.get_subnet_id()
+        sec_group = aws.get_sec_group()
+
+        try:
+            sec_group.authorize_ingress(
+                CidrIp=ip,
+                FromPort=22,
+                IpProtocol='tcp',
+                ToPort=22
+            )
+        except botocore.exceptions.ClientError:
+            print('ClientError encountered while adding sec group rule. ' +
+                  'Rule probably exists already.')
+
         instance = aws.instance_create(
-            image_id=ami_id,
+            image_id=role['amiId'],
             inst_type='t2.small',
-            subnet_id='subnet-00664ce7230870c66',
+            subnet_id=subnet,
             key_name='starlab-virtue-te',
             tag_key='Project',
             tag_value='Virtue',
-            sec_group='sg-0e125c01c684e7f6c',
+            sec_group=sec_group.id,
             inst_profile_name='',
             inst_profile_arn='')
         #instance = {'id': 'id_of_aws_inst', 'state': 'state_of_aws_inst', 'ip': '10.20.30.40'}
@@ -148,8 +140,7 @@ class CreateVirtueThread(threading.Thread):
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
-            'state': aws_state_to_virtue_state[instance.state['Name']],
-            'ipAddress': instance.private_ip_address
+            'awsInstanceId': instance.id
         }
 
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')

@@ -39,13 +39,6 @@ def teardown_module():
         objectClass='OpenLDAPvirtue',
         throw_error=True)
 
-    while (virtue == ()):
-        virtue = inst.get_obj(
-            'croleId',
-            test_role_id,
-            objectClass='OpenLDAPvirtue',
-            throw_error=True)
-
     assert inst.del_obj(
         'cid',
         virtue['cid'][0],
@@ -166,13 +159,16 @@ def test_role_calls():
 
     # role create should ignore the ID provided
     assert result_role['id'] != 'NotRelevant'
+    assert result_role == {'id': result_role['id'], 'name': good_role['name']}
 
     good_role['id'] = result_role['id']
-    assert result_role == good_role
 
     ldap_role = inst.get_obj('cid', result_role['id'])
+    ldap_tools.parse_ldap( ldap_role )
+    del ldap_role['amiId']
+    assert ldap_role == good_role
 
-    # This will be used later
+    # This will be used in teardown_module()
     global test_role_id
     test_role_id = result_role['id']
 
@@ -181,6 +177,9 @@ def test_role_calls():
 
     ldap_role_list = inst.get_objs_of_type('OpenLDAProle')
     real_role_list = ldap_tools.parse_ldap_list(ldap_role_list)
+
+    for role in real_role_list:
+        del role['amiId']
 
     assert role_list == json.dumps(real_role_list)
 
@@ -277,6 +276,9 @@ def test_user_calls():
 
     for v in parsed_virtue_list:
         if (v['username'] == 'jmitchell'):
+            del v['awsInstanceId']
+            v['state'] = 'NULL'
+            v['ipAddress'] = 'NULL'
             real_virtue_list.append(v)
 
     assert json.loads(virtue_list) == real_virtue_list
