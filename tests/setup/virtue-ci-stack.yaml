@@ -6,7 +6,7 @@ Parameters:
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair
   NameSuffix:
-    Description: Suffix to add to all 'Name' tages for easy searching and viewing
+    Description: Suffix to add to all 'Name' tags for easy searching and viewing
     Type: String
     MinLength: 1
     MaxLength: 5
