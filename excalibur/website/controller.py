@@ -117,6 +117,13 @@ class CreateVirtueThread(threading.Thread):
                 IpProtocol='tcp',
                 ToPort=22
             )
+            canvas_client_ip_subnet = '0.0.0.0/0'
+            sec_group.authorize_ingress(
+                CidrIp=canvas_client_ip_subnet,
+                FromPort=6761,
+                IpProtocol='tcp',
+                ToPort=6771
+            )
         except botocore.exceptions.ClientError:
             print('ClientError encountered while adding sec group rule. ' +
                   'Rule probably exists already.')
