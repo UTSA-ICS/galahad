@@ -70,16 +70,16 @@ class changes():
                         host = flag['new_val']['config']['host']
                         newHost = flag['new_val']['config']['newHost']
                         dest = rethink.filter('galahad', {'host':newHost}).next()
-			#s.bind(('', port))
-			#s.listen(5)
-			#while True:
-                        #        c, addr = s.accept()
-                        #        c.send("TRUE")
-                        #        c.close()
-                        #        break
-                        #print dest["address"]
-			#print self.IP
-			#print dest["address"]
+			s.bind(('', port))
+			s.listen(5)
+			while True:
+                                c, addr = s.accept()
+                                c.send("TRUE")
+                                c.close()
+                                break
+                        print dest["address"]
+			print self.IP
+			print dest["address"]
 			if dest["address"] == self.IP:
 				print "TEST"
 				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
