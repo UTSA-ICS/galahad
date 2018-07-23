@@ -36,7 +36,7 @@ This will install the network actuator and allow you to run sample commands with
 * netblock ls
 
 
-##### Installing via the Debian Package File (galahad/assembler/payload/actuators)
+### Installing via the Debian Package File (galahad/assembler/payload/actuators)
 
 Note that this is not necessary, but is documented for integration with the assembler. This part of the document also describes how new rules can be added to the system from Merlin or other VirtUE components. 
 
@@ -51,9 +51,14 @@ Writing **unblock outgoing ipv4 127.0.0.1** to the file */dev/netblockchar* will
 
 ###### **Example of writing rules to the character device:**
 *\#!/usr/bin/python*
+
 *import os*
+
 *fd = os.open("/dev/netblockchar", os.O_RDWR)*
+
 *os.write(fd, "block incoming tcp 80")*
+
 *os.close(fd)*
+
 
 This will block all incoming traffic to port 80 on the host. Note that the python program should run with the correct permissions in order to work correctly. 
