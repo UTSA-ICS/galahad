@@ -254,7 +254,14 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 
 
 def do_actuator(transducer_id, config_str, enabled):
-	config = json.loads(config_str)
+
+	try:
+		config = json.loads(config_str)
+	except (ValueError, TypeError), e:
+		if enabled == True:
+			log.error("received malformed json configuration")
+			return False
+
 
 	if transducer_id == 'kill_process':
 		log.info('Received a kill_process actuator event! %s', config_str)
@@ -277,8 +284,17 @@ def do_actuator(transducer_id, config_str, enabled):
 			log.error('Failed to send command over netlink socket')
 			return
 	elif transducer_id == 'block_net':
+		chardev = "/dev/netblockchar"
 		#WORK IN PROGRESS
-		log.info('Received block_net actuator configuration')
+		log.info('block_net actuator received configuration')
+
+		#For now just delete current ruleset on new configuration
+		fd = os.open(chardev, os.O_RDWR)
+		os.write(fd, "reset")
+		os.close(fd)
+		if enabled == False:
+			return True
+
 		regexFormat = r'^((block|unblock){1}\s(incoming|outgoing){1}'
 		regexFormat += r'\s(ipv4|ipv6|tcp|udp){1}\s)(.*)$'
 		#These are used for accessing fields in the regular expression
@@ -293,13 +309,7 @@ def do_actuator(transducer_id, config_str, enabled):
 		for j in config["rules"]:
 			rules.append(str(j))
 
-		#Clean up later... For now just delete ruleset on new configuration
-		chardev = "/dev/netblockchar"
-		dev = os.open(chardev, os.O_RDWR)
-		os.write(dev, "reset")
-		os.close(dev)
 		validRules = []
-
 		#Make sure all rules in the configuration are valid
 		for rule in rules:
 			rule = rule.replace('_',' ')
@@ -333,7 +343,7 @@ def do_actuator(transducer_id, config_str, enabled):
 					log.error('Invalid actuator configuration (%s)', rule)
 					return False
 			else:
-				log.info('Invalid actuator configuration (%s) for transducer %s', rule, transducer_id)
+				log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 				return False
 
 		#Write valid ruleset to character device
@@ -341,6 +351,7 @@ def do_actuator(transducer_id, config_str, enabled):
 			fd = os.open(chardev, os.O_RDWR)
 			os.write(fd, rule)
 			os.close(fd)
+
 		return True
 	else:
 		log.warning('This type of actuator has not been defined yet: %s', transducer_id)
@@ -394,11 +405,12 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 			continue
 
 		if transducer_type == 'ACTUATOR':
+
 			if do_actuator(transducer_id, config, enabled) == False:
 				continue
 
 			# TODO ideally the giant block below would live in a separate function and this would be a tidy little if/else
-			# do_actuator successful... send ACK
+			# Confirm to excalibur that changes were successful
                         new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
 
                         try:
