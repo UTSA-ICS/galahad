@@ -3,6 +3,7 @@
 #!/usr/bin/env python3 
 
 import argparse, os, subprocess, sys, re, shutil, json, time
+from collections import OrderedDict
 
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
@@ -29,7 +30,8 @@ def start_aws_vm(args, userdata, name, disk_size):
         '--subnet-id', args.aws_subnet_id, \
         '--user-data', '%s' % (userdata), \
         '--tag-specifications', 'ResourceType=instance,Tags=[{Key=Project,Value=Virtue},{Key=Name,Value=%s}]' % (name),
-        '--block-device-mapping', 'DeviceName=/dev/sda1,Ebs={VolumeSize=%s}' % (disk_size)]
+        '--block-device-mapping', 'DeviceName=/dev/sda1,Ebs={VolumeSize=%s}' % (disk_size), \
+        '--key-name', 'starlab-virtue-te']
     data = subprocess.check_output(cmd).decode("utf-8")
     output = json.loads(data)
     if len(output['Instances']) > 0:
@@ -75,7 +77,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--ssh-port', default='5555', help='SSH port for SSH stages. Default 5555')
     parser.add_argument('-r', '--resize-img', metavar='MOD.SIZE', default='+3g', help='Call `qemu-img resize $IMAGE MOD.SIZE`')
     parser.add_argument('-n', '--name', default='', help='Instance name')
-    parser.add_argument('--aws-image-id', default='ami-43a15f3e', help='AWS Image ID to start. Default Ubuntu 16')
+    parser.add_argument('--aws-image-id', default='ami-759bc50a', help='AWS Image ID to start. Default Ubuntu 16')
     parser.add_argument('--aws-instance-type', default='t2.micro', help='AWS Instance type. Default t2.micro')
     parser.add_argument('--aws-security-group', default='sg-0676d24f', help='AWS Security group id. Default id is ssh only')
     parser.add_argument('--aws-subnet-id', default='subnet-0b97b651', help='AWS Subnet ID. Selects network too. Default is VirtuePublic')
@@ -98,7 +100,7 @@ if __name__ == '__main__':
             os.mkdir(WORK_DIR)
 
 
-    stage_dict = {}
+    stage_dict = OrderedDict()
     stage_dict[UserStage.NAME] = UserStage(args, WORK_DIR)
     stage_dict[AptStage.NAME] = AptStage(args, WORK_DIR)
     stage_dict[DockerVirtueStage.NAME] = DockerVirtueStage(args, WORK_DIR)
@@ -108,7 +110,7 @@ if __name__ == '__main__':
 
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete
-    #stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
+    stage_dict[ShutdownStage.NAME] = ShutdownStage(args, WORK_DIR)
     
     if not os.path.exists(WORK_DIR):
         os.makedirs(WORK_DIR)
