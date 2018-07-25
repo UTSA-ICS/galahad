@@ -4,10 +4,10 @@
     "host": "canvas.com:3000"
   },
   "excalibur": {
-    "authorize_url": "https://107.23.46.161:5002/oauth2/authorize",
-    "access_url": "https://107.23.46.161:5002/oauth2/token",
+    "authorize_url": "https://18.232.187.195:5002/oauth2/authorize",
+    "access_url": "https://18.232.187.195:5002/oauth2/token",
     "oauth": 2,
-    "key": "H58yZXlmLFfh6tI7Bn6jxHS8yRwL3Z5E8v5sgdq9OH09TpFo",
+    "key": "l9xKftXOoqLWKfXJpe8e2qR5vAqjQbUyJ4q6RcdqWgc9Uifl",
     "callback": "/excalibur_callback"
   }
 }
