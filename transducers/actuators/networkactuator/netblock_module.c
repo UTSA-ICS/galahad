@@ -457,6 +457,12 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 //   Called when the module is loaded
 int init_module(){
 
+	mutex_init(&netblockchar_mutex);
+	spin_lock_init(&map_spinlock);
+
+	mutex_lock(&netblockchar_mutex);
+	spin_lock(&map_spinlock);
+
 	//Dynamically get Major number for character device driver
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
 	if (majorNumber<0){
@@ -485,12 +491,6 @@ int init_module(){
    	printk(KERN_INFO "netblock: device class created correctly\n");
 
 	printk(KERN_INFO "Loading netblock module");
-
-	mutex_init(&netblockchar_mutex);
-	spin_lock_init(&map_spinlock);
-
-	mutex_lock(&netblockchar_mutex);
-	spin_lock(&map_spinlock);
 
         //initialize hashmaps
         map_init(&incomingRules.src_ip);
