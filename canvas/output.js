@@ -35,9 +35,12 @@ var client = new Client();
 
 var excaliburIpAddress;
 
-function execTunnel(options) {
 
-    var str = "ssh -i "
+function createTunnel(options) {
+
+    console.log("entry: createTunnel()");
+
+    var create_tunnel_command = "ssh -i "
       + options.privateKey
       + " "
       + options.username
@@ -53,20 +56,19 @@ function execTunnel(options) {
       + options.dstPort
       + " -N -o \"StrictHostKeyChecking no\" \"LANG=en_US.UTF-8\" ";
 
-    console.log('execTunnel str: ', str);
-    debug('trying to connect with: ', str);
+    console.log('create_tunnel_command = : ', create_tunnel_command);
 
-    exec(str, function (error, stdout, stderr) {
-        console.warn('stdout: ', stdout);
-        console.warn('stderr: ', stderr);
-        console.warn('error: ', error);
+    exec(create_tunnel_command, function (error, stdout, stderr) {
+        console.log('stdout: ', stdout);
+        console.log('stderr: ', stderr);
+        console.log('error: ', error);
         if (error) {
             debug("exec error: " + error);
             return;
         }
-        debug("stdout: " + stdout);
-        debug("stderr: " + stderr);
     });
+
+    console.log("exit: createTunnel()");
 }
 
 var connector = require('./assets/js/connect');
@@ -74,52 +76,132 @@ function showOptions(target) {
     return target.lastElementChild.style.visibility = "visible";
 }
 
+
 function hideOptions(target) {
     return target.lastElementChild.style.visibility = "hidden";
 }
 
-function openApp(role, port_local, appId, ip) {
 
-    var roleIcon = 'fab fa-black-tie';
+function stopVirtueForApp(roleId) {
 
-    console.log("openApp");
-    console.log(appId);
+    console.log("entry: stopVirtue()");
 
+    var client = methods();
     var args = {
-      parameters: { "appId" : appId },
-      headers: { "Authorization" : "Bearer " + data['access_token']}
+        headers: { "Authorization" : "Bearer " + data['access_token']}
     }
 
-    client.methods.userApplicationGet(args, function(dat, resp){
+    client.methods.userVirtueList(args, function (data1, resp) {
 
-      console.log("data = " + JSON.stringify(dat));
-      console.log("methods.userApplicationGet");
+        var number_of_virtues = data1.length
 
-      var local_config = {
-        username: "virtue",
-        host: ip,
-        port: dat['port'],
-        //port: 6768,
-        dstHost: "127.0.0.1",
-        dstPort: 2023,
-        localHost: "0.0.0.0",
-        localPort: port_local,
-        privateKey: "key.pem"
-      }
-      execTunnel(local_config);
+        for (var virtue_index=0;
+            virtue_index < number_of_virtues;
+            virtue_index++) {
 
-      var name = dat['name'];
-      var view = document.createElement('div');
-      view.id = name + '_' + role;
-      view.classList.add('app');
-      view.draggable = true;
-      view.setAttribute("ondrag", "drag(event)");
-      view.setAttribute("ondragstart", "dragstart(event)");
-      view.setAttribute("ondragend", "dragend(event)");
-      view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
-      document.getElementById('appArea').appendChild(view);
+            if (data1[virtue_index]['roleId'] == roleId) {
+
+                console.log("data = " + data1[virtue_index]);
+
+                var virtueId = data1[virtue_index]["id"];
+
+                var args = {
+                  parameters: { "virtueId" : virtueId },
+                  headers: { "Authorization" : "Bearer " + data['access_token']}
+                }
+
+                client.methods.userVirtueStop(args, function(data, response) {
+
+                  console.log("    entry: client.methods.userVirtueStop()");
+                  console.log("    data = " + JSON.stringify(data));
+                });
+            }
+        }
     });
+    console.log("exit: stopVirtue()");
 }
+
+
+function openApp(role, port_local, appId, roleId) {
+
+    console.log("entry: openApp()");
+    console.log('    appId =' + appId);
+
+
+    var client = methods();
+    var args = {
+        headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
+
+    client.methods.userVirtueList(args, function (data1, resp) {
+
+        var number_of_virtues = data1.length
+
+        for (var virtue_index=0;
+            virtue_index < number_of_virtues;
+            virtue_index++) {
+
+            if (data1[virtue_index]['roleId'] == roleId) {
+
+                var virtueId = data1[virtue_index]['id'];
+                var ip = data1[virtue_index]["ipAddress"];
+
+                var roleIcon = 'fab fa-black-tie';
+
+                console.log(appId);
+
+                var args = {
+                    parameters: { "virtueId" : virtueId },
+                    headers: { "Authorization" : "Bearer " + data['access_token']}
+                }
+
+                client.methods.userVirtueLaunch(args, function(data2, response) {
+    
+                    console.log("    entry: client.methods.userVirtueLaunch()");
+                    console.log("    data = " + JSON.stringify(data2));
+
+                    var args = {
+                         parameters: { "appId" : appId },
+                         headers: { "Authorization" : "Bearer " + data['access_token']}
+                    }
+                      
+                    client.methods.userApplicationGet(args, function(dat, resp){
+    
+                      console.log("data = " + JSON.stringify(dat));
+                      console.log("methods.userApplicationGet");
+    
+                      var local_config = {
+                        username: "virtue",
+                        host: ip,
+                        port: dat['port'],
+                        dstHost: "127.0.0.1",
+                        dstPort: 2023,
+                        localHost: "0.0.0.0",
+                        localPort: port_local,
+                        privateKey: "key.pem"
+                      }
+                      createTunnel(local_config);
+    
+                      var name = dat['name'];
+                      var view = document.createElement('div');
+                      view.id = name + '_' + role;
+                      view.classList.add('app');
+                      view.draggable = true;
+                      view.setAttribute("ondrag", "drag(event)");
+                      view.setAttribute("ondragstart", "dragstart(event)");
+                      view.setAttribute("ondragend", "dragend(event)");
+                      view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
+                      document.getElementById('appArea').appendChild(view);
+                    });
+                });
+            }
+        }
+    });
+
+    console.log("exit: openApp()");
+}
+
+
 function toggleMaximizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
     if (app.style.width === '100%' && app.style.height === '100%') {
@@ -144,7 +226,10 @@ function toggleMaximizeApp(target) {
         app.style.width = '100%';
         return app.style.height = '100%';
     }
+
 }
+
+
 function closeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
     return app.parentElement.removeChild(app);
@@ -452,7 +537,9 @@ function getVirtueData(){
 
     dockWrapper.style.display = 'flex';
 
-    for(var role_index = 0; role_index < number_of_roles; role_index++) {
+    for (var role_index = 0;
+        role_index < number_of_roles;
+        role_index++) {
 
       var option = document.getElementById("options" + role_index);
       var name = document.getElementById("dock" + role_index);
@@ -468,7 +555,7 @@ function getVirtueData(){
       var number_of_apps = dat[role_index]['applicationIds'].length;
       console.log(number_of_apps)
 
-      for(var app_index = 0;
+      for (var app_index = 0;
           app_index < number_of_apps;
           app_index++) {
 
@@ -481,6 +568,7 @@ function getVirtueData(){
         // Updates app dock
         var div = document.createElement("div");
         var optionsinner = document.getElementById("optionsinner" + role_index);
+        optionsinner.setAttribute("name", dat[role_index]['id']);
 
         div.setAttribute("class", "icon-pair circle-bg");
         if(dat[role_index]['ipAddress'] != "null") {
@@ -493,7 +581,7 @@ function getVirtueData(){
               + "','"
               + appId
               + "','"
-              + dat[role_index]['ipAddress']
+              + dat[role_index]['id']
               + "');");
         }
         var itag = document.createElement("I");
@@ -504,6 +592,35 @@ function getVirtueData(){
       }
     }
   });
+
+  client.methods.userVirtueList(args, function (data, resp) {
+
+      console.log("methods.userVirtueList");
+      console.log("userVirtueList data = " + JSON.stringify(data));
+      console.log("data.length = " + data.length);
+
+      var number_of_virtues = data.length;
+
+      for (var virtue_index = 0; virtue_index < number_of_virtues; virtue_index++) {
+
+        var roleId = data[virtue_index]["roleId"];
+
+        var optionsinner = document.getElementsByName(roleId)[0];
+        console.log("optionsinner = " + optionsinner);
+        var stop_app = document.createElement("input");
+
+        stop_app.setAttribute("class", "control_button");
+        stop_app.setAttribute("type", "control_button");
+        stop_app.setAttribute("value", "STOP");
+        stop_app.setAttribute(
+          "onclick",
+          "stopVirtueForApp('"
+          + data[virtue_index]['roleId']
+          + "');");
+
+        optionsinner.appendChild(stop_app);
+      }
+    });
 
   console.log('exit: getVirtueData()');
 }
