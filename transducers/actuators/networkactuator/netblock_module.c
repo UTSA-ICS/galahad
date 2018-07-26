@@ -489,6 +489,29 @@ int init_module(){
 	mutex_init(&netblockchar_mutex);
 	spin_lock_init(&map_spinlock);
 
+	mutex_lock(&netblockchar_mutex);
+	spin_lock(&map_spinlock);
+
+        //initialize hashmaps
+        map_init(&incomingRules.src_ip);
+        map_init(&incomingRules.dst_ip);
+        map_init(&incomingRules.src_tcp);
+        map_init(&incomingRules.dst_tcp);
+        map_init(&incomingRules.src_udp);
+        map_init(&incomingRules.dst_udp);
+        map_init(&incomingRules.ip_port);
+
+        map_init(&outgoingRules.src_ip);
+        map_init(&outgoingRules.dst_ip);
+        map_init(&outgoingRules.src_tcp);
+        map_init(&outgoingRules.dst_tcp);
+        map_init(&outgoingRules.src_udp);
+        map_init(&outgoingRules.dst_udp);
+        map_init(&outgoingRules.ip_port);
+
+	mutex_unlock(&netblockchar_mutex);
+	spin_unlock(&map_spinlock);
+
 	//Set up Netfilter hook
 	nfho_ipv4_in.hook = ipv4_in_hook;
 	nfho_ipv4_in.hooknum = NF_INET_LOCAL_IN;
@@ -514,29 +537,17 @@ int init_module(){
 	nfho_ipv6_out.priority = NF_IP6_PRI_FIRST;
 	nf_register_net_hook(&init_net, &nfho_ipv6_out);
 
-	//initialize hashmaps
-	map_init(&incomingRules.src_ip);
-	map_init(&incomingRules.dst_ip);
-	map_init(&incomingRules.src_tcp);
-	map_init(&incomingRules.dst_tcp);
-	map_init(&incomingRules.src_udp);
-	map_init(&incomingRules.dst_udp);
-	map_init(&incomingRules.ip_port);
-
-	map_init(&outgoingRules.src_ip);
-        map_init(&outgoingRules.dst_ip);
-        map_init(&outgoingRules.src_tcp);
-        map_init(&outgoingRules.dst_tcp);
-        map_init(&outgoingRules.src_udp);
-        map_init(&outgoingRules.dst_udp);
-        map_init(&outgoingRules.ip_port);
-
 	return 0;
 }
 
 
 //   Called when the module is removed/unloaded
 void cleanup_module(){
+
+	nf_unregister_net_hook(&init_net, &nfho_ipv4_in);
+        nf_unregister_net_hook(&init_net, &nfho_ipv4_out);
+        nf_unregister_net_hook(&init_net, &nfho_ipv6_in);
+        nf_unregister_net_hook(&init_net, &nfho_ipv6_out);
 
 	device_destroy(netblockcharClass, MKDEV(majorNumber, 0));
    	class_unregister(netblockcharClass);
@@ -561,10 +572,6 @@ void cleanup_module(){
         map_deinit(&outgoingRules.dst_udp);
         map_deinit(&outgoingRules.ip_port);
 
-	nf_unregister_net_hook(&init_net, &nfho_ipv4_in);
-	nf_unregister_net_hook(&init_net, &nfho_ipv4_out);
-	nf_unregister_net_hook(&init_net, &nfho_ipv6_in);
-	nf_unregister_net_hook(&init_net, &nfho_ipv6_out);
 }
 
 static int device_open(struct inode *inodep, struct file *filep){
@@ -595,13 +602,13 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 
 		ACTION:    1st bit:         [0=unblock, 1=block]
 		DIRECTION: 2nd bit:         [0=outgoing, 1=incoming]
-		SRC/DEST:    3rd bit:         [0=src, 1=dst]
+		SRC/DEST:  3rd bit:         [0=src, 1=dst]
 		PROTOCOL:  4th,5th, 6th bit: [000=ipv4, 001=ipv6, 010=tcp, 011=udp, 100=combo]
 
-		More bits can be added to this third (protocol) field to support many more
+		More bits can be added to this fourth (protocol) field to support many more
 		protocols. The bit operations assume 1st bit is least significant.
 
-		Example: 011101 = 13 ---> block outgoing dst udp
+		Example: 011101 = 29 ---> block outgoing dst udp
 	*/
 	cursor = &message[0];
 	rule = 0;
