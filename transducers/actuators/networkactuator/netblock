@@ -63,7 +63,13 @@ then
 	exit 1
 fi
 
-if [[ "$3" != "tcp" && "$3" != "udp" && "$3" != "ipv4" && "$3" != "ipv6" ]]
+if [[ "$3" != "src" && "$3" != "dst" ]]
+then
+	usage
+	exit 1
+fi
+
+if [[ "$4" != "tcp" && "$4" != "udp" && "$4" != "ipv4" && "$4" != "ipv6" ]]
 then
 	usage
 	exit 1
@@ -71,46 +77,46 @@ fi
 
 # Verify protocol format
 value=""
-if [[ "$3" == "ipv4" ]]
+if [[ "$4" == "ipv4" ]]
 then
-	ipv4check $4
+	ipv4check $5
 	if [ "$?" -eq "0" ]
 	then
 		echo "Incorrect IPv4 format"
 		usage
 		exit 1
 	else
-		value="$4"
+		value="$5"
 	fi
 fi
 
-if [[ "$3" == "ipv6" ]]
+if [[ "$4" == "ipv6" ]]
 then
-	ipv6check $4
+	ipv6check $5
 	if [ "$?" -eq "0" ]
 	then
 		echo "Incorrect IPv6 format"
 		usage
 		exit 1
 	else
-		value="$(sipcalc ${ip} | fgrep Expanded | awk '{printf "%s", $4}')"
+		value="$(sipcalc ${ip} | fgrep Expanded | awk '{printf "%s", $5}')"
 	fi
 fi
 
-if [[ "$3" == "tcp" || "$3" == "udp" ]]
+if [[ "$4" == "tcp" || "$4" == "udp" ]]
 then
-	portcheck $4
+	portcheck $5
 	if [ "$?" -eq "0" ]
 	then
 		echo "Invalid port value"
 		usage
 		exit 1
 	else
-		value="$4"
+		value="$5"
 	fi
 fi
 
-args="$1 $2 $3 $value"
+args="$1 $2 $3 $4 $value"
 #Run commands
 command="$(echo $args | xargs)"
 echo $command
@@ -130,6 +136,6 @@ else
 	then
 		echo $command >> $FILE
 	else
-		sudo sed -i "/block $2 $3 $4/d" $FILE
+		sudo sed -i "/block $2 $3 $4 $5/d" $FILE
 	fi
 fi

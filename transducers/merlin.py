@@ -288,23 +288,23 @@ def do_actuator(transducer_id, config_str, enabled):
 		#WORK IN PROGRESS
 		log.info('block_net actuator received configuration')
 
-		#For now just delete current ruleset on new configuration
-		fd = os.open(chardev, os.O_RDWR)
-		os.write(fd, "reset")
-		os.close(fd)
 		if enabled == False:
+			fd = os.open(chardev, os.O_RDWR)
+			os.write(fd, "reset")
+			os.close(fd)
 			return True
 
 		regexFormat = r'^((block|unblock){1}\s(incoming|outgoing){1}'
-		regexFormat += r'\s(ipv4|ipv6|tcp|udp){1}\s)(.*)$'
+		regexFormat += r'\s(src|dst){1}\s(ipv4|ipv6|tcp|udp|ipport){1}\s)(.*)$'
 		#These are used for accessing fields in the regular expression
-		proto = 4
-		value = 5
+		proto = 5
+		value = 6
 
 		portRegex = r'^[0-9]{1,5}$'
 		ipv4Regex = r'^((\d{1,3}\.){3}\d{1,3})$'
 		#IPv6 address must be expanded for now
 		ipv6Regex = r'^(([0-9a-z]{4}\:){5}[0-9a-z]{4})$'
+		ipportRegex = r'^(((\d{1,3}\.){3}\d{1,3})|(([0-9a-z]{4}\:){7}[0-9a-z]{4}))\:(\d{1,5})$'
 		rules = []
 		for j in config["rules"]:
 			rules.append(str(j))
@@ -339,6 +339,19 @@ def do_actuator(transducer_id, config_str, enabled):
 					else:
 						log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 						return False
+				elif g.group(proto) == 'ipport':
+					v = re.search(ipportRegex, g.group(value).lower())
+					if v!= None and int(v.group(6)) < 65536:
+						if v.group(2) != None and all(int(i) < 255 for i in v.group(2).split('.')):
+							validRules.append(rule)
+							continue
+						elif v.group(4) != None:
+							validRules.append(rule)
+							continue
+						else:
+							log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
+					else:
+						log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 				else:
 					log.error('Invalid actuator configuration (%s)', rule)
 					return False
@@ -346,6 +359,10 @@ def do_actuator(transducer_id, config_str, enabled):
 				log.error('Invalid block_net actuator configuration (%s) for transducer %s', rule, transducer_id)
 				return False
 
+		#For now just delete current ruleset on new configuration
+		fd = os.open(chardev, os.O_RDWR)
+		os.write(fd, "reset")
+		os.close(fd)
 		#Write valid ruleset to character device
 		for rule in validRules:
 			fd = os.open(chardev, os.O_RDWR)
