@@ -5,6 +5,12 @@
  * under the terms of the MIT license. See LICENSE for details.
  */
 
+//Github Repo: https://github.com/rxi/map
+
+// kmap.c replaces all memory allocation and string operations with their 
+// kernel counterparts e.g. malloc ---> kmalloc, free ---> kfree,
+// realloc ---> krealloc
+
 //#include <linux/stdlib.h>
 #include <linux/string.h>
 #include <linux/slab.h>

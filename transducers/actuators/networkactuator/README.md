@@ -67,4 +67,4 @@ Writing **unblock outgoing ipv4 127.0.0.1** to the file */dev/netblockchar* will
 *os.close(fd)*
 
 
-This will block all incoming traffic to port 80 on the host. Note that the python program should run with the correct permissions in order to work correctly. 
+This will block all incoming traffic to port 80 on the host. Note that the python program should run with the correct permissions in order to work correctly. If you are running on a VirtUE, you need to be "merlin" to change rules. If you are installing on a local VM for testing, you must run as the owner of /dev/netblockchar (which will be root). 

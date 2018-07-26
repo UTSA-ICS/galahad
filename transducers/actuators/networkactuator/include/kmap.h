@@ -5,6 +5,11 @@
  * under the terms of the MIT license. See LICENSE for details.
  */
 
+//GitHub repo: https://github.com/rxi/map
+
+// kmap.h has no changes other than using the <linux/string.h> header file instead
+// of string.h. 
+
 #ifndef KMAP_H
 #define KMAP_H
 
