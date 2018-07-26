@@ -146,3 +146,16 @@ class CreateVirtueThread(threading.Thread):
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
 
         self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+        self.set_virtue_keys(virtue['id'], instance.public_ip_address)
+
+    def set_virtue_keys(self, virtue_id, instance_ip):
+        # For now generate keys and store in local dir
+        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
+        output = subprocess.check_output(shlex.split(
+                     'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+        print output
+        # Now populate virtue Merlin Dir with this key.
+        output = subprocess.call(shlex.split(
+            'scp -i {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
+        output = subprocess.call(shlex.split(
+            'sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id)))
