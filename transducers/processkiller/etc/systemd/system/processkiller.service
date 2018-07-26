@@ -1,0 +1,9 @@
+[Unit]
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/processkiller start
+
+[Install]
+WantedBy=multi-user.target

@@ -43,13 +43,10 @@ case "$1" in
   stop)
     stop
     ;;
-  uninstall)
-    uninstall
-    ;;
-  retart)
+  restart)
     stop
     start
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|uninstall}"
+    echo "Usage: $0 {start|stop|restart}"
 esac

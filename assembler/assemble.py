@@ -16,6 +16,7 @@ from stages.virtued import DockerVirtueStage
 from stages.transducer_install import TransducerStage
 from stages.merlin import MerlinStage
 from stages.actuator import ActuatorStage
+from stages.processkiller import ProcessKillerStage
 
 WORK_DIR = 'tmp/' # where all the generated files will live
 ISO_FILE = 'virtue.cloudinit.iso'
@@ -109,6 +110,7 @@ if __name__ == '__main__':
     stage_dict[TransducerStage.NAME] = TransducerStage(args, WORK_DIR)
     stage_dict[MerlinStage.NAME] = MerlinStage(args, WORK_DIR)
     stage_dict[ActuatorStage.NAME] = ActuatorStage(args, WORK_DIR)
+    stage_dict[ProcessKillerStage.NAME] = ProcessKillerStage(args, WORK_DIR)
 
     # We have a shutdown stage to bring the VM down. Of course if you're trying to debug it's 
     # worth commenting this out to keep the vm running after the assembly is complete
