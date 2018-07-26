@@ -5,6 +5,11 @@
 
 source s_local { systemd-journal(); internal(); };
 
+source s_auditd {
+    file(/var/log/audit/audit.log flags(no-parse));
+};
+
+
 destination d_file { file("/var/log/syslog-ng-msg"); };
 
 destination d_elastic {
@@ -27,6 +32,10 @@ destination d_elastic {
 };
 
 destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${HOST} ${MESSAGE}")); };
+
+parser p_auditd {
+    linux-audit-parser (prefix(".auditd."));
+};
 
 parser apparmor_parser {
     kv-parser(value-separator("="));
@@ -82,6 +91,14 @@ log {
         };
     };
 
+    destination(d_file);
+    destination(d_elastic);
+    destination(d_network);
+};
+
+log {
+    source(s_auditd);
+    parser(p_auditd);
     destination(d_file);
     destination(d_elastic);
     destination(d_network);

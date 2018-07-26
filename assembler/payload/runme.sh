@@ -38,8 +38,12 @@ mv elasticsearch.yml /etc/syslog-ng/
 mv kirk-keystore.jks /etc/syslog-ng/
 mv truststore.jks /etc/syslog-ng/
 mv sshd_config /etc/ssh/
+mv audit.rules /etc/audit/rules.d/
+chmod 644 syslog-ng.service
+mv syslog-ng.service /lib/systemd/system/
+systemctl daemon-reload
 systemctl enable syslog-ng
-#systemctl start syslog-ng
+#systemctl restart syslog-ng
 
 echo 172.30.128.130 rethinkdb.galahad.com >> /etc/hosts
 rm runme.sh

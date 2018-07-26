@@ -334,12 +334,100 @@ class Excalibur():
             FromPort=5002,
             ToPort=5002,
             IpProtocol='TCP')
+        response10 = security_group.authorize_ingress(
+            CidrIp='24.35.122.60/32',
+            FromPort=22,
+            ToPort=22,
+            IpProtocol='TCP')
+        response11 = security_group.authorize_ingress(
+            CidrIp='24.35.122.60/32',
+            FromPort=5002,
+            ToPort=5002,
+            IpProtocol='TCP')
         return dict(
             list(response1.items()) + list(response2.items()) +
             list(response3.items()) + list(response4.items()) +
             list(response5.items()) + list(response6.items()) +
             list(response7.items()) + list(response8.items()) +
-            list(response9.items()))
+            list(response9.items()) + list(response10.items()) +
+            list(response11.items()))
+
+class EFS():
+    def __init__(self, stack_name, ssh_key):
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.efs_id = self.get_efs_id()
+        self.nfs_ip = '18.210.83.5'
+
+    def get_efs_id(self):
+        cloudformation = boto3.resource('cloudformation')
+        EFSStack = cloudformation.Stack(self.stack_name)
+
+        for output in EFSStack.outputs:
+            if output['OutputKey'] == 'FileSystemID':
+                efs_id = output['OutputValue']
+
+        efs_id = '{}.efs.us-east-1.amazonaws.com'.format(efs_id)
+        logger.info('EFS File System ID is {}'.format(efs_id))
+
+        return efs_id
+
+    def setup_efs(self):
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ValorEFSServer']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
+                format(self.ssh_key, 'setup/setup_efs.sh', efs_ip)).run()
+
+        # Call the setup_efs.sh script
+        _cmd = "bash('./setup_efs.sh {} {}')".format(self.efs_id, self.nfs_ip)
+        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
+
+    def setup_valorNodes(self):
+        self.configure_instance('ValorRethinkDB', 'setup_valor_rethinkdb.sh')
+        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
+        self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
+        self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
+
+    def configure_instance(self, tag_logical_id, setup_filename):
+        # Get the IP for the instances specified by the logical-id tag
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': [tag_logical_id]
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        logger.info('Public IP for instance with logica-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+
+        # SCP over the setup file to the instance
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/{} ubuntu@{}:~/.'.
+                format(self.ssh_key, setup_filename, public_ip)).run()
+
+        # Execute the setup file on the instance
+        _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
+        run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
@@ -362,6 +450,9 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
 
+    efs = EFS(stack_name, path_to_key)
+    efs.setup_efs()
+    efs.setup_valorNodes()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -412,13 +503,9 @@ def parse_args():
         action="store_true",
         help="setup the galahad/virtue test environment")
     parser.add_argument(
-        "--setup_ldap",
+        "--setup_valor",
         action="store_true",
-        help="setup the ldap related test environment")
-    parser.add_argument(
-        "--update_excalibur",
-        action="store_true",
-        help="Update the excalibur server/code")
+        help="setup EFS and Valor migration ecosystem test environment")
     parser.add_argument(
         "--list_stacks",
         action="store_true",
@@ -455,11 +542,16 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
               args.branch_name, args.default_user_key)
-    if args.setup_ldap:
+    if args.setup_valor:
+        stack = Stack()
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+        #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
-        excalibur.setup_ldap()
-    if args.update_excalibur:
-        logger.warn('Not yet implemented!')
+        excalibur.update_security_rules()
+        #
+        efs = EFS(args.stack_name, args.path_to_key)
+        efs.setup_efs()
+        efs.setup_valorNodes()
     if args.list_stacks:
         Stack().list_stacks()
     if args.delete_stack:

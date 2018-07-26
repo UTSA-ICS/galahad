@@ -184,22 +184,7 @@ class EndPoint_Admin():
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
             # Todo: Create AWS AMI file with BBN's assembler
-            aws = AWS()
-            subnet_id = aws.get_subnet_id()
-            sec_group_id = aws.get_sec_group().id
-            build_opts = {
-                'env': 'aws',
-                'aws_image_id': 'ami-43a15f3e',
-                'aws_instance_type': 't2.micro',
-                'aws_security_group': sec_group_id,
-                'aws_subnet_id': subnet_id,
-                'aws_disk_size': 8,
-                'create_ami': False
-            }
-            assembler = Assembler(build_opts, 'test')
-            assembler_result = assembler.assemble_role(new_role['applicationIds'])
-            print(assembler_result)
-            new_role['amiId'] = assembler_result[0]
+            new_role['amiId'] = hard_code_ami
 
             ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
 

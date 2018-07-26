@@ -7,7 +7,7 @@ import subprocess, os
 class KernelStage(SSHStage):
     ''' This stage is a demo stage for how to use SSHStage tools '''
     NAME = 'KernelStage'
-    DEPENDS = ['UserStage', 'DockerVirtueStage', 'MerlinStage', 'TransducerInstallStage']
+    DEPENDS = ['UserStage', 'MerlinStage', 'TransducerInstallStage']
 
     def run(self):
         if not self._has_run:

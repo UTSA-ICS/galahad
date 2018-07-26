@@ -3,6 +3,7 @@ import json, time
 import subprocess
 from urlparse import urlparse
 import boto3
+from collections import OrderedDict
 
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
@@ -14,6 +15,7 @@ from stages.apt import AptStage
 from stages.virtued import DockerVirtueStage
 from stages.transducer_install import TransducerStage
 from stages.merlin import MerlinStage
+from stages.actuator import ActuatorStage
 
 class Assembler(object):
 
@@ -45,6 +47,7 @@ class Assembler(object):
         output = ec2.create_instances(
             ImageId=image_id,
             InstanceType=instance_type,
+            KeyName='starlab-virtue-te',
             MinCount=1,
             MaxCount=1,
             Monitoring={'Enabled': False},
@@ -111,7 +114,7 @@ class Assembler(object):
         stages[stage].run()
 
 
-    # Deprecated
+    # Deprecated and broken
     def setup_qemu(self, build_options, work_dir):
         if args.resize_img:
             # figure out image size by parsing output of 'qemu-img info $IMAGE'
@@ -150,6 +153,13 @@ class Assembler(object):
 
         Uploading user-data through a web-browser seems to also not work sometimes (maybe caching?)
         '''
+
+        assert 'aws_image_id' in build_options.keys()
+        assert 'aws_instance_type' in build_options.keys()
+        assert 'aws_security_group' in build_options.keys()
+        assert 'aws_subnet_id' in build_options.keys()
+        assert 'aws_disk_size' in build_options.keys()
+
         if vmname == '':
             vmname = 'Unity'
         with open(os.path.join(work_dir, 'user-data'), 'r') as f:
@@ -173,6 +183,10 @@ class Assembler(object):
         return (instance, ssh_host, ssh_port)
 
     def construct_img(self, build_options, work_dir, payload_dir):
+
+        #assert 'img_size' in build_options.keys()
+        assert 'base_img' in build_options.keys()
+
         # Create image
         img_name = 'Unity' + str(int(time.time()))
         #subprocess.check_call(['xen-create-image',
@@ -193,8 +207,7 @@ class Assembler(object):
             os.makedirs(mount_path)
 
         subprocess.check_call(['mount',
-                               '{0}/disk.img'.format(
-                                   work_dir),
+                               '{0}/disk.img'.format(work_dir),
                                mount_path])
         try:
 
@@ -225,12 +238,13 @@ class Assembler(object):
                             'wget',
                             'perl',
                             'software-properties-common',
-                            'openssh-server'])
+                            'openssh-server',
+                            'auditd',
+                            'dkms'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
-            merlin_file_path = os.path.join(os.environ['HOME'], 'galahad',
-                                            'assembler', 'payload')
+            merlin_file_path = payload_dir
             kernel_file_path = os.path.join(os.environ['HOME'], 'galahad',
                                             'unity', 'latest-debs')
             merlin_files = ['merlin.deb']
@@ -253,21 +267,21 @@ class Assembler(object):
             subprocess.check_call(dpkg_cmd)
 
             # Additional Merlin config
-            os.chown(mount_path + '/opt/merlin', 501, 500)
+            os.chown(mount_path + '/opt/merlin', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/opt/merlin'):
                 for f in files:
-                    os.chown(os.path.join(path, f), 501, 500)
+                    os.chown(os.path.join(path, f), 501, 1000)
                 for d in dirs:
-                    os.chown(os.path.join(path, d), 501, 500)
+                    os.chown(os.path.join(path, d), 501, 1000)
 
             os.chmod(mount_path + '/opt/merlin', 0777)
 
-            os.chown(mount_path + '/var/private/ssl', 501, 500)
+            os.chown(mount_path + '/var/private/ssl', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/var/private/ssl'):
                 for f in files:
-                    os.chown(os.path.join(path, f), 501, 500)
+                    os.chown(os.path.join(path, f), 501, 1000)
                 for d in dirs:
-                    os.chown(os.path.join(path, d), 501, 500)
+                    os.chown(os.path.join(path, d), 501, 1000)
 
             shutil.copy(merlin_file_path + '/merlin.service',
                         mount_path + '/etc/systemd/system/merlin.service')
@@ -286,14 +300,17 @@ class Assembler(object):
             gsvirtue_line = 'virtue:!::\n'
 
             #     adduser merlin --system --group --shell /bin/bash
-            merlin_line = 'merlin:x:501:501::/home/virtue:/bin/bash\n'
+            merlin_line = 'merlin:x:501:501::/home/merlin:/bin/bash\n'
             gmerlin_line = 'merlin:x:501:\n'
             smerlin_line = 'merlin:*:17729:0:99999:7:::\n'
             gsmerlin_line = 'merlin:!::\n'
 
-            bashrc_line = 'export TERM=xterm-256color'
+            gcamelot_line = 'camelot:x:1000:merlin,root\n'
+            gscamelot_line = 'camelot:!::merlin,root\n'
 
-            sudoers_line = 'virtue ALL=(ALL) NOPASSWD:ALL'
+            bashrc_line = 'export TERM=xterm-256color\n'
+
+            sudoers_line = 'virtue ALL=(ALL) NOPASSWD:ALL\n'
 
             with open(mount_path + '/etc/passwd', 'a') as passwd:
                 passwd.write(virtue_line)
@@ -301,12 +318,14 @@ class Assembler(object):
             with open(mount_path + '/etc/group', 'a') as group:
                 group.write(gvirtue_line)
                 group.write(gmerlin_line)
+                group.write(gcamelot_line)
             with open(mount_path + '/etc/shadow', 'a') as shadow:
                 shadow.write(svirtue_line)
                 shadow.write(smerlin_line)
             with open(mount_path + '/etc/gshadow', 'a') as gshadow:
                 gshadow.write(gsvirtue_line)
                 gshadow.write(gsmerlin_line)
+                gshadow.write(gscamelot_line)
 
             with open(mount_path + '/etc/sudoers', 'a') as sudoers:
                 sudoers.write(sudoers_line)
@@ -343,8 +362,13 @@ class Assembler(object):
                         mount_path + '/home/virtue')
             shutil.copy(payload_dir + '/truststore.jks',
                         mount_path + '/home/virtue')
-            shutil.copy(payload_dir + '/sshd_config', mount_path + '/home/virtue')
+            shutil.copy(payload_dir + '/sshd_config',
+                        mount_path + '/home/virtue')
             shutil.copy(payload_dir + '/runme.sh', mount_path + '/home/virtue')
+            shutil.copy(payload_dir + '/syslog-ng.service',
+                        mount_path + '/home/virtue')
+            shutil.copy(payload_dir + '/audit.rules',
+                        mount_path + '/home/virtue')
 
             # Create syslog-ng.conf from
             #   payload/syslog-ng-virtue-node.conf.template
@@ -366,6 +390,29 @@ class Assembler(object):
             runme_cmd = ['chroot', mount_path, 'bash', '-c',
                          'cd \"/home/virtue\" && ./runme.sh']
             subprocess.check_call(runme_cmd)
+
+            # Install Actuators
+            # Actuators are broken, so code is commented out
+            actuator_file_path = os.path.join(payload_dir, 'actuators')
+            actuator_files = ['netblock_actuator.deb']
+            files = []
+            for f in actuator_files:
+                f = os.path.join(actuator_file_path, f)
+                files.append(f)
+
+            dpkg_cmd = ['dpkg', '-i', '--force-all', '--root=' + mount_path]
+            dpkg_cmd.extend(files)
+
+            subprocess.check_call(dpkg_cmd)
+
+            shutil.copy(mount_path + '/lib/modules/4.13.0-38-generic' +
+                        '/updates/dkms/actuator_network.ko',
+                        mount_path + '/lib/modules/4.13.0-38-generic' +
+                        '/kernel/drivers/')
+
+            with open(mount_path + '/etc/modules', 'a') as modules:
+                modules.write('actuator_network\n')
+
         except:
             raise
         finally:
@@ -392,7 +439,7 @@ class Assembler(object):
         if not os.path.exists(WORK_DIR):
             os.mkdir(WORK_DIR)
 
-        stage_dict = {}
+        stage_dict = OrderedDict()
         stage_dict[UserStage.NAME] = UserStage(WORK_DIR)
         stage_dict[AptStage.NAME] = AptStage(WORK_DIR)
 
@@ -412,7 +459,7 @@ class Assembler(object):
         vmname = self.NAME
 
         if (build_options['env'] == 'qemu'):
-            # Deprecated
+            # Deprecated and broken
             self.setup_qemu(build_options, WORK_DIR)
         elif (build_options['env'] == 'aws'):
             # Deprecated
@@ -440,13 +487,15 @@ class Assembler(object):
                 WORK_DIR)
             stage_dict[MerlinStage.NAME] = MerlinStage(ssh_host, ssh_port,
                                                        WORK_DIR)
+            stage_dict[ActuatorStage.NAME] = ActuatorStage(ssh_host, ssh_port,
+                                                           WORK_DIR)
 
             # We have a shutdown stage to bring the VM down. Of course if you're
             # trying to debug it's worth commenting this out to keep the vm
             # running after the assembly is complete
-            #stage_dict[ShutdownStage.NAME] = ShutdownStage(args.ssh_host,
-            #                                               args.ssh_port,
-            #                                               WORK_DIR)
+            stage_dict[ShutdownStage.NAME] = ShutdownStage(ssh_host,
+                                                           ssh_port,
+                                                           WORK_DIR)
 
             for stage in stage_dict:
                 if isinstance(stage_dict[stage], SSHStage):
