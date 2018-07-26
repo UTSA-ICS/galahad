@@ -18,4 +18,5 @@ class AptStage(CIStage):
             self._ci.install_package('python3-pip')
             self._ci.install_package('python')
             self._ci.install_package('python-pip')
+            self._ci.install_package('dkms')
             self._ci.save(self._work_dir)
