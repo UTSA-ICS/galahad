@@ -231,12 +231,13 @@ class Excalibur():
         _cmd4 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
 
-    def setup_ldap(self):
-
-        logger.info('Setup LDAP config for Tests')
-        # Call setup_ldap on the server
-        _cmd = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        # Setup the Default key to be able to login to the virtues.
+        # This private key's corresponding public key will be used for the virtues
+        GALAHAD_KEY_DIR = '~/galahad-keys'
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
+                format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
     def setup_aws_instance_info(self):
         client = boto3.client('cloudformation')
