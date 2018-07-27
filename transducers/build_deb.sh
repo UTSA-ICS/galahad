@@ -7,8 +7,8 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-if [ $1 != "merlin" ] && [ $1 != "listener" ]; then
-    echo "Expected 'merlin' or 'listener' for deb file to build; got: $1"
+if [ $1 != "merlin" ] && [ $1 != "listener" ] && [ $1 != "processkiller" ]; then
+    echo "Expected 'merlin', 'listener', 'processkiller' for deb file to build; got: $1"
     exit 1
 fi
 
