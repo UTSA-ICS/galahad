@@ -3,6 +3,7 @@ import subprocess
 import sys
 import os
 
+#uses the scripts from /bin
 class Migrate():
         def start_instance(self, host, guestnet, valor_guestnet):
                 print subprocess.Popen("bin/new_cfg.sh " + host + " " + guestnet + " " + valor_guestnet, shell=True, stdout=subprocess.PIPE).stdout.read()

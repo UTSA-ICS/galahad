@@ -2,6 +2,7 @@
 import rethinkdb as r
 r.connect("172.30.93.138",28015).repl()
 
+#adds an instance to the table
 r.db('routing').table('galahad').insert([{
 	'function':'virtue',
 	'host':'test',

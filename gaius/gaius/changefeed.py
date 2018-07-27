@@ -21,6 +21,7 @@ class changes():
 		IPAddr = socket.gethostbyname(hostname)
 		self.IP = IPAddr
 
+#runs if something with the function compute was added
         def compute(self):
                 r.connect("172.30.93.138",28015).repl()
 		computecursor = r.db("routing").table("galahad").changes().filter(lambda change: \
@@ -29,6 +30,7 @@ class changes():
                         testfile.write(str(computecursor))
                 print subprocess.Popen("./start compute", shell=True, stdout=subprocess.PIPE).stdout.read()
 
+#if an object whose function is virtue is added to the table, create a virtue
         def virtue_new(self):
                 r.connect("172.30.93.138",28015).repl()
 		virtuecursor = r.db("routing").table("galahad").changes().filter(lambda change: \
@@ -37,10 +39,12 @@ class changes():
 			valor = rethink.filter('galahad',
 				{'address'	: virtue['new_val']['address'],
 				 'function'	: 'valor'}).next()
+			#only create the virtue on the valor that shares its IP
 			if virtue["new_val"]["address"] == self.IP:
 				migrate.start_instance(virtue["new_val"]["host"], virtue["new_val"]["guestnet"], \
 					valor["guestnet"])
 
+#if the flag in the transducer table goes from false to true, migrate an instance
  	def virtue_migrate(self):
 		r.connect("172.30.93.138",28015).repl()
 		cursor = r.db('routing').table('transducer').changes().filter(lambda change: \
@@ -50,6 +54,7 @@ class changes():
 			newHost = flag['new_val']['config']['newHost']
 			dest = rethink.filter('galahad', {'host':newHost}).next()
 			object = rethink.filter("galahad", {"host":host}).next()
+			#only migrate it from the valor that shares it's IP
 			if object["address"] == self.IP:
 				migrate.migrate_instance(host, dest['address'])
 				old = rethink.filter('galahad',
@@ -62,6 +67,7 @@ class changes():
 				history.append(oldValor['host'])
 				print flag
 
+#after a virtue has been migrated(the flag in the transducer table goes from true back to false), alert both nodes and update new_host and address
 	def virtue_alert(self):
 		r.connect("172.30.93.138",28015).repl()
                 cursor = r.db('routing').table('transducer').changes().filter(lambda change: \
@@ -70,6 +76,7 @@ class changes():
                         host = flag['new_val']['config']['host']
                         newHost = flag['new_val']['config']['newHost']
                         dest = rethink.filter('galahad', {'host':newHost}).next()
+			#socket for alerting programs
 			s.bind(('', port))
 			s.listen(5)
 			while True:
@@ -77,25 +84,26 @@ class changes():
                                 c.send("TRUE")
                                 c.close()
                                 break
-                        print dest["address"]
-			print self.IP
-			print dest["address"]
+			#code above this runs on all valors while below this will only run on the new host
 			if dest["address"] == self.IP:
 				print "TEST"
 				r.db("routing").table("galahad").filter(r.row["host"]==host).update({"address": dest["address"]}).run()
                                 config = {'host':host,'newHost':'TestNode.101'}
                                 r.db("routing").table("transducer").filter(r.row["config"]["host"]==host).update({"config" : config}).run()
 
+#if a virtue is removed from the table, remove it from the valor
 	def virtue_cleanup(self):
 		r.connect("172.30.93.138",28015).repl()
 		cursor = r.db('routing').table('galahad').changes().filter(lambda change: \
 			(change['old_val']['function']=='virtue') & (change['new_val']==None)).run()
 		for virtue in cursor:
+			#only remove it on the valor it is on
 			if virtue["old_val"]["address"] == self.IP:
 				migrate.cleanup_instance(virtue["old_val"]["host"])
 				print virtue['old_val']['host']
 				print virtue
 
+#runs if something with the function valor is added
         def valor(self):
                 r.connect("172.30.93.138",28015).repl()
                 hostname = socket.gethostname()
@@ -109,6 +117,7 @@ class changes():
                                 testfile.write(str(valorcursor))
                         print subprocess.Popen("./start valor", shell=True, stdout=subprocess.PIPE).stdout.read()
 
+#runs all the above changefeeds at once
         def main(self):
                 while True:
 			#computeThread = threading.Thread(target=self.compute)
