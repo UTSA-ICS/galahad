@@ -15,6 +15,7 @@ import os
 import signal
 import sys
 import socket
+import subprocess
 import traceback
 import re
 from copy import deepcopy
@@ -89,19 +90,38 @@ def send_message(sock, message):
 
 # Send given message over a netlink socket
 def send_message_netlink(sock, array):
+	tosend = ''
 	try:
 		# Send length of array
-		sock.sendall(pack('!i', len(array)))
+		message = pack('=i', len(array))
 		for msg in array:
-			if type(msg) is not str:
+			if type(msg) is not str and type(msg) is not unicode:
 				log.error('Invalid array element type: %s', str(type(msg)))
 				continue
-			# Send each element
-			sock.sendall(pack('!i', len(msg)))
-			sock.sendall(msg)
+			# Send length of each element, then the string itself
+			message += pack('=i', len(msg))
+			message += msg
+			message += '\0'
+
+		# This is a netlink header:
+		# 32 bits: length of message including header
+		# 16 bits: message content type
+		# 16 bits: additional flags
+		# 32 bits: sequence number (doesn't seem to be actually used?)
+		# 32 bits: sending process PID
+		hdrlen = 4 * 3 + 2 * 2  # 3 ints, 2 shorts
+		hdr = pack('=LHHLL', hdrlen + len(message), 0, 0, 0, os.getpid())
+
+		tosend = str(hdr) + str(message) + '\r\n'
+	except Exception as e:
+		log.error('Error constructing netlink message: ' + str(e))
+		return False
+
+	try:
+		sock.sendall(tosend)
 		return True
 	except socket.error, msg:
-		log.error('Failed to send message: %s', msg)
+		log.error('Failed to send netlink message: %s', msg)
 		return False
 
 # Receive message over a unix domain socket
@@ -259,30 +279,50 @@ def do_actuator(transducer_id, config_str, enabled):
 		config = json.loads(config_str)
 	except (ValueError, TypeError), e:
 		if enabled == True:
-			log.error("received malformed json configuration")
+			log.error('Failed to parse config str as json: ' + str(e) + '; config: ' + str(config_str))
 			return False
 
-
-	if transducer_id == 'kill_process':
-		log.info('Received a kill_process actuator event! %s', config_str)
+	if transducer_id == 'kill_proc':
+		# Actuator that both immediately kills a process (by name) and also prevents it from ever starting again (until actuator rule is disabled/removed)
+                if not enabled:
+                        config = { 'processes': [] }
 
 		if 'processes' not in config or \
 			type(config['processes']) is not list or \
-			any(type(e) is not str for e in config['processes']):
+			any(type(e) is not str and type(e) is not unicode for e in config['processes']):
 
 			log.error('The actuator kill_process MUST contain a "processes" key in its configuration that corresponds to a list of strings')
 			return False
 
 		processes = config['processes']
+		success = True
 
+		for p in processes:
+			# Send name of process that should be immediately killed to the processkiller service (running as root) that is listening on this socket
+			proc_kill_sock_path = '/var/run/deathnote'
+			proc_kill_sock = connect_socket(proc_kill_sock_path)
+			if proc_kill_sock is None:
+				log.error('Unable to connect to Process Kill socket')
+				success &= False
+				continue
+
+			if not send_message(proc_kill_sock, p):
+				log.error('Failed to send Immediate Process Kill message')
+				success &= False
+				continue
+
+		# Send list of processes to netlink socket that the Virtue LSM is listening to, so that the LSM can block future attempts at starting the blocked process
 		sock = connect_socket_netlink()
 		if sock is None:
 			log.error('Unable to connect to net socket')
-			return
+			return False
 
 		if not send_message_netlink(sock, config['processes']):
 			log.error('Failed to send command over netlink socket')
-			return
+			return False
+
+		return True
+
 	elif transducer_id == 'block_net':
 		chardev = "/dev/netblockchar"
 		#WORK IN PROGRESS
@@ -374,6 +414,28 @@ def do_actuator(transducer_id, config_str, enabled):
 		log.warning('This type of actuator has not been defined yet: %s', transducer_id)
 		return False
 
+def send_ack(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key, conn):
+	# Confirm to excalibur that changes were successful
+	new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
+
+	try:
+		res = r.db('transducers').table('acks').insert({
+			'id': [virtue_id, transducer_id],
+			'virtue_id': virtue_id,
+			'transducer_id': transducer_id,
+			'type': transducer_type,
+			'configuration': config,
+			'enabled': enabled,
+			'timestamp': timestamp,
+			'signature': r.binary(new_signature)
+		}, conflict='replace').run(conn)
+		if res['errors'] > 0:
+			log.error('Failed to insert into ACKs table; first error: %s', str(res['first_error']))
+			return False
+	except r.ReqlError as e:
+		log.error('Failed to publish ACK to Excalibur because: %s', str(e))
+		return False
+	return True
 
 def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, socket_to_filter):
 	conn = None
@@ -426,30 +488,11 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 			if do_actuator(transducer_id, config, enabled) == False:
 				continue
 
-			# TODO ideally the giant block below would live in a separate function and this would be a tidy little if/else
-			# Confirm to excalibur that changes were successful
-                        new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
-
-                        try:
-                                res = r.db('transducers').table('acks').insert({
-                                        'id': [virtue_id, transducer_id],
-                                        'virtue_id': virtue_id,
-                                        'transducer_id': transducer_id,
-                                        'type': transducer_type,
-                                        'configuration': config,
-                                        'enabled': enabled,
-                                        'timestamp': timestamp,
-                                        'signature': r.binary(new_signature)
-                                }, conflict='replace').run(conn)
-                                if res['errors'] > 0:
-                                        log.error('Failed to insert into ACKs table; first error: %s', str(res['first_error']))
-                                        continue
-                        except r.ReqlError as e:
-                                log.error('Failed to publish ACK to Excalibur because: %s', str(e))
-                                continue
+			send_ack(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key, conn)
 
 			continue
 
+			# TODO ideally the giant block below would live in a separate function and this would be a tidy little if/else
 		with lock:
 			log.info('Begin implementing received command')
 
@@ -469,27 +512,7 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 				log.error('Failed to receive response from filter')
 				continue
 
-			# Confirm to excalibur that changes were successful
-			new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
-
-			try:
-				res = r.db('transducers').table('acks').insert({
-					'id': [virtue_id, transducer_id],
-					'virtue_id': virtue_id,
-					'transducer_id': transducer_id,
-					'type': transducer_type,
-					'configuration': config,
-					'enabled': enabled,
-					'timestamp': timestamp,
-					'signature': r.binary(new_signature)
-				}, conflict='replace').run(conn)
-				if res['errors'] > 0:
-					log.error('Failed to insert into ACKs table; first error: %s', str(res['first_error']))
-					continue
-			except r.ReqlError as e:
-				log.error('Failed to publish ACK to Excalibur because: %s', str(e))
-				continue
-
+			send_ack(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key, conn)
 			log.info('Successfully implemented command from Excalibur')
 
 if __name__ == '__main__':

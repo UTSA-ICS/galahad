@@ -16,6 +16,7 @@ from stages.virtued import DockerVirtueStage
 from stages.transducer_install import TransducerStage
 from stages.merlin import MerlinStage
 from stages.actuator import ActuatorStage
+from stages.processkiller import ProcessKillerStage
 
 class Assembler(object):
 
@@ -209,7 +210,13 @@ class Assembler(object):
         subprocess.check_call(['mount',
                                '{0}/disk.img'.format(work_dir),
                                mount_path])
+
+        real_HOME = os.environ['HOME']
+
         try:
+
+            # chroot doesn't change the $HOME environment variable
+            os.environ['HOME'] = '/home/virtue'
 
             # dpkg wants a cpuinfo file and transducers want a procfs to
             #   install java
@@ -245,7 +252,7 @@ class Assembler(object):
 
             # Install all .deb packages with dpkg --root
             merlin_file_path = payload_dir
-            kernel_file_path = os.path.join(os.environ['HOME'], 'galahad',
+            kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
             merlin_files = ['merlin.deb']
             kernel_files = [
@@ -286,11 +293,8 @@ class Assembler(object):
             shutil.copy(merlin_file_path + '/merlin.service',
                         mount_path + '/etc/systemd/system/merlin.service')
 
-            # If merlin.service ever changes, we may need to change the symlinks
-            #   we make here.
-            os.symlink('/etc/systemd/system/merlin.service',
-                       mount_path + '/etc/systemd/system/' +
-                       'multi-user.target.wants/merlin.service')
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'merlin'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -344,16 +348,6 @@ class Assembler(object):
             shutil.copy(work_dir + '/id_rsa.pub',
                         mount_path + '/home/merlin/.ssh/authorized_keys')
 
-            # I would have liked to use something like os.chown(recursive=True)
-            os.chown(mount_path + '/home/virtue', 500, 500)
-            os.chown(mount_path + '/home/virtue/.ssh', 500, 500)
-            os.chown(mount_path + '/home/virtue/.ssh/authorized_keys', 500, 500)
-            os.chown(mount_path + '/home/virtue/.bashrc', 500, 500)
-            os.chown(mount_path + '/home/merlin', 501, 501)
-            os.chown(mount_path + '/home/merlin/.ssh', 501, 501)
-            os.chown(mount_path + '/home/merlin/.ssh/authorized_keys', 501, 501)
-            os.chown(mount_path + '/home/merlin/.bashrc', 501, 501)
-
             # Install Transducers
             # Copy payload/* to mount_path + '/home/virtue'
             shutil.copy(payload_dir + '/transducer-module.tar.gz',
@@ -392,12 +386,15 @@ class Assembler(object):
             subprocess.check_call(runme_cmd)
 
             # Install Actuators
-            # Actuators are broken, so code is commented out
             actuator_file_path = os.path.join(payload_dir, 'actuators')
             actuator_files = ['netblock_actuator.deb']
+            processkiller_files = ['processkiller.deb']
             files = []
             for f in actuator_files:
                 f = os.path.join(actuator_file_path, f)
+                files.append(f)
+            for f in processkiller_files:
+                f = os.path.join(payload_dir, f)
                 files.append(f)
 
             dpkg_cmd = ['dpkg', '-i', '--force-all', '--root=' + mount_path]
@@ -405,6 +402,7 @@ class Assembler(object):
 
             subprocess.check_call(dpkg_cmd)
 
+            # Additional actuator config
             shutil.copy(mount_path + '/lib/modules/4.13.0-38-generic' +
                         '/updates/dkms/actuator_network.ko',
                         mount_path + '/lib/modules/4.13.0-38-generic' +
@@ -413,9 +411,38 @@ class Assembler(object):
             with open(mount_path + '/etc/modules', 'a') as modules:
                 modules.write('actuator_network\n')
 
+            # Additional Process Killer config
+            os.chown(mount_path + '/opt/merlin', 501, 1000)
+            for path, dirs, files in os.walk(mount_path + '/opt/merlin'):
+                for f in files:
+                    os.chown(os.path.join(path, f), 501, 1000)
+                for d in dirs:
+                    os.chown(os.path.join(path, d), 501, 1000)
+
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'processkiller'])
+
+            # Reset ownership in user directories
+            os.chown(mount_path + '/home/virtue', 500, 500)
+            for path, dirs, files in os.walk(mount_path + '/home/virtue'):
+                for f in files:
+                    os.chown(os.path.join(path, f), 500, 500)
+                for d in dirs:
+                    os.chown(os.path.join(path, d), 500, 500)
+
+            os.chown(mount_path + '/home/merlin', 501, 501)
+            for path, dirs, files in os.walk(mount_path + '/home/merlin'):
+                for f in files:
+                    os.chown(os.path.join(path, f), 501, 501)
+                for d in dirs:
+                    os.chown(os.path.join(path, d), 501, 501)
+
         except:
             raise
         finally:
+
+            os.environ['HOME'] = real_HOME
+
             subprocess.call(['umount', mount_path + '/proc'])
             subprocess.call(['umount', mount_path + '/sys'])
             subprocess.call(['umount', mount_path + '/dev'])
@@ -489,6 +516,9 @@ class Assembler(object):
                                                        WORK_DIR)
             stage_dict[ActuatorStage.NAME] = ActuatorStage(ssh_host, ssh_port,
                                                            WORK_DIR)
+            stage_dict[ProcessKillerStage.NAME] = ProcessKillerStage(ssh_host,
+                                                                     ssh_port,
+                                                                     WORK_DIR)
 
             # We have a shutdown stage to bring the VM down. Of course if you're
             # trying to debug it's worth commenting this out to keep the vm
@@ -541,3 +571,11 @@ class Assembler(object):
             shutil.rmtree(WORK_DIR)
 
         return return_data
+
+    def assemble_running_vm(self, containers, docker_login,
+                            ssh_host, ssh_port='22'):
+
+        docker_stage = DockerVirtueStage(docker_login, containers, ssh_host,
+                                         ssh_port, self.WORK_DIR)
+
+        docker_stage.run()
