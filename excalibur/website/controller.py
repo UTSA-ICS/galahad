@@ -157,7 +157,7 @@ class CreateVirtueThread(threading.Thread):
         # Check if the virtue is accessible:
         for i in range(10):
             out = subprocess.call(shlex.split(
-                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 ubuntu@{1} uname -a'.format(`key_dir, instance_ip)))
+                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 ubuntu@{1} uname -a'.format(key_dir, instance_ip)))
             if out == 255:
                 time.sleep(30)
             else:
