@@ -1,3 +1,6 @@
+# Copyright (c) 2018 by Star Lab Corp.
+# Copyright (c) 2018 by Raytheon BBN Technologies Corp.
+
 import os, sys, shutil
 import json, time
 import subprocess
@@ -226,15 +229,15 @@ class Assembler(object):
             mount_sys_cmd = ['mount', '-t', 'sysfs',
                               'sys', mount_path + '/sys']
             subprocess.check_call(mount_sys_cmd)
-            mount_proc_cmd = ['mount', '-o', 'bind',
+            mount_dev_cmd = ['mount', '-o', 'bind',
                               '/dev', mount_path + '/dev']
-            subprocess.check_call(mount_proc_cmd)
+            subprocess.check_call(mount_dev_cmd)
 
             # Update installed packages
             subprocess.check_call(['chroot', mount_path, 'apt-get',
                                    'update'])
-            #subprocess.check_call(['chroot', mount_path, 'apt-get',
-            #                       'dist-upgrade', '-y'])
+            subprocess.check_call(['chroot', mount_path, 'apt-get',
+                                   'dist-upgrade', '-y'])
 
             # Install required packages
             apt_cmd = ['chroot', mount_path, 'apt-get', 'install', '-y']
