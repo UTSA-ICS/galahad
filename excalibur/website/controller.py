@@ -154,8 +154,18 @@ class CreateVirtueThread(threading.Thread):
         output = subprocess.check_output(shlex.split(
                      'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
         print output
+        # Check if the virtue is accessible:
+        for i in range(10):
+            out = subprocess.call(shlex.split(
+                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 ubuntu@{1} uname -a'.format(`key_dir, instance_ip)))
+            if out == 255:
+                time.sleep(30)
+            else:
+                print('Successfully connected to {}'.format(instance_ip))
+                break
+
         # Now populate virtue Merlin Dir with this key.
         output = subprocess.call(shlex.split(
-            'scp -i {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
+            'scp -i {0}/default-virtue-key.pem {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
         output = subprocess.call(shlex.split(
-            'sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id)))
+            'ssh -i {0}/default-virtue-key.pem -o ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/virtue_1_key.pem"'.format(key_dir, instance_ip, virtue_id)))
