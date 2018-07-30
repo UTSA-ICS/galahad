@@ -5,6 +5,9 @@ import threading
 import copy
 import time
 import botocore
+import shlex
+import subprocess
+import os
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -157,7 +160,7 @@ class CreateVirtueThread(threading.Thread):
         # Check if the virtue is accessible:
         for i in range(10):
             out = subprocess.call(shlex.split(
-                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 ubuntu@{1} uname -a'.format(key_dir, instance_ip)))
+                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 -o StrictHostKeyChecking=no ubuntu@{1} uname -a'.format(key_dir, instance_ip)))
             if out == 255:
                 time.sleep(30)
             else:
@@ -166,6 +169,17 @@ class CreateVirtueThread(threading.Thread):
 
         # Now populate virtue Merlin Dir with this key.
         output = subprocess.call(shlex.split(
-            'scp -i {0}/default-virtue-key.pem {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
+            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
         output = subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/virtue_1_key.pem"'.format(key_dir, instance_ip, virtue_id)))
+            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, 'excalibur_pub', instance_ip)))
+        output = subprocess.call(shlex.split(
+            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, 'rethinkdb_cert', instance_ip)))
+        #
+        output = subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/virtue_1_key.pem"'.format(key_dir, instance_ip, virtue_id)))
+        output = subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/{2}.pem"'.format(key_dir, instance_ip, 'excalibur_pub')))
+        output = subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/{2}.pem"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
+        output = subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
