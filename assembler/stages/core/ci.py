@@ -9,10 +9,10 @@
 import yaml, random, string, os, subprocess
 
 
-class CloudInitUserData():
+class CloudInitUserData(object):
     ''' Generates two yaml-like files for cloud-init startup
         FYI Clud-init looks for these files in different sources. One such source
-        is a cd-rom. It's common to build an iso that contains these files to 
+        is a cd-rom. It's common to build an iso that contains these files to
         pass to a vm.
     '''
     USERDATA_FILENAME = 'user-data'
@@ -21,7 +21,7 @@ class CloudInitUserData():
     def __init__(self):
         self.userdata = {'ssh_pwauth': True, 'repo_update': True}
         self.metadata = {}
-    
+
     def _ensure_key_exists(self, key, init_value = {}):
         if key not in self.userdata:
             self.userdata[key] = init_value
@@ -29,7 +29,7 @@ class CloudInitUserData():
     def _set_metadata(self, host_name, instance_id):
         self.metadata['local-hostname'] = host_name
         self.metadata['instance-id'] = instance_id
-        
+
 
     def install_package(self, package):
         key = 'packages'
@@ -57,7 +57,7 @@ class CloudInitUserData():
     def add_group(self, new_group, members=[]):
         key = 'groups'
         self._ensure_key_exists(key, [])
-    
+
         new_entry = ''
         if len(members) == 0:
             new_entry = new_group
@@ -111,4 +111,3 @@ class CloudInitUserData():
 
     def metadata_exists(self, in_dir):
         return os.path.exists(os.path.join(in_dir, self.METADATA_FILENAME))
-    

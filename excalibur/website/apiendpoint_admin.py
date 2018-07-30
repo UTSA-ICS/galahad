@@ -1,15 +1,18 @@
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
-from apiendpoint import EndPoint
-from controller import CreateVirtueThread
-from . import ldap_tools
-from aws import AWS
 import json
 import random
 import time
 import copy
 import traceback
 import subprocess
+
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
+from apiendpoint import EndPoint
+from controller import CreateVirtueThread
+from . import ldap_tools
+from aws import AWS
+
+from assembler.assembler import Assembler
 
 DEBUG_PERMISSIONS = False
 
