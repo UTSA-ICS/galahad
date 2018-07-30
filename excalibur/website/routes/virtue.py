@@ -443,7 +443,12 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
-        ret = ep.role_create(json.loads(request.args['role']))
+        ami_id = request.args.get('ami_id')
+        if (ami_id == None):
+            ret = ep.role_create(json.loads(request.args['role']))
+        else:
+            ret = ep.role_create(json.loads(request.args['role']),
+                                 hard_code_ami=ami_id)
 
         return make_response(ret)
 
