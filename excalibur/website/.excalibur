@@ -1,10 +1,10 @@
 [transducer]
 rethinkdb_host = rethinkdb.galahad.lab
 rethinkdb_ca_cert = /var/private/ssl/rethinkdb_cert.pem
-excalibur_private_key = /var/private/ssl/excalibur_key.pem
+excalibur_private_key = /var/private/ssl/excalibur_private_key.pem
 virtue_public_key_dir = /var/private/ssl
 elasticsearch_host = elasticsearch.galahad.lab
-elasticsearch_ca_cert = /var/private/ssl/elasticsearch/chain-ca.pem
-elasticsearch_client_cert = /var/private/ssl/elasticsearch/kirk.crtfull.pem
-elasticsearch_client_key = /var/private/ssl/elasticsearch/kirk.key.pem
+elasticsearch_ca_cert = /var/private/ssl/elasticsearch_keys/chain-ca.pem
+elasticsearch_client_cert = /var/private/ssl/elasticsearch_keys/kirk.crtfull.pem
+elasticsearch_client_key = /var/private/ssl/elasticsearch_keys/kirk.key.pem
 logfile = /opt/heartbeatlistener/listener.log
