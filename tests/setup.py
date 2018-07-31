@@ -231,13 +231,32 @@ class Excalibur():
         _cmd4 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
 
-        # Setup the Default key to be able to login to the virtues.
+        # Setup the Default key to be able to login to the virtues
         # This private key's corresponding public key will be used for the virtues
         GALAHAD_KEY_DIR = '~/galahad-keys'
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
                 format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+
+        # Copy over various other keys required for virtues
+        GALAHAD_CONFIG_DIR = '~/galahad-config'
+        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/rethinkdb_cert.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+
+        # Now populate the /var/private/ssl dir for excalibur
+        EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
+        _cmd6 = "mkdir('-p {}')".format(EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/excalibur_private_key.pem.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+
 
     def setup_aws_instance_info(self):
         client = boto3.client('cloudformation')
