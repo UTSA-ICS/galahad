@@ -204,3 +204,6 @@ if (__name__ == '__main__'):
     add_transducer('srv_create_proc', 'Process Creation', 'SENSOR', True, '{}',
                    [])
     add_transducer('open_fd', 'File Open', 'SENSOR', True, '{}', [])
+
+    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, '{processes:[]}', [])
+    add_transducer('block_net', 'Block Network', 'ACTUATOR', False, '{}', [])
