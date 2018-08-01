@@ -194,6 +194,8 @@ class CreateVirtueThread(threading.Thread):
             ssh_inst.ssh('sudo su - root -c "echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts"')
             ssh_inst.ssh('sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml')
             ssh_inst.ssh('sudo sed -i \'s!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!\' /etc/syslog-ng/syslog-ng.conf')
+            ssh_inst.ssh('sudo systemctl restart merlin')
+            ssh_inst.ssh('sudo systemctl restart syslog-ng')
         else:
             print('Error accessing the Virtue')
         '''
