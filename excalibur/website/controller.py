@@ -8,6 +8,7 @@ import botocore
 import shlex
 import subprocess
 import os
+from common import ssh_tool
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -134,10 +135,10 @@ class CreateVirtueThread(threading.Thread):
             sec_group=sec_group.id,
             inst_profile_name='',
             inst_profile_arn='')
-        #instance = {'id': 'id_of_aws_inst', 'state': 'state_of_aws_inst', 'ip': '10.20.30.40'}
+
 
         virtue = {
-            'id': 'Virtue_{0}{1}'.format(role['name'], int(time.time())),
+            'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
             'username': 'NULL',
             'roleId': self.role_id,
             'applicationIds': [],
@@ -145,29 +146,57 @@ class CreateVirtueThread(threading.Thread):
             'transducerIds': role['startingTransducerIds'],
             'awsInstanceId': instance.id
         }
-
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-
         self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+
         self.set_virtue_keys(virtue['id'], instance.public_ip_address)
 
-    def set_virtue_keys(self, virtue_id, instance_ip):
-        # For now generate keys and store in local dir
-        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
-        output = subprocess.check_output(shlex.split(
-                     'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
-        print output
+    def check_virtue_access(self, ssh_inst):
         # Check if the virtue is accessible:
         for i in range(10):
-            out = subprocess.call(shlex.split(
-                'ssh -i {0}/default-virtue-key.pem -o ConnectTimeout=10 -o StrictHostKeyChecking=no ubuntu@{1} uname -a'.format(key_dir, instance_ip)))
+            out = ssh_inst.ssh('uname -a', option='ConnectTimeout=10')
             if out == 255:
                 time.sleep(30)
             else:
-                print('Successfully connected to {}'.format(instance_ip))
-                break
+                print('Successfully connected to {}'.format(ssh_inst.ip))
+                result = True
+                return result
+        if result != True:
+            return False
 
-        # Now populate virtue Merlin Dir with this key.
+    def set_virtue_keys(self, virtue_id, instance_ip):
+        # Local Dir for storing of keys, this will be replaced when key management is implemented
+        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
+
+        # For now generate keys and store in local dir
+        subprocess.check_output(shlex.split(
+                     'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+
+        ssh_inst = ssh_tool('ubuntu', instance_ip, '{0}/default-virtue-key.pem'.format(key_dir))
+        # Check if virtue is accessible.
+        result = self.check_virtue_access(ssh_inst)
+
+        if result == True:
+            # Populate a virtue ID
+            ssh_inst.ssh('sudo su - root -c "echo {0} > /etc/virtue-id"'.format(virtue_id))
+            # Now populate virtue Merlin Dir with this key.
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, virtue_id), '/tmp/')
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'), '/tmp/')
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'), '/tmp/')
+            #
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id))
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('excalibur_pub'))
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('rethinkdb_cert'))
+            #
+            ssh_inst.ssh('sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/')
+            ssh_inst.ssh('sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts')
+            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts"')
+            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts"')
+            ssh_inst.ssh('sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml')
+            ssh_inst.ssh('sudo sed -i \'s!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!\' /etc/syslog-ng/syslog-ng.conf')
+        else:
+            print('Error accessing the Virtue')
+        '''
         output = subprocess.call(shlex.split(
             'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
         output = subprocess.call(shlex.split(
@@ -183,3 +212,15 @@ class CreateVirtueThread(threading.Thread):
             'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/{2}.pem"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
         output = subprocess.call(shlex.split(
             'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
+        #
+        subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts"'.format(key_dir, instance_ip)))
+        subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo su - root -c \\"echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts\\""'.format(key_dir, instance_ip)))
+        subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo su - root -c \\"echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts\\""'.format(key_dir, instance_ip)))
+        subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml"'.format(key_dir, instance_ip)))
+        subprocess.call(shlex.split(
+            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'s!cluster-url.*!cluster-url\(\\"https\:\/\/elasticsearch.galahad.com:9200\\"\)!\' /etc/syslog-ng/syslog-ng.conf"'.format(key_dir, instance_ip)))
+        '''
