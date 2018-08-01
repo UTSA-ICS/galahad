@@ -13,7 +13,6 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6.h>
 #include <linux/mutex.h>
-#include <linux/spinlock.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -28,7 +27,7 @@ MODULE_DESCRIPTION("Network and Transport Layer Firewall");
 MODULE_VERSION("0.1");
 
 static DEFINE_MUTEX(netblockchar_mutex);
-static DEFINE_SPINLOCK(map_spinlock);
+static DEFINE_MUTEX(map_mutex);
 
 //   Rule operations
 #define UNBLOCK_OUTGOING_SRC_IPV4_IP 0
@@ -108,7 +107,8 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 //  Prototype functions for map access
 static int safe_map_set(map_int_t*, const char*);
 static void safe_map_remove(map_int_t*, const char*);
-static int* safe_map_get(map_int_t*, const char*);
+static bool safe_map_check(map_int_t*, const char*);
+static void safe_map_clear(map_int_t *m);
 
 //   File Operations structure for character device driver callbacks
 static struct file_operations fops = {
@@ -155,56 +155,37 @@ struct packetRules {
 	*/
 	map_int_t src_ip;
 	map_int_t dst_ip;
-	map_int_t ip_port;
+	map_int_t src_ip_port;
+	map_int_t dst_ip_port;
 };
+
 
 //   Function for clearing an entire ruleset
 static void resetRules(struct packetRules* rules){
 
-		map_iter_t iter;
-		const char* key;
-
 		//remove src IP rules
-                iter = map_iter(rules->src_ip);
-                while ((key = map_next(&rules->src_ip, &iter))) {
-                        safe_map_remove(&rules->src_ip, key);
-                }
+		safe_map_clear(&rules->src_ip);
 
                 //remove dst IP rules
-                iter = map_iter(&rules->dst_ip);
-                while ((key = map_next(&rules->dst_ip, &iter))) {
-                        safe_map_remove(&rules->dst_ip, key);
-                }
+                safe_map_clear(&rules->dst_ip);
 
-		//remove IP:Port combo rules
-                iter = map_iter(&rules->ip_port);
-                while ((key = map_next(&rules->ip_port, &iter))) {
-                        safe_map_remove(&rules->ip_port, key);
-                }
+		//remove IP srcPort combo rules
+                safe_map_clear(&rules->src_ip_port);
+
+		//remove IP dstPort combo rules
+		safe_map_clear(&rules->dst_ip_port);
 
                 //remove src TCP rules
-                iter = map_iter(&rules->src_tcp);
-                while ((key = map_next(&rules->src_tcp, &iter))) {
-                        safe_map_remove(&rules->src_tcp, key);
-                }
+                safe_map_clear(&rules->src_tcp);
 
                 //remove dst TCP rules
-                iter = map_iter(&rules->dst_tcp);
-                while ((key = map_next(&rules->dst_tcp, &iter))) {
-                        safe_map_remove(&rules->dst_tcp, key);
-                }
+                safe_map_clear(&rules->dst_tcp);
 
                 //remove src UDP rules
-                iter = map_iter(&rules->src_udp);
-                while ((key = map_next(&rules->src_udp, &iter))) {
-                        safe_map_remove(&rules->src_udp, key);
-                }
+                safe_map_clear(&rules->src_udp);
 
                 //remove dst UDP rules
-                iter = map_iter(&rules->dst_udp);
-                while ((key = map_next(&rules->dst_udp, &iter))) {
-                        safe_map_remove(&rules->dst_udp, key);
-                }
+                safe_map_clear(&rules->dst_udp);
 }
 
 //   Structure for holding all the firewall rules
@@ -237,8 +218,9 @@ unsigned int process_ip(struct sk_buff *skb, bool incoming, bool ipv4){
 	void* ip_header;
 	char ip_src[40];
 	char ip_dst[40];
+	char ip_version;
 	struct packet_info info;
-	int* val;
+	bool val;
 	int proto;
 
 	if(!skb){
@@ -256,6 +238,7 @@ unsigned int process_ip(struct sk_buff *skb, bool incoming, bool ipv4){
 		snprintf(ip_src, 16, "%pI4", &((struct iphdr*) ip_header)->saddr);
 		snprintf(ip_dst, 16, "%pI4", &((struct iphdr*) ip_header)->daddr);
 		proto = ((struct iphdr*)ip_header)->protocol;
+		ip_version = '4';
 	}else{
 		ip_header = (struct ipv6hdr*) ipv6_hdr(skb);
 		if(!ip_header)
@@ -264,6 +247,7 @@ unsigned int process_ip(struct sk_buff *skb, bool incoming, bool ipv4){
 		snprintf(ip_src, 40, "%pI6", &((struct ipv6hdr*) ip_header)->saddr);
 		snprintf(ip_dst, 40, "%pI6", &((struct ipv6hdr*) ip_header)->daddr);
 		proto = ((struct ipv6hdr*)ip_header)->nexthdr;
+		ip_version = '6';
 	}
 
 	info.src_ip = &ip_src[0];
@@ -274,42 +258,37 @@ unsigned int process_ip(struct sk_buff *skb, bool incoming, bool ipv4){
 
 	//perform ruleset lookup based on traffic direction
 	if(incoming){
-		val = safe_map_get(&incomingRules.src_ip, ip_src);
-		if(val != NULL){
+		val = safe_map_check(&incomingRules.src_ip, ip_src);
+		if(val){
                 	//drop traffic
-                	*val = *val + 1;
-                	printk(KERN_INFO "netblock: blocking traffic incoming from IP Address: %s\n", ip_src);
+                	printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: IPv%c src: %s dst: %s", ip_version, ip_src, ip_dst);
                 	return NF_DROP;
         	}
-                val = safe_map_get(&incomingRules.dst_ip, ip_dst);
-                if(val != NULL){
+                val = safe_map_check(&incomingRules.dst_ip, ip_dst);
+                if(val){
                         //drop traffic
-                        *val = *val + 1;
-                        printk(KERN_INFO "netblock: blocking traffic incoming to IP Address: %s\n", ip_dst);
+			printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: IP%c src: %s dst: %s", ip_version, ip_src, ip_dst);
                         return NF_DROP;
                 }
+
 	}
 	else{
-                val = safe_map_get(&outgoingRules.src_ip, ip_src);
-                if(val != NULL){
+                val = safe_map_check(&outgoingRules.src_ip, ip_src);
+                if(val){
                         //drop traffic
-                        *val = *val + 1;
-                        printk(KERN_INFO "netblock: blocking traffic outgoing from IP Address: %s\n", ip_src);
+			printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: IPv%c src: %s dst: %s", ip_version, ip_src, ip_dst);
                         return NF_DROP;
                 }
-                val = safe_map_get(&outgoingRules.dst_ip, ip_dst);
-                if(val != NULL){
+                val = safe_map_check(&outgoingRules.dst_ip, ip_dst);
+                if(val){
                         //drop traffic
-                        *val = *val + 1;
-                        printk(KERN_INFO "netblock: blocking traffic outgoing to IP Address: %s\n", ip_dst);
+                        printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: IPv%c src: %s dst: %s", ip_version, ip_src, ip_dst);
                         return NF_DROP;
                 }
+
 	}
 
-	if(incoming)
-		return process_transport(skb, &info);
-	else
-		return process_transport(skb, &info);
+	return process_transport(skb, &info);
 
 }
 
@@ -322,7 +301,7 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 	char sport[6];
 	char dport[6];
 	char ipport_combo[46];
-	int* val;
+	bool val;
 
 	if (info->proto == IPPROTO_TCP){
 
@@ -344,33 +323,29 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 
 		//Check if TCP port is permitted
 		if(info->incoming){
-                	val = safe_map_get(&incomingRules.src_tcp, sport);
-                	if(val != NULL){
+                	val = safe_map_check(&incomingRules.src_tcp, sport);
+                	if(val){
                         	//drop traffic
-                        	*val = *val + 1;
-                        	printk(KERN_INFO "netblock: blocking traffic incoming from TCP port: %s\n", sport);
+				printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: TCP src: %s dst: %s", sport, dport);
                         	return NF_DROP;
                 	}
-			val = safe_map_get(&incomingRules.dst_tcp, dport);
-                        if(val != NULL){
+			val = safe_map_check(&incomingRules.dst_tcp, dport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic incoming to TCP port: %s\n", dport);
+				printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: TCP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
 		}else{
-                        val = safe_map_get(&outgoingRules.src_tcp, sport);
-                        if(val != NULL){
+                        val = safe_map_check(&outgoingRules.src_tcp, sport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic outgoing from TCP port: %s\n", sport);
+                                printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: TCP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
-                        val = safe_map_get(&outgoingRules.dst_tcp, dport);
-                        if(val != NULL){
+                        val = safe_map_check(&outgoingRules.dst_tcp, dport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic outgoing to TCP port: %s\n", dport);
+				printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: TCP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
 		}
@@ -394,33 +369,29 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 
                 //Check if TCP port is permitted
                 if(info->incoming){
-                        val = safe_map_get(&incomingRules.src_udp, sport);
-                        if(val != NULL){
+                        val = safe_map_check(&incomingRules.src_udp, sport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic incoming from UDP port: %s\n", sport);
+                                printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: UDP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
-                        val = safe_map_get(&incomingRules.dst_udp, dport);
-                        if(val != NULL){
+                        val = safe_map_check(&incomingRules.dst_udp, dport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic incoming to UDP port: %s\n", dport);
+				printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: UDP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
                 }else{
-                        val = safe_map_get(&outgoingRules.src_udp, sport);
-                        if(val != NULL){
+                        val = safe_map_check(&outgoingRules.src_udp, sport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic outgoing from UDP port: %s\n", sport);
+                                printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: UDP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
-                        val = safe_map_get(&outgoingRules.dst_udp, dport);
-                        if(val != NULL){
+                        val = safe_map_check(&outgoingRules.dst_udp, dport);
+                        if(val){
                                 //drop traffic
-                                *val = *val + 1;
-                                printk(KERN_INFO "netblock: blocking traffic outgoing to UDP port: %s\n", dport);
+                                printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: UDP src: %s dst: %s", sport, dport);
                                 return NF_DROP;
                         }
                 }
@@ -434,18 +405,30 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 	if(info->incoming){
 		//combine IP and port
 		snprintf(ipport_combo, 46, "%s:%s", info->src_ip, info->src_port);
-		val = safe_map_get(&incomingRules.ip_port, ipport_combo);
-		if(val != NULL){
-			*val = *val + 1;
-			printk(KERN_INFO "netblock: blocking incoming traffic IP:Port combo from: %s\n", ipport_combo);
+		val = safe_map_check(&incomingRules.src_ip_port, ipport_combo);
+		if(val){
+			printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: IPPort src: %s srcport: %s", info->src_ip, info->src_port);
 			return NF_DROP;
 		}
+		snprintf(ipport_combo, 46, "%s:%s", info->src_ip, info->dst_port);
+		val = safe_map_check(&incomingRules.dst_ip_port, ipport_combo);
+                if(val){
+                        printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Incoming Protocol: IPPort src: %s dstport: %s", info->src_ip, info->dst_port);
+                        return NF_DROP;
+                }
+
 	}else{
-                snprintf(ipport_combo, 46, "%s:%s", info->dst_ip, info->dst_port);
-                val = safe_map_get(&outgoingRules.ip_port, ipport_combo);
-                if(val != NULL){
-                        *val = *val + 1;
-                        printk(KERN_INFO "netblock: blocking outgoing traffic IP:Port combo to: %s\n", ipport_combo);
+                //combine IP and port
+                snprintf(ipport_combo, 46, "%s:%s", info->dst_ip, info->src_port);
+                val = safe_map_check(&outgoingRules.src_ip_port, ipport_combo);
+                if(val){
+                        printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: IPPort dst: %s srcport: %s", info->dst_ip, info->src_port);
+                        return NF_DROP;
+                }
+                snprintf(ipport_combo, 46, "%s:%s", info->src_ip, info->dst_port);
+                val = safe_map_check(&outgoingRules.dst_ip_port, ipport_combo);
+                if(val){
+                        printk(KERN_INFO "LogType: VirtueNetblock Action: Blocked Direction: Outgoing Protocol: IPPort dst: %s dstport: %s", info->dst_ip, info->dst_port);
                         return NF_DROP;
                 }
 	}
@@ -458,39 +441,36 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 int init_module(){
 
 	mutex_init(&netblockchar_mutex);
-	spin_lock_init(&map_spinlock);
+	mutex_init(&map_mutex);
 
 	mutex_lock(&netblockchar_mutex);
-	spin_lock(&map_spinlock);
+	mutex_lock(&map_mutex);
 
 	//Dynamically get Major number for character device driver
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
 	if (majorNumber<0){
-		printk(KERN_ALERT "netblock: failed to register a major number\n");
+		printk(KERN_ALERT "LogType: VirtueNetblock Action: registerCharDevice Result: Failed");
 	      	return majorNumber;
 	}
-	printk(KERN_INFO "netblock: registered correctly with major number %d\n", majorNumber);
+	printk(KERN_INFO "netblock: registered correctly with major number %d", majorNumber);
 
 	// Register the device class
 	netblockcharClass = class_create(THIS_MODULE, CLASS_NAME);
 	if(IS_ERR(netblockcharClass)){
 	      	unregister_chrdev(majorNumber, DEVICE_NAME);
-	      	printk(KERN_ALERT "netblock: failed to register device class\n");
+	      	printk(KERN_ALERT "LogType: VirtueNetblock Action: registerCharDevice Result: Failed");
 	      	return PTR_ERR(netblockcharClass);
 	}
-	printk(KERN_INFO "netblock: device class registered correctly\n");
 
 	// Register the device driver
 	netblockcharDevice = device_create(netblockcharClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
 	if (IS_ERR(netblockcharDevice)){
 	      	class_destroy(netblockcharClass);
 	      	unregister_chrdev(majorNumber, DEVICE_NAME);
-	      	printk(KERN_ALERT "netblock: failed to create the device\n");
+	      	printk(KERN_ALERT "LogType: VirtueNetblock Action: registerCharDevice Result: Failed");
 	      	return PTR_ERR(netblockcharDevice);
 	}
-   	printk(KERN_INFO "netblock: device class created correctly\n");
-
-	printk(KERN_INFO "Loading netblock module");
+   	printk(KERN_INFO "LogType: VirtueNetblock Action: registerCharDevice Result: Success");
 
         //initialize hashmaps
         map_init(&incomingRules.src_ip);
@@ -499,7 +479,8 @@ int init_module(){
         map_init(&incomingRules.dst_tcp);
         map_init(&incomingRules.src_udp);
         map_init(&incomingRules.dst_udp);
-        map_init(&incomingRules.ip_port);
+        map_init(&incomingRules.src_ip_port);
+	map_init(&incomingRules.dst_ip_port);
 
         map_init(&outgoingRules.src_ip);
         map_init(&outgoingRules.dst_ip);
@@ -507,10 +488,11 @@ int init_module(){
         map_init(&outgoingRules.dst_tcp);
         map_init(&outgoingRules.src_udp);
         map_init(&outgoingRules.dst_udp);
-        map_init(&outgoingRules.ip_port);
+        map_init(&outgoingRules.src_ip_port);
+	map_init(&outgoingRules.dst_ip_port);
 
 	mutex_unlock(&netblockchar_mutex);
-	spin_unlock(&map_spinlock);
+	mutex_unlock(&map_mutex);
 
 	//Set up Netfilter hook
 	nfho_ipv4_in.hook = ipv4_in_hook;
@@ -537,6 +519,7 @@ int init_module(){
 	nfho_ipv6_out.priority = NF_IP6_PRI_FIRST;
 	nf_register_net_hook(&init_net, &nfho_ipv6_out);
 
+	printk(KERN_INFO "LogType: VirtueNetblock Action: Load Result: Success");
 	return 0;
 }
 
@@ -549,11 +532,16 @@ void cleanup_module(){
         nf_unregister_net_hook(&init_net, &nfho_ipv6_in);
         nf_unregister_net_hook(&init_net, &nfho_ipv6_out);
 
+	mutex_lock(&netblockchar_mutex);
+	mutex_lock(&map_mutex);
+
 	device_destroy(netblockcharClass, MKDEV(majorNumber, 0));
    	class_unregister(netblockcharClass);
    	class_destroy(netblockcharClass);
    	unregister_chrdev(majorNumber, DEVICE_NAME);
-   	printk(KERN_INFO "netblock: unregistering netblock character device\n");
+   	printk(KERN_INFO "LogType: VirtueNetblock Action: unregisterCharDevice Result: Success");
+
+	mutex_unlock(&netblockchar_mutex);
 	mutex_destroy(&netblockchar_mutex);
 
 	map_deinit(&incomingRules.src_ip);
@@ -562,7 +550,8 @@ void cleanup_module(){
         map_deinit(&incomingRules.dst_tcp);
         map_deinit(&incomingRules.src_udp);
         map_deinit(&incomingRules.dst_udp);
-        map_deinit(&incomingRules.ip_port);
+        map_deinit(&incomingRules.src_ip_port);
+	map_deinit(&incomingRules.dst_ip_port);
 
         map_deinit(&outgoingRules.src_ip);
         map_deinit(&outgoingRules.dst_ip);
@@ -570,7 +559,12 @@ void cleanup_module(){
         map_deinit(&outgoingRules.dst_tcp);
         map_deinit(&outgoingRules.src_udp);
         map_deinit(&outgoingRules.dst_udp);
-        map_deinit(&outgoingRules.ip_port);
+        map_deinit(&outgoingRules.src_ip_port);
+	map_deinit(&outgoingRules.dst_ip_port);
+	mutex_unlock(&map_mutex);
+	mutex_destroy(&map_mutex);
+
+	printk(KERN_INFO "LogType: VirtueNetblock Action: Unload Result: Success");
 
 }
 
@@ -590,7 +584,7 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 
 	if(strcmp(message, RESET) == 0){
 		//Remove all rules in the kmaps
-		printk(KERN_INFO "Removing all rulesets");
+		printk(KERN_INFO "LogType: VirtueNetblock Action: ResetRules");
 		resetRules(&outgoingRules);
 		resetRules(&incomingRules);
 		return len;
@@ -640,14 +634,14 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 			rule = rule | 0x20;
 		}else{
 			if(cursor != NULL){
-				printk(KERN_INFO "Invalid command sent to netblock module\n");
+				printk(KERN_INFO "LogType: VirtueNetblock Action: ParseCommand Result: Failed");
 				return -1;
 			}
 		}
 	}
 
 	if(count != 5){
-		printk(KERN_INFO "netblock: incorrectly formatted command\n");
+		printk(KERN_INFO "LogType: VirtueNetblock Action: ParseCommand Result: Failed");
 		return -1;
 	}
 
@@ -736,50 +730,76 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
                         safe_map_set(&incomingRules.dst_udp, token);
                         break;
 		case UNBLOCK_OUTGOING_SRC_IP_PORT:
+			safe_map_remove(&outgoingRules.src_ip_port, token);
+			break;
 		case UNBLOCK_OUTGOING_DST_IP_PORT:
-			safe_map_remove(&outgoingRules.ip_port, token);
+			safe_map_remove(&outgoingRules.dst_ip_port, token);
 			break;
 		case BLOCK_OUTGOING_SRC_IP_PORT:
+			safe_map_set(&outgoingRules.src_ip_port, token);
+			break;
                 case BLOCK_OUTGOING_DST_IP_PORT:
-                        safe_map_set(&outgoingRules.ip_port, token);
+                        safe_map_set(&outgoingRules.dst_ip_port, token);
                         break;
 		case UNBLOCK_INCOMING_SRC_IP_PORT:
+			safe_map_remove(&incomingRules.src_ip_port, token);
+			break;
                 case UNBLOCK_INCOMING_DST_IP_PORT:
-                        safe_map_remove(&outgoingRules.ip_port, token);
+                        safe_map_remove(&incomingRules.dst_ip_port, token);
                         break;
 		case BLOCK_INCOMING_SRC_IP_PORT:
+			safe_map_set(&incomingRules.src_ip_port, token);
+			break;
                 case BLOCK_INCOMING_DST_IP_PORT:
-                        safe_map_set(&outgoingRules.ip_port, token);
+                        safe_map_set(&incomingRules.dst_ip_port, token);
                         break;
 		default:
-			printk(KERN_INFO "netblock: received invalid command\n");
+			printk(KERN_INFO "LogType: VirtueNetblock Action: ParseCommand Result: Failed");
 			return -1;
 	}
 
-	printk(KERN_INFO "netblock: command completed successfully");
+	printk(KERN_INFO "LogType: VirtueNetblock Action: ParseCommand Result: Success");
 
    	return len;
 }
 
 static int safe_map_set(map_int_t* m, const char* key){
 	int ret;
-	spin_lock(&map_spinlock);
+	mutex_lock(&map_mutex);
 	ret = map_set(m, key, 0);
-	spin_unlock(&map_spinlock);
+	mutex_unlock(&map_mutex);
 	return ret;
 }
 
 static void safe_map_remove(map_int_t *m, const char* key){
-	spin_lock(&map_spinlock);
+	mutex_lock(&map_mutex);
 	map_remove(m, key);
-	spin_unlock(&map_spinlock);
+	mutex_unlock(&map_mutex);
 }
 
-static int* safe_map_get(map_int_t *m, const char* key){
+static void safe_map_clear(map_int_t *m){
+	map_iter_t iter;
+	const char* key;
+
+	mutex_lock(&map_mutex);
+        iter = map_iter(m);
+        while ((key = map_next(m, &iter))) {
+		map_remove(m, key);
+        }
+	mutex_unlock(&map_mutex);
+}
+
+static bool safe_map_check(map_int_t *m, const char* key){
 	int *val;
-	spin_lock(&map_spinlock);
+	bool found;
+	found = false;
+	mutex_lock(&map_mutex);
 	val = map_get(m, key);
-	spin_unlock(&map_spinlock);
+	if(val != NULL){
+		found = true;
+		*val = *val + 1;
+	}
+	mutex_unlock(&map_mutex);
 	return val;
 }
 
