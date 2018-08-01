@@ -1,4 +1,4 @@
-'use strict';
+'udatase strict';
 
 var exec = require('child_process').exec;
 var fs = require('fs');
@@ -36,7 +36,7 @@ var client = new Client();
 var excaliburIpAddress;
 
 
-function createTunnel(options) {
+function createTunnel(options, roleName, data) {
 
     console.log("entry: createTunnel()");
 
@@ -68,8 +68,11 @@ function createTunnel(options) {
         }
     });
 
+    displayApp(roleName, options.localPort, data);
+
     console.log("exit: createTunnel()");
 }
+
 
 var connector = require('./assets/js/connect');
 function showOptions(target) {
@@ -91,30 +94,26 @@ function stopVirtueForApp(roleId) {
         headers: { "Authorization" : "Bearer " + data['access_token']}
     }
 
-    client.methods.userVirtueList(args, function (data1, resp) {
+    client.methods.userVirtueList(args, function (virtueList, resp) {
 
-        var number_of_virtues = data1.length
+        var numberOfVirtues = virtueList.length
 
-        for (var virtue_index=0;
-            virtue_index < number_of_virtues;
-            virtue_index++) {
+        for (var virtueIndex=0;
+            virtueIndex < numberOfVirtues;
+            virtueIndex++) {
 
-            if (data1[virtue_index]['roleId'] == roleId) {
+            if (virtueList[virtueIndex]['roleId'] == roleId) {
 
-                console.log("data = " + data1[virtue_index]);
+                console.log("data = " + virtueList[virtueIndex]);
 
-                var virtueId = data1[virtue_index]["id"];
+                var virtueId = virtueList[virtueIndex]["id"];
 
                 var args = {
-                  parameters: { "virtueId" : virtueId },
-                  headers: { "Authorization" : "Bearer " + data['access_token']}
+                    parameters: { "virtueId" : virtueId },
+                    headers: { "Authorization" : "Bearer " + data['access_token']}
                 }
 
-                client.methods.userVirtueStop(args, function(data, response) {
-
-                  console.log("    entry: client.methods.userVirtueStop()");
-                  console.log("    data = " + JSON.stringify(data));
-                });
+                client.methods.userVirtueStop(args);
             }
         }
     });
@@ -122,78 +121,86 @@ function stopVirtueForApp(roleId) {
 }
 
 
-function openApp(role, port_local, appId, roleId) {
+function displayApp(roleName, localPort, data) {
+
+    console.log("entry: displayApp()");
+
+    var name = data['name'];
+    var view = document.createElement('div');
+    var roleIcon = 'fab fa-black-tie';
+
+    view.id = name + '_' + roleName;
+    view.classList.add('app');
+    view.draggable = true;
+    view.setAttribute("ondrag", "drag(event)");
+    view.setAttribute("ondragstart", "dragstart(event)");
+    view.setAttribute("ondragend", "dragend(event)");
+    view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + localPort + "/\" allowtransparency></webview>\n    </div>\n  ";
+    document.getElementById('appArea').appendChild(view);
+
+    console.log("exit: displayApp()");
+}
+
+
+function startApp(virtueId, appId, roleName, ip, localPort) {
+
+    console.log("entry: startApp()");
+
+    var args = {
+        parameters: { "virtueId" : virtueId },
+        headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
+
+    client.methods.userVirtueLaunch(args, function(virtue, response) {
+    
+        var args = {
+            parameters: { "appId" : appId },
+            headers: { "Authorization" : "Bearer " + data['access_token']}
+        }
+                      
+        client.methods.userApplicationGet(args, function(app, resp){
+    
+            var local_config = {
+                username: "virtue",
+                host: ip,
+                port: app['port'],
+                dstHost: "127.0.0.1",
+                dstPort: 2023,
+                localHost: "0.0.0.0",
+                localPort: localPort,
+                privateKey: "key.pem"
+            }
+            createTunnel(local_config, roleName, app);
+        });
+    });
+
+    console.log("exit: startApp()");
+}
+
+
+function openApp(roleName, localPort, appId, roleId) {
 
     console.log("entry: openApp()");
-    console.log('    appId =' + appId);
-
 
     var client = methods();
     var args = {
         headers: { "Authorization" : "Bearer " + data['access_token']}
     }
 
-    client.methods.userVirtueList(args, function (data1, resp) {
+    client.methods.userVirtueList(args, function (virtueList, resp) {
 
-        var number_of_virtues = data1.length
+        var numberOfVirtues = virtueList.length
 
-        for (var virtue_index=0;
-            virtue_index < number_of_virtues;
-            virtue_index++) {
+        for (var virtueIndex=0;
+             virtueIndex < numberOfVirtues;
+             virtueIndex++) {
 
-            if (data1[virtue_index]['roleId'] == roleId) {
+            if (virtueList[virtueIndex]['roleId'] == roleId) {
 
-                var virtueId = data1[virtue_index]['id'];
-                var ip = data1[virtue_index]["ipAddress"];
+                var virtueId = virtueList[virtueIndex]['id'];
+                var ip = virtueList[virtueIndex]["ipAddress"];
 
-                var roleIcon = 'fab fa-black-tie';
-
-                console.log(appId);
-
-                var args = {
-                    parameters: { "virtueId" : virtueId },
-                    headers: { "Authorization" : "Bearer " + data['access_token']}
-                }
-
-                client.methods.userVirtueLaunch(args, function(data2, response) {
-    
-                    console.log("    entry: client.methods.userVirtueLaunch()");
-                    console.log("    data = " + JSON.stringify(data2));
-
-                    var args = {
-                         parameters: { "appId" : appId },
-                         headers: { "Authorization" : "Bearer " + data['access_token']}
-                    }
-                      
-                    client.methods.userApplicationGet(args, function(dat, resp){
-    
-                      console.log("data = " + JSON.stringify(dat));
-                      console.log("methods.userApplicationGet");
-    
-                      var local_config = {
-                        username: "virtue",
-                        host: ip,
-                        port: dat['port'],
-                        dstHost: "127.0.0.1",
-                        dstPort: 2023,
-                        localHost: "0.0.0.0",
-                        localPort: port_local,
-                        privateKey: "key.pem"
-                      }
-                      createTunnel(local_config);
-    
-                      var name = dat['name'];
-                      var view = document.createElement('div');
-                      view.id = name + '_' + role;
-                      view.classList.add('app');
-                      view.draggable = true;
-                      view.setAttribute("ondrag", "drag(event)");
-                      view.setAttribute("ondragstart", "dragstart(event)");
-                      view.setAttribute("ondragend", "dragend(event)");
-                      view.innerHTML = "\n    <div class=\"wrapper " + "editor" + "-bg\" onclick=\"bringToFront('" + view.id + "')\">\n      <div class=\"win-bar\">\n        <div style=\"margin-left: -10px;\">\n          <i class=\"" + roleIcon + " fa-2x\"></i>\n        </div>\n        <div style=\"flex: 1; padding-left: 10px;\">" + name.charAt(0).toUpperCase() + name.slice(1) + "</div>\n        <div style=\"margin-right: -10px;\">\n          <i class=\"far fa-minus win-ctrl\"\n            onclick=\"minimizeApp(this);\"\n            title=\"Minimize\"\n          ></i>\n          <i class=\"far fa-square win-ctrl\"\n            onclick=\"toggleMaximizeApp(this);\"\n            title=\"Toggle Fullscreen\"\n          ></i>\n          <i class=\"fas fa-times win-ctrl win-close\"\n            onclick=\"closeApp(this);\"\n            title=\"Close\"\n          ></i>\n        </div>\n      </div>\n      <webview src=\"http://localhost:" + port_local + "/\" allowtransparency></webview>\n    </div>\n  ";
-                      document.getElementById('appArea').appendChild(view);
-                    });
-                });
+                startApp(virtueId, appId, roleName, ip, localPort);
             }
         }
     });
@@ -234,6 +241,8 @@ function closeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
     return app.parentElement.removeChild(app);
 }
+
+
 function toggleMinimizedDrawer(role) {
     console.warn('toggleMinimizedDrawer role: ', role);
     // Open and Close minimized app drawer
@@ -251,11 +260,15 @@ function toggleMinimizedDrawer(role) {
         close.style.display = 'none';
     }
 }
+
+
 var counts = {
     admin: 0,
     editor: 0,
     viewer: 0
 };
+
+
 function minimizeApp(target) {
     var app = target.parentElement.parentElement.parentElement.parentElement;
     console.warn('app: ', app);
@@ -303,6 +316,8 @@ function minimizeApp(target) {
     counts[role] += 1;
     document.getElementById('minimized_' + role + '_count').innerText = counts[role].toString();
 }
+
+
 function unminimizeApp(target, appID) {
     // remove the minimized app marker from the dock
     target.parentElement.removeChild(target);
@@ -330,6 +345,8 @@ function unminimizeApp(target, appID) {
         return;
     }
 }
+
+
 // Drag and Drop
 var offsetLeft = 0;
 var offsetTop = 0;
@@ -346,11 +363,15 @@ function dragstart(e) {
     offsetLeft = l - e.clientX;
     offsetTop = t - e.clientY;
 }
+
+
 function drag(e) {
     var win = e.target;
     // Hide the non-dragging element
     win.style.visibility = "hidden";
 }
+
+
 function dragend(e) {
     var win = e.target;
     // Make the app visible again
@@ -362,6 +383,8 @@ function dragend(e) {
     win.style.left = left.toString().concat('px');
     win.style.top = top.toString().concat('px');
 }
+
+
 // Focus clicked window
 function bringToFront(appId) {
     // Must convert NodeList to Array
@@ -377,105 +400,95 @@ function bringToFront(appId) {
 }
 
 
-function old_login(e) {
-    var msg = '';
-    var color = 'admin';
-    var id = document.getElementById('userId').value;
-    var pw = document.getElementById('password').value;
-    var login = document.getElementById('login');
-    var loginMsg = document.getElementById('loginMsg');
-    var dockWrapper = document.getElementById('dockWrapper');
-    // Ignore unless user pressed enter in pwd field OR clicked submit button
-    if (e.type === 'keypress' && e.charCode === 13 || e.type === 'click') {
-        if (id === '') {
-            msg = 'Please enter your ID';
-        }
-        else if (pw === '') {
-            msg = 'Please enter your password';
-            // TODO Handle real auth
-        }
-        else {
-            if (id === 'test' && pw === 'test123') {
-                // Authenticated
-                login.classList.remove('fadeIn');
-                login.classList.add('fadeOut');
-                setTimeout(function () {
-                    login.parentElement.removeChild(login);
-                }, 300);
-                dockWrapper.style.display = 'flex';
-                msg = 'Welcome';
-                color = 'viewer';
-            }
-            else {
-                msg = 'ID and/or Password Incorrect';
-            }
+function isValidIpv4Address(ip) {
+
+    var ip = ip.split(".");
+
+    if (ip.length != 4) {
+        return false;
+    }
+
+    for (var c = 0; c < 4; c++) {
+
+        if (ip[c] <= -1
+            || ip[c] > 255
+            || isNaN(parseFloat(ip[c]))
+            || !isFinite(ip[c])
+            || ip[c].indexOf(" ") !== -1 ) {
+
+            return false;
         }
     }
-    loginMsg.innerHTML = msg;
-    loginMsg.className = ''; // Clear out old color
-    loginMsg.classList.add(color);
-}
 
-
-
-function validateIp(ip) {
-
-  var ip = ip.split(".");
-
-  if (ip.length != 4) {
-      return false;
-  }
-
-
-  for (var c = 0; c < 4; c++) {
-
-    if (ip[c] <= -1
-        || ip[c] > 255
-        || isNaN(parseFloat(ip[c]))
-        || !isFinite(ip[c])
-        || ip[c].indexOf(" ") !== -1 ) {
-
-	  return false;
-   }
-  }
-
-  return true;
+    return true;
 }
 
 
 function getExcaliburIpAddress() {
 
-  console.log("getExcaliburIpAddress()");
+    console.log("entry: getExcaliburIpAddress()");
 
-  excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
+    excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
 
-  if (!validateIp(excaliburIpAddress)) {
-    return false;
-  }
+    if (!isValidIpv4Address(excaliburIpAddress)) {
+        return false;
+    }
 
-  console.log("getExcaliburIpAddress = " + excaliburIpAddress);
+    console.log("getExcaliburIpAddress = " + excaliburIpAddress);
+    console.log("exit: getExcaliburIpAddress()");
 }
 
 
 
 function login(e) {
 
-  console.log("login() entry");
+    console.log("login() entry");
 
-  getExcaliburIpAddress();
-  check_oauth(e);
+    getExcaliburIpAddress();
+    checkOAuth();
 
-  console.log("login() exit");
+    console.log("login() exit");
 }
 
-function check_oauth(e) {
+
+function executeExcaliburCallback(request, response, iframe) {
+
+    console.log('entry: executeExcaliburCallback()');
+    console.log('query: ' + request.query);
+
+    var dockWrapper = document.getElementById("dockWrapper");
+    var login = document.getElementById("login");
+
+    iframe.parentElement.removeChild(iframe)
+    response.end(JSON.stringify(request.query, null, 2));
+
+    if (request.query.hasOwnProperty('access_token')) {
+
+      console.log('access_token found');
+
+      //login.classList.remove('fadeIn');
+      //login.classList.add('fadeOut');
+      dockWrapper.style.display = 'flex';
+      data = request.query;
+      createVirtueDock();
+
+      console.log('exit retrieve')
+    }
+    else {
+      console.log('error - error_description');
+    }
+
+    console.log('exit: executeExcaliburCallback()');
+}
+
+
+function checkOAuth() {
 
   // Needed for self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
   var login = document.getElementById("login");
   var iframe = document.createElement("iframe");
-  var dockWrapper = document.getElementById("dockWrapper");
 
   //window.open("http://canvas.com:3000/connect/excalibur")
   iframe.setAttribute("src", "http://canvas.com:3000/connect/excalibur");
@@ -484,29 +497,7 @@ function check_oauth(e) {
   iframe.setAttribute("height", "100%");
 
   app.get("/excalibur_callback", function (req, res) {
-
-    console.log('/callback');
-    console.log(req.query);
-
-    iframe.parentElement.removeChild(iframe)
-    res.end(JSON.stringify(req.query, null, 2));
-
-    if (req.query.hasOwnProperty('access_token')) {
-
-      console.log('in if statement');
-
-      login.classList.remove('fadeIn');
-      login.classList.add('fadeOut');
-      dockWrapper.style.display = 'flex';
-      data = req.query;
-      getVirtueData();
-
-      console.log('exit retrieve')
-    }
-    else {
-      console.log('error - error_description');
-    }
-  });
+      executeExcaliburCallback(req, res, iframe)});
 
   app.listen(3000, function() {
     console.log('Express server listening on port ' + 3000);
@@ -517,112 +508,123 @@ function check_oauth(e) {
 }
 
 
-function getVirtueData(){
+function populateApps(roleList, roleIndex, numberOfApps) {
 
-  console.log('entry: getVirtueData()');
+    console.log('entry: populateApps()');
 
-  var dockWrapper = document.getElementById('dockWrapper');
-  var client = methods();
-  var args = {
-    headers: { "Authorization" : "Bearer " + data['access_token']}
-  }
-
-  client.methods.userRoleList(args, function (dat, resp){
-
-    console.log("methods.userRoleList");
-    console.log("userRoleList data = " + JSON.stringify(dat));
-    console.log("dat.length = " + dat.length);
-
-    var number_of_roles = dat.length;
-
-    dockWrapper.style.display = 'flex';
-
-    for (var role_index = 0;
-        role_index < number_of_roles;
-        role_index++) {
-
-      var option = document.getElementById("options" + role_index);
-      var name = document.getElementById("dock" + role_index);
-
-      name.innerHTML = dat[role_index]['name'];
-      option.style.display = 'flex';
-
-      console.log("role - " + role_index);
-      console.log(dat[role_index]);
-      console.log(dat[role_index]['ipAddress']);
-      console.log(dat[role_index]['applicationIds']);
-
-      var number_of_apps = dat[role_index]['applicationIds'].length;
-      console.log(number_of_apps)
-
-      for (var app_index = 0;
-          app_index < number_of_apps;
-          app_index++) {
-
-        var appId = dat[role_index]['applicationIds'][app_index];
-        var port_local = '1' + role_index + app_index + '00';
-
-        console.log(appId);
-        console.log(role_index);
-
+    for (var appIndex = 0;
+        appIndex < numberOfApps;
+        appIndex++) {
+    
+        var appId = roleList[roleIndex]['applicationIds'][appIndex];
+        var localPort = '1' + roleIndex + appIndex + '00';
+    
         // Updates app dock
         var div = document.createElement("div");
-        var optionsinner = document.getElementById("optionsinner" + role_index);
-        optionsinner.setAttribute("name", dat[role_index]['id']);
-
+        var optionsinner = document.getElementById("optionsinner" + roleIndex);
+        optionsinner.setAttribute("name", roleList[roleIndex]['id']);
+    
         div.setAttribute("class", "icon-pair circle-bg");
-        if(dat[role_index]['ipAddress'] != "null") {
-          div.setAttribute(
-            "onclick",
-            "openApp('"
-              + dat[role_index]['name']
-              + "','"
-              + port_local
-              + "','"
-              + appId
-              + "','"
-              + dat[role_index]['id']
-              + "');");
+        if(roleList[roleIndex]['ipAddress'] != "null") {
+
+            div.setAttribute(
+              "onclick",
+              "openApp('"
+                + roleList[roleIndex]['name']
+                + "','"
+                + localPort
+                + "','"
+                + appId
+                + "','"
+                + roleList[roleIndex]['id']
+                + "');");
         }
+
         var itag = document.createElement("I");
         itag.setAttribute("class","far fa-file-edit fa-2x");
         div.appendChild(itag);
         optionsinner.appendChild(div);
-        // ### NEED TO FIX DYNAMIC EXEC_TUNNEL IN OPEN_APP WITH OPTIONS
-      }
     }
-  });
 
-  client.methods.userVirtueList(args, function (data, resp) {
+    console.log('exit: populateApps()');
+}
 
-      console.log("methods.userVirtueList");
-      console.log("userVirtueList data = " + JSON.stringify(data));
-      console.log("data.length = " + data.length);
 
-      var number_of_virtues = data.length;
+function addVirtuesToSideDock(roleList) {
 
-      for (var virtue_index = 0; virtue_index < number_of_virtues; virtue_index++) {
+    console.log('entry: addVirtuesToSideDock()');
 
-        var roleId = data[virtue_index]["roleId"];
+    var dockWrapper = document.getElementById('dockWrapper');
+    var numberOfRoles = roleList.length;
 
+    dockWrapper.style.display = 'flex';
+
+    for (var roleIndex = 0;
+         roleIndex < numberOfRoles;
+         roleIndex++) {
+
+        var option = document.getElementById("options" + roleIndex);
+        var name = document.getElementById("dock" + roleIndex);
+        var numberOfApps = roleList[roleIndex]['applicationIds'].length;
+
+        name.innerHTML = roleList[roleIndex]['name'];
+        option.style.display = 'flex';
+
+        populateApps(roleList, roleIndex, numberOfApps);
+    }
+
+    console.log('exit: addVirtuesToSideDock()');
+}
+
+
+function addStopButtonToVirtues(virtueList) {
+
+    console.log('entry: addStopButtonToVirtues()');
+
+    var numberOfVirtues = virtueList.length;
+      
+    for (var virtueIndex = 0;
+         virtueIndex < numberOfVirtues;
+         virtueIndex++) {
+      
+        var roleId = virtueList[virtueIndex]["roleId"];
         var optionsinner = document.getElementsByName(roleId)[0];
-        console.log("optionsinner = " + optionsinner);
         var stop_app = document.createElement("input");
-
+        console.log("optionsinner = " + optionsinner);
+      
         stop_app.setAttribute("class", "control_button");
         stop_app.setAttribute("type", "control_button");
         stop_app.setAttribute("value", "STOP");
         stop_app.setAttribute(
-          "onclick",
-          "stopVirtueForApp('"
-          + data[virtue_index]['roleId']
-          + "');");
-
+            "onclick",
+            "stopVirtueForApp('"
+              + virtueList[virtueIndex]['roleId']
+              + "');");
+      
         optionsinner.appendChild(stop_app);
-      }
-    });
+    }
 
-  console.log('exit: getVirtueData()');
+    console.log('exit: addStopButtonToVirtues()');
+}
+
+
+function createVirtueDock(){
+
+    console.log('entry: createVirtueDock()');
+
+    var client = methods();
+    var args = {
+      headers: { "Authorization" : "Bearer " + data['access_token']}
+    }
+
+    client.methods.userRoleList(args, function (roleList, resp) {
+        addVirtuesToSideDock(roleList);
+
+        client.methods.userVirtueList(args, function (virtueList, resp) {
+            addStopButtonToVirtues(virtueList);
+        });
+    });
+    console.log('exit: createVirtueDock()');
 }
 
 
@@ -635,27 +637,60 @@ function logout(e){
 
 function methods() {
 
-  var excalibur = "https://" + excaliburIpAddress + ":5002/virtue"
+    console.log('entry: methods()');
 
-  client.registerMethod(
-    "logout",
-    "https://" + excaliburIpAddress + " :5002/oauth2/revoke",
-    "POST");
+    var excalibur = "https://" + excaliburIpAddress + ":5002/virtue"
 
-  // ### Virtue User API
-  client.registerMethod("userRoleGet",  excalibur + "/user/role/get",  "GET");
-  client.registerMethod("userRoleList", excalibur + "/user/role/list", "GET");
+    client.registerMethod(
+        "logout",
+        "https://" + excaliburIpAddress + " :5002/oauth2/revoke",
+        "POST");
 
-  client.registerMethod("userApplicationGet",    excalibur + "/user/application/get",    "GET");
-  client.registerMethod("userApplicationLaunch", excalibur + "/user/application/launch", "GET");
-  client.registerMethod("userApplicationStop",   excalibur + "/user/application/stop",   "GET");
+    client.registerMethod(
+        "userRoleGet",
+         excalibur + "/user/role/get",
+         "GET");
 
-  client.registerMethod("userVirtueGet",     excalibur + "/user/virtue/get",     "GET");
-  client.registerMethod("userVirtueList",    excalibur + "/user/virtue/list",    "GET");
-  client.registerMethod("userVirtueLaunch",  excalibur + "/user/virtue/launch",  "GET");
-  client.registerMethod("userVirtueStop",    excalibur + "/user/virtue/stop",    "GET");
+    client.registerMethod(
+        "userRoleList",
+        excalibur + "/user/role/list",
+        "GET");
 
-  console.log('client');
+    client.registerMethod(
+        "userApplicationGet",
+        excalibur + "/user/application/get",
+        "GET");
+
+    client.registerMethod(
+        "userApplicationLaunch",
+        excalibur + "/user/application/launch",
+        "GET");
+
+    client.registerMethod(
+        "userApplicationStop",
+        excalibur + "/user/application/stop",
+        "GET");
+
+    client.registerMethod("userVirtueGet",
+        excalibur + "/user/virtue/get",
+        "GET");
+
+    client.registerMethod(
+        "userVirtueList",
+        excalibur + "/user/virtue/list",
+        "GET");
+
+    client.registerMethod(
+        "userVirtueLaunch",
+        excalibur + "/user/virtue/launch",
+        "GET");
+
+    client.registerMethod(
+        "userVirtueStop",
+         excalibur + "/user/virtue/stop",
+         "GET");
+
+    console.log('exit: methods()');
 
   return client;
 }
