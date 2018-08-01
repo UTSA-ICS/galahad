@@ -1,17 +1,17 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ssh_stage import SSHStage
+from assembler.stages.core.ssh_stage import SSHStage
 import time
 import subprocess, os
 
 class ActuatorStage(SSHStage):
     ''' This stage is a demo stage for how to use SSHStage tools '''
     NAME = 'ActuatorStage'
-    DEPENDS = ['UserStage', 'DockerVirtueStage', 'MerlinStage', 'TransducerInstallStage', 'KernelStage']
+    DEPENDS = ['UserStage', 'MerlinStage', 'TransducerInstallStage', 'KernelStage']
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(ActuatorStage, self).run()
             actuator_file_path = os.path.join('payload', 'actuators')
             files = ['netblock_actuator.deb']
             for f in files:
