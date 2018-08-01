@@ -38,7 +38,7 @@ static map_node_t *map_newnode(const char *key, void *value, int vsize) {
   map_node_t *node;
   int ksize = strlen(key) + 1;
   int voffset = ksize + ((sizeof(void*) - ksize) % sizeof(void*));
-  node = kmalloc(sizeof(*node) + voffset + vsize, GFP_KERNEL);
+  node = kmalloc(sizeof(*node) + voffset + vsize, GFP_ATOMIC);
   if (!node) return NULL;
   memcpy(node + 1, key, ksize);
   node->hash = map_hash(key);
