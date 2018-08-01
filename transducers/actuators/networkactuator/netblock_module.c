@@ -800,7 +800,7 @@ static bool safe_map_check(map_int_t *m, const char* key){
 		*val = *val + 1;
 	}
 	mutex_unlock(&map_mutex);
-	return val;
+	return found;
 }
 
 static int device_release(struct inode *inodep, struct file *filep){
