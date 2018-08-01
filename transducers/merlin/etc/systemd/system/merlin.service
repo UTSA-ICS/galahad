@@ -2,8 +2,9 @@
 After=network.target
 
 [Service]
-Type=forking
 ExecStart=/etc/init.d/merlin start
+ExecStop=/etc/init.d/merlin stop
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
