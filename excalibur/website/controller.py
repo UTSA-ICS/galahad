@@ -111,9 +111,20 @@ class CreateVirtueThread(threading.Thread):
         sec_group = aws.get_sec_group()
 
         try:
-            # List of current cidrs
+            # Allow SSH from excalibur node
+            sec_group.authorize_ingress(
+                CidrIp=ip,
+                FromPort=22,
+                IpProtocol='tcp',
+                ToPort=22
+            )
+        except botocore.exceptions.ClientError:
+            print('ClientError encountered while adding sec group rule. ' +
+                  'Rule probably exists already.')
+        try:
             # TODO:
             # This is for testing and needs to be moved into cloud formation or env setup.
+            # List of current allowable cidrs
             canvas_client_cidr = '70.121.205.81/32 172.3.30.184/32 35.170.157.4/32 129.115.2.249/32'
             for cidr in canvas_client_cidr.split():
                 sec_group.authorize_ingress(
