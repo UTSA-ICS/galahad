@@ -13,6 +13,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6.h>
 #include <linux/mutex.h>
+#include <linux/spinlock.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/tcp.h>
@@ -27,7 +28,7 @@ MODULE_DESCRIPTION("Network and Transport Layer Firewall");
 MODULE_VERSION("0.1");
 
 static DEFINE_MUTEX(netblockchar_mutex);
-static DEFINE_MUTEX(map_mutex);
+static DEFINE_SPINLOCK(map_spinlock);
 
 //   Rule operations
 #define UNBLOCK_OUTGOING_SRC_IPV4_IP 0
@@ -441,10 +442,9 @@ unsigned int process_transport(struct sk_buff* skb, struct packet_info* info){
 int init_module(){
 
 	mutex_init(&netblockchar_mutex);
-	mutex_init(&map_mutex);
+	spin_lock_init(&map_spinlock);
 
 	mutex_lock(&netblockchar_mutex);
-	mutex_lock(&map_mutex);
 
 	//Dynamically get Major number for character device driver
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
@@ -492,7 +492,6 @@ int init_module(){
 	map_init(&outgoingRules.dst_ip_port);
 
 	mutex_unlock(&netblockchar_mutex);
-	mutex_unlock(&map_mutex);
 
 	//Set up Netfilter hook
 	nfho_ipv4_in.hook = ipv4_in_hook;
@@ -533,7 +532,6 @@ void cleanup_module(){
         nf_unregister_net_hook(&init_net, &nfho_ipv6_out);
 
 	mutex_lock(&netblockchar_mutex);
-	mutex_lock(&map_mutex);
 
 	device_destroy(netblockcharClass, MKDEV(majorNumber, 0));
    	class_unregister(netblockcharClass);
@@ -561,8 +559,6 @@ void cleanup_module(){
         map_deinit(&outgoingRules.dst_udp);
         map_deinit(&outgoingRules.src_ip_port);
 	map_deinit(&outgoingRules.dst_ip_port);
-	mutex_unlock(&map_mutex);
-	mutex_destroy(&map_mutex);
 
 	printk(KERN_INFO "LogType: VirtueNetblock Action: Unload Result: Success");
 
@@ -765,41 +761,48 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 
 static int safe_map_set(map_int_t* m, const char* key){
 	int ret;
-	mutex_lock(&map_mutex);
+	unsigned long flags;
+
+	spin_lock_irqsave(&map_spinlock, flags);
 	ret = map_set(m, key, 0);
-	mutex_unlock(&map_mutex);
+	spin_unlock_irqrestore(&map_spinlock, flags);
 	return ret;
 }
 
 static void safe_map_remove(map_int_t *m, const char* key){
-	mutex_lock(&map_mutex);
+	unsigned long flags;
+
+	spin_lock_irqsave(&map_spinlock, flags);
 	map_remove(m, key);
-	mutex_unlock(&map_mutex);
+	spin_unlock_irqrestore(&map_spinlock, flags);
 }
 
 static void safe_map_clear(map_int_t *m){
 	map_iter_t iter;
 	const char* key;
+	unsigned long flags;
 
-	mutex_lock(&map_mutex);
+	spin_lock_irqsave(&map_spinlock, flags);
         iter = map_iter(m);
         while ((key = map_next(m, &iter))) {
 		map_remove(m, key);
         }
-	mutex_unlock(&map_mutex);
+	spin_unlock_irqrestore(&map_spinlock, flags);
 }
 
 static bool safe_map_check(map_int_t *m, const char* key){
 	int *val;
 	bool found;
+	unsigned long flags;
 	found = false;
-	mutex_lock(&map_mutex);
+
+	spin_lock_irqsave(&map_spinlock, flags);
 	val = map_get(m, key);
 	if(val != NULL){
 		found = true;
 		*val = *val + 1;
 	}
-	mutex_unlock(&map_mutex);
+	spin_unlock_irqrestore(&map_spinlock, flags);
 	return found;
 }
 
