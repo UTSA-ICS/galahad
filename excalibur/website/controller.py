@@ -217,32 +217,4 @@ class CreateVirtueThread(threading.Thread):
             ssh_inst.ssh('sudo systemctl restart merlin')
             ssh_inst.ssh('sudo systemctl restart syslog-ng')
         else:
-            print('Error accessing the Virtue')
-        '''
-        output = subprocess.call(shlex.split(
-            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, virtue_id, instance_ip)))
-        output = subprocess.call(shlex.split(
-            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, 'excalibur_pub', instance_ip)))
-        output = subprocess.call(shlex.split(
-            'scp -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no {0}/{1}.pem ubuntu@{2}:/tmp/'.format(key_dir, 'rethinkdb_cert', instance_ip)))
-        #
-        output = subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/virtue_1_key.pem"'.format(key_dir, instance_ip, virtue_id)))
-        output = subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/{2}.pem"'.format(key_dir, instance_ip, 'excalibur_pub')))
-        output = subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo mv /tmp/{2}.pem /var/private/ssl/{2}.pem"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
-        output = subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/"'.format(key_dir, instance_ip, 'rethinkdb_cert')))
-        #
-        subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts"'.format(key_dir, instance_ip)))
-        subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo su - root -c \\"echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts\\""'.format(key_dir, instance_ip)))
-        subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo su - root -c \\"echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts\\""'.format(key_dir, instance_ip)))
-        subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml"'.format(key_dir, instance_ip)))
-        subprocess.call(shlex.split(
-            'ssh -i {0}/default-virtue-key.pem -o StrictHostKeyChecking=no ubuntu@{1} "sudo sed -i \'s!cluster-url.*!cluster-url\(\\"https\:\/\/elasticsearch.galahad.com:9200\\"\)!\' /etc/syslog-ng/syslog-ng.conf"'.format(key_dir, instance_ip)))
-        '''
+            raise Exception("Error accessing the Virtue with ID {0} and IP {1}".format(virtue_id, instance_ip))
