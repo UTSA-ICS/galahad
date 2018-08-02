@@ -23,7 +23,6 @@ from stages.processkiller import ProcessKillerStage
 
 class Assembler(object):
 
-    WORK_DIR = 'tmp' # where all the generated files will live
     ISO_FILE = 'virtue.cloudinit.iso'
     LOG_FILE = 'SERIAL.log'
 
@@ -34,13 +33,15 @@ class Assembler(object):
                  #docker_login,
                  es_node='https://172.30.128.129:9200',
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.128.130'):
+                 rethinkdb_host='172.30.128.130',
+                 work_dir='tmp'):
         #self.build_options = build_options
         #self.docker_login = docker_login
         self.elastic_search_node = es_node
         self.elastic_search_host = urlparse(es_node).hostname
         self.syslog_server = syslog_server
         self.rethinkdb_host = rethinkdb_host
+        self.work_dir = work_dir # where all the generated files will live
 
     def start_aws_vm(self, image_id, instance_type, sec_group,
                      subnet, userdata, name, disk_size):
@@ -453,7 +454,7 @@ class Assembler(object):
 
     def construct_unity(self, build_options, clean=False):
 
-        WORK_DIR = self.WORK_DIR
+        WORK_DIR = self.work_dir
 
         if build_options['env'] == 'aws':
             WORK_DIR = 'keys-unity'
@@ -579,6 +580,7 @@ class Assembler(object):
                             ssh_host, ssh_port='22'):
 
         docker_stage = DockerVirtueStage(docker_login, containers, ssh_host,
-                                         ssh_port, self.WORK_DIR)
+                                         str(ssh_port), self.work_dir,
+                                         check_cloudinit=False)
 
         docker_stage.run()

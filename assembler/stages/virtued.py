@@ -10,7 +10,7 @@ class DockerVirtueStage(SSHStage):
 
     USER_SCRIPT = '''#!/bin/bash
         cd /home/virtue
-        pip3 install --user docker
+        pip3 install --user docker pyyaml
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         sudo %s
@@ -19,8 +19,11 @@ class DockerVirtueStage(SSHStage):
         sudo rm -rf docker-virtue
         '''
 
-    def __init__(self, docker_login, containers, ssh_host, ssh_port, work_dir='.'):
-        super(DockerVirtueStage, self).__init__(ssh_host, ssh_port, work_dir=work_dir)
+    def __init__(self, docker_login, containers, ssh_host, ssh_port,
+                 work_dir='.', check_cloudinit=True):
+        super(DockerVirtueStage, self).__init__(
+            ssh_host, ssh_port, work_dir=work_dir,
+            check_cloudinit=check_cloudinit)
         self._docker_login = docker_login
         self._containers = containers
 

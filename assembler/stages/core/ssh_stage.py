@@ -7,13 +7,14 @@ class SSHStage(object):
     NAME = 'CoreSSH'
     DEPENDS = ['UserStage']
 
-    def __init__(self, ssh_host, ssh_port, work_dir='.'):
+    def __init__(self, ssh_host, ssh_port, work_dir='.', check_cloudinit=True):
         self._ssh_host = ssh_host
         self._ssh_port = ssh_port
         self._work_dir = work_dir
+        self._check_cloudinit = check_cloudinit
         self._has_run = False
         self._is_up = False
-        self._cloudinit_is_done = False
+        self._cloudinit_is_done = not check_cloudinit
 
     def _wait_for_host_is_up(self):
         while not self._is_up:
@@ -25,7 +26,7 @@ class SSHStage(object):
                 sleep(1)
 
     def _wait_for_cloudinit_is_done(self):
-        self._cloudinit_is_done = False
+        self._cloudinit_is_done = not self._check_cloudinit
         while not self._cloudinit_is_done:
             try:
                 self._exec_cmd('grep -E "Cloud-init .+ finished" /var/log/cloud-init.log')
