@@ -8,6 +8,7 @@ base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
 from cli.sso_login import sso_tool
+from website.aws import AWS
 
 def setup_module():
 
@@ -17,8 +18,12 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../setup/excalibur_ip', 'r') as infile:
-        ip = infile.read().strip()
+    try:
+        with open('../setup/excalibur_ip', 'r') as infile:
+            ip = infile.read().strip()
+    except:
+        aws = AWS()
+        ip = aws.get_public_ip()
 
     ip = ip + ':' + settings['port']
 
