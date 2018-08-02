@@ -396,8 +396,7 @@ class Assembler(object):
             files = []
             for f in actuator_files:
                 f = os.path.join(actuator_file_path, f)
-                # Actuator code is commented as a workaround to Issue #172
-                #files.append(f)
+                files.append(f)
             for f in processkiller_files:
                 f = os.path.join(payload_dir, f)
                 files.append(f)
@@ -408,14 +407,13 @@ class Assembler(object):
             subprocess.check_call(dpkg_cmd)
 
             # Additional actuator config
-            # Commented as a workaround to Issue #172
-            #shutil.copy(mount_path + '/lib/modules/4.13.0-38-generic' +
-            #            '/updates/dkms/actuator_network.ko',
-            #            mount_path + '/lib/modules/4.13.0-38-generic' +
-            #            '/kernel/drivers/')
+            shutil.copy(mount_path + '/lib/modules/4.13.0-38-generic' +
+                        '/updates/dkms/actuator_network.ko',
+                        mount_path + '/lib/modules/4.13.0-38-generic' +
+                        '/kernel/drivers/')
 
-            #with open(mount_path + '/etc/modules', 'a') as modules:
-            #    modules.write('actuator_network\n')
+            with open(mount_path + '/etc/modules', 'a') as modules:
+                modules.write('actuator_network\n')
 
             # Additional Process Killer config
             os.chown(mount_path + '/opt/merlin', 501, 1000)
