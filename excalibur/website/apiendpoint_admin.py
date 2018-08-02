@@ -134,7 +134,11 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_aws=True, hard_code_ami='ami-36a8754c'):
+    def role_create(
+        self,
+        role,
+        use_aws=True,
+        hard_code_ami='ami-0e05dfe27b39869a1'):
 
         try:
             role_keys = [
