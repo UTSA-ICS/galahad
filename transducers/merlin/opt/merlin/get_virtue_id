@@ -1,1 +1,1 @@
-echo "virtue_$(cat /etc/machine-id)"
+echo "virtue_$(cat /etc/virtue-id)"
