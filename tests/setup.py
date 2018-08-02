@@ -315,62 +315,24 @@ class Excalibur():
         group_id = self.get_default_security_group_id()
         ec2 = boto3.resource('ec2')
         security_group = ec2.SecurityGroup(group_id)
-        response1 = security_group.authorize_ingress(
-            CidrIp='70.121.205.81/32',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        response2 = security_group.authorize_ingress(
-            CidrIp='172.3.30.184/32', FromPort=22, ToPort=22, IpProtocol='TCP')
-        response3 = security_group.authorize_ingress(
-            CidrIp='35.170.157.4/32', FromPort=22, ToPort=22, IpProtocol='TCP')
-        response4 = security_group.authorize_ingress(
-            CidrIp='129.115.2.249/32',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        response5 = security_group.authorize_ingress(
-            CidrIp='70.121.205.81/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response6 = security_group.authorize_ingress(
-            CidrIp='172.3.30.184/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response7 = security_group.authorize_ingress(
-            CidrIp='35.170.157.4/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response8 = security_group.authorize_ingress(
-            CidrIp='129.115.2.249/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response9 = security_group.authorize_ingress(
-            CidrIp='{}/32'.format(self.server_ip),
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response10 = security_group.authorize_ingress(
-            CidrIp='128.89.0.0/16',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response11 = security_group.authorize_ingress(
-            CidrIp='128.89.0.0/16',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        return dict(
-            list(response1.items()) + list(response2.items()) +
-            list(response3.items()) + list(response4.items()) +
-            list(response5.items()) + list(response6.items()) +
-            list(response7.items()) + list(response8.items()) +
-            list(response9.items()) + list(response10.items()) +
-            list(response11.items()))
+        client_cidrs_to_allow_access =  [ '{}/32'.format(self.server_ip),
+                                          '70.121.205.81/32',
+                                          '172.3.30.184/32',
+                                          '35.170.157.4/32',
+                                          '129.115.2.249/32',
+                                          '24.35.122.60/32',
+                                          '128.89.0.0/16' ]
+        for cidr in client_cidrs_to_allow_access:
+            security_group.authorize_ingress(
+                CidrIp=cidr',
+                FromPort=22,
+                ToPort=22,
+                IpProtocol='TCP')
+            security_group.authorize_ingress(
+                CidrIp='5002',
+                FromPort=5002,
+                ToPort=5002,
+                IpProtocol='TCP')
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
