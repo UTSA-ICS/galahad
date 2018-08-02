@@ -39,8 +39,6 @@ current_user = LocalProxy(get_current_user)
 
 
 def require_login(f):
-    print('WAT    : enter require_login')
-
     @wraps(f)
     def decorated(*args, **kwargs):
         print('WAT    : enter decorated')
