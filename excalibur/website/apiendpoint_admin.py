@@ -1,15 +1,18 @@
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
-from apiendpoint import EndPoint
-from controller import CreateVirtueThread
-from . import ldap_tools
-from aws import AWS
 import json
 import random
 import time
 import copy
 import traceback
 import subprocess
+
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
+from apiendpoint import EndPoint
+from controller import CreateVirtueThread
+from . import ldap_tools
+from aws import AWS
+
+from assembler.assembler import Assembler
 
 DEBUG_PERMISSIONS = False
 
@@ -131,7 +134,11 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_aws=True, hard_code_ami='ami-0318a0659e7066e18'):
+    def role_create(
+        self,
+        role,
+        use_aws=True,
+        hard_code_ami='ami-0e05dfe27b39869a1'):
 
         try:
             role_keys = [

@@ -1,0 +1,8 @@
+cluster:
+  name: docker-cluster
+network:
+  host: %s
+path:
+  home: /etc/syslog-ng
+  conf: /etc/syslog-ng
+searchguard.ssl.transport.enforce_hostname_verification: false

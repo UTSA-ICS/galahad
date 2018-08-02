@@ -26,9 +26,15 @@
         <input type="password" name="password" id="password" onkeypress="login(event);">
       </div>
     -->
+      <br>
+      <div class="excaliburIpAddress">
+        <label for="ipAddress">Excalibur Server IP Address: </label>
+        <input type="text" id="excaliburIpAddress" name="excaliburIpAddress" required
+               placeholder="Excalibur Server IP Address" /> 
+      </div>
       <div style="text-align: right; margin: 10px; display: flex;">
         <div id="loginMsg"></div>
-        <input class="submit" type="submit" value="Log In" onclick="check_oauth(event);">
+        <input class="submit" type="submit" value="Log In" onclick="login(event);">
       </div>
     </div>
 

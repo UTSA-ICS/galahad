@@ -52,6 +52,7 @@ def to_ldap(data, objectClass):
         'id': 'cid',
         'version': 'cversion',
         'os': 'cos',
+        'port': 'cport',
         'type': 'ctype',
         'unc': 'cunc',
         'credentials': 'ccredentials',
