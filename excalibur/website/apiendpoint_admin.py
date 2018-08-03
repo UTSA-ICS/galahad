@@ -394,3 +394,130 @@ class EndPoint_Admin():
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    # Create a virtue for the specified role, but do not launch it yet
+    def virtue_create(self, username, roleId, use_aws=True):
+
+        try:
+            user = None
+            role = None
+            resources = []
+            transducers = []
+            virtue_dict = {}
+
+            user = self.inst.get_obj('cusername', username, 'OpenLDAPuser')
+            if (user == None or user == ()):
+                return json.dumps(ErrorCodes.admin['invalidUsername'])
+            ldap_tools.parse_ldap(user)
+
+            role = self.inst.get_obj('cid', roleId, 'OpenLDAProle', True)
+            if (role == ()):
+                return json.dumps(ErrorCodes.admin['invalidRoleId'])
+            ldap_tools.parse_ldap(role)
+
+            if (roleId not in user['authorizedRoleIds']):
+                return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
+
+            virtue = None
+            curr_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            for v in curr_virtues:
+                ldap_tools.parse_ldap(v[1])
+                if (v[1]['username'] == 'NULL' and v[1]['roleId'] == roleId):
+                    virtue = v[1]
+                elif (v[1]['username'] == username
+                      and v[1]['roleId'] == roleId):
+                    return json.dumps(
+                        ErrorCodes.user['virtueAlreadyExistsForRole'])
+
+            for rid in role['startingResourceIds']:
+
+                resource = self.inst.get_obj('cid', rid, 'OpenLDAPresource',
+                                             True)
+                if (resource == ()):
+                    continue
+                ldap_tools.parse_ldap(resource)
+
+                resources.append(resource)
+
+            for tid in role['startingTransducerIds']:
+
+                transducer = self.inst.get_obj('cid', tid,
+                                               'OpenLDAPtransducer', True)
+                if (transducer == ()):
+                    continue
+                ldap_tools.parse_ldap(transducer)
+
+                transducers.append(transducer)
+
+            if (virtue == None):
+                # Pending virtue does not exist
+                return json.dumps(ErrorCodes.user['resourceCreationError'])
+
+            virtue['username'] = username
+
+            virtue_ldap = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+
+            ret = self.inst.modify_obj(
+                'cid',
+                virtue_ldap['cid'],
+                virtue_ldap,
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            if (ret != 0):
+                return json.dumps(ErrorCodes.user['resourceCreationError'])
+
+            # Return the whole thing
+            # return json.dumps( virtue )
+
+            # Return a json of the id and ip address
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
+            return json.dumps({
+                'ipAddress': virtue['ipAddress'],
+                'id': virtue['id']
+            })
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    # Destroy the specified stopped virtue
+    def virtue_destroy(self, virtueId, use_aws=True):
+
+        try:
+            virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
+            if (virtue == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(virtue)
+
+            #if (virtue['username'] != username):
+            #    return json.dumps(ErrorCodes.admin['userNotAuthorized'])
+
+            if (use_aws == False):
+                self.inst.del_obj('cid', virtue['id'], throw_error=True)
+                return json.dumps(ErrorCodes.admin['success'])
+
+            aws = AWS()
+            virtue = aws.populate_virtue_dict(virtue)
+
+            if (virtue['state'] != 'STOPPED'):
+                return json.dumps(ErrorCodes.user['virtueNotStopped'])
+
+            aws_res = aws.instance_destroy(virtue['awsInstanceId'], block=False)
+
+            aws_state = aws_res.state['Name']
+
+            if (aws_state == 'shutting-down'):
+                return json.dumps(ErrorCodes.admin['success'])
+
+            elif (aws_state == 'terminated'):
+                self.inst.del_obj('cid', virtue['id'], throw_error=True)
+                return json.dumps(ErrorCodes.admin['success'])
+
+            else:
+                return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])

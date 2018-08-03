@@ -169,23 +169,6 @@ def virtue_get():
     return make_response(virtueId)
 
 
-@bp.route('/user/virtue/create', methods=['GET'])
-@require_oauth()
-def virtue_create():
-
-    roleId = ''
-
-    try:
-        # Information about the created Virtue. Type: Virtue
-        ep = get_endpoint()
-        roleId = ep.virtue_create(get_user(), request.args['roleId'])
-
-    except:
-        print("Unexpected error:", sys.exc_info())
-
-    return make_response(roleId)
-
-
 @bp.route('/user/virtue/launch', methods=['GET'])
 @require_oauth()
 def virtue_launch():
@@ -218,23 +201,6 @@ def virtue_stop():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(virtue)
-
-
-@bp.route('/user/virtue/destroy', methods=['GET'])
-@require_oauth()
-def virtue_destroy():
-
-    ret = ''
-
-    try:
-        # Destroys a Virtue. Releases all resources.
-        ep = get_endpoint()
-        ret = ep.virtue_destroy(get_user(), request.args['virtueId'])
-
-    except:
-        print("Unexpected error:", sys.exc_info())
-
-    return make_response(ret)
 
 
 @bp.route('/user/application/get', methods=['GET'])
@@ -612,6 +578,40 @@ def admin_user_role_unauthorize():
         ret = ep.user_role_unauthorize(
             request.args['username'],
             request.args['roleId'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/virtue/create', methods=['GET'])
+@require_oauth()
+def admin_virtue_create():
+
+    roleId = ''
+
+    try:
+        # Information about the created Virtue. Type: Virtue
+        ep = get_admin_endpoint()
+        roleId = ep.virtue_create(request.args['username'], request.args['roleId'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(roleId)
+
+
+@bp.route('/admin/virtue/destroy', methods=['GET'])
+@require_oauth()
+def admin_virtue_destroy():
+
+    ret = ''
+
+    try:
+        # Destroys a Virtue. Releases all resources.
+        ep = get_admin_endpoint()
+        ret = ep.virtue_destroy(request.args['virtueId'])
 
     except:
         print("Unexpected error:", sys.exc_info())

@@ -15,10 +15,8 @@ class UserCLI(base.BaseCLI):
         self.commands['user role list'] = self.user_role_list
         self.commands['user virtue list'] = self.user_virtue_list
         self.commands['virtue get'] = self.virtue_get
-        self.commands['virtue create'] = self.virtue_create
         self.commands['virtue launch'] = self.virtue_launch
         self.commands['virtue stop'] = self.virtue_stop
-        self.commands['virtue destroy'] = self.virtue_destroy
         self.commands['virtue application launch'] = self.virtue_app_launch
         self.commands['virtue application stop'] = self.virtue_app_stop
 
@@ -66,16 +64,6 @@ class UserCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
-    def virtue_create(self):
-
-        role_id = input('Role ID: ').strip()
-
-        result = self.session.get(self.base_url + '/virtue/create',
-                                  params={'roleId': role_id})
-        data = result.json()
-        
-        return json.dumps(data, indent=4, sort_keys=True)
-
     def virtue_launch(self):
 
         virtue_id = input('Virtue ID: ').strip()
@@ -91,16 +79,6 @@ class UserCLI(base.BaseCLI):
         virtue_id = input('Virtue ID: ').strip()
 
         result = self.session.get(self.base_url + '/virtue/stop',
-                                  params={'virtueId': virtue_id})
-        data = result.json()
-        
-        return json.dumps(data, indent=4, sort_keys=True)
-
-    def virtue_destroy(self):
-
-        virtue_id = input('Virtue ID: ').strip()
-
-        result = self.session.get(self.base_url + '/virtue/destroy',
                                   params={'virtueId': virtue_id})
         data = result.json()
         
@@ -133,7 +111,6 @@ class UserCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
-        
 
 if (__name__ == '__main__'):
 
