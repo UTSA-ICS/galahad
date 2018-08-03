@@ -28,7 +28,9 @@ class AdminCLI(base.BaseCLI):
         self.commands['user logout'] = self.user_logout
         self.commands['user role authorize'] = self.user_role_auth
         self.commands['user role unauthorize'] = self.user_role_unauth
-        
+        self.commands['virtue create'] = self.virtue_create
+        self.commands['virtue destroy'] = self.virtue_destroy
+
         #self.commands['usertoken list'] = self.usertoken_list
 
     def app_list(self):
@@ -235,12 +237,34 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    def virtue_create(self):
+
+        username = input('Username: ').strip()
+        role_id = input('Role ID: ').strip()
+
+        result = self.session.get(self.base_url + '/virtue/create',
+                                  params={'username': username,
+                                          'roleId': role_id})
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+    def virtue_destroy(self):
+
+        virtue_id = input('Virtue ID: ').strip()
+
+        result = self.session.get(self.base_url + '/virtue/destroy',
+                                  params={'virtueId': virtue_id})
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
 if (__name__ == '__main__'):
 
     cli = AdminCLI(input('Excalibur address: ').strip())
 
     command = ''
-    
+
     while (command != 'exit'):
         command = input('------- ')
         cli.handle_command(command)

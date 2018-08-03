@@ -5,9 +5,9 @@ import requests
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
-    os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
+    os.path.dirname(os.path.dirname(file_path))) + '/excalibur/cli'
 sys.path.insert(0, base_excalibur_dir)
-from cli.sso_login import sso_tool
+from sso_login import sso_tool
 
 
 def setup_module():

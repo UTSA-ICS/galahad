@@ -27,11 +27,70 @@ def setup_module():
     ep = EndPoint_Admin('jmitchell', 'Test123!')
     ep.inst = inst
 
+    role = {
+        'id': 'admintestrole0',
+        'name': 'AdminTestRole',
+        'version': '1.0',
+        'applicationIds': ['firefox'],
+        'startingResourceIds': [],
+        'startingTransducerIds': [],
+        'amiId': 'NULL'
+    }
+
+    virtue = {
+        'id': 'admintestvirtue0',
+        'username': 'NULL',
+        'roleId': 'admintestrole0',
+        'applicationIds': [],
+        'resourceIds': [],
+        'transducerIds': [],
+        'awsInstanceId': 'NULL'
+    }
+
+    ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
+    inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
+
+    ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+    inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+
+    user = inst.get_obj(
+        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+    ldap_tools.parse_ldap(user)
+
+    if ('admintestrole0' not in user['authorizedRoleIds']):
+        user['authorizedRoleIds'].append('admintestrole0')
+        ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
+        inst.modify_obj(
+            'cusername',
+            'jmitchell',
+            ldap_user,
+            objectClass='OpenLDAPuser',
+            throw_error=True)
+
 
 def teardown_module():
 
     inst.del_obj(
+        'cid', 'admintestrole0', objectClass='OpenLDAProle', throw_error=True)
+
+    inst.del_obj(
+        'cid', 'admintestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True)
+
+    inst.del_obj(
         'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True)
+
+    user = inst.get_obj(
+        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+    ldap_tools.parse_ldap(user)
+
+    user['authorizedRoleIds'].remove('admintestrole0')
+    ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
+    inst.modify_obj(
+        'cusername',
+        'jmitchell',
+        ldap_user,
+        objectClass='OpenLDAPuser',
+        throw_error=True)
 
     virtue = inst.get_obj(
         'croleId',
@@ -193,7 +252,8 @@ def test_role_calls():
             'jmitchell', 'DoesNotExist')
 
     # user_role_authorize only returns when there's an error
-    assert ep.user_role_authorize('jmitchell', test_role_id) == None
+    assert ep.user_role_authorize('jmitchell', test_role_id) == json.dumps(
+        ErrorCodes.admin['success'])
 
     # Make sure LDAP has been updated
     user = inst.get_obj(
@@ -219,7 +279,8 @@ def test_role_calls():
     # Todo: Check return when user is using a virtue
 
     # user_role_unauthorize only returns when there's an error
-    assert ep.user_role_unauthorize('jmitchell', test_role_id) == None
+    assert ep.user_role_unauthorize('jmitchell', test_role_id) == json.dumps(
+        ErrorCodes.admin['success'])
 
     # Make sure LDAP has been updated
     user = inst.get_obj(
@@ -282,3 +343,53 @@ def test_user_calls():
             real_virtue_list.append(v)
 
     assert json.loads(virtue_list) == real_virtue_list
+
+def test_virtue_create():
+
+    assert json.dumps(ErrorCodes.admin['invalidUsername']) == ep.virtue_create(
+        'DoesNotExist', 'admintestrole0', use_aws=False)
+
+    assert json.dumps(ErrorCodes.admin['invalidRoleId']) == ep.virtue_create(
+        'jmitchell', 'DoesNotExist', use_aws=False)
+
+    assert json.dumps(
+        ErrorCodes.admin['userNotAlreadyAuthorized']) == ep.virtue_create(
+            'jmitchell', 'emptyrole', use_aws=False)
+
+    result = json.loads(
+        ep.virtue_create('jmitchell', 'admintestrole0', use_aws=False))
+
+    real_virtue = inst.get_obj(
+        'cid',
+        'admintestvirtue0',
+        objectClass='OpenLDAPvirtue',
+        throw_error=True)
+    ldap_tools.parse_ldap(real_virtue)
+
+    assert result == {
+        'id': 'admintestvirtue0',
+        'ipAddress': 'NULL'
+    }
+
+    assert real_virtue['username'] == 'jmitchell'
+
+    assert json.dumps(
+        ErrorCodes.user['virtueAlreadyExistsForRole']) == ep.virtue_create(
+            'jmitchell', 'admintestrole0', use_aws=False)
+
+def test_virtue_destroy():
+
+    assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_destroy(
+        'DoesNotExist', use_aws=False)
+
+    assert ep.virtue_destroy(
+        'admintestvirtue0', use_aws=False) == json.dumps(
+            ErrorCodes.user['success'])
+
+    real_virtue = inst.get_obj(
+        'cid',
+        'admintestvirtue0',
+        objectClass='OpenLDAPvirtue',
+        throw_error=True)
+
+    assert real_virtue == ()

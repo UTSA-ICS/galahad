@@ -42,7 +42,7 @@ def setup_module():
 
     virtue = {
         'id': 'usertestvirtue0',
-        'username': 'NULL',
+        'username': 'jmitchell',
         'roleId': 'usertestrole0',
         'applicationIds': [],
         'resourceIds': [],
@@ -160,34 +160,6 @@ def test_role_calls():
 
 
 def test_virtue_calls():
-    # virtue_create
-    assert json.dumps(ErrorCodes.user['invalidRoleId']) == ep.virtue_create(
-        'jmitchell', 'DoesNotExist', use_aws=False)
-
-    assert json.dumps(
-        ErrorCodes.user['userNotAuthorizedForRole']) == ep.virtue_create(
-            'jmitchell', 'emptyrole', use_aws=False)
-
-    result = json.loads(
-        ep.virtue_create('jmitchell', 'usertestrole0', use_aws=False))
-
-    real_virtue = inst.get_obj(
-        'cid',
-        'usertestvirtue0',
-        objectClass='OpenLDAPvirtue',
-        throw_error=True)
-    ldap_tools.parse_ldap(real_virtue)
-
-    assert result == {
-        'id': 'usertestvirtue0',
-        'ipAddress': 'NULL'
-    }
-
-    assert real_virtue['username'] == 'jmitchell'
-
-    assert json.dumps(
-        ErrorCodes.user['virtueAlreadyExistsForRole']) == ep.virtue_create(
-            'jmitchell', 'usertestrole0', use_aws=False)
 
     # virtue_get
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_get(
@@ -197,6 +169,13 @@ def test_virtue_calls():
         'fpatwa', 'usertestvirtue0')
 
     virtue = json.loads(ep.virtue_get('jmitchell', 'usertestvirtue0'))
+
+    real_virtue = inst.get_obj(
+        'cid',
+        'usertestvirtue0',
+        objectClass='OpenLDAPvirtue',
+        throw_error=True)
+    ldap_tools.parse_ldap(real_virtue)
 
     real_virtue = {
         'id': real_virtue['id'],
@@ -288,22 +267,6 @@ def test_virtue_calls():
     assert (json.dumps(ErrorCodes.user['success']) ==
             ep.virtue_stop('jmitchell', 'usertestvirtue0', use_aws=False))
 
-    # virtue_destroy
-    assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_destroy(
-        'jmitchell', 'DoesNotExist', use_aws=False)
-
-    assert json.dumps(
-        ErrorCodes.user['userNotAuthorized']) == ep.virtue_destroy(
-            'fpatwa', 'usertestvirtue0', use_aws=False)
-
-    assert ep.virtue_destroy(
-        'jmitchell', 'usertestvirtue0', use_aws=False) == json.dumps(
-            ErrorCodes.user['success'])
-
-    virtue = json.loads(ep.virtue_get('jmitchell', 'usertestvirtue0'))
-
-    assert (virtue == ErrorCodes.user['invalidId']
-            or virtue['state'] == 'DELETING')
 
 def test_key_calls():
 
