@@ -75,7 +75,8 @@ def test_application_list():
     ls = response.json()
     assert type(ls) == list
     for obj in ls:
-        assert set(obj.keys()) == set(['id', 'name', 'version', 'os'])
+        assert (set(obj.keys()) == set(['id', 'name', 'version', 'os']) or
+                set(obj.keys()) == set(['id', 'name', 'version', 'os', 'port']))
 
 
 def test_resource_get():
