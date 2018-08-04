@@ -324,12 +324,12 @@ class Excalibur():
                                           '128.89.0.0/16' ]
         for cidr in client_cidrs_to_allow_access:
             security_group.authorize_ingress(
-                CidrIp=cidr',
+                CidrIp=cidr,
                 FromPort=22,
                 ToPort=22,
                 IpProtocol='TCP')
             security_group.authorize_ingress(
-                CidrIp='5002',
+                CidrIp=cidr,
                 FromPort=5002,
                 ToPort=5002,
                 IpProtocol='TCP')
