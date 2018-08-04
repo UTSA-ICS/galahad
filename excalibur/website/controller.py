@@ -152,11 +152,6 @@ class CreateVirtueThread(threading.Thread):
             inst_profile_name='',
             inst_profile_arn='')
 
-
-        instance.stop()
-        instance.wait_until_stopped()
-        instance.reload()
-
         virtue = {
             'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
             'username': 'NULL',
@@ -170,6 +165,10 @@ class CreateVirtueThread(threading.Thread):
         self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
 
         self.set_virtue_keys(virtue['id'], instance.public_ip_address)
+
+        instance.stop()
+        instance.wait_until_stopped()
+        instance.reload()
 
     def check_virtue_access(self, ssh_inst):
         # Check if the virtue is accessible:
@@ -190,7 +189,7 @@ class CreateVirtueThread(threading.Thread):
 
         # For now generate keys and store in local dir
         subprocess.check_output(shlex.split(
-                     'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+            'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
 
         ssh_inst = ssh_tool('ubuntu', instance_ip, '{0}/default-virtue-key.pem'.format(key_dir))
         # Check if virtue is accessible.
