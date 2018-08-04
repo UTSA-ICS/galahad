@@ -124,7 +124,7 @@ class ExcaliburCmd(cmd.Cmd):
             if os.path.isfile(dotfile):
                 config = configparser.ConfigParser()
                 config.read(dotfile)
-                self.ep.set_api_config(args[0], config)
+                ep.set_api_config(config)
 
             # Get the acutal method, and call it (with extra args)
             method_call = getattr(ep, method)

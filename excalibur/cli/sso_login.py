@@ -1,5 +1,8 @@
 import json
 import requests
+# To disable showing of insecure warnings for HTTPS without a certificate
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 verify_https = False
 

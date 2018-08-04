@@ -231,12 +231,32 @@ class Excalibur():
         _cmd4 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
 
-    def setup_ldap(self):
+        # Setup the Default key to be able to login to the virtues
+        # This private key's corresponding public key will be used for the virtues
+        GALAHAD_KEY_DIR = '~/galahad-keys'
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
+                format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
-        logger.info('Setup LDAP config for Tests')
-        # Call setup_ldap on the server
-        _cmd = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        # Copy over various other keys required for virtues
+        GALAHAD_CONFIG_DIR = '~/galahad-config'
+        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+
+        # Now populate the /var/private/ssl dir for excalibur
+        EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
+        _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+
 
     def setup_aws_instance_info(self):
         client = boto3.client('cloudformation')
@@ -295,62 +315,25 @@ class Excalibur():
         group_id = self.get_default_security_group_id()
         ec2 = boto3.resource('ec2')
         security_group = ec2.SecurityGroup(group_id)
-        response1 = security_group.authorize_ingress(
-            CidrIp='70.121.205.81/32',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        response2 = security_group.authorize_ingress(
-            CidrIp='172.3.30.184/32', FromPort=22, ToPort=22, IpProtocol='TCP')
-        response3 = security_group.authorize_ingress(
-            CidrIp='35.170.157.4/32', FromPort=22, ToPort=22, IpProtocol='TCP')
-        response4 = security_group.authorize_ingress(
-            CidrIp='129.115.2.249/32',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        response5 = security_group.authorize_ingress(
-            CidrIp='70.121.205.81/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response6 = security_group.authorize_ingress(
-            CidrIp='172.3.30.184/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response7 = security_group.authorize_ingress(
-            CidrIp='35.170.157.4/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response8 = security_group.authorize_ingress(
-            CidrIp='129.115.2.249/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response9 = security_group.authorize_ingress(
-            CidrIp='{}/32'.format(self.server_ip),
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        response10 = security_group.authorize_ingress(
-            CidrIp='24.35.122.60/32',
-            FromPort=22,
-            ToPort=22,
-            IpProtocol='TCP')
-        response11 = security_group.authorize_ingress(
-            CidrIp='24.35.122.60/32',
-            FromPort=5002,
-            ToPort=5002,
-            IpProtocol='TCP')
-        return dict(
-            list(response1.items()) + list(response2.items()) +
-            list(response3.items()) + list(response4.items()) +
-            list(response5.items()) + list(response6.items()) +
-            list(response7.items()) + list(response8.items()) +
-            list(response9.items()) + list(response10.items()) +
-            list(response11.items()))
+        client_cidrs_to_allow_access =  [ '{}/32'.format(self.server_ip),
+                                          '70.121.205.81/32',
+                                          '172.3.30.184/32',
+                                          '35.170.157.4/32',
+                                          '129.115.2.249/32',
+                                          '24.35.122.60/32',
+                                          '128.89.0.0/16' ]
+        for cidr in client_cidrs_to_allow_access:
+            security_group.authorize_ingress(
+                CidrIp=cidr,
+                FromPort=22,
+                ToPort=22,
+                IpProtocol='TCP')
+            security_group.authorize_ingress(
+                CidrIp=cidr,
+                FromPort=5002,
+                ToPort=5002,
+                IpProtocol='TCP')
+
 
 class EFS():
     def __init__(self, stack_name, ssh_key):
