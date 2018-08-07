@@ -288,7 +288,7 @@ class CMRESHandler(logging.Handler):
                         ca_certs=self.ca_certs,
                         client_cert=self.client_cert,
                         client_key=self.client_key,
-                        http_auth=('admin', 'admin'),
+                        http_auth=self.auth_details,
                 )
             return self._client
 

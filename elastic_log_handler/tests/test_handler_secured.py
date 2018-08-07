@@ -37,9 +37,9 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                raise_on_indexing_exceptions=True)
         es_test_server_is_up = handler.test_es_source()
-        print os.getcwd()
         self.assertEqual(True, es_test_server_is_up)
 
 
@@ -55,6 +55,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                raise_on_indexing_exceptions=True)
 
         es_test_server_is_up = handler.test_es_source()
@@ -78,6 +79,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                es_index_name="pythontest",
                                es_additional_fields={'App': 'Test', 'Environment': 'Dev'},
                                raise_on_indexing_exceptions=True)
@@ -105,6 +107,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                flush_frequency_in_sec=0.1,
                                es_index_name="pythontest",
                                es_additional_fields={'App': 'Test', 'Environment': 'Dev'},
@@ -133,6 +136,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                buffer_size=500,
                                flush_frequency_in_sec=0.5,
                                es_index_name="pythontest",
@@ -154,7 +158,9 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                verify_ssl=True,
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
-                               client_key="tests/certs/kirk.key.pem",                               index_name_frequency=CMRESHandler.IndexNameFrequency.DAILY,
+                               client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
+                               index_name_frequency=CMRESHandler.IndexNameFrequency.DAILY,
                                raise_on_indexing_exceptions=True)
         self.assertEqual(
             handler._index_name_func.__func__(index_name),
@@ -169,6 +175,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                index_name_frequency=CMRESHandler.IndexNameFrequency.WEEKLY,
                                raise_on_indexing_exceptions=True)
         self.assertEqual(
@@ -184,6 +191,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                index_name_frequency=CMRESHandler.IndexNameFrequency.MONTHLY,
                                raise_on_indexing_exceptions=True)
         self.assertEqual(
@@ -199,6 +207,7 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                ca_certs="tests/certs/ca.pem",
                                client_cert="tests/certs/kirk.crtfull.pem",
                                client_key="tests/certs/kirk.key.pem",
+                               auth_details=('admin', 'admin'),
                                index_name_frequency=CMRESHandler.IndexNameFrequency.YEARLY,
                                raise_on_indexing_exceptions=True)
         self.assertEqual(
