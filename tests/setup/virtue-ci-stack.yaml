@@ -460,7 +460,7 @@ Resources:
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -483,7 +483,7 @@ Resources:
   ValorNode51:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -506,7 +506,7 @@ Resources:
   ValorNode52:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
