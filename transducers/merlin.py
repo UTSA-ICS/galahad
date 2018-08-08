@@ -25,14 +25,32 @@ from Crypto.PublicKey import RSA
 from struct import pack
 from threading import Thread, Lock, Event
 from time import sleep, time
+sys.path.insert(0, os.path.abspath('..'))
+from elastic_log_handler.handlers import CMRESHandler
 
 log = logging.getLogger('merlin')
 
-def setup_logging(filename):
+def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 	logfile = logging.FileHandler(filename)
 	formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 	logfile.setFormatter(formatter)
 	log.addHandler(logfile)
+
+	elasticHandler = CMRESHandler(hosts=[{'host': es_host, 'port': 9200}],
+                               auth_type=CMRESHandler.AuthType.HTTPS,
+                               es_index_name="merlin",
+                               use_ssl=True,
+                               verify_ssl=True,
+                               buffer_size=2,
+                               flush_frequency_in_sec=1000,
+                               ca_certs=es_ca,
+                               client_cert=es_cert,
+                               client_key=es_key,
+							   auth_details=(es_user, es_pass),
+							   index_name_frequency=CMRESHandler.IndexNameFrequency.DAILY,
+                               raise_on_indexing_exceptions=True)
+	log.addHandler(elasticHandler)
+
 	log.setLevel(logging.INFO)
 
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
@@ -531,9 +549,16 @@ if __name__ == '__main__':
 	parser.add_argument('-i', '--heartbeat', help='Heartbeat interval (sec)', type=int, default=30)
 	parser.add_argument('-s', '--socket', help='Path to socket to filter', default='/var/run/receiver_to_filter')
 	parser.add_argument('-l', '--log', help='Path to log file', default='merlin.log')
+	parser.add_argument('-es', '--elasticsearch_host', help='Elasticsearch host', default='127.0.0.1')
+	parser.add_argument('-ec', '--elasticsearch_cert', help='Elasticsearch client cert', default='kirk.crtfull.pem')
+	parser.add_argument('-ek', '--elasticsearch_key', help=' Elasticsearch client key', default='kirk.key.pem')
+	parser.add_argument('-eu', '--elasticsearch_user', help='Elasticsearch username', default='admin')
+	parser.add_argument('-ep', '--elasticsearch_password', help='Elasticsearch password', default='admin')
+	parser.add_argument('-ea', '--elasticsearch_ca', help='Elasticsearch CA', default='ca.pem')
 	args = parser.parse_args()
 
-	setup_logging(args.log)
+	setup_logging(args.log, args.elasticsearch_host, args.elasticsearch_cert, args.elasticsearch_key, args.elasticsearch_user,
+				  args.elasticsearch_password, args.elasticsearch_ca)
 
 	if not os.path.isfile(args.ca_cert):
 		log.error('CA cert file does not exist: %s', args.ca_cert)
