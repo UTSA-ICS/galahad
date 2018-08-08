@@ -28,6 +28,27 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-VPC'
+  VirtueHostedZone:
+    Type: 'AWS::Route53::HostedZone'
+    Properties:
+      HostedZoneConfig:
+        Comment: "VPC-private zone for service discovery"
+      HostedZoneTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Zone'
+      Name: !Join
+          - ''
+          - - 'galahad.'
+            - 'com'
+      VPCs:
+        - VPCId: !Ref VirtUEVPC
+          VPCRegion: !Ref "AWS::Region"
   VirtUEAdminSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -460,7 +481,7 @@ Resources:
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -483,7 +504,7 @@ Resources:
   ValorNode51:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -506,7 +527,7 @@ Resources:
   ValorNode52:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0c1311feb3894b559
+      ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -526,6 +547,108 @@ Resources:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
       - ValorRethinkDB
+  ExcaliburServerDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'excalibur.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt ExcaliburServer.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - ExcaliburServer
+  GalahadADDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'ad.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadAD.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - GalahadAD
+  RethinkDBDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'rethinkdb.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt RethinkDB.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - RethinkDB
+  ValorEFSServerDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'valorefsserver.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt ValorEFSServer.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - ValorEFSServer
+  ValorRouterDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'valorrouter.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt ValorRouter.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - ValorRouter
+  GalahadAggregatorDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'aggregator.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadAggregator.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - GalahadAggregator
 Outputs:
   MountTargetID:
     Description: Mount target ID
