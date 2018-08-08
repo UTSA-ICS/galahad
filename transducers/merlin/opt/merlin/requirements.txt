@@ -1,2 +1,6 @@
 pycryptodome==3.5.1
 rethinkdb==2.3.0.post6
+pyOpenSSL==18.0.0
+elasticsearch==5.4.0
+requests==2.18.1
+enum==0.4.6
