@@ -486,6 +486,10 @@ def parse_args():
         action="store_true",
         help="setup the galahad/virtue test environment")
     parser.add_argument(
+        "--setup_stack",
+        action="store_true",
+        help="setup the galahad/virtue stack only")
+    parser.add_argument(
         "--setup_valor",
         action="store_true",
         help="setup EFS and Valor migration ecosystem test environment")
@@ -525,6 +529,12 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
               args.branch_name, args.default_user_key)
+    if args.setup_stack:
+        stack = Stack()
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+        #
+        excalibur = Excalibur(args.stack_name, args.path_to_key)
+        excalibur.update_security_rules()
     if args.setup_valor:
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
