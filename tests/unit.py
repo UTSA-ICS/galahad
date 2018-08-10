@@ -34,11 +34,19 @@ def parse_args():
         required=False,
         help='The IP address of an existing aws excalibur instance.')
     parser.add_argument(
-        '--test_ldap_api', action='store_true', help='The ldap API Tests')
+        '--run_test',
+        type=str,
+        help='The Unit Test that will be run')
     parser.add_argument(
         '--test_admin_api', action='store_true', help='The ADMIN API Tests')
     parser.add_argument(
         '--test_user_api', action='store_true', help='The USER API Tests')
+    parser.add_argument(
+        '--test_aws', action='store_true', help='The AWS Tests')
+    parser.add_argument(
+        '--list_tests',
+        action='store_true',
+        help='List All available Unit Tests')
     parser.add_argument(
         '--run_all_tests',
         action='store_true',
@@ -63,17 +71,17 @@ if (__name__ == '__main__'):
             '\nPlease specify either stack_name or excalibur_user_ip!\n')
         sys.exit()
 
-    logger.info(
-        '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-        format(excalibur_ip))
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
-    if args.test_ldap_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_ldap.py')
-    if args.test_admin_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_admin_api.py')
-    if args.test_user_api:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest test_user_api.py')
+    if args.list_tests:
+        logger.info(
+            '\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan')
+    if args.run_test:
+        logger.info(
+            '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
+            format(excalibur_ip))
+        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show {}'.format(args.run_test))
     if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show')

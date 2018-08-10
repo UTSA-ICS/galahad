@@ -34,11 +34,13 @@ def parse_args():
         required=False,
         help='The IP address of an existing aws excalibur instance.')
     parser.add_argument(
-        '--test_sso', action='store_true', help='The ldap API Tests')
+        '--run_test',
+        type=str,
+        help='The Integration Test that will be run')
     parser.add_argument(
-        '--test_admin_api', action='store_true', help='The ADMIN API Tests')
-    parser.add_argument(
-        '--test_user_api', action='store_true', help='The USER API Tests')
+        '--list_tests',
+        action='store_true',
+        help='List All available Integration Tests')
     parser.add_argument(
         '--run_all_tests',
         action='store_true',
@@ -63,9 +65,6 @@ if (__name__ == '__main__'):
             '\nPlease specify either stack_name or excalibur_user_ip!\n')
         sys.exit()
 
-    logger.info(
-        '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-        format(excalibur_ip))
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
@@ -73,12 +72,18 @@ if (__name__ == '__main__'):
     ssh_inst.ssh('cd galahad/tests/setup && echo {} > excalibur_ip'.format(
         excalibur_ip))
 
-    if args.test_sso:
-        ssh_inst.ssh('cd galahad/tests/integration && pytest test_sso.py')
-    if args.test_admin_api:
+    if args.list_tests:
+        logger.info(
+            '\n!!!!!!!!!\nListing of All Integration Tests\n!!!!!!!!!!')
+        ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-plan')
+    if args.run_test:
+        logger.info(
+            '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
+            format(excalibur_ip))
         ssh_inst.ssh(
-            'cd galahad/tests/integration && pytest test_admin_api.py')
-    if args.test_user_api:
-        ssh_inst.ssh('cd galahad/tests/integration && pytest test_user_api.py')
+            'cd galahad/tests/integration && pytest --setup-show {}'.format(args.run_test))
     if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests/integration && pytest')
+        logger.info(
+            '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
+            format(excalibur_ip))
+        ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-show ')
