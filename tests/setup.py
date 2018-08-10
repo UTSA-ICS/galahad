@@ -403,7 +403,7 @@ class EFS():
                 'Values': ['running']
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info('Public IP for instance with logica-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format(tag_logical_id, public_ip))
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:
@@ -422,8 +422,11 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
     with Sultan.load(
             user='ubuntu', hostname=host_server, ssh_config=config) as s:
         result = eval('s.{}.run()'.format(cmd))
-        logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
-            result.stdout, result.stderr, result.is_success))
+        if result.is_success:
+            logger.info('success: {}'.format(result.is_success))
+        else:
+            logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
+                result.stdout, result.stderr, result.is_success))
         assert result.rc == 0
         return result
 
