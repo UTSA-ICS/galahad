@@ -29,12 +29,14 @@ sys.path.insert(0, os.path.abspath('..'))
 from elastic_log_handler.handlers import CMRESHandler
 
 log = logging.getLogger('merlin')
+elasticLog = logging.getLogger('elasticMerlin')
 
 def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 	logfile = logging.FileHandler(filename)
 	formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 	logfile.setFormatter(formatter)
 	log.addHandler(logfile)
+	log.setLevel(logging.INFO)
 
 	elasticHandler = CMRESHandler(hosts=[{'host': es_host, 'port': 9200}],
                                auth_type=CMRESHandler.AuthType.HTTPS,
@@ -49,12 +51,12 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 							   auth_details=(es_user, es_pass),
 							   index_name_frequency=CMRESHandler.IndexNameFrequency.DAILY,
                                raise_on_indexing_exceptions=True)
-	log.addHandler(elasticHandler)
-
-	log.setLevel(logging.INFO)
+	elasticLog.addHandler(elasticHandler)
+	elasticLog.setLevel(logging.INFO)
 
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
 def signal_handler(signal, frame):
+	elasticLog.info("Merlin shutdown")
 	exit.set()
 	sys.exit(0)
 
@@ -504,10 +506,16 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 				json.dumps(printable_msg, indent=2))
 			continue
 
+		elasticLog.info("Received transducer message", extra={'virtue_id': virtue_id, 'transducer_id': transducer_id,
+															  'transducer_type': transducer_type, 'enabled': enabled})
+
 		if transducer_type == 'ACTUATOR':
 
 			if do_actuator(transducer_id, config, enabled) == False:
 				continue
+
+			elasticLog.info("Performed actuation", extra={'virtue_id': virtue_id, 'transducer_id': transducer_id,
+													  'transducer_type': transducer_type, 'enabled': enabled})
 
 			send_ack(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key, conn)
 
@@ -532,6 +540,10 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 			if all_data is None:
 				log.error('Failed to receive response from filter')
 				continue
+
+			elasticLog.info("Transducer change sent to filter",
+							extra={'virtue_id': virtue_id, 'transducer_id': transducer_id,
+								   'transducer_type': transducer_type, 'enabled': enabled})
 
 			send_ack(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key, conn)
 			log.info('Successfully implemented command from Excalibur')
@@ -588,6 +600,8 @@ if __name__ == '__main__':
 		args.virtue_id, args.rdb_host, args.ca_cert, args.heartbeat, 
 		virtue_key, args.socket,))
 	heartbeat_thread.start()
+
+	elasticLog.info("Merlin Start", extra={'virtue_id': args.virtue_id})
 
 	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, args.socket)
 
