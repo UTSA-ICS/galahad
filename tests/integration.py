@@ -81,11 +81,13 @@ if (__name__ == '__main__'):
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
             format(excalibur_ip))
         ssh_inst.ssh(
-            'cd galahad/tests/integration && pytest --setup-show --junit-xml=integration-report.xml {}'.format(args.run_test))
+            'cd galahad/tests/integration && pytest --setup-show --html={0}.html --junit-xml={0}.xml {1}'.format(args.run_test.split('.')[0], args.run_test))
         ssh_inst.scp_from('.',
-                          '/home/ubuntu/galahad/tests/integration/integration-report.xml')
+                '/home/ubuntu/galahad/tests/integration/{0}.xml'.format(args.run_test.split('.')[0]))
+        ssh_inst.scp_from('.',
+                '/home/ubuntu/galahad/tests/integration/{0}.html'.format(args.run_test.split('.')[0]))
     if args.run_all_tests:
         logger.info(
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
             format(excalibur_ip))
-        ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-show ')
+        ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-show --html=integration-report.html --junit-xml=integration-report.xml')
