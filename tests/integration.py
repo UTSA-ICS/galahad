@@ -65,7 +65,6 @@ if (__name__ == '__main__'):
             '\nPlease specify either stack_name or excalibur_user_ip!\n')
         sys.exit()
 
-
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
     # Populate the excalibur_ip file needed for all the tests.
@@ -79,15 +78,23 @@ if (__name__ == '__main__'):
     if args.run_test:
         logger.info(
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-            format(excalibur_ip))
+                format(excalibur_ip))
         ssh_inst.ssh(
-            'cd galahad/tests/integration && pytest --setup-show --html={0}.html --junit-xml={0}.xml {1}'.format(args.run_test.split('.')[0], args.run_test))
+            'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
+            '--junit-xml=integration-test-report.xml {0}'.format(
+                args.run_test))
         ssh_inst.scp_from('.',
-                '/home/ubuntu/galahad/tests/integration/{0}.xml'.format(args.run_test.split('.')[0]))
+                          '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
         ssh_inst.scp_from('.',
-                '/home/ubuntu/galahad/tests/integration/{0}.html'.format(args.run_test.split('.')[0]))
+                          '/home/ubuntu/galahad/tests/integration/integration-test-report.html')
     if args.run_all_tests:
         logger.info(
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-            format(excalibur_ip))
-        ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-show --html=integration-report.html --junit-xml=integration-report.xml')
+                format(excalibur_ip))
+        ssh_inst.ssh(
+            'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
+            '--junit-xml=integration-test-report.xml')
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/integration/integration-test-report.html')

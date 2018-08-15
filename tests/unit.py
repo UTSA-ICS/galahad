@@ -71,7 +71,6 @@ if (__name__ == '__main__'):
             '\nPlease specify either stack_name or excalibur_user_ip!\n')
         sys.exit()
 
-
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
     if args.list_tests:
@@ -81,7 +80,17 @@ if (__name__ == '__main__'):
     if args.run_test:
         logger.info(
             '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
-            format(excalibur_ip))
-        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show {}'.format(args.run_test))
+                format(excalibur_ip))
+        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show  --html=integration-test-report.html '
+                     '--junit-xml=integration-test-report.xml {}'.format(args.run_test))
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/unit/unit-test-report.xml')
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/unit/unit-test-report.html')
     if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show')
+        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show --html=integration-test-report.html '
+                     '--junit-xml=integration-test-report.xml')
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/unit/unit-test-report.xml')
+        ssh_inst.scp_from('.',
+                          '/home/ubuntu/galahad/tests/unit/unit-test-report.html')
