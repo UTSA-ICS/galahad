@@ -64,6 +64,32 @@ class ssh_tool():
 
         return ret
 
+    def scp_from(self, file_path_local, file_path_remote='', test=True):
+
+        if (self.sshkey == None):
+            keyls = []
+        else:
+            keyls = ['-i', self.sshkey]
+
+        call_list = ['scp', '-r'] + keyls + [
+            self.rem_username + '@' + self.ip + ':' + file_path_remote,
+            file_path_local
+        ]
+
+        print
+        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
+        print
+        ' '.join(call_list)
+
+        ret = subprocess.call(call_list)
+
+        # By default, it is not ok to fail
+        if (test):
+            assert ret == 0
+
+        return ret
+
+
 
 def get_excalibur_server_ip(stack_name):
     client = boto3.client('ec2')

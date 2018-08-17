@@ -223,13 +223,16 @@ class Excalibur():
 
         self.setup_aws_instance_info()
 
-        # Start the flask-server (excalibur)
-        _cmd3 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
+        # Setup the transducer heartbeat Listener and Start it
+        _cmd3 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
 
-        # Setup the transducer heartbeat Listener and Start it
-        _cmd4 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
+        # Start the flask-server (excalibur)
+        _cmd4 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
+
+        # Wait a min to Ensure that Excalibur setup is complete
+        time.sleep(60)
 
         # Setup the Default key to be able to login to the virtues
         # This private key's corresponding public key will be used for the virtues
@@ -400,7 +403,7 @@ class EFS():
                 'Values': ['running']
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info('Public IP for instance with logica-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format(tag_logical_id, public_ip))
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:
@@ -419,8 +422,11 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
     with Sultan.load(
             user='ubuntu', hostname=host_server, ssh_config=config) as s:
         result = eval('s.{}.run()'.format(cmd))
-        logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
-            result.stdout, result.stderr, result.is_success))
+        if result.is_success:
+            logger.info('success: {}'.format(result.is_success))
+        else:
+            logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
+                result.stdout, result.stderr, result.is_success))
         assert result.rc == 0
         return result
 
