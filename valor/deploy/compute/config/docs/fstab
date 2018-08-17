@@ -1,0 +1,2 @@
+LABEL=cloudimg-rootfs	/	 ext4	defaults,discard	0 0
+none /proc/xen xenfs defaults 0 0
