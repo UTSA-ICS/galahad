@@ -263,7 +263,7 @@ class Excalibur():
         # Initialize the EFS class
         efs = EFS(self.stack_name, self.ssh_key)
         # Setup the EFS mount and populate Valor config files
-        _cmd7 = "bash('./setup_efs.sh {}')".format(efs.efs_id)
+        _cmd7 = "cd('galahad/tests/setup').and_().bash('./setup_efs.sh {}')".format(efs.efs_id)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
