@@ -28,8 +28,9 @@ tmp=$(cat me.cfg) && sudo sed -i "s/\$ME/$tmp/g" docs/rc.local
 mv /etc/rc.local /etc/rc.local.bak
 cp docs/rc.local /etc/rc.local
 chmod 755 /etc/rc.local
-mv /etc/fstab /etc/fstab.bak
-cp docs/fstab /etc/
+# Append entry in fstab
+echo "none /proc/xen xenfs defaults 0 0" >> /etc/fstab
+#
 cp docs/hvc0.conf /etc/init/
 mv /etc/xen/scripts/vif-bridge /etc/xen/scripts/vif-bridge.bak
 cp docs/vif-bridge /etc/xen/scripts/vif-bridge
