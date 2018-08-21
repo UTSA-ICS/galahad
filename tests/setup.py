@@ -413,7 +413,7 @@ class EFS():
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} setup/{} ubuntu@{}:~/.'.
+                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
                 format(self.ssh_key, setup_filename, public_ip)).run()
 
         # Execute the setup file on the instance
