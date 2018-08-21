@@ -25,8 +25,7 @@ from Crypto.PublicKey import RSA
 from struct import pack
 from threading import Thread, Lock, Event
 from time import sleep, time
-sys.path.insert(0, os.path.abspath('..'))
-from elastic_log_handler.handlers import CMRESHandler
+from handlers import CMRESHandler
 
 log = logging.getLogger('merlin')
 elasticLog = logging.getLogger('elasticMerlin')
@@ -42,7 +41,8 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
                                auth_type=CMRESHandler.AuthType.HTTPS,
                                es_index_name="merlin",
                                use_ssl=True,
-                               verify_ssl=True,
+							   # This should only be false for development purposes.  Production should have certs that pass ssl verification
+                               verify_ssl=False,
                                buffer_size=2,
                                flush_frequency_in_sec=1000,
                                ca_certs=es_ca,
@@ -572,6 +572,8 @@ if __name__ == '__main__':
 	setup_logging(args.log, args.elasticsearch_host, args.elasticsearch_cert, args.elasticsearch_key, args.elasticsearch_user,
 				  args.elasticsearch_password, args.elasticsearch_ca)
 
+	elasticLog.info("Merlin Start", extra={'virtue_id': args.virtue_id})
+
 	if not os.path.isfile(args.ca_cert):
 		log.error('CA cert file does not exist: %s', args.ca_cert)
 		sys.exit(1)
@@ -600,8 +602,6 @@ if __name__ == '__main__':
 		args.virtue_id, args.rdb_host, args.ca_cert, args.heartbeat, 
 		virtue_key, args.socket,))
 	heartbeat_thread.start()
-
-	elasticLog.info("Merlin Start", extra={'virtue_id': args.virtue_id})
 
 	listen_for_commands(args.virtue_id, excalibur_key, virtue_key, args.rdb_host, args.socket)
 
