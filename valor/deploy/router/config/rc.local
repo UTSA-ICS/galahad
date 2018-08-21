@@ -42,4 +42,6 @@ sysctl -w net.ipv4.ip_forward=1
 iptables -A FORWARD --in-interface br0 -j ACCEPT
 iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 
+mount -a
+
 exit 0

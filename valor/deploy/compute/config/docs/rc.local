@@ -44,4 +44,6 @@ iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 
 systemctl start xencommons
 
+mount -a
+
 exit 0
