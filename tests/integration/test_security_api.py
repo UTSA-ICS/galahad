@@ -187,6 +187,21 @@ def __query_elasticsearch(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+def __get_merlin_index():
+    # A new index is created every day
+    now = datetime.datetime.now()
+    index = now.strftime('merlin-%Y.%m.%d')
+    return index
+
+def __query_elasticsearch_merlin(args):
+    index = __get_merlin_index()
+    cmdargs = ''
+    for (key, value) in args:
+        cmdargs += '&q=' + str(key) + ':' + str(value)
+    cmd = 'curl -s -X GET --insecure "https://admin:admin@localhost:9200/%s/_search?size=1&pretty%s"' % (index, cmdargs)
+    output = aggregator_ssh.ssh(cmd, output=True)
+    return json.loads(output)
+
 def test_sensor_disable():
     if virtue_ssh is None:
         __setup_virtue()
@@ -210,6 +225,10 @@ def test_sensor_disable():
     # Check that the log DIDN'T appear on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] == 0
+
+    result = __query_elasticsearch_merlin(
+        [('transducer_id', 'path_mkdir'), ('enabled', 'false'), ('virtue_id', virtue_id)])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
     # Cleanup
     virtue_ssh.ssh('rm -r ' + dirname)
@@ -237,6 +256,10 @@ def test_sensor_enable():
 
     # Check that the log appeared on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
+    result = __query_elasticsearch_merlin(
+        [('transducer_id', 'path_mkdir'), ('enabled', 'true'), ('virtue_id', virtue_id)])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
     # Cleanup
