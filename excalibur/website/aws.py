@@ -99,15 +99,15 @@ class AWS:
         return res['Reservations'][0]['Instances'][0]['InstanceId']
 
 
-    def instance_create(self, image_id, \
-                        inst_type, \
-                        subnet_id, \
-                        key_name, \
-                        tag_key, \
-                        tag_value, \
-                        sec_group, \
-                        inst_profile_name, \
-                        inst_profile_arn, \
+    def instance_create(self, image_id,
+                        inst_type,
+                        subnet_id,
+                        key_name,
+                        tag_key,
+                        tag_value,
+                        sec_group,
+                        inst_profile_name,
+                        inst_profile_arn,
                         block=True):
         """Create a new AWS instance - a virtue
         This will create a AWS instance based on a

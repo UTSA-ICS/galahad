@@ -30,8 +30,14 @@ class AdminCLI(base.BaseCLI):
         self.commands['user role unauthorize'] = self.user_role_unauth
         self.commands['virtue create'] = self.virtue_create
         self.commands['virtue destroy'] = self.virtue_destroy
+        self.commands['valor list'] = self.valor_list
+        self.commands['valor create'] = self.valor_create
+        self.commands['valor launch'] = self.valor_launch
+        self.commands['valor stop'] = self.valor_stop
+        self.commands['valor destroy'] = self.valor_destroy
 
         #self.commands['usertoken list'] = self.usertoken_list
+
 
     def app_list(self):
 
@@ -39,6 +45,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def resource_get(self):
 
@@ -50,6 +57,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_list(self):
 
         result = self.session.get(self.base_url + '/resource/list')
@@ -57,6 +65,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_attach(self):
 
         resource_id = input('Resource ID: ').strip()
@@ -70,6 +79,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_detach(self):
 
         resource_id = input('Resource ID: ').strip()
@@ -83,6 +93,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def role_create(self):
 
         role_path = input('Role configuration file (json): ')
@@ -112,6 +123,7 @@ class AdminCLI(base.BaseCLI):
 
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def role_list(self):
 
         result = self.session.get(self.base_url + '/role/list')
@@ -119,6 +131,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def system_export(self):
 
         result = self.session.get(self.base_url + '/system/export')
@@ -126,6 +139,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def system_import(self):
 
         data_path = input('Path to .json file: ')
@@ -146,6 +160,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_user(self):
 
         which = input('Which: ').strip()
@@ -156,6 +171,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_app(self):
 
         which = input('Which: ').strip()
@@ -166,6 +182,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_role(self):
 
         which = input('Which: ').strip()
@@ -176,12 +193,14 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
     
+    
     def user_list(self):
 
         result = self.session.get(self.base_url + '/user/list')
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+    
     
     def user_get(self):
 
@@ -193,6 +212,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def user_virtue_list(self):
 
         user = input('Username: ').strip()
@@ -203,6 +223,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def user_logout(self):
 
         user = input('Username: ').strip()
@@ -212,6 +233,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def user_role_auth(self):
 
@@ -225,6 +247,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+
     def user_role_unauth(self):
 
         user = input('Username: ').strip()
@@ -236,6 +259,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def virtue_create(self):
 
@@ -249,6 +273,7 @@ class AdminCLI(base.BaseCLI):
 
         return json.dumps(data, indent=4, sort_keys=True)
 
+
     def virtue_destroy(self):
 
         virtue_id = input('Virtue ID: ').strip()
@@ -258,6 +283,51 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
 
         return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_list(self):
+
+        result = self.session.get(self.base_url + '/valor/list')
+
+        data = result.json()
+        
+        return json.dumps(data, indent=4, sort_keys=True)
+
+ 
+    def valor_create(self):
+
+        result = self.session.get(self.base_url + '/valor/create')
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_create_pool(self):
+
+        number_of_valors = input('Number of valors: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/create_pool',
+            params={'number_of_valors': number_of_valors})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_destroy(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/destroy',
+            params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
 
 if (__name__ == '__main__'):
 

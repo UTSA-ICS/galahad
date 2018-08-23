@@ -18,10 +18,12 @@ DEBUG_PERMISSIONS = False
 
 
 class EndPoint_Admin():
-    def __init__(self, user, password):
-        self.inst = LDAP(user, password)
 
+    def __init__(self, user, password):
+
+        self.inst = LDAP(user, password)
         self.inst.bind_ldap()
+
 
     def application_list(self):
 
@@ -37,6 +39,7 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
 
     def resource_get(self, resourceId):
 
@@ -520,4 +523,34 @@ class EndPoint_Admin():
 
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_create(self, use_aws=True):
+
+        try:
+
+            self.ValorAPI.valor_create()
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_list(self, use_aws=True):
+
+        try:
+
+            self.ValorAPI.valor_create()
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
             return json.dumps(ErrorCodes.user['unspecifiedError'])

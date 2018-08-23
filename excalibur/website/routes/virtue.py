@@ -806,3 +806,73 @@ def transducer_list_enabled():
 
         return make_response(
             json.dumps(ErrorCodes.security['unspecifiedError']))
+
+
+@bp.route('/admin/valor/list', methods=['GET'])
+@require_oauth()
+def admin_valor_list():
+
+    valors = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_list()
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/create', methods=['GET'])
+@require_oauth()
+def admin_valor_create():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_create(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/create_pool', methods=['GET'])
+@require_oauth()
+def admin_valor_create_pool():
+
+    valor_ids = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_ids = ep.valor_create_pool(request.args['valor_ids'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_ids)
+
+
+@bp.route('/admin/valor/destroy', methods=['GET'])
+@require_oauth()
+def admin_valor_destroy():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_destroy(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
