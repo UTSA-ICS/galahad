@@ -34,6 +34,24 @@ def parse_args():
         required=False,
         help='The IP address of an existing aws excalibur instance.')
     parser.add_argument(
+        '-a',
+        '--aggregator_server_ip',
+        type=str,
+        required=False,
+        help='The IP address of an existing aws aggregator instance.')
+    parser.add_argument(
+        '-v',
+        '--virtue_ip',
+        type=str,
+        required=False,
+        help='The IP address of an existing aws Virtue instance.')
+    parser.add_argument(
+        '-d',
+        '--virtue_id',
+        type=str,
+        required=False,
+        help='The Virtue ID of an existing aws Virtue instance.')
+    parser.add_argument(
         '--run_test',
         type=str,
         help='The Integration Test that will be run')
@@ -56,20 +74,55 @@ if (__name__ == '__main__'):
     args = parse_args()
 
     excalibur_ip = None
+    aggregator_ip = None
+    virtue_ip = None
+    virtue_id = None
+
     if args.stack_name != None:
         excalibur_ip = common.get_excalibur_server_ip(args.stack_name)
-    elif args.excalibur_server_ip != None:
-        excalibur_ip = args.excalibur_server_ip
+        aggregator_ip = common.get_aggregator_server_ip(args.stack_name)
     else:
-        logger.error(
-            '\nPlease specify either stack_name or excalibur_user_ip!\n')
-        sys.exit()
+        if args.excalibur_server_ip != None:
+            excalibur_ip = args.excalibur_server_ip
+        else:
+            logger.error(
+                '\nPlease specify either stack_name or excalibur_user_ip!\n')
+            sys.exit()
+
+        if args.run_all_tests or args.run_test == 'test_security_api.py':
+            if args.aggregator_server_ip != None:
+                aggregator_ip = args.aggregator_server_ip
+            else:
+                logger.error(
+                    '\nPlease specify either stack_name or aggregator_server_ip!\n')
+                sys.exit()
+
+            if args.virtue_ip != None:
+                virtue_ip = args.virtue_ip
+            else:
+                logger.warn(
+                    '\nWarning: a new Virtue will be created\n')
+
+            if args.virtue_id != None:
+                virtue_id = args.virtue_id
+            else:
+                logger.warn(
+                    '\nWarning: a new Virtue will be created\n')  
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
     # Populate the excalibur_ip file needed for all the tests.
     ssh_inst.ssh('cd galahad/tests/setup && echo {} > excalibur_ip'.format(
         excalibur_ip))
+    if aggregator_ip is not None:
+        ssh_inst.ssh('cd galahad/tests/setup && echo {} > aggregator_ip'.format(
+            aggregator_ip))
+    if virtue_ip is not None:
+        ssh_inst.ssh('cd galahad/tests/setup && echo {} > virtue_ip'.format(
+            virtue_ip))
+    if virtue_id is not None:
+        ssh_inst.ssh('cd galahad/tests/setup && echo {} > virtue_id'.format(
+            virtue_id))
 
     if args.list_tests:
         logger.info(
