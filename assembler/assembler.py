@@ -31,9 +31,9 @@ class Assembler(object):
     def __init__(self,
                  #build_options,
                  #docker_login,
-                 es_node='https://172.30.128.129:9200',
+                 es_node='https://172.30.1.46:9200',
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.128.130',
+                 rethinkdb_host='172.30.1.45',
                  work_dir='tmp'):
         #self.build_options = build_options
         #self.docker_login = docker_login
@@ -271,9 +271,6 @@ class Assembler(object):
                     os.chown(os.path.join(path, f), 501, 1000)
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
-
-            shutil.copy(payload_dir + '/merlin.service',
-                        mount_path + '/etc/systemd/system/merlin.service')
 
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'merlin'])

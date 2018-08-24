@@ -45,5 +45,5 @@ systemctl daemon-reload
 systemctl enable syslog-ng
 #systemctl restart syslog-ng
 
-echo 172.30.128.130 rethinkdb.galahad.com >> /etc/hosts
+echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts
 rm runme.sh
