@@ -3,6 +3,8 @@ import rethinkdb
 
 from paramiko import SSHClient
 
+from aws import AWS
+
 
 class ValorAPI:
 
@@ -12,7 +14,8 @@ class ValorAPI:
 
 
     def valor_create(self):
-        ValorManaager.create_valor()
+        aws = AWS()
+        ValorManaager.create_valor(aws.get_subnet_id(), aws.get_sec_group())
       
  
     def valor_create_pool(self):
@@ -30,16 +33,14 @@ class ValorAPI:
 
 class Valor: 
 
-    def __init__(self):
+    def __init__(self, subnet, sec_group):
 
         aws = AWS()
 
-        #TODO: need ip of valor, not excalibur 
-        self.ip = '{0}/32'.format(aws.get_public_ip())
-        self.subnet    = aws.get_subnet_id
-        self.sec_group = aws.get_sec_group()
-
-        self.authorize_ssh_connections()
+        excalibur_ip = '{0}/32'.format(aws.get_public_ip())
+        self.subnet    = subnet
+        self.sec_group = sec_group
+        self.guestnet  = None
 
         valor = {
             'image_id' : 'ami-01c5d8354c604b662',
@@ -48,22 +49,25 @@ class Valor:
             'key_name' : 'startlab-virtue-te', 
             'tag_key' : 'Project',
             'tag_value' : 'Virtue',
-            'sec_group' : self.sec_group.id,
+            'sec_group' : self.sec_group,
             'inst_profile_name' : '',
             'inst_profile_arn' : '', 
         }
 
-        instance = aws.instance_create(**valor)
+        self.aws_instance = aws.instance_create(**valor)
 
-        return instance
+        self.authorize_ssh_connections(excalibur_ip)
 
 
-    def authorize_ssh_connections(self):
+    def authorize_ssh_connections(self, ip):
+
+        ec2 = boto3.resource('ec2')
+        sg = ec2.SecurityGroup(self.sec_group)
 
         #TODO: should the security group already be authorized for SSH?
         try:
-            self.sec_group.authorize_ingress(
-                CidrIp=self.ip,
+            self.sg.authorize_ingress(
+                CidrIp=ip,
                 FromPort=22,
                 IpProtocol='tcp',
                 ToPort=22 
@@ -95,7 +99,7 @@ class Valor:
         client = SSHClient()
 
         client.load_system_host_keys()
-        client.connect(self.ip, 'ubuntu')
+        client.connect(self.aws_instance.public_ip_address, 'ubuntu')
 
         return client
 
@@ -125,7 +129,12 @@ class Valor:
 
         stdin, stdout, stderr = client.exec_command(
             cd_and_execute_setup_command)
-        
+
+
+    def launch_virtue(self, id, virtue_path):
+        virtue_guestnet = '10.91.0.5'
+
+        # Write to rethink
 
 
 class ValorManager:
@@ -158,7 +167,7 @@ class RethinkDbManager:
     ip_address = '34.226.123.49'
 
     def __init__(self):
-        self.client = rethinkdb.connect(ip_address, 28015).repl()
+        self.client = rethinkdb.connect(self.ip_address, 28015).repl()
 
 
     def list_valors(self):
@@ -167,15 +176,32 @@ class RethinkDbManager:
 
     def add_valor(self, valor):
 
+        assert valor.guestnet == None
+
+        # TODO: We need to use new guestnet for each valor
         record = {
-           'function' : 'valor',
-           'guestnet' : '10.91.0.1',
-            'host'    : valor.public_dns_name
-            'address' : valor.private_ip_address
+            'function': 'valor',
+            'guestnet': '10.91.0.1',
+            'host'    : valor.aws_instance.id,
+            'address' : valor.aws_instance.private_ip_address
         }
 
-        self.client.db('routing').table('galahad').insert([{record}]).run()
+        self.client.db('routing').table('galahad').insert([record]).run()
+        valor.guestnet = record['guestnet']
 
+
+    def add_virtue(self, virtue_hostname, efs_path):
+
+        # TODO: How do we decide what address and guestnet to use?
+        record = {
+            'function': 'virtue',
+            'host'    : virtue_hostname,
+            'address' : '172.30.87.98',
+            'guestnet': '10.91.0.5',
+            'efs_path': efs_path
+        }
+
+        self.client.db('routing').table('galahad').insert([record]).run()
 
 
 class RouterManager:
