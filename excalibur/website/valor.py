@@ -6,6 +6,10 @@ from paramiko import SSHClient
 
 class ValorAPI:
 
+    def __init__(self):
+
+        self.rethinkdb = RethinkDbManager()
+
 
     def valor_create(self):
         ValorManaager.create_valor()
@@ -20,7 +24,7 @@ class ValorAPI:
 
 
     def valor_list(self):
-        pass
+        return self.rethinkdb.list_valors()
 
 
 
@@ -74,9 +78,9 @@ class Valor:
     def mount_efs(self):
 
         mount_efs_command = (
-            'sudo mount -t nfs 
-            fs-de078b96.efs.us-east-1.amazonaws.com:/export
-            /mnt/efs/')
+            'sudo mount -t nfs '
+            'fs-de078b96.efs.us-east-1.amazonaws.com:/export '
+            '/mnt/efs/')
 
         client = self.connect_with_ssh()
 
@@ -149,17 +153,16 @@ class ValorManager:
         pass
 
 
-
 class RethinkDbManager:
 
-    ip_address = ''
+    ip_address = '34.226.123.49'
 
     def __init__(self):
-        client = rethinkdb.connect(ip_address, 28015).repl()
+        self.client = rethinkdb.connect(ip_address, 28015).repl()
 
 
     def list_valors(self):
-        return r.db('routing').table('galahad').run()
+        return self.client.db('routing').table('galahad').run()
 
 
     def add_valor(self, valor):

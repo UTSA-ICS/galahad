@@ -11,6 +11,7 @@ from apiendpoint import EndPoint
 from controller import CreateVirtueThread
 from . import ldap_tools
 from aws import AWS
+from valor import ValorAPI
 
 from assembler.assembler import Assembler
 
@@ -23,6 +24,7 @@ class EndPoint_Admin():
 
         self.inst = LDAP(user, password)
         self.inst.bind_ldap()
+        self.valor_api = ValorAPI()
 
 
     def application_list(self):
@@ -530,7 +532,7 @@ class EndPoint_Admin():
 
         try:
 
-            self.ValorAPI.valor_create()
+            self.valor_api.valor_create()
 
             return json.dumps(ErrorCodes.admin['success'])
 
@@ -545,9 +547,9 @@ class EndPoint_Admin():
 
         try:
 
-            self.ValorAPI.valor_create()
+            valors = self.valor_api.valor_list()
 
-            return json.dumps(ErrorCodes.admin['success'])
+            return json.dumps(valors)
 
         except:
 

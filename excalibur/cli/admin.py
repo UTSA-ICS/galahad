@@ -32,8 +32,8 @@ class AdminCLI(base.BaseCLI):
         self.commands['virtue destroy'] = self.virtue_destroy
         self.commands['valor list'] = self.valor_list
         self.commands['valor create'] = self.valor_create
-        self.commands['valor launch'] = self.valor_launch
-        self.commands['valor stop'] = self.valor_stop
+        self.commands['valor create pool'] = self.valor_create_pool
+#        self.commands['valor stop'] = self.valor_stop
         self.commands['valor destroy'] = self.valor_destroy
 
         #self.commands['usertoken list'] = self.usertoken_list
