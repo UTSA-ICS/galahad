@@ -142,7 +142,7 @@ class ValorManager:
     rethinkdb_ip_address = ''
 
 
-    def get_empty_valor(self)
+    def get_empty_valor(self):
         pass
 
 
