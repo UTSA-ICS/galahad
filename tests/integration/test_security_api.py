@@ -179,6 +179,8 @@ def __get_elasticsearch_index():
     return index
 
 def __query_elasticsearch(args):
+    assert aggregator_ssh.check_access()
+
     index = __get_elasticsearch_index()
     cmdargs = ''
     for (key, value) in args:
