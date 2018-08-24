@@ -31,9 +31,9 @@ class Assembler(object):
     def __init__(self,
                  #build_options,
                  #docker_login,
-                 es_node='https://172.30.128.129:9200',
+                 es_node='https://172.30.1.46:9200',
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.128.130',
+                 rethinkdb_host='172.30.1.45',
                  work_dir='tmp'):
         #self.build_options = build_options
         #self.docker_login = docker_login
@@ -90,7 +90,7 @@ class Assembler(object):
             print (output)
             instance = output[0]
             time.sleep(5)
-            return instance.id
+            return instance
         else:
             print("Got unexpaced data")
             print(output)
@@ -118,29 +118,6 @@ class Assembler(object):
             self.run_stage(stages, dep)
         stages[stage].run()
 
-
-    # Deprecated and broken
-    def setup_qemu(self, build_options, work_dir):
-        if args.resize_img:
-            # figure out image size by parsing output of 'qemu-img info $IMAGE'
-            qemu_img = subprocess.Popen(['qemu-img', 'info', args.start_vm],
-                                        stdout=subprocess.PIPE)
-            qemu_img.wait()
-            img_size = int(re.search('\(([0-9]+) bytes\)',
-                                     str(qemu_img.stdout.read())).group(1))
-            if img_size < 3000000000:
-                subprocess.check_call(['qemu-img', 'resize', args.start_vm, args.resize_img])
-        # create an iso with newly generated cloud-init data
-        cwd = os.getcwd()
-        os.chdir(WORK_DIR)
-        cmd = ['mkisofs', '-output', ISO_FILE, '-volid', 'cidata', '-joliet', '-rock', 'user-data', 'meta-data']
-        subprocess.check_call(cmd)
-        os.chdir(cwd)
-        iso_path = os.path.join(WORK_DIR, ISO_FILE)
-        log_path = os.path.join(WORK_DIR, LOG_FILE)
-        cmd = ['qemu-system-x86_64', '--enable-kvm', '-m', '1024', '-smp', '1', '-cdrom', iso_path, '-device', 'e1000,netdev=user.0', '-netdev', 'user,id=user.0,hostfwd=tcp::%s-:22' % (args.ssh_port), '-drive', 'file=%s,if=virtio,cache=writeback,index=0' % (args.start_vm), '-serial', 'file:%s' % (log_path)]
-
-        vm = subprocess.Popen(cmd)
 
     # Deprecated
     def setup_aws(self, build_options, work_dir, vmname):
@@ -177,9 +154,9 @@ class Assembler(object):
                 f.read(),
                 vmname,
                 build_options['aws_disk_size'])
-            print("New instance id: %s" % (instance))
+            print("New instance id: %s" % (instance.id))
             #return
-            ssh_host = self.get_vm_ip(instance)
+            ssh_host = self.get_vm_ip(instance.id)
             print("New instance ip: %s" % (ssh_host))
             ssh_port = '22'
         print("Waiting for VM to start...")
@@ -255,7 +232,8 @@ class Assembler(object):
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
-            merlin_file_path = payload_dir
+            merlin_file_path = os.path.join(real_HOME, 'galahad',
+                                            'transducers')
             kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
             merlin_files = ['merlin.deb']
@@ -293,9 +271,6 @@ class Assembler(object):
                     os.chown(os.path.join(path, f), 501, 1000)
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
-
-            shutil.copy(merlin_file_path + '/merlin.service',
-                        mount_path + '/etc/systemd/system/merlin.service')
 
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'merlin'])
@@ -485,14 +460,15 @@ class Assembler(object):
             print("All Cloud-Init stages are finished")
             print("Waiting for a VM to come up for ssh stages...")
 
+        # Build the merlin deb file
+        subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
+                                           'transducers', 'build_merlin.sh'))
+
         vm = None
         instance = ''
         vmname = self.NAME
 
-        if (build_options['env'] == 'qemu'):
-            # Deprecated and broken
-            self.setup_qemu(build_options, WORK_DIR)
-        elif (build_options['env'] == 'aws'):
+        if (build_options['env'] == 'aws'):
             # Deprecated
             ssh_data = self.setup_aws(build_options, WORK_DIR, vmname)
             instance = ssh_data[0]
@@ -538,9 +514,9 @@ class Assembler(object):
         return_data = ''
         print("Assembler is done")
         if build_options['env'] == 'aws':
-            print("Created instance id: %s, name: %s" % (instance, vmname))
+            print("Created instance id: %s, name: %s" % (instance.id, vmname))
             with open(os.path.join(WORK_DIR, "README.md"), 'w') as f:
-                f.write('\nInstance ID: %s' % (instance))
+                f.write('\nInstance ID: %s' % (instance.id))
 
             time.sleep(20)
 
@@ -550,10 +526,19 @@ class Assembler(object):
                 private_key = rsa.read()
 
             if (build_options['create_ami']):
+
+                instance.reload()
+
+                if (instance.state['Name'] == 'stopping'):
+                    instance.wait_until_stopped()
+
+                t = time.localtime()
                 ec2 = boto3.client('ec2')
                 ami_data = ec2.create_image(
-                    InstanceId=instance, Name='Unity',
-                    Description='Created by assembler on {0}.'.format(
+                    InstanceId=instance.id,
+                    Name='Unity-{0}-{1}-{2}-{3}-{4}'.format(
+                        t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min),
+                    Description='Created by constructor on {0}.'.format(
                         build_options['aws_subnet_id']))
                 print('AMI data: {0}'.format(ami_data))
                 ami_id = ami_data['ImageId']
@@ -564,12 +549,20 @@ class Assembler(object):
             if (not os.path.exists(build_options['output_dir'])):
                 os.makedirs(build_options['output_dir'])
 
-            shutil.copy(os.path.join(WORK_DIR, 'disk.img'),
-                        build_options['output_dir'])
-            shutil.copy(os.path.join(WORK_DIR, 'id_rsa'),
-                        build_options['output_dir'])
-            shutil.copy(os.path.join(WORK_DIR, 'id_rsa.pub'),
-                        build_options['output_dir'])
+            if (clean):
+                shutil.move(os.path.join(WORK_DIR, 'disk.img'),
+                            build_options['output_dir'])
+                shutil.move(os.path.join(WORK_DIR, 'id_rsa'),
+                            build_options['output_dir'])
+                shutil.move(os.path.join(WORK_DIR, 'id_rsa.pub'),
+                            build_options['output_dir'])
+            else:
+                shutil.copy(os.path.join(WORK_DIR, 'disk.img'),
+                            build_options['output_dir'])
+                shutil.copy(os.path.join(WORK_DIR, 'id_rsa'),
+                            build_options['output_dir'])
+                shutil.copy(os.path.join(WORK_DIR, 'id_rsa.pub'),
+                            build_options['output_dir'])
 
         if clean:
             shutil.rmtree(WORK_DIR)

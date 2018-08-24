@@ -630,7 +630,7 @@ def security_api_config():
 
     try:
 
-        ret = ep.set_api_config(request.args)
+        ret = ep.set_api_config(json.loads(request.args['configuration']))
 
         return make_response(ret)
 

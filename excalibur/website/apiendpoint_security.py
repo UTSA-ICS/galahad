@@ -35,6 +35,7 @@ class EndPoint_Security:
         self.__class__.virtue_key_dir = '.'
         self.__class__.wait_for_ack = 30  # seconds
 
+
         if 'transducer' in config:
             c = config['transducer']
             if 'rethinkdb_host' in c:
@@ -71,6 +72,7 @@ class EndPoint_Security:
                 'invalidOrMissingParameters',
                 details='Directory not found for Virtue public keys: ' +
                 self.__class__.virtue_key_dir)
+        return self.__error('success')
 
     def transducer_list(self):
         '''
@@ -259,6 +261,7 @@ class EndPoint_Security:
                 return self.__error('unspecifiedError', details=\
                     'Failed to connect to RethinkDB at host: ' + \
                     self.__class__.rethinkdb_host + ' because: ' + str(e))
+        return True
 
     def __enable_disable(self, transducerId, virtueId, configuration,
                          isEnable):
@@ -279,11 +282,17 @@ class EndPoint_Security:
         # Change the ruleset
         ret = self.__change_ruleset(
             virtueId, transducerId, transducerType, isEnable, config=configuration)
-        if ret == False:
+        if ret != True:
             return ret
 
         # Update the virtue's list of transducers
         new_t_list = self.transducer_list_enabled(virtueId)
+        if type(new_t_list) is not list and new_t_list['status'] == 'failed':
+            # Couldn't retrieve new list of transducers
+            return self.__error(
+                'unspecifiedError',
+                details='Unable to update virtue\'s list of transducers')
+            
         virtue['ctransIds'] = str(new_t_list)
         ret = self.inst.modify_obj('cid', virtueId, virtue, 'OpenLDAPvirtue',
                                    True)
@@ -300,8 +309,9 @@ class EndPoint_Security:
             'enabled', 'timestamp'
         ]
         if not all([(key in row) for key in required_keys]):
-            return self.__error('unspecifiedError', details='Missing required keys in row: ' +\
-                str(filter((lambda key: key not in row),required_keys)))
+            return (False, 
+                self.__error('unspecifiedError', details='Missing required keys in row: ' +\
+                str(filter((lambda key: key not in row),required_keys))))
 
         message = '|'.join([
             row['virtue_id'], row['transducer_id'], row['type'],
@@ -312,7 +322,7 @@ class EndPoint_Security:
         h = SHA.new(str(message))
         signer = PKCS1_v1_5.new(self.__class__.excalibur_key)
         signature = signer.sign(h)
-        return signature
+        return (True, signature)
 
     def __verify_message(self, row):
         if row is None:
@@ -356,7 +366,13 @@ class EndPoint_Security:
 
     def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, config=None):
         if self.__class__.conn is None:
-            self.__connect_rethinkdb()
+            ret = self.__connect_rethinkdb()
+            # Return if error
+            if ret != True:
+                return ret
+
+        if type(transducer_type) is list:
+            transducer_type = transducer_type[0]
 
         timestamp = int(time.time())
 
@@ -369,7 +385,11 @@ class EndPoint_Security:
             'enabled': enable,
             'timestamp': timestamp
         }
-        signature = self.__sign_message(row)
+        (success, signature) = self.__sign_message(row)
+        if not success:
+           # Return error code
+           return signature
+
         row['signature'] = r.binary(signature)
 
         # Send command to change ruleset

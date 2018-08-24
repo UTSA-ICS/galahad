@@ -312,6 +312,8 @@ def do_actuator(transducer_id, config_str, enabled):
 				continue
 
 		# Send list of processes to netlink socket that the Virtue LSM is listening to, so that the LSM can block future attempts at starting the blocked process
+                # TODO: uncomment this when the kernel updates have been checked in!
+                """
 		sock = connect_socket_netlink()
 		if sock is None:
 			log.error('Unable to connect to net socket')
@@ -320,6 +322,7 @@ def do_actuator(transducer_id, config_str, enabled):
 		if not send_message_netlink(sock, config['processes']):
 			log.error('Failed to send command over netlink socket')
 			return False
+                """
 
 		return True
 
