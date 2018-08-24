@@ -8,13 +8,16 @@ env = 'aws'
 
 if (env == 'aws'):
     build_opts = {'env': 'aws',
+        'docker_login': '$DOCKER_LOGIN',
         'aws_image_id': 'ami-759bc50a',
-        'aws_instance_type': 't2.micro',
-        'aws_security_group': 'sg-00701349e8e18c5eb',
-        'aws_subnet_id': 'subnet-05034ec1f99d009b9',
+        'aws_instance_type': 't2.medium',
+        'aws_security_group': 'sg-01a26770c93daf2cc',
+        'aws_subnet_id': 'subnet-0b9daec6ff026a935',
         'aws_disk_size': 8,
-        'create_ami': False
+        'create_ami': False,
+        'containers': ['terminal', 'firefox']
     }
+
 else:
     build_opts = {
         'env': 'xen',
