@@ -1,6 +1,9 @@
+import os
 import boto3
+import botocore
 import rethinkdb
 
+import paramiko
 from paramiko import SSHClient
 
 from aws import AWS
@@ -45,9 +48,9 @@ class Valor:
 
         valor = {
             'image_id' : 'ami-01c5d8354c604b662',
-            'inst_type' : 't2.small',
+            'inst_type' : 't2.medium',
             'subnet_id' : self.subnet,
-            'key_name' : 'startlab-virtue-te', 
+            'key_name' : 'starlab-virtue-te',
             'tag_key' : 'Project',
             'tag_value' : 'Virtue',
             'sec_group' : self.sec_group,
@@ -67,7 +70,7 @@ class Valor:
 
         #TODO: should the security group already be authorized for SSH?
         try:
-            self.sg.authorize_ingress(
+            sg.authorize_ingress(
                 CidrIp=ip,
                 FromPort=22,
                 IpProtocol='tcp',
@@ -99,8 +102,11 @@ class Valor:
 
         client = SSHClient()
 
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
         client.load_system_host_keys()
-        client.connect(self.aws_instance.public_ip_address, 'ubuntu')
+        client.connect(self.aws_instance.public_ip_address, username='ubuntu',
+                       key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
 
         return client
 
@@ -133,9 +139,10 @@ class Valor:
 
 
     def launch_virtue(self, id, virtue_path):
-        virtue_guestnet = '10.91.0.5'
 
         # Write to rethink
+        rdb = RethinkDbManager()
+        rdb.add_virtue(self.aws_instance.id, id, virtue_path)
 
 
 class ValorManager:
@@ -149,9 +156,9 @@ class ValorManager:
         pass
 
 
-    def create_valor(self, subnet):
+    def create_valor(self, subnet, sec_group):
 
-        valor = Valor(subnet)
+        valor = Valor(subnet, sec_group)
         valor.mount_efs()
 
         self.rethinkdb_manager.add_valor(valor)
@@ -198,18 +205,18 @@ class RethinkDbManager:
         valor.guestnet = record['guestnet']
 
 
-    def add_virtue(self, virtue_hostname, efs_path):
+    def add_virtue(self, valor_hostname, virtue_hostname, efs_path):
 
         # TODO: How do we decide what address and guestnet to use?
         record = {
             'function': 'virtue',
             'host'    : virtue_hostname,
-            'address' : '172.30.87.98',
+            'valor'   : valor_hostname,
             'guestnet': '10.91.0.5',
-            'efs_path': efs_path
+            'img_path': efs_path
         }
 
-        rethinkdb.db('routing').table('galahad').insert([record]).run()
+        self.client.db('routing').table('galahad').insert([record]).run()
 
 
 class RouterManager:
