@@ -10,12 +10,13 @@ class ValorAPI:
 
     def __init__(self):
 
-        self.rethinkdb = RethinkDbManager()
+        self.rethinkdb_manager = RethinkDbManager()
+        self.valor_manager = ValorManager()
 
 
     def valor_create(self):
         aws = AWS()
-        ValorManaager.create_valor(aws.get_subnet_id(), aws.get_sec_group())
+        valor_manager.create_valor(aws.get_subnet_id(), aws.get_sec_group())
       
  
     def valor_create_pool(self):
@@ -139,7 +140,9 @@ class Valor:
 
 class ValorManager:
 
-    rethinkdb_ip_address = ''
+    def __init__(self):
+        self.rethinkdb_manager = RethinkDbManager()
+        self.router_manager = RouterManager()
 
 
     def get_empty_valor(self):
@@ -151,9 +154,9 @@ class ValorManager:
         valor = Valor(subnet)
         valor.mount_efs()
 
-        RethinkDbManager.add_valor(valor)
+        self.rethinkdb_manager.add_valor(valor)
 
-        RouterManager.add_valor(valor)
+        self.router_manager.add_valor(valor)
 
         valor.setup()
 
@@ -176,7 +179,7 @@ class RethinkDbManager:
 
         valors = list(response.items)
 
-        return valor_list
+        return valors
 
 
     def add_valor(self, valor):
