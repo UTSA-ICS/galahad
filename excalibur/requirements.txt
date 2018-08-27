@@ -15,3 +15,4 @@ gnureadline==6.3.8
 pycryptodome==3.5.1
 rethinkdb==2.3.0.post6
 pyyaml
+paramiko
