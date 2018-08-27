@@ -817,12 +817,12 @@ def admin_valor_list():
     try:
 
         ep = get_admin_endpoint()
-        valor_id = ep.valor_list()
+        valors = ep.valor_list()
 
     except:
         print("Unexpected error:", sys.exc_info())
 
-    return make_response(valor_id)
+    return make_response(valors)
 
 
 @bp.route('/admin/valor/create', methods=['GET'])

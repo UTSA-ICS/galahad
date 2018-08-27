@@ -3,6 +3,8 @@ import json
 
 import base
 
+#TODO: need to add exception handling if response cannot be jsonified
+# received an error for data = result.json()
 class AdminCLI(base.BaseCLI):
 
     def __init__(self, ip):

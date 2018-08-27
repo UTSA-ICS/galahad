@@ -164,14 +164,19 @@ class ValorManager:
 
 class RethinkDbManager:
 
-    ip_address = '34.226.123.49'
+    ip_address = '172.30.1.54'
 
     def __init__(self):
-        self.client = rethinkdb.connect(self.ip_address, 28015).repl()
+        self.connection = rethinkdb.connect(self.ip_address, 28015).repl()
 
 
     def list_valors(self):
-        return self.client.db('routing').table('galahad').run()
+
+        response = rethinkdb.db('routing').table('galahad').run()
+
+        valors = list(response.items)
+
+        return valor_list
 
 
     def add_valor(self, valor):
@@ -186,7 +191,7 @@ class RethinkDbManager:
             'address' : valor.aws_instance.private_ip_address
         }
 
-        self.client.db('routing').table('galahad').insert([record]).run()
+        rethinkdb.db('routing').table('galahad').insert([record]).run()
         valor.guestnet = record['guestnet']
 
 
@@ -201,7 +206,7 @@ class RethinkDbManager:
             'efs_path': efs_path
         }
 
-        self.client.db('routing').table('galahad').insert([record]).run()
+        rethinkdb.db('routing').table('galahad').insert([record]).run()
 
 
 class RouterManager:
