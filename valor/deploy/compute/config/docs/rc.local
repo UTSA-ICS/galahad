@@ -1,0 +1,49 @@
+#!/bin/bash -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+
+# Virtue Galahad modifications for Router node
+
+# Move eth0 onto a bridge
+killall dhclient
+ifconfig eth0 0.0.0.0
+brctl addbr br0
+brctl addif br0 eth0
+dhclient br0
+
+modprobe ip_gre
+
+stat=$(systemctl status openvswitch-switch | grep "inactive")
+if [ -n "$stat" ]; then
+  systemctl start openvswitch-switch
+fi
+
+# Compute 1 and 2:
+# ovs-vsctl add-port hello-br0 gre1 -- set interface gre1 type=gre     options:remote_ip=172.31.14.196
+# ovs-vsctl add-port hello-br0 gre0 -- set interface gre0 type=gre     options:remote_ip=172.31.14.195
+# or:
+# ovs-vsctl add-port hello-br0 vxlan1 -- set interface vxlan1 type=vxlan   options:remote_ip=172.31.14.196
+# ovs-vsctl add-port hello-br0 vxlan0 -- set interface vxlan0 type=vxlan   options:remote_ip=172.31.14.195
+
+ip address add "$ME/24" dev hello-br0
+ifconfig hello-br0 up
+
+sysctl -w net.ipv4.conf.all.rp_filter=0
+sysctl -w net.ipv4.conf.gre0.rp_filter=0
+sysctl -w net.ipv4.ip_forward=1
+iptables -A FORWARD --in-interface br0 -j ACCEPT
+iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
+
+systemctl start xencommons
+
+mount -a
+
+exit 0
