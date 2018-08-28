@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cp -R /mnt/nfs/deploy/compute/gaius /home/ubuntu/galahad
