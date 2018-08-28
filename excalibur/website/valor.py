@@ -18,8 +18,11 @@ class ValorAPI:
 
 
     def valor_create(self):
+
         aws = AWS()
-        valor_manager.create_valor(aws.get_subnet_id(), aws.get_sec_group().id)
+        self.valor_manager.create_valor(
+            aws.get_subnet_id(),
+            aws.get_sec_group().id)
       
  
     def valor_create_pool(self):
@@ -82,19 +85,42 @@ class Valor:
                 + 'Rule may already exist.')
 
 
+    def get_efs_mount(self):
+
+        stack_name = 'test-for-mvs-1'
+
+        cloudformation = boto3.resource('cloudformation')
+        efs_stack = cloudformation.Stack(stack_name)
+
+        for output in efs_stack.outputs:
+
+            if output['OutputKey'] == 'FileSystemID':
+                file_system_id = output['OutputValue']
+
+        efs_name = '{}.efs.us-east-1.amazonaws.com'.format(file_system_id)
+
+        return efs_name
+
+
     def mount_efs(self):
+
+        efs_mount = self.get_efs_mount()
+
+        make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
         mount_efs_command = (
             'sudo mount -t nfs '
-            'fs-de078b96.efs.us-east-1.amazonaws.com:/export '
-            '/mnt/efs/')
+            '{}:/export '
+            '/mnt/efs/').format(efs_mount)
 
         client = self.connect_with_ssh()
 
+        print(mount_efs_command)
+        stdin, stdout, stderr = client.exec_command(make_efs_mount_command)
         stdin, stdout, stderr = client.exec_command(mount_efs_command)
 
-        print('[!] Valor.mount_efs : stdout : ' + stdout.readlines())
-        print('[!] Valor.mount_efs : stderr : ' + stderr.readlines())
+        print('[!] Valor.mount_efs : stdout : ' + stdout.read())
+        print('[!] Valor.mount_efs : stderr : ' + stderr.read())
 
 
     def connect_with_ssh(self):
@@ -103,9 +129,17 @@ class Valor:
 
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        client.load_system_host_keys()
-        client.connect(self.aws_instance.public_ip_address, username='ubuntu',
-                       key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
+        try:
+
+            client.load_system_host_keys()
+
+            client.connect(
+                self.aws_instance.public_ip_address,
+                username='ubuntu',
+                key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
+
+        except:
+            print('SSH failed to connect')
 
         return client
 
@@ -121,6 +155,8 @@ class Valor:
              `Domain-0                       0  2048     2     r-----     198.6`
         ping 10.91.0.254 - should work
         '''
+
+        self.mount_efs()
 
         copy_config_directory_command = \
             'sudo cp -r /mnt/nfs/deploy-local/compute/config /home/ubuntu/'
@@ -144,9 +180,28 @@ class Valor:
         rdb.add_virtue(self.aws_instance.id, id, virtue_path)
 
 
+    def wait_until_accessible(self):
+
+        max_attempts = 10
+
+        for attempt_number in range(max_attempts):
+
+            try:
+
+                self.connect_with_ssh()
+                print('Successfully connected to {}'.format(self.aws_instance.public_ip_address,))
+
+                break
+
+            except Exception as e:
+                print(e)
+                print('Attempt {0} failed to connect').format(attempt_number+1)
+
+
 class ValorManager:
 
     def __init__(self):
+
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
 
@@ -158,7 +213,8 @@ class ValorManager:
     def create_valor(self, subnet, sec_group):
 
         valor = Valor(subnet, sec_group)
-        valor.mount_efs()
+
+        valor.wait_until_accessible()
 
         self.rethinkdb_manager.add_valor(valor)
 

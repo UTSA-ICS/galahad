@@ -9,6 +9,47 @@ import base
 '''
 requests.exceptions.ConnectionError: HTTPSConnectionPool(host='54.174.121.195', port=5002): Max retries exceeded with url: /virtue/admin/role/list (Caused by NewConnectionError('<requests.packages.urllib3.connection.VerifiedHTTPSConnection object at 0x7f19dd083780>: Failed to establish a new connection: [Errno 111] Connection refused',))
 '''
+'''
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/requests/adapters.py", line 376, in send
+    timeout=timeout
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 610, in urlopen
+    _stacktrace=sys.exc_info()[2])
+  File "/usr/lib/python3/dist-packages/urllib3/util/retry.py", line 247, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "/usr/lib/python3/dist-packages/six.py", line 685, in reraise
+    raise value.with_traceback(tb)
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 560, in urlopen
+    body=body, headers=headers)
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 379, in _make_request
+    httplib_response = conn.getresponse()
+  File "/usr/lib/python3.5/http/client.py", line 1197, in getresponse
+    response.begin()
+  File "/usr/lib/python3.5/http/client.py", line 297, in begin
+    version, status, reason = self._read_status()
+  File "/usr/lib/python3.5/http/client.py", line 266, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+requests.packages.urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+
+'''
+'''
+Traceback (most recent call last):
+  File "admin.py", line 346, in <module>
+    cli.handle_command(command)
+  File "/home/senofsky/galahad/galahad/excalibur/cli/base.py", line 29, in handle_command
+    print(self.commands[real_command]())
+  File "admin.py", line 305, in valor_create
+    result = self.session.get(self.base_url + '/valor/create')
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 480, in get
+    return self.request('GET', url, **kwargs)
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 468, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 576, in send
+    r = adapter.send(request, **kwargs)
+  File "/usr/lib/python3/dist-packages/requests/adapters.py", line 426, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+'''
 class AdminCLI(base.BaseCLI):
 
     def __init__(self, ip):
