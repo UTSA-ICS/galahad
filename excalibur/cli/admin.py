@@ -5,6 +5,10 @@ import base
 
 #TODO: need to add exception handling if response cannot be jsonified
 # received an error for data = result.json()
+# received an error for:
+'''
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='54.174.121.195', port=5002): Max retries exceeded with url: /virtue/admin/role/list (Caused by NewConnectionError('<requests.packages.urllib3.connection.VerifiedHTTPSConnection object at 0x7f19dd083780>: Failed to establish a new connection: [Errno 111] Connection refused',))
+'''
 class AdminCLI(base.BaseCLI):
 
     def __init__(self, ip):

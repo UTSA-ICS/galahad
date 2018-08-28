@@ -19,7 +19,7 @@ class ValorAPI:
 
     def valor_create(self):
         aws = AWS()
-        valor_manager.create_valor(aws.get_subnet_id(), aws.get_sec_group())
+        valor_manager.create_valor(aws.get_subnet_id(), aws.get_sec_group().id)
       
  
     def valor_create_pool(self):
@@ -31,7 +31,7 @@ class ValorAPI:
 
 
     def valor_list(self):
-        return self.rethinkdb.list_valors()
+        return self.rethinkdb_manager.list_valors()
 
 
 
@@ -66,16 +66,15 @@ class Valor:
     def authorize_ssh_connections(self, ip):
 
         ec2 = boto3.resource('ec2')
-        sg = ec2.SecurityGroup(self.sec_group)
+        security_group = ec2.SecurityGroup(self.sec_group)
 
         #TODO: should the security group already be authorized for SSH?
         try:
-            sg.authorize_ingress(
+            security_group.authorize_ingress(
                 CidrIp=ip,
                 FromPort=22,
                 IpProtocol='tcp',
-                ToPort=22 
-            )
+                ToPort=22 )
 
         except botocore.exceptions.ClientError:
             print(

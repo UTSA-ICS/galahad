@@ -834,7 +834,7 @@ def admin_valor_create():
     try:
 
         ep = get_admin_endpoint()
-        valor_id = ep.valor_create(request.args['valor_id'])
+        valor_id = ep.valor_create()
 
     except:
         print("Unexpected error:", sys.exc_info())
