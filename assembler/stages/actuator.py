@@ -19,7 +19,7 @@ class ActuatorStage(SSHStage):
                 self._exec_cmd_with_retry('sudo dpkg -i ' + f)
             for f in files:
                 self._exec_cmd_with_retry('rm %s' % (f))
-            self._exec_cmd_with_retry('sudo insmod /lib/modules/4.13.0-38-generic/updates/dkms/actuator_network.ko')
-            self._exec_cmd_with_retry('sudo cp /lib/modules/4.13.0-38-generic/updates/dkms/actuator_network.ko /lib/modules/4.13.0-38-generic/kernel/drivers/')
-            self._exec_cmd_with_retry('sudo chown merlin:merlin /dev/netblockchar')
+            self._exec_cmd_with_retry('sudo insmod /lib/modules/4.13.0-46-generic/updates/dkms/actuator_network.ko')
+            self._exec_cmd_with_retry('sudo cp /lib/modules/4.13.0-46-generic/updates/dkms/actuator_network.ko /lib/modules/4.13.0-46-generic/kernel/drivers/')
+            # NOTE: on Virtue start, set /dev/netblockchar to chown root:camelot and chmod 660
             self._exec_cmd_with_retry('echo "actuator_network" | sudo tee -a /etc/modules')
