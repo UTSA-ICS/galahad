@@ -179,6 +179,8 @@ def __get_elasticsearch_index():
     return index
 
 def __query_elasticsearch(args):
+    assert aggregator_ssh.check_access()
+
     index = __get_elasticsearch_index()
     cmdargs = ''
     for (key, value) in args:
@@ -264,4 +266,53 @@ def test_sensor_enable():
 
     # Cleanup
     virtue_ssh.ssh('rm -r ' + dirname)
+
+def test_actuator_kill_proc():
+    # Start a long-running process
+    virtue_ssh.ssh('nohup yes &> /dev/null &')
+
+    # Check that it's running
+    virtue_ssh.ssh('ps aux | grep yes | grep -v grep')
+
+    # Kill the process via an actuator
+    session.get(base_url + '/transducer/enable', params={
+        'transducerId': 'kill_proc',
+        'virtueId': virtue_id,
+        'configuration': '{"processes":["yes"]}'
+    })
+
+    # Just in case, give it a few seconds to propagate the rule
+    time.sleep(15)
+
+    # Check that the process is no longer running
+    virtue_ssh.ssh('! ( ps aux | grep yes | grep -v grep)')
+
+    # Disable the actuator
+    session.get(base_url + '/transducer/disable', params={
+        'transducerId': 'kill_proc',
+        'virtueId': virtue_id
+    })
+
+def test_actuator_net_block():
+    # Try contacting a server - let's pick 1.1.1.1 (the public DNS resolver) because its IP is easy
+    assert virtue_ssh.ssh('wget 1.1.1.1 -T 20 -t 1') == 0
+
+    # Block the server
+    session.get(base_url + '/transducer/enable', params={
+        'transducerId': 'block_net',
+        'virtueId': virtue_id,
+        'configuration': '{"rules":["block_outgoing_dst_ipv4_1.1.1.1"]}'
+    })
+
+    # Just in case, give it a few seconds to propagate the rule
+    time.sleep(15)
+
+    # Try contacting the server again - should fail now
+    assert virtue_ssh.ssh('! (wget 1.1.1.1 -T 20 -t 1)') == 0
+
+    # Unblock the server
+    session.get(base_url + '/transducer/disable', params={
+        'transducerId': 'block_net',
+        'virtueId': virtue_id
+    })
 

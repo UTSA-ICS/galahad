@@ -20,6 +20,12 @@ start() {
     return 1
   fi
   echo 'Starting service...' >&2
+
+  # Make sure the netblock character device has the right permissions to communicate with merlin
+  chown root:camelot /dev/netblockchar
+  chmod 660 /dev/netblockchar
+
+  # Start Merlin
   local CMD="$SCRIPT &> \"$LOGFILE\" & echo \$!"
   echo "Command: $CMD" >&2
   su -c "$CMD" $RUNAS > "$PIDFILE"

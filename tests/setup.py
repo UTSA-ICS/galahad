@@ -260,6 +260,11 @@ class Excalibur():
         _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
 
+        # Initialize the EFS class
+        efs = EFS(self.stack_name, self.ssh_key)
+        # Setup the EFS mount and populate Valor config files
+        _cmd7 = "cd('galahad/tests/setup').and_().bash('./setup_efs.sh {}')".format(efs.efs_id)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
         client = boto3.client('cloudformation')
@@ -376,10 +381,10 @@ class EFS():
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
-                format(self.ssh_key, 'setup/setup_efs.sh', efs_ip)).run()
+                format(self.ssh_key, 'setup/setup_efs_server.sh', efs_ip)).run()
 
         # Call the setup_efs.sh script
-        _cmd = "bash('./setup_efs.sh {} {}')".format(self.efs_id, self.nfs_ip)
+        _cmd = "bash('./setup_efs_server.sh {} {}')".format(self.efs_id, self.nfs_ip)
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
     def setup_valorNodes(self):
@@ -408,7 +413,7 @@ class EFS():
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} setup/{} ubuntu@{}:~/.'.
+                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
                 format(self.ssh_key, setup_filename, public_ip)).run()
 
         # Execute the setup file on the instance

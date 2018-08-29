@@ -31,9 +31,9 @@ class Assembler(object):
     def __init__(self,
                  #build_options,
                  #docker_login,
-                 es_node='https://172.30.128.129:9200',
+                 es_node='https://172.30.1.46:9200',
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.128.130',
+                 rethinkdb_host='172.30.1.45',
                  work_dir='tmp'):
         #self.build_options = build_options
         #self.docker_login = docker_login
@@ -238,8 +238,9 @@ class Assembler(object):
                                             'unity', 'latest-debs')
             merlin_files = ['merlin.deb']
             kernel_files = [
-                'linux-headers-4.13.0-38_4.13.0-38.43+unity1_all.deb',
-                'linux-image-4.13.0-38-generic_4.13.0-38.43+unity1_amd64.deb'
+                'linux-headers-4.13.0-46_4.13.0-46.51+unity1_all.deb',
+                'linux-headers-4.13.0-46-generic_4.13.0-46.51+unity1_amd64.deb',
+                'linux-image-4.13.0-46-generic_4.13.0-46.51+unity1_amd64.deb'
             ]
 
             files = []
@@ -271,9 +272,6 @@ class Assembler(object):
                     os.chown(os.path.join(path, f), 501, 1000)
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
-
-            shutil.copy(payload_dir + '/merlin.service',
-                        mount_path + '/etc/systemd/system/merlin.service')
 
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'merlin'])
@@ -385,9 +383,9 @@ class Assembler(object):
             subprocess.check_call(dpkg_cmd)
 
             # Additional actuator config
-            shutil.copy(mount_path + '/lib/modules/4.13.0-38-generic' +
+            shutil.copy(mount_path + '/lib/modules/4.13.0-46-generic' +
                         '/updates/dkms/actuator_network.ko',
-                        mount_path + '/lib/modules/4.13.0-38-generic' +
+                        mount_path + '/lib/modules/4.13.0-46-generic' +
                         '/kernel/drivers/')
 
             with open(mount_path + '/etc/modules', 'a') as modules:
