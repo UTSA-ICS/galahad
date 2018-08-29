@@ -97,17 +97,18 @@ if (__name__ == '__main__'):
                     '\nPlease specify either stack_name or aggregator_server_ip!\n')
                 sys.exit()
 
-            if args.virtue_ip != None:
-                virtue_ip = args.virtue_ip
-            else:
-                logger.warn(
-                    '\nWarning: a new Virtue will be created\n')
+    if args.run_all_tests or args.run_test == 'test_security_api.py':
+        if args.virtue_ip != None:
+            virtue_ip = args.virtue_ip
+        else:
+            logger.warn(
+                '\nWarning: a new Virtue will be created\n')
 
-            if args.virtue_id != None:
-                virtue_id = args.virtue_id
-            else:
-                logger.warn(
-                    '\nWarning: a new Virtue will be created\n')  
+        if args.virtue_id != None:
+            virtue_id = args.virtue_id
+        else:
+            logger.warn(
+                '\nWarning: a new Virtue will be created\n')  
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 

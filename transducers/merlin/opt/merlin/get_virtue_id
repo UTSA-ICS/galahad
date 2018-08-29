@@ -1,1 +1,1 @@
-echo "virtue_$(cat /etc/virtue-id)"
+cat /etc/virtue-id
