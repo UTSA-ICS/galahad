@@ -30,6 +30,8 @@
 # 	For NISPOM compliance see:
 # 		https://github.com/linux-audit/audit-userspace/blob/master/rules/30-nispom.rules
 
+# Added more rules from: https://github.com/set-element/auditdBroFramework/blob/master/system_config/audit.rules
+
 # Remove any existing rules
 -D
 
@@ -130,6 +132,9 @@
 ## Time
 -a exit,always -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k time
 -a exit,always -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
+-a always,exit -F arch=b32 -S clock_settime -k time
+-a always,exit -F arch=b64 -S clock_settime -k time
+
 ### Local time zone
 -w /etc/localtime -p wa -k localtime
 
@@ -146,6 +151,11 @@
 -w /etc/cron.weekly/ -p wa -k cron
 -w /etc/crontab -p wa -k cron
 -w /var/spool/cron/crontabs/ -k cron
+
+-w /etc/at.allow -p wa -k job_schedule
+-w /etc/at.deny -p wa -k job_schedule
+-w /var/spool/at/ -p wa -k job_schedule
+-w /etc/anacrontab -p wa -k job_schedule
 
 ## User, group, password databases
 -w /etc/group -p wa -k etcgroup
@@ -351,7 +361,7 @@
 
 # High volume events ----------------------------------------------------------
 
-## Remove them if the cause to much volumen in your einvironment
+## Remove them if they cause too much volume in your environment
 
 ## Root command executions 
 -a exit,always -F arch=b64 -F euid=0 -S execve -k rootcmd
@@ -360,6 +370,12 @@
 ## File Deletion Events by User
 -a always,exit -F arch=b32 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid>=500 -F auid!=4294967295 -k delete
 -a always,exit -F arch=b64 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid>=500 -F auid!=4294967295 -k delete
+
+## Failed socket events:
+##   EACCESS = protected address, user is not superuser
+##   EPERM   = trying to make an AF_UNIX socket somewhere you can't write / invalid broadcast addr / firewall rules forbid bind
+-a always,exit -F arch=b64 -S bind -S connect -S accept -S accept4 -S listen -S socketpair -S socket -F exit=-EACCES -k bad_socket
+-a always,exit -F arch=b64 -S bind -S connect -S accept -S accept4 -S listen -S socketpair -S socket -F exit=-EPERM  -k bad_socket
 
 ## File Access
 ### Unauthorized Access (unsuccessful)
@@ -374,7 +390,7 @@
 -a always,exit -F arch=b32 -S link,mkdir,symlink,mkdirat -F exit=-EPERM -k file_creation
 -a always,exit -F arch=b64 -S mkdir,link,symlink,mkdirat -F exit=-EPERM -k file_creation
 
-### Unsuccessful Modification
+### Unsuccessful Modification of Extended Attributes
 -a always,exit -F arch=b32 -S rename -S renameat -S truncate -S chmod -S setxattr -S lsetxattr -S removexattr -S lremovexattr -F exit=-EACCES -k file_modification
 -a always,exit -F arch=b64 -S rename -S renameat -S truncate -S chmod -S setxattr -S lsetxattr -S removexattr -S lremovexattr -F exit=-EACCES -k file_modification
 -a always,exit -F arch=b32 -S rename -S renameat -S truncate -S chmod -S setxattr -S lsetxattr -S removexattr -S lremovexattr -F exit=-EPERM -k file_modification
