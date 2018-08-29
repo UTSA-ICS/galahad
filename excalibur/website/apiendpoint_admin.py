@@ -138,7 +138,7 @@ class EndPoint_Admin():
         self,
         role,
         use_aws=True,
-        hard_code_ami='ami-0793f636c37747599'):
+        hard_code_ami='ami-017f03c010f273b92'):
 
         try:
             role_keys = [
