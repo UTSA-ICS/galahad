@@ -1,5 +1,6 @@
 import boto3
 import botocore
+import ec2
 import os
 import paramiko
 import rethinkdb
