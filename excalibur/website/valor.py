@@ -38,32 +38,14 @@ class ValorAPI:
 
 
 
-class Valor: 
+class Valor:
 
-    def __init__(self, subnet, sec_group):
+    self.valor = {}
+    self.guestnet = None
 
-        aws = AWS()
+    def __init__(self, valor_id):
 
-        excalibur_ip = '{0}/32'.format(aws.get_public_ip())
-        self.subnet    = subnet
-        self.sec_group = sec_group
-        self.guestnet  = None
-
-        valor = {
-            'image_id' : 'ami-01c5d8354c604b662',
-            'inst_type' : 't2.medium',
-            'subnet_id' : self.subnet,
-            'key_name' : 'starlab-virtue-te',
-            'tag_key' : 'Project',
-            'tag_value' : 'Virtue',
-            'sec_group' : self.sec_group,
-            'inst_profile_name' : '',
-            'inst_profile_arn' : '', 
-        }
-
-        self.aws_instance = aws.instance_create(**valor)
-
-        self.authorize_ssh_connections(excalibur_ip)
+        self.valor = self.ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
@@ -87,7 +69,7 @@ class Valor:
 
     def get_efs_mount(self):
 
-        stack_name = 'test-for-mvs-1'
+        stack_name = 'test-for-mvs-2'
 
         cloudformation = boto3.resource('cloudformation')
         efs_stack = cloudformation.Stack(stack_name)
@@ -108,10 +90,7 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        mount_efs_command = (
-            'sudo mount -t nfs '
-            '{}:/export '
-            '/mnt/efs/').format(efs_mount)
+        mount_efs_command = 'sudo mount -t nfs {}:/ /mnt/efs'.format(efs_mount)
 
         client = self.connect_with_ssh()
 
@@ -138,7 +117,9 @@ class Valor:
                 username='ubuntu',
                 key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
 
-        except:
+        except Exception as error:
+
+            print(error)
             print('SSH failed to connect')
 
         return client
@@ -159,18 +140,23 @@ class Valor:
         self.mount_efs()
 
         copy_config_directory_command = \
-            'sudo cp -r /mnt/nfs/deploy-local/compute/config /home/ubuntu/'
+            'sudo cp -r /mnt/efs/deploy/compute/config /home/ubuntu/'
 
         cd_and_execute_setup_command = \
-            'sudo cd /home/ubuntu/config && /bin/bash setup.sh'
+            'cd /home/ubuntu/config && sudo /bin/bash setup.sh'
 
         client = self.connect_with_ssh()
 
         stdin, stdout, stderr = client.exec_command(
             copy_config_directory_command)
+        print('[!] copy_config_dir : stdout : ' + stdout.read())
+        print('[!] copy_config_dir : stderr : ' + stderr.read())
 
         stdin, stdout, stderr = client.exec_command(
             cd_and_execute_setup_command)
+        print('[!] execute_setup : stdout : ' + stdout.read())
+        print('[!] execute_setup : stderr : ' + stderr.read())
+
 
 
     def launch_virtue(self, id, virtue_path):
@@ -189,12 +175,13 @@ class Valor:
             try:
 
                 self.connect_with_ssh()
-                print('Successfully connected to {}'.format(self.aws_instance.public_ip_address,))
+                print('Successfully connected to {}'.format(
+                    self.aws_instance.public_ip_address,))
 
                 break
 
-            except Exception as e:
-                print(e)
+            except Exception as error:
+                print(error)
                 print('Attempt {0} failed to connect').format(attempt_number+1)
 
 
@@ -212,7 +199,27 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        valor = Valor(subnet, sec_group)
+       aws = AWS()
+
+        excalibur_ip = '{0}/32'.format(aws.get_public_ip())
+
+        valor = {
+            'image_id' : 'ami-01c5d8354c604b662',
+            'inst_type' : 't2.medium',
+            'subnet_id' : subnet,
+            'key_name' : 'starlab-virtue-te',
+            'tag_key' : 'Project',
+            'tag_value' : 'Virtue',
+            'sec_group' : sec_group,
+            'inst_profile_name' : '',
+            'inst_profile_arn' : '', 
+        }
+
+        instance = aws.instance_create(**valor)
+
+        valor = Valor(instance.id)
+
+        valor.authorize_ssh_connections(excalibur_ip)
 
         valor.wait_until_accessible()
 
@@ -225,6 +232,15 @@ class ValorManager:
 
     def create_valor_pool(self, number_of_valors):
         pass
+
+
+    def destroy_valor(self, valor_id):
+
+        aws = AWS()
+
+        aws.instance_destroy(valor_id, block=False)
+
+
 
 
 class RethinkDbManager:
