@@ -46,7 +46,7 @@ class Valor:
     def __init__(self, valor_id):
 
         ec2 = boto3.resource('ec2')
-        self.aws_instance = self.ec2.Instance(valor_id)
+        self.aws_instance = ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
@@ -149,14 +149,14 @@ class Valor:
 
         client = self.connect_with_ssh()
 
-        time.sleep(10)
+        time.sleep(30)
 
         stdin, stdout, stderr = client.exec_command(
             copy_config_directory_command)
         print('[!] copy_config_dir : stdout : ' + stdout.read())
         print('[!] copy_config_dir : stderr : ' + stderr.read())
 
-        time.sleep(10)
+        time.sleep(30)
 
         stdin, stdout, stderr = client.exec_command(
             cd_and_execute_setup_command)
