@@ -1,6 +1,5 @@
 import boto3
 import botocore
-import ec2
 import os
 import paramiko
 import rethinkdb
@@ -46,6 +45,7 @@ class Valor:
 
     def __init__(self, valor_id):
 
+        ec2 = boto3.resource('ec2')
         self.aws_instance = self.ec2.Instance(valor_id)
 
 
