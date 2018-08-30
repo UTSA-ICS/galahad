@@ -24,6 +24,9 @@ if [ ! -d "$MERLIN_KEY_DIR" ]; then
   cp $GALAHAD_CONFIG_HOME/excalibur_pub.pem $MERLIN_KEY_DIR/.
   cp $GALAHAD_CONFIG_HOME/rethinkdb_keys/rethinkdb_cert.pem $MERLIN_KEY_DIR/.
   cp $GALAHAD_CONFIG_HOME/virtue_instance_keys/virtue_1_key.pem $MERLIN_KEY_DIR/.
+  cp $GALAHAD_CONFIG_HOME/elasticsearch_keys/ca.pem $MERLIN_KEY_DIR/
+  cp $GALAHAD_CONFIG_HOME/elasticsearch_keys/kirk.crtfull.pem $MERLIN_KEY_DIR/
+  cp $GALAHAD_CONFIG_HOME/elasticsearch_keys/kirk.key.pem $MERLIN_KEY_DIR/
 fi
 
 cd $TRANSDUCERS_HOME
