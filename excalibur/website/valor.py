@@ -1,11 +1,11 @@
-import os
 import boto3
 import botocore
-import rethinkdb
-
+import os
 import paramiko
-from paramiko import SSHClient
+import rethinkdb
+import time
 
+from paramiko import SSHClient
 from aws import AWS
 
 
@@ -40,18 +40,19 @@ class ValorAPI:
 
 class Valor:
 
-    self.valor = {}
-    self.guestnet = None
+    aws_instance = {}
+    guestnet = None
 
     def __init__(self, valor_id):
 
-        self.valor = self.ec2.Instance(valor_id)
+        self.aws_instance = self.ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
 
         ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(self.sec_group)
+        security_group = ec2.SecurityGroup(
+            self.aws_instance.security_groups[0]['GroupId'])
 
         #TODO: should the security group already be authorized for SSH?
         try:
@@ -147,10 +148,14 @@ class Valor:
 
         client = self.connect_with_ssh()
 
+        time.sleep(10)
+
         stdin, stdout, stderr = client.exec_command(
             copy_config_directory_command)
         print('[!] copy_config_dir : stdout : ' + stdout.read())
         print('[!] copy_config_dir : stderr : ' + stderr.read())
+
+        time.sleep(10)
 
         stdin, stdout, stderr = client.exec_command(
             cd_and_execute_setup_command)
@@ -199,7 +204,7 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-       aws = AWS()
+        aws = AWS()
 
         excalibur_ip = '{0}/32'.format(aws.get_public_ip())
 
@@ -231,8 +236,9 @@ class ValorManager:
 
 
     def create_valor_pool(self, number_of_valors):
-        pass
-
+        for index in range(number_of_valors):
+            self.create_valor()
+ 
 
     def destroy_valor(self, valor_id):
 
