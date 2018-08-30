@@ -95,8 +95,6 @@ class EndPoint_Admin():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'DELETING'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
@@ -144,6 +142,9 @@ class EndPoint_Admin():
         role,
         use_aws=True,
         hard_code_ami='ami-017f03c010f273b92'):
+
+        # TODO: Copy the unity image and assemble on a running VM
+        # Then, do not create a standby virtue
 
         try:
             role_keys = [
@@ -217,7 +218,8 @@ class EndPoint_Admin():
                     'applicationIds': [],
                     'resourceIds': new_role['startingResourceIds'],
                     'transducerIds': new_role['startingTransducerIds'],
-                    'awsInstanceId': 'NULL'
+                    'state': 'STOPPED',
+                    'ipAddress': 'NULL'
                 }
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                 self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
@@ -403,6 +405,8 @@ class EndPoint_Admin():
     # Create a virtue for the specified role, but do not launch it yet
     def virtue_create(self, username, roleId, use_aws=True):
 
+        # TODO: Replace with CreateVirtueThread
+
         try:
             user = None
             role = None
@@ -488,7 +492,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Destroy the specified stopped virtue
-    def virtue_destroy(self, virtueId, use_aws=True):
+    def virtue_destroy(self, virtueId, use_nfs=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -499,29 +503,20 @@ class EndPoint_Admin():
             #if (virtue['username'] != username):
             #    return json.dumps(ErrorCodes.admin['userNotAuthorized'])
 
-            if (use_aws == False):
-                self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return json.dumps(ErrorCodes.admin['success'])
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
-            aws_res = aws.instance_destroy(virtue['awsInstanceId'], block=False)
-
-            aws_state = aws_res.state['Name']
-
-            if (aws_state == 'shutting-down'):
-                return json.dumps(ErrorCodes.admin['success'])
-
-            elif (aws_state == 'terminated'):
+            try:
+                if (use_nfs):
+                    os.remove('/mnt/efs/images/p_virtues/' +
+                              virtue['id'] + '.img')
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return json.dumps(ErrorCodes.admin['success'])
-
-            else:
+            except:
+                print('Error while deleting {0}:\n{1}'.format(
+                    virtue['id'], traceback.format_exc()))
                 return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+            return json.dumps(ErrorCodes.admin['success'])
 
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))

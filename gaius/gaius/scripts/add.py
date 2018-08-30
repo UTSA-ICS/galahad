@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import rethinkdb as r
-r.connect("172.30.93.138",28015).repl()
+r.connect("172.30.1.54",28015).repl()
 
 r.db('routing').table('galahad').insert([{
 	'function':'virtue',

@@ -1,3 +1,4 @@
+import shutil
 from ldaplookup import LDAP
 import ldap_tools
 from aws import AWS
@@ -81,13 +82,15 @@ class BackgroundThread(threading.Thread):
 
 
 class CreateVirtueThread(threading.Thread):
-    def __init__(self, ldap_user, ldap_password, role_id, role=None):
+    def __init__(self, ldap_user, ldap_password, role_id, user, role=None):
         super(CreateVirtueThread, self).__init__()
 
         self.inst = LDAP(ldap_user, ldap_password)
 
         self.role_id = role_id
         self.role = role
+
+        self.username = user
 
     def run(self):
 
@@ -108,112 +111,86 @@ class CreateVirtueThread(threading.Thread):
         else:
             role = self.role
 
-        # Create by calling AWS
-        aws = AWS()
-        ip = '{0}/32'.format(aws.get_public_ip())
-        subnet = aws.get_subnet_id()
-        sec_group = aws.get_sec_group()
-
-        try:
-            # Allow SSH from excalibur node
-            sec_group.authorize_ingress(
-                CidrIp=ip,
-                FromPort=22,
-                IpProtocol='tcp',
-                ToPort=22
-            )
-        except botocore.exceptions.ClientError:
-            print('ClientError encountered while adding sec group rule. ' +
-                  'Rule probably exists already.')
-        try:
-            # TODO:
-            # This is for testing and needs to be moved into cloud formation or env setup.
-            # List of current allowable cidrs
-            canvas_client_cidr = '70.121.205.81/32 172.3.30.184/32 35.170.157.4/32 129.115.2.249/32'
-            for cidr in canvas_client_cidr.split():
-                sec_group.authorize_ingress(
-                    CidrIp=cidr,
-                    FromPort=6761,
-                    IpProtocol='tcp',
-                    ToPort=6771
-                )
-        except botocore.exceptions.ClientError:
-            print('ClientError encountered while adding sec group rule. ' +
-                  'Rule probably exists already.')
-
-        instance = aws.instance_create(
-            image_id=role['amiId'],
-            inst_type='t2.small',
-            subnet_id=subnet,
-            key_name='starlab-virtue-te',
-            tag_key='Project',
-            tag_value='Virtue',
-            sec_group=sec_group.id,
-            inst_profile_name='',
-            inst_profile_arn='')
-
         virtue = {
             'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
-            'username': 'NULL',
+            'username': self.username,
             'roleId': self.role_id,
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
-            'awsInstanceId': instance.id
+            'state': 'CREATING',
+            'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
 
-        self.set_virtue_keys(virtue['id'], instance.public_ip_address)
+        virtue_path = '/mnt/efs/images/p_virtues/' + virtue['id'] + '.img'
+        shutil.copy('/mnt/efs/images/non_p_virtues/' + role['id'] + '.img',
+                    virtue_path)
 
-        instance.stop()
-        instance.wait_until_stopped()
-        instance.reload()
+        self.set_virtue_keys(virtue['id'], virtue_path)
 
-    def check_virtue_access(self, ssh_inst):
-        # Check if the virtue is accessible:
-        for i in range(10):
-            out = ssh_inst.ssh('uname -a', option='ConnectTimeout=10')
-            if out == 255:
-                time.sleep(30)
-            else:
-                print('Successfully connected to {}'.format(ssh_inst.ip))
-                result = True
-                return result
-        if result != True:
-            return False
+        virtue['state'] = 'STOPPED'
+        ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+        self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
 
-    def set_virtue_keys(self, virtue_id, instance_ip):
+    def set_virtue_keys(self, virtue_id, virtue_path):
         # Local Dir for storing of keys, this will be replaced when key management is implemented
         key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
 
         # For now generate keys and store in local dir
         subprocess.check_output(shlex.split(
-            'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+            ('ssh-keygen -t rsa -f {0}/{1}.pem '
+             '-C "Virtue Key for {1}" -N ""').format(key_dir, virtue_id)))
 
-        ssh_inst = ssh_tool('ubuntu', instance_ip, '{0}/default-virtue-key.pem'.format(key_dir))
-        # Check if virtue is accessible.
-        result = self.check_virtue_access(ssh_inst)
+        image_mount = '{0}/{1}'.format(os.environ['HOME'], virtue_id)
+        os.mkdir(image_mount)
 
-        if result == True:
-            # Populate a virtue ID
-            ssh_inst.ssh('sudo su - root -c "echo {0} > /etc/virtue-id"'.format(virtue_id))
-            # Now populate virtue Merlin Dir with this key.
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, virtue_id), '/tmp/')
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'), '/tmp/')
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'), '/tmp/')
-            #
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id))
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('excalibur_pub'))
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('rethinkdb_cert'))
-            #
-            ssh_inst.ssh('sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/')
-            ssh_inst.ssh('sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts')
-            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts"')
-            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts"')
-            ssh_inst.ssh('sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml')
-            ssh_inst.ssh('sudo sed -i \'s!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!\' /etc/syslog-ng/syslog-ng.conf')
-            ssh_inst.ssh('sudo systemctl restart merlin')
-            ssh_inst.ssh('sudo systemctl restart syslog-ng')
-        else:
-            raise Exception("Error accessing the Virtue with ID {0} and IP {1}".format(virtue_id, instance_ip))
+        try:
+            subprocess.check_call(['mount',
+                                   virtue_path,
+                                   image_mount])
+
+            with open(image_mount + '/etc/virtue-id', 'w') as id_file:
+                id_file.write(virtue_id)
+
+            if (not os.path.exists(image_mount + '/var/private/ssl')):
+                os.makedirs(image_mount + '/var/private/ssl')
+
+            shutil.copy('{0}/{1}.pem'.format(key_dir, virtue_id),
+                        image_mount + '/var/private/ssl/virtue_1_key.pem')
+            shutil.copy('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'),
+                        image_mount + '/var/private/ssl/excalibur_pub.pem')
+            shutil.copy('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'),
+                        image_mount + '/var/private/ssl/rethinkdb_cert.pem')
+
+            os.chown(image_mount + '/var/private', 501, 500)
+            for path, dirs, files in os.walk(image_mount + '/var/private'):
+                for f in files:
+                    os.chown(os.path.join(path, f), 501, 500)
+                    os.chmod(os.path.join(path, f), 0700)
+                for d in dirs:
+                    os.chown(os.path.join(path, d), 501, 500)
+                    os.chmod(os.path.join(path, d), 0700)
+
+            subprocess.check_call(['chroot', image_mount,
+                                   'sed', '-i', '.*rethinkdb.*/d', '/etc/hosts'])
+
+            with open(image_mount + '/etc/hosts', 'a') as hosts_file:
+                hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
+                hosts_file.write('172.30.1.46 elasticsearch.galahad.com\n')
+
+            subprocess.check_call([
+                'chroot', image_mount, 'sed', '-i',
+                's/host:.*/host: elasticsearch.galahad.com/',
+                '/etc/syslog-ng/elasticsearch.yml'])
+            subprocess.check_call([
+                'chroot', image_mount, 'sed', '-i',
+                's!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!',
+                '/etc/syslog-ng/syslog-ng.conf'])
+
+        except:
+            raise
+        finally:
+            subprocess.call(['umount', image_mount])
+            os.rmdir(image_mount)
