@@ -532,8 +532,9 @@ class EndPoint_Admin():
 
         try:
 
-            return self.valor_api.valor_create()
+            valor_id = self.valor_api.valor_create()
 
+            return json.dumps({'valor_id' : valor_id})
 
         except:
 
