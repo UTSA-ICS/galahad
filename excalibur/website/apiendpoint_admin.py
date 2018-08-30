@@ -532,9 +532,8 @@ class EndPoint_Admin():
 
         try:
 
-            self.valor_api.valor_create()
+            return self.valor_api.valor_create()
 
-            return json.dumps(ErrorCodes.admin['success'])
 
         except:
 

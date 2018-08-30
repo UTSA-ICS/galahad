@@ -20,7 +20,7 @@ class ValorAPI:
     def valor_create(self):
 
         aws = AWS()
-        self.valor_manager.create_valor(
+        return self.valor_manager.create_valor(
             aws.get_subnet_id(),
             aws.get_sec_group().id)
       
@@ -227,6 +227,8 @@ class ValorManager:
 
         valor.setup()
 
+        return instance.id
+
 
     def create_valor_pool(self, number_of_valors):
         for index in range(number_of_valors):
@@ -239,6 +241,7 @@ class ValorManager:
 
         aws.instance_destroy(valor_id, block=False)
 
+        self.rethinkdb_manager.remove_valor(valor_id)
 
 
 
@@ -273,6 +276,17 @@ class RethinkDbManager:
 
         rethinkdb.db('routing').table('galahad').insert([record]).run()
         valor.guestnet = record['guestnet']
+
+
+    def remove_valor(self, valor_id):
+
+        matching_valors = list(rethinkdb.db('routing').table('galahad').filter({
+            'function': 'valor',
+            'host': valor_id
+        }).run())
+
+        rethinkdb.db('routing').table('galahad').filter(
+            matching_valors[0]).delete().run()
 
 
     def get_free_guestnet(self):
