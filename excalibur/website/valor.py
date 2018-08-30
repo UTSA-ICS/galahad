@@ -1,11 +1,11 @@
-import os
 import boto3
 import botocore
-import rethinkdb
-
+import os
 import paramiko
-from paramiko import SSHClient
+import rethinkdb
+import time
 
+from paramiko import SSHClient
 from aws import AWS
 
 
@@ -20,7 +20,7 @@ class ValorAPI:
     def valor_create(self):
 
         aws = AWS()
-        self.valor_manager.create_valor(
+        return self.valor_manager.create_valor(
             aws.get_subnet_id(),
             aws.get_sec_group().id)
       
@@ -40,16 +40,20 @@ class ValorAPI:
 
 class Valor:
 
+    aws_instance = {}
+    guestnet = None
+
     def __init__(self, valor_id):
 
-        self.valor = self.ec2.Instance(valor_id)
-        self.guestnet = None
+        ec2 = boto3.resource('ec2')
+        self.aws_instance = ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
 
         ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(self.sec_group)
+        security_group = ec2.SecurityGroup(
+            self.aws_instance.security_groups[0]['GroupId'])
 
         #TODO: should the security group already be authorized for SSH?
         try:
@@ -145,10 +149,14 @@ class Valor:
 
         client = self.connect_with_ssh()
 
+        time.sleep(30)
+
         stdin, stdout, stderr = client.exec_command(
             copy_config_directory_command)
         print('[!] copy_config_dir : stdout : ' + stdout.read())
         print('[!] copy_config_dir : stderr : ' + stderr.read())
+
+        time.sleep(30)
 
         stdin, stdout, stderr = client.exec_command(
             cd_and_execute_setup_command)
@@ -219,10 +227,13 @@ class ValorManager:
 
         valor.setup()
 
+        return instance.id
+
 
     def create_valor_pool(self, number_of_valors):
-        pass
-
+        for index in range(number_of_valors):
+            self.create_valor()
+ 
 
     def destroy_valor(self, valor_id):
 
@@ -230,6 +241,7 @@ class ValorManager:
 
         aws.instance_destroy(valor_id, block=False)
 
+        self.rethinkdb_manager.remove_valor(valor_id)
 
 
 
@@ -264,6 +276,17 @@ class RethinkDbManager:
 
         rethinkdb.db('routing').table('galahad').insert([record]).run()
         valor.guestnet = record['guestnet']
+
+
+    def remove_valor(self, valor_id):
+
+        matching_valors = list(rethinkdb.db('routing').table('galahad').filter({
+            'function': 'valor',
+            'host': valor_id
+        }).run())
+
+        rethinkdb.db('routing').table('galahad').filter(
+            matching_valors[0]).delete().run()
 
 
     def get_free_guestnet(self):

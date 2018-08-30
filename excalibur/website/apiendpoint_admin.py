@@ -527,9 +527,9 @@ class EndPoint_Admin():
 
         try:
 
-            self.valor_api.valor_create()
+            valor_id = self.valor_api.valor_create()
 
-            return json.dumps(ErrorCodes.admin['success'])
+            return json.dumps({'valor_id' : valor_id})
 
         except:
 
