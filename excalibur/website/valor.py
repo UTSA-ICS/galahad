@@ -40,12 +40,10 @@ class ValorAPI:
 
 class Valor:
 
-    self.valor = {}
-    self.guestnet = None
-
     def __init__(self, valor_id):
 
         self.valor = self.ec2.Instance(valor_id)
+        self.guestnet = None
 
 
     def authorize_ssh_connections(self, ip):
@@ -158,14 +156,6 @@ class Valor:
         print('[!] execute_setup : stderr : ' + stderr.read())
 
 
-
-    def launch_virtue(self, id, virtue_path):
-
-        # Write to rethink
-        rdb = RethinkDbManager()
-        rdb.add_virtue(self.aws_instance.id, id, virtue_path)
-
-
     def wait_until_accessible(self):
 
         max_attempts = 10
@@ -199,7 +189,7 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-       aws = AWS()
+        aws = AWS()
 
         excalibur_ip = '{0}/32'.format(aws.get_public_ip())
 
@@ -212,7 +202,7 @@ class ValorManager:
             'tag_value' : 'Virtue',
             'sec_group' : sec_group,
             'inst_profile_name' : '',
-            'inst_profile_arn' : '', 
+            'inst_profile_arn' : '',
         }
 
         instance = aws.instance_create(**valor)
@@ -276,18 +266,69 @@ class RethinkDbManager:
         valor.guestnet = record['guestnet']
 
 
-    def add_virtue(self, valor_hostname, virtue_hostname, efs_path):
+    def get_free_guestnet(self):
 
-        # TODO: How do we decide what address and guestnet to use?
+        guestnet = '10.91.0.{0}'
+
+        for test_number in range(1, 256):
+            results = rethinkdb.db('routing').table('galahad').filter({
+                'guestnet': guestnet.format(test_number)
+            }).run()
+            if (len(list(results)) == 0):
+                guestnet = guestnet.format(test_number)
+                break
+
+        # If this fails, then there was no available guestnet
+        assert '{0}' not in guestnet
+
+        return guestnet
+
+
+    def add_virtue(self, valor_address, virtue_hostname, efs_path):
+
+        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+            'function': 'virtue',
+            'host': virtue_hostname
+        }).run())
+
+        assert len(matching_virtues) == 0
+
+        guestnet = self.get_free_guestnet()
+
         record = {
             'function': 'virtue',
             'host'    : virtue_hostname,
-            'valor'   : valor_hostname,
-            'guestnet': '10.91.0.5',
+            'address' : valor_address,
+            'guestnet': guestnet,
             'img_path': efs_path
         }
 
-        self.client.db('routing').table('galahad').insert([record]).run()
+        rethinkdb.db('routing').table('galahad').insert([record]).run()
+
+
+    def get_virtue(self, virtue_hostname):
+
+        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+            'function': 'virtue',
+            'host': virtue_hostname
+        }).run())
+
+        if (len(matching_virtues) != 1):
+            return matching_virtues
+
+        return matching_virtues[0]
+
+
+    def remove_virtue(self, virtue_hostname):
+
+        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+            'function': 'virtue',
+            'host': virtue_hostname
+        }).run())
+
+        assert len(matching_virtues) == 1
+
+        rethinkdb.db('routing').table('galahad').filter(matching_virtues[0]).delete().run()
 
 
 class RouterManager:
