@@ -1,4 +1,5 @@
 import sys
+import logging
 from flask import request, Response
 
 from flask import Blueprint, url_for
@@ -21,6 +22,7 @@ from ..services.errorcodes import ErrorCodes
 from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
+elasticLog = logging.getLogger('elasticLog')
 
 
 def get_endpoint():
@@ -111,6 +113,7 @@ def role_get():
         # Information about the indicated Role. Type: Role
         ep = get_endpoint()
         role = ep.role_get(get_user(), request.args['roleId'])
+        elasticLog.info('Get role', extra=role)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -128,6 +131,7 @@ def user_role_list():
         # A set of Roles available to the given User. Type: set of Role
         ep = get_endpoint()
         roleList = ep.user_role_list(get_user())
+        elasticLog.info('Get role list', extra=roleList)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -145,6 +149,8 @@ def user_virtue_list():
         # A set of Virtues for the given User. Type: set of Virtue.
         ep = get_endpoint()
         virtueList = ep.user_virtue_list(get_user())
+        elasticLog.info('Get virtue list', extra=virtueList)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -162,6 +168,7 @@ def virtue_get():
         # Information about the indicated Virtue. Type: Virtue.
         ep = get_endpoint()
         virtueId = ep.virtue_get(get_user(), request.args['virtueId'])
+        elasticLog.info('Get virtue', extra=virtueId)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -179,6 +186,8 @@ def virtue_launch():
         # Information about the launched Virtue. Type: Virtue
         ep = get_endpoint()
         virtue = ep.virtue_launch(get_user(), request.args['virtueId'])
+        elasticLog.info('Launch virtue', extra=virtue)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -196,6 +205,8 @@ def virtue_stop():
         # Information about the stopped Virtue. Type: Virtue
         ep = get_endpoint()
         virtue = ep.virtue_stop(get_user(), request.args['virtueId'])
+        elasticLog.info('Stop virtue', extra=virtue)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -213,6 +224,7 @@ def application_get():
         # The Application with the given ID. Type: Application
         ep = get_endpoint()
         application = ep.application_get(get_user(), request.args['appId'])
+        elasticLog.info('Get application', extra=application)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -235,6 +247,7 @@ def virtue_application_launch():
             get_user(),
             request.args['virtueId'],
             request.args['appId'])
+        elasticLog.info('Launch virtue application', extra=application)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -254,6 +267,8 @@ def virtue_application_stop():
             get_user(),
             request.args['virtueId'],
             request.args['appId'])
+        elasticLog.info('Stop virtue application', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -285,6 +300,7 @@ def admin_application_list():
     try:
         ep = get_admin_endpoint()
         ret = ep.application_list()
+        elasticLog.info('Get admin application list', extra=ret)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -302,6 +318,8 @@ def admin_resource_get():
         # Gets information about the indicated Resource.
         ep = get_admin_endpoint()
         ret = ep.resource_get(request.args['resourceId'])
+        elasticLog.info('Get admin resource', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -319,6 +337,8 @@ def admin_resource_list():
         # Lists all Resources currently available in the system.
         ep = get_admin_endpoint()
         ret = ep.resource_list()
+        elasticLog.info('Get admin resource list', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -339,6 +359,7 @@ def admin_resource_attach():
         ret = ep.resource_attach(
             request.args['resourceId'],
             request.args['virtueId'])
+        elasticLog.info('Attach admin resource', extra=ret)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -359,6 +380,8 @@ def admin_resource_detach():
         ret = ep.resource_detach(
             request.args['resourceId'],
             request.args['virtueId'])
+        elasticLog.info('Detach admin resource', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -381,6 +404,8 @@ def admin_role_create():
         else:
             ret = ep.role_create(json.loads(request.args['role']),
                                  hard_code_ami=ami_id)
+        elasticLog.info('Create admin role', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -398,6 +423,8 @@ def admin_role_list():
         # Lists all Roles currently available in the system.
         ep = get_admin_endpoint()
         ret = ep.role_list()
+        elasticLog.info('Get admin role list', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -415,6 +442,8 @@ def admin_system_export():
         # Export the Virtue system to a file.
         ep = get_admin_endpoint()
         ret = ep.system_export()
+        elasticLog.info('Export virtue to file', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -432,6 +461,8 @@ def admin_system_import():
         # Import the Virtue system from the input bytestream data.
         ep = get_admin_endpoint()
         ret = ep.system_import(request.args['data'])
+        elasticLog.info('Import virtue from file', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -505,6 +536,8 @@ def admin_user_list():
         # Lists all Users currently present in the system.
         ep = get_admin_endpoint()
         ret = ep.user_list()
+        elasticLog.info('Get user list', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -522,6 +555,7 @@ def admin_user_get():
         # Gets information about the indicated User.
         ep = get_admin_endpoint()
         ret = ep.user_get(request.args['username'])
+        elasticLog.info('Admin get user', extra=ret)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -539,6 +573,8 @@ def admin_user_virtue_list():
         # Lists the current Virtue instantiations for the given User.
         ep = get_admin_endpoint()
         ret = ep.user_virtue_list(request.args['username'])
+        elasticLog.info('Get virtue list for user', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -559,6 +595,8 @@ def admin_user_role_authorize():
         ret = ep.user_role_authorize(
             request.args['username'],
             request.args['roleId'])
+        elasticLog.info('Authorize role for user', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -578,6 +616,8 @@ def admin_user_role_unauthorize():
         ret = ep.user_role_unauthorize(
             request.args['username'],
             request.args['roleId'])
+        elasticLog.info('Deauthorize role for user', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -595,6 +635,8 @@ def admin_virtue_create():
         # Information about the created Virtue. Type: Virtue
         ep = get_admin_endpoint()
         roleId = ep.virtue_create(request.args['username'], request.args['roleId'])
+        elasticLog.info('Create virtue', extra=roleId)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -612,6 +654,8 @@ def admin_virtue_destroy():
         # Destroys a Virtue. Releases all resources.
         ep = get_admin_endpoint()
         ret = ep.virtue_destroy(request.args['virtueId'])
+        elasticLog.info('Destroy virtue', extra=ret)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -631,7 +675,7 @@ def security_api_config():
     try:
 
         ret = ep.set_api_config(json.loads(request.args['configuration']))
-
+        elasticLog.info('Get security config', extra=ret)
         return make_response(ret)
 
     except:
@@ -651,7 +695,7 @@ def transducer_list():
     try:
 
         ret = ep.transducer_list()
-
+        elasticLog.info('Get transducer list', extra=ret)
         return make_response(ret)
 
     except:
@@ -674,7 +718,7 @@ def transducer_get():
     try:
 
         ret = ep.transducer_get(request.args['transducerId'])
-
+        elasticLog.info('Get transducer', extra=ret)
         return make_response(ret)
 
     except:
@@ -700,7 +744,7 @@ def transducer_enable():
         ret = ep.transducer_enable(request.args['transducerId'],
                                    request.args['virtueId'],
                                    request.args['configuration'])
-
+        elasticLog.info('Enable transducer', extra=ret)
         return make_response(ret)
 
     except:
@@ -725,7 +769,7 @@ def transducer_disable():
 
         ret = ep.transducer_disable(request.args['transducerId'],
                                     request.args['virtueId'])
-
+        elasticLog.info('Transducer disable', extra=ret)
         return make_response(ret)
 
     except:
@@ -750,7 +794,7 @@ def transducer_get_enabled():
 
         ret = ep.transducer_get_enabled(request.args['transducerId'],
                                         request.args['virtueId'])
-
+        elasticLog.info('Get enabled transducers', extra=ret)
         return make_response(ret)
 
     except:
@@ -775,7 +819,7 @@ def transducer_get_configuration():
 
         ret = ep.transducer_get_configuration(request.args['transducerId'],
                                               request.args['virtueId'])
-
+        elasticLog.info('Get transducer configuration', extra=ret)
         return make_response(ret)
 
     except:
@@ -797,7 +841,7 @@ def transducer_list_enabled():
 
     try:
         ret = ep.transducer_list_enabled(request.args['virtueId'])
-
+        elasticLog.info('Get enabled transducers list', extra=ret)
         return make_response(ret)
 
     except:
