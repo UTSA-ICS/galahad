@@ -1,4 +1,7 @@
 import shutil
+import boto3
+import traceback
+import base64
 from ldaplookup import LDAP
 import ldap_tools
 from aws import AWS
@@ -10,6 +13,8 @@ import shlex
 import subprocess
 import os
 from common import ssh_tool
+
+from assembler.assembler import Assembler
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -82,7 +87,8 @@ class BackgroundThread(threading.Thread):
 
 
 class CreateVirtueThread(threading.Thread):
-    def __init__(self, ldap_user, ldap_password, role_id, user, role=None):
+    def __init__(self, ldap_user, ldap_password, role_id, user, virtue_id,
+                 role=None):
         super(CreateVirtueThread, self).__init__()
 
         self.inst = LDAP(ldap_user, ldap_password)
@@ -91,6 +97,7 @@ class CreateVirtueThread(threading.Thread):
         self.role = role
 
         self.username = user
+        self.virtue_id = virtue_id
 
     def run(self):
 
@@ -112,7 +119,7 @@ class CreateVirtueThread(threading.Thread):
             role = self.role
 
         virtue = {
-            'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
+            'id': self.virtue_id,
             'username': self.username,
             'roleId': self.role_id,
             'applicationIds': [],
@@ -122,17 +129,25 @@ class CreateVirtueThread(threading.Thread):
             'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-        self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+        assert self.inst.add_obj(ldap_virtue, 'virtues', 'cid') == 0
 
-        virtue_path = '/mnt/efs/images/p_virtues/' + virtue['id'] + '.img'
-        shutil.copy('/mnt/efs/images/non_p_virtues/' + role['id'] + '.img',
-                    virtue_path)
+        try:
+            virtue_path = 'images/p_virtues/' + virtue['id'] + '.img'
+            shutil.copy('/mnt/efs/images/non_p_virtues/' + role['id'] + '.img',
+                        '/mnt/efs/' + virtue_path)
 
-        self.set_virtue_keys(virtue['id'], virtue_path)
+            self.set_virtue_keys(virtue['id'], '/mnt/efs/' + virtue_path)
 
-        virtue['state'] = 'STOPPED'
-        ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-        self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+            virtue['state'] = 'STOPPED'
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+            assert self.inst.modify_obj('cid', virtue['id'], ldap_virtue) == 0
+        except:
+            print('Error while creating Virtue for role {0}:\n{1}'.format(
+                role['id'], traceback.format_exc()))
+            assert self.inst.del_obj('cid', virtue['id'],
+                                     objectClass='OpenLDAPvirtue',
+                                     throw_error=True)
+            os.remove('/mnt/efs/' + virtue_path)
 
     def set_virtue_keys(self, virtue_id, virtue_path):
         # Local Dir for storing of keys, this will be replaced when key management is implemented
@@ -174,7 +189,7 @@ class CreateVirtueThread(threading.Thread):
                     os.chmod(os.path.join(path, d), 0700)
 
             subprocess.check_call(['chroot', image_mount,
-                                   'sed', '-i', '.*rethinkdb.*/d', '/etc/hosts'])
+                                   'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
 
             with open(image_mount + '/etc/hosts', 'a') as hosts_file:
                 hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
@@ -194,3 +209,78 @@ class CreateVirtueThread(threading.Thread):
         finally:
             subprocess.call(['umount', image_mount])
             os.rmdir(image_mount)
+
+class AssembleRoleThread(threading.Thread):
+
+    def __init__(self, ldap_user, ldap_password, role,
+                 base_img_path,
+                 use_ssh=True):
+        super(AssembleRoleThread, self).__init__()
+
+        self.inst = LDAP(ldap_user, ldap_password)
+
+        # Going to need to write to LDAP
+        #self.inst.bind_ldap()
+        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+        self.inst.get_ldap_connection()
+        self.inst.conn.simple_bind_s(dn, 'Test123!')
+
+        role['state'] = 'CREATING'
+        self.role = role
+
+        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+        ret = self.inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
+
+        assert ret == 0
+
+        self.base_img_path = base_img_path
+        self.use_ssh = use_ssh
+
+    def run(self):
+
+        virtue_path = 'images/non_p_virtues/' + self.role['id'] + '.img'
+
+        try:
+            shutil.copy('/mnt/efs/' + self.base_img_path,
+                        '/mnt/efs/' + virtue_path)
+
+            if (self.use_ssh):
+                # TODO: Assemble role
+
+                # Launch by adding a 'virtue' to RethinkDB
+                # Get IP to ssh
+                # Get Docker login command
+                ecr = boto3.client('ecr')
+                docker_auth_token = ecr.get_authorization_token()[
+                    'authorizationData'][0]
+                docker_cmd = 'docker login -u AWS -p {0} {1}'.format(
+                    base64.b64decode(
+                        docker_auth_token['authorizationToken']).split(':')[-1],
+                    docker_auth_token['proxyEndpoint'])
+
+                print('docker_cmd: ' + docker_cmd)
+
+                # Run assembler
+                assembler = Assembler(work_dir='{0}/{1}'.format(
+                    os.environ['home'],
+                    self.role['id']))
+                #assembler.assemble_running_vm(self.role['applicationIds'],
+                #                              docker_cmd,
+                #                              ssh_host)
+
+        except:
+            print('Error while assembling role {0}:\n{1}'.format(
+                self.role['id'],
+                traceback.format_exc()))
+            self.role['state'] = 'FAILED'
+            ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+            ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
+                                       objectClass='OpenLDAProle',
+                                       throw_error=True)
+
+        self.role['state'] = 'CREATED'
+        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+        ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
+                                   objectClass='OpenLDAProle', throw_error=True)
+
+        assert ret == 0
