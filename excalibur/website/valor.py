@@ -189,12 +189,30 @@ class ValorManager:
         self.router_manager = RouterManager()
 
 
-    def get_empty_valor(self):
-        pass
+     def get_empty_valor(self):
+
+        valors = self.rethinkdb_manager.list_valors()
+        virtues = self.rethinkdb_manager.list_virtues()
+
+        empty_valor = None
+        for valor in valors:
+
+            valor_is_empty = True
+
+            for virtue in virtues:
+
+                if valor['address'] == virtue['address']:
+                    valor_is_empty = False
+                    break
+
+            if valor_is_empty:
+                empty_valor = valor
+                break
+
+        return valor
 
 
     def create_valor(self, subnet, sec_group):
-
 
         excalibur_ip = '{0}/32'.format(aws.get_public_ip())
 
@@ -241,9 +259,16 @@ class ValorManager:
 
     def migrate_virtue(self, virtue_id, new_valor_id):
 
-        current_valor = self.
+        virtue = rethinkdb.db('routing').table('galahad').filter({
+            'function' : 'virtue',
+            'host' : virtue_id}).run()
 
-        self.rethinkdb_manager.migrate_valor(current_valor, new_valor_id)
+        current_valor = rethinkdb.db('routing').table('galahad').filter({
+            'function' : 'valor',
+            'address' : virtue['address']}).run()
+
+        current_valor_id = current_valor['host']
+
 
 
 
@@ -258,11 +283,22 @@ class RethinkDbManager:
 
     def list_valors(self):
 
-        response = rethinkdb.db('routing').table('galahad').run()
+        response = rethinkdb.db('routing').table('galahad').filter(
+            {'function' : 'valor'}).run()
 
         valors = list(response.items)
 
         return valors
+
+
+    def list_virtues(self):
+
+        response = rethinkdb.db('routing').table('galahad').filter(
+            {'function' : 'virtue'}).run()
+
+        virtues = list(response.items)
+
+        return virtues
 
 
     def add_valor(self, valor):

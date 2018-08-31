@@ -205,8 +205,11 @@ class EndPoint():
 
             # Add virtue to rethink
             try:
-                rdb_manager.add_virtue('172.30.1.52', virtue['id'],
-                                       'images/p_virtues/' + virtue['id'] + '.img')
+                rdb_manager.add_virtue(
+                    valor['address'],
+                    virtue['id'],
+                    'images/p_virtues/' + virtue['id'] + '.img')
+
             except AssertionError:
                 return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
 
