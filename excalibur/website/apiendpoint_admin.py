@@ -8,7 +8,7 @@ import subprocess
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
-from controller import CreateVirtueThread
+from controller import CreateVirtueThread, AssembleRoleThread
 from . import ldap_tools
 from aws import AWS
 from valor import ValorAPI
@@ -140,8 +140,8 @@ class EndPoint_Admin():
     def role_create(
         self,
         role,
-        use_aws=True,
-        hard_code_ami='ami-017f03c010f273b92'):
+        use_ssh=True,
+        hard_code_path='images/unities/8GB.img'):
 
         # TODO: Copy the unity image and assemble on a running VM
         # Then, do not create a standby virtue
@@ -193,36 +193,14 @@ class EndPoint_Admin():
 
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
-            # Todo: Create AWS AMI file with BBN's assembler
-            new_role['amiId'] = hard_code_ami
-
-            ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
-
-            ret = self.inst.add_obj(ldap_role, 'roles', 'cid')
-
-            if (ret != 0):
+            try:
+                # Call a controller thread to create and assemble the new image
+                thr = AssembleRoleThread(self.inst.email, self.inst.password,
+                                         new_role, hard_code_path,
+                                         use_ssh=use_ssh)
+            except AssertionError:
                 return json.dumps(ErrorCodes.admin['storageError'])
-
-            if (use_aws == True):
-                # Call a controller thread to create a new standby virtue on a new thread
-                thr = CreateVirtueThread(self.inst.email, self.inst.password,
-                                         new_role['id'], role=new_role)
-                thr.start()
-            else:
-                # Write a dummy virtue to LDAP
-                virtue = {
-                    'id': 'virtue_{0}{1}'.format(new_role['name'],
-                                                 int(time.time())),
-                    'username': 'NULL',
-                    'roleId': new_role['id'],
-                    'applicationIds': [],
-                    'resourceIds': new_role['startingResourceIds'],
-                    'transducerIds': new_role['startingTransducerIds'],
-                    'state': 'STOPPED',
-                    'ipAddress': 'NULL'
-                }
-                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+            thr.start()
 
             return json.dumps({'id': new_role['id'], 'name': new_role['name']})
 
@@ -405,8 +383,6 @@ class EndPoint_Admin():
     # Create a virtue for the specified role, but do not launch it yet
     def virtue_create(self, username, roleId, use_aws=True):
 
-        # TODO: Replace with CreateVirtueThread
-
         try:
             user = None
             role = None
@@ -427,13 +403,13 @@ class EndPoint_Admin():
             if (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
 
+            # TODO: If role is still CREATING or FAILED, return error
+
             virtue = None
             curr_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
             for v in curr_virtues:
                 ldap_tools.parse_ldap(v[1])
-                if (v[1]['username'] == 'NULL' and v[1]['roleId'] == roleId):
-                    virtue = v[1]
-                elif (v[1]['username'] == username
+                if (v[1]['username'] == username
                       and v[1]['roleId'] == roleId):
                     return json.dumps(
                         ErrorCodes.user['virtueAlreadyExistsForRole'])
@@ -458,33 +434,19 @@ class EndPoint_Admin():
 
                 transducers.append(transducer)
 
-            if (virtue == None):
-                # Pending virtue does not exist
-                return json.dumps(ErrorCodes.user['resourceCreationError'])
+            virtue_id = 'Virtue_{0}_{1}'.format(role['name'], int(time.time()))
 
-            virtue['username'] = username
-
-            virtue_ldap = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-
-            ret = self.inst.modify_obj(
-                'cid',
-                virtue_ldap['cid'],
-                virtue_ldap,
-                objectClass='OpenLDAPvirtue',
-                throw_error=True)
-
-            if (ret != 0):
-                return json.dumps(ErrorCodes.user['resourceCreationError'])
+            thr = CreateVirtueThread(self.inst.email, self.inst.password,
+                                     role['id'], username, virtue_id, role=role)
+            thr.start()
 
             # Return the whole thing
             # return json.dumps( virtue )
 
             # Return a json of the id and ip address
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
             return json.dumps({
-                'ipAddress': virtue['ipAddress'],
-                'id': virtue['id']
+                'ipAddress': 'NULL',
+                'id': virtue_id
             })
 
         except:

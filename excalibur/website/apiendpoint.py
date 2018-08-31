@@ -85,7 +85,7 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        virtue_ip = virtue['ipAddress']
+                        virtue_ip = v['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
@@ -124,7 +124,7 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        virtue_ip = virtue['ipAddress']
+                        virtue_ip = v['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
@@ -152,7 +152,7 @@ class EndPoint():
                 ldap_tools.parse_ldap(virtue[1])
 
                 if (virtue[1]['username'] == username):
-                    virtues_ret.append(v)
+                    virtues_ret.append(virtue)
 
             return json.dumps(virtues_ret)
 
