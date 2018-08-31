@@ -20,17 +20,18 @@ class ValorAPI:
     def valor_create(self):
 
         aws = AWS()
+
         return self.valor_manager.create_valor(
             aws.get_subnet_id(),
             aws.get_sec_group().id)
       
  
-    def valor_create_pool(self):
-        pass
+    def valor_create_pool(self, number_of_valors):
+        return self.valor_manager.create_valor_pool(number_of_valors)
 
 
-    def valor_destroy(self):
-        pass
+    def valor_destroy(self, valor_id):
+        return self.valor_manager.destroy_valor(valor_id)
 
 
     def valor_list(self):
@@ -40,19 +41,18 @@ class ValorAPI:
 
 class Valor:
 
-    aws_instance = {}
+    aws_instance = None
     guestnet = None
 
     def __init__(self, valor_id):
 
-        ec2 = boto3.resource('ec2')
+        self.ec2 = boto3.resource('ec2')
         self.aws_instance = ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
 
-        ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(
+        security_group = self.ec2.SecurityGroup(
             self.aws_instance.security_groups[0]['GroupId'])
 
         #TODO: should the security group already be authorized for SSH?
@@ -65,12 +65,13 @@ class Valor:
 
         except botocore.exceptions.ClientError:
             print(
-                'ClientError encountered while adding sec group rule. '
+                'ClientError encountered while adding security group rule. '
                 + 'Rule may already exist.')
 
 
     def get_efs_mount(self):
 
+        #TODO: remove hardcoded stack_name
         stack_name = 'test-for-mvs-2'
 
         cloudformation = boto3.resource('cloudformation')
@@ -96,7 +97,6 @@ class Valor:
 
         client = self.connect_with_ssh()
 
-        print(mount_efs_command)
         stdin, stdout, stderr = client.exec_command(make_efs_mount_command)
         stdin, stdout, stderr = client.exec_command(mount_efs_command)
 
@@ -117,6 +117,7 @@ class Valor:
             client.connect(
                 self.aws_instance.public_ip_address,
                 username='ubuntu',
+                #TODO: Need to automatically get key in home directory
                 key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
 
         except Exception as error:
@@ -129,13 +130,9 @@ class Valor:
 
     def setup(self):
         '''
-        sudo su
-        cp -r /mnt/nfs/deploy-local/compute/config /home/ubuntu/
-        cd /home/ubuntu/config && /bin/bash setup.sh
-        reboot (redo mounting)
         ovs-vsctl show - see bridge to remote router
         xl list - received:
-             `Domain-0                       0  2048     2     r-----     198.6`
+            `Domain-0                       0  2048     2     r-----     198.6`
         ping 10.91.0.254 - should work
         '''
 
@@ -174,7 +171,7 @@ class Valor:
 
                 self.connect_with_ssh()
                 print('Successfully connected to {}'.format(
-                    self.aws_instance.public_ip_address,))
+                    self.aws_instance.public_ip_address))
 
                 break
 
@@ -187,6 +184,7 @@ class ValorManager:
 
     def __init__(self):
 
+        self.aws = AWS()
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
 
@@ -197,7 +195,6 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        aws = AWS()
 
         excalibur_ip = '{0}/32'.format(aws.get_public_ip())
 
@@ -213,7 +210,7 @@ class ValorManager:
             'inst_profile_arn' : '',
         }
 
-        instance = aws.instance_create(**valor)
+        instance = self.aws.instance_create(**valor)
 
         valor = Valor(instance.id)
 
@@ -237,16 +234,22 @@ class ValorManager:
 
     def destroy_valor(self, valor_id):
 
-        aws = AWS()
-
-        aws.instance_destroy(valor_id, block=False)
+        self.aws.instance_destroy(valor_id, block=False)
 
         self.rethinkdb_manager.remove_valor(valor_id)
+
+
+    def migrate_virtue(self, virtue_id, new_valor_id):
+
+        current_valor = self.
+
+        self.rethinkdb_manager.migrate_valor(current_valor, new_valor_id)
 
 
 
 class RethinkDbManager:
 
+    #TODO: Remove hardcoded IP and replace with DNS name
     ip_address = '172.30.1.54'
 
     def __init__(self):
@@ -351,7 +354,8 @@ class RethinkDbManager:
 
         assert len(matching_virtues) == 1
 
-        rethinkdb.db('routing').table('galahad').filter(matching_virtues[0]).delete().run()
+        rethinkdb.db('routing').table('galahad').filter(
+            matching_virtues[0]).delete().run()
 
 
 class RouterManager:
