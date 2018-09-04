@@ -325,7 +325,7 @@ class Excalibur():
         security_group = ec2.SecurityGroup(group_id)
         client_cidrs_to_allow_access =  [ '{}/32'.format(self.server_ip),
                                           '70.121.205.81/32',
-                                          '172.3.30.184/32',
+                                          '45.31.214.87/32',
                                           '35.170.157.4/32',
                                           '129.115.2.249/32',
                                           '199.46.124.36/32',
