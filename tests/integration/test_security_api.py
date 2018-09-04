@@ -82,7 +82,7 @@ def setup_module():
     }
     session.verify = settings['verify']
 
-    base_url = 'https://{0}/virtue/security'.format(excalibur_ip)
+    base_url = 'https://{0}/virtue'.format(excalibur_ip)
 
 
     virtue_ip = None
@@ -93,7 +93,7 @@ def setup_module():
 
     with open('../../excalibur/cli/excalibur_config.json', 'r') as f:
         config = json.load(f)
-        session.get(base_url + '/api_config', params={'configuration': json.dumps(config)})
+        session.get(base_url + '/security/api_config', params={'configuration': json.dumps(config)})
 
 # This is a separate method that is NOT called from setup_module because pytest likes to run
 # setup_module when, for example, listing tests instead of running them.
@@ -101,15 +101,18 @@ def __setup_virtue():
     global virtue_ip
     global virtue_id
     global virtue_ssh
+    global new_virtue
 
     # Read the Virtue IP and ID from a file (if they have been provided)
     if os.path.isfile('../setup/virtue_ip') and os.path.isfile('../setup/virtue_id'):
+        new_virtue = False
         with open('../setup/virtue_ip', 'r') as infile:
             virtue_ip = infile.read().strip()
         with open('../setup/virtue_id', 'r') as infile:
             virtue_id = infile.read().strip()
     # Otherwise, create a new Virtue
     else:
+        new_virtue = True
         role = {
             'name': 'SecurityTestRole',
             'version': '1.0',
@@ -169,7 +172,7 @@ def test_list_transducers():
     if virtue_ssh is None:
         __setup_virtue()
 
-    transducers = json.loads(session.get(base_url + '/transducer/list').text)
+    transducers = json.loads(session.get(base_url + '/security/transducer/list').text)
     assert len(transducers) > 1
 
 def __get_elasticsearch_index():
@@ -209,7 +212,7 @@ def test_sensor_disable():
         __setup_virtue()
 
     # Disable a sensor transducer
-    session.get(base_url + '/transducer/disable', params={
+    session.get(base_url + '/security/transducer/disable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id
     })
@@ -240,7 +243,7 @@ def test_sensor_enable():
         __setup_virtue()
 
     # Enable a sensor transducer
-    session.get(base_url + '/transducer/enable', params={
+    session.get(base_url + '/security/transducer/enable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id,
         'configuration': '{}'
@@ -275,7 +278,7 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('ps aux | grep yes | grep -v grep')
 
     # Kill the process via an actuator
-    session.get(base_url + '/transducer/enable', params={
+    session.get(base_url + '/security/transducer/enable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id,
         'configuration': '{"processes":["yes"]}'
@@ -288,7 +291,7 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('! ( ps aux | grep yes | grep -v grep)')
 
     # Disable the actuator
-    session.get(base_url + '/transducer/disable', params={
+    session.get(base_url + '/security/transducer/disable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id
     })
@@ -298,7 +301,7 @@ def test_actuator_net_block():
     assert virtue_ssh.ssh('wget 1.1.1.1 -T 20 -t 1') == 0
 
     # Block the server
-    session.get(base_url + '/transducer/enable', params={
+    session.get(base_url + '/security/transducer/enable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id,
         'configuration': '{"rules":["block_outgoing_dst_ipv4_1.1.1.1"]}'
@@ -311,8 +314,19 @@ def test_actuator_net_block():
     assert virtue_ssh.ssh('! (wget 1.1.1.1 -T 20 -t 1)') == 0
 
     # Unblock the server
-    session.get(base_url + '/transducer/disable', params={
+    session.get(base_url + '/security/transducer/disable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id
     })
+
+def teardown_module():
+    assert virtue_id is not None
+
+    # Only delete a Virtue if it was created during these tests, not passed in manually
+    if new_virtue:
+        ret = session.get(base_url + '/user/virtue/stop', params={'virtueId': virtue_id})
+        assert ret.json()['status'] == 'success'
+
+        ret = session.get(base_url + '/admin/virtue/destroy', params={'virtueId': virtue_id})
+        assert ret.json()['status'] == 'success'
 
