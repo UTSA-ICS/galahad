@@ -38,6 +38,10 @@ class ValorAPI:
         return self.rethinkdb_manager.list_valors()
 
 
+    def valor_migrate_virtue(self, virtue_id, new_valor_id)
+        return self.valor_manager.migrate_virtue(virtue_id, new_valor_id)
+
+
 
 class Valor:
 
@@ -208,6 +212,8 @@ class ValorManager:
             if valor_is_empty:
                 empty_valor = valor
                 break
+
+        #TODO: if no empty valors are found
 
         return valor
 

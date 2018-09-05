@@ -485,7 +485,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
-    def valor_create(self, use_aws=True):
+    def valor_create(self):
 
         try:
 
@@ -500,7 +500,22 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
-    def valor_list(self, use_aws=True):
+    def valor_destroy(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_destroy(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_list(self):
 
         try:
 
@@ -513,3 +528,37 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_create_pool(self, number_of_valors):
+
+        try:
+
+            valor_ids = self.valor_api.valor_create_pool(number_of_valors)
+
+            return json.dumps({'valor_ids' : valor_ids})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_migrate_virtue(self, virtue_id, new_valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_migrate_virtue(
+                virtue_id,
+                new_valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+

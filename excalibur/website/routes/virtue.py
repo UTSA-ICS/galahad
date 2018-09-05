@@ -851,7 +851,7 @@ def admin_valor_create_pool():
     try:
 
         ep = get_admin_endpoint()
-        valor_ids = ep.valor_create_pool(request.args['valor_ids'])
+        valor_ids = ep.valor_create_pool(request.args['number_of_valors'])
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -875,4 +875,22 @@ def admin_valor_destroy():
 
     return make_response(valor_id)
 
+
+@bp.route('/admin/valor/migrate_virtue', methods=['GET'])
+@require_oauth()
+def admin_valor_migrate_virtue():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_migrate_virtue(
+            request.args['virtue_id'],
+            request.args['new_valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
 
