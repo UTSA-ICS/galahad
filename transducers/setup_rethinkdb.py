@@ -43,6 +43,18 @@ except r.ReqlOpFailedError:
 	# table already exists - great
 	pass
 
+try:
+	r.db_create('routing').run(conn)
+except r.ReqlOpFailedError:
+	# database already exists - great
+	pass
+
+try:
+	r.db('routing').table_create('galahad').run(conn)
+except r.ReqlOpFailedError:
+	# table already exists - great
+	pass
+
 # key filename (for password)
 excalibur_private_key = args.excalkey
 

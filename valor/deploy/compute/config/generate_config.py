@@ -1,6 +1,6 @@
 import rethinkdb as r
 import socket
-r.connect("172.30.1.54",28015).repl()
+r.connect("172.30.1.45",28015).repl()
 ip = socket.gethostbyname(socket.gethostname())
 
 with open('me.cfg', 'a') as config:

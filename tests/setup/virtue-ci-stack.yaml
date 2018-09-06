@@ -378,7 +378,8 @@ Resources:
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-04b887e2a2d0bdccd
+      ImageId: ami-a4dc46db
+#     ImageId: ami-04b887e2a2d0bdccd
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
@@ -457,27 +458,27 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-ValorEFSServer'
-  ValorRethinkDB:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.54
-          SubnetId: !Ref VirtUEAdminSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorRethinkDB'
-    DependsOn:
-      - VirtUEAdminSubnet
+#  ValorRethinkDB:
+#    Type: 'AWS::EC2::Instance'
+#    Properties:
+#      ImageId: ami-a4dc46db
+#      InstanceType: t2.medium
+#      KeyName: !Ref KeyName
+#      NetworkInterfaces:
+#        - DeviceIndex: '0'
+#          PrivateIpAddress: 172.30.1.54
+#          SubnetId: !Ref VirtUEAdminSubnet
+#      Tags:
+#        - Key: Project
+#          Value: Virtue
+#        - Key: Name
+#          Value: !Join
+#            - ''
+#            - - VirtUE-
+#              - !Ref NameSuffix
+#              - '-ValorRethinkDB'
+#    DependsOn:
+#      - VirtUEAdminSubnet
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -500,7 +501,8 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
+#      - ValorRethinkDB
   ValorNode51:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -523,7 +525,8 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
+#      - ValorRethinkDB
   ValorNode52:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -546,7 +549,8 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
+#      - ValorRethinkDB
   ExcaliburServerDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:
