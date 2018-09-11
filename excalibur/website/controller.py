@@ -101,6 +101,9 @@ class CreateVirtueThread(threading.Thread):
 
     def run(self):
 
+        # Local Dir for storing of keys, this will be replaced when key management is implemented
+        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
+
         thread_list.append(self)
 
         # Going to need to write to LDAP
@@ -131,12 +134,33 @@ class CreateVirtueThread(threading.Thread):
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         assert self.inst.add_obj(ldap_virtue, 'virtues', 'cid') == 0
 
-        try:
-            virtue_path = 'images/p_virtues/' + virtue['id'] + '.img'
-            shutil.copy('/mnt/efs/images/non_p_virtues/' + role['id'] + '.img',
-                        '/mnt/efs/' + virtue_path)
+        virtue_path = 'images/p_virtues/' + virtue['id'] + '.img'
 
-            self.set_virtue_keys(virtue['id'], '/mnt/efs/' + virtue_path)
+        try:
+
+            # For now generate keys and store in local dir
+            subprocess.check_output(shlex.split(
+                ('ssh-keygen -t rsa -f {0}/{1}.pem -C'
+                 ' "Virtue Key for {1}" -N ""').format(key_dir, virtue['id'])))
+
+            with open(key_dir + '/' + virtue['id'] + '.pem',
+                      'r') as virtue_key_file:
+                virtue_key = virtue_key_file.read().strip()
+            with open(key_dir + '/excalibur_pub.pem',
+                      'r') as excalibur_key_file:
+                excalibur_key = excalibur_key_file.read().strip()
+            with open(key_dir + '/rethinkdb_cert.pem',
+                      'r') as rdb_cert_file:
+                rdb_cert = rdb_cert_file.read().strip()
+
+            subprocess.check_call(['sudo', 'python', 'call_provisioner.py',
+                                   '-i', virtue['id'],
+                                   '-b', '/mnt/efs/images/non_p_virtues/' +
+                                   role['id'] + '.img',
+                                   '-o', '/mnt/efs/' + virtue_path,
+                                   '-v', virtue_key,
+                                   '-e', excalibur_key,
+                                   '-r', rdb_cert])
 
             virtue['state'] = 'STOPPED'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
@@ -146,69 +170,10 @@ class CreateVirtueThread(threading.Thread):
                 role['id'], traceback.format_exc()))
             assert self.inst.del_obj('cid', virtue['id'],
                                      objectClass='OpenLDAPvirtue',
-                                     throw_error=True)
+                                     throw_error=True) == 0
+            os.remove('{0}/{1}.pem'.format(key_dir, virtue['id']))
+            os.remove('{0}/{1}.pem.pub'.format(key_dir, virtue['id']))
             os.remove('/mnt/efs/' + virtue_path)
-
-    def set_virtue_keys(self, virtue_id, virtue_path):
-        # Local Dir for storing of keys, this will be replaced when key management is implemented
-        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
-
-        # For now generate keys and store in local dir
-        subprocess.check_output(shlex.split(
-            ('ssh-keygen -t rsa -f {0}/{1}.pem '
-             '-C "Virtue Key for {1}" -N ""').format(key_dir, virtue_id)))
-
-        image_mount = '{0}/{1}'.format(os.environ['HOME'], virtue_id)
-        os.mkdir(image_mount)
-
-        try:
-            subprocess.check_call(['mount',
-                                   virtue_path,
-                                   image_mount])
-
-            with open(image_mount + '/etc/virtue-id', 'w') as id_file:
-                id_file.write(virtue_id)
-
-            if (not os.path.exists(image_mount + '/var/private/ssl')):
-                os.makedirs(image_mount + '/var/private/ssl')
-
-            shutil.copy('{0}/{1}.pem'.format(key_dir, virtue_id),
-                        image_mount + '/var/private/ssl/virtue_1_key.pem')
-            shutil.copy('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'),
-                        image_mount + '/var/private/ssl/excalibur_pub.pem')
-            shutil.copy('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'),
-                        image_mount + '/var/private/ssl/rethinkdb_cert.pem')
-
-            os.chown(image_mount + '/var/private', 501, 500)
-            for path, dirs, files in os.walk(image_mount + '/var/private'):
-                for f in files:
-                    os.chown(os.path.join(path, f), 501, 500)
-                    os.chmod(os.path.join(path, f), 0700)
-                for d in dirs:
-                    os.chown(os.path.join(path, d), 501, 500)
-                    os.chmod(os.path.join(path, d), 0700)
-
-            subprocess.check_call(['chroot', image_mount,
-                                   'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
-
-            with open(image_mount + '/etc/hosts', 'a') as hosts_file:
-                hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
-                hosts_file.write('172.30.1.46 elasticsearch.galahad.com\n')
-
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's/host:.*/host: elasticsearch.galahad.com/',
-                '/etc/syslog-ng/elasticsearch.yml'])
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!',
-                '/etc/syslog-ng/syslog-ng.conf'])
-
-        except:
-            raise
-        finally:
-            subprocess.call(['umount', image_mount])
-            os.rmdir(image_mount)
 
 class AssembleRoleThread(threading.Thread):
 
@@ -248,6 +213,15 @@ class AssembleRoleThread(threading.Thread):
                 # TODO: Assemble role
 
                 # Launch by adding a 'virtue' to RethinkDB
+                #valor_manager = ValorManager()
+                #valor = ValorManager.get_empty_valor()
+                #valor_manager.rethinkdb_manager.add_virtue(
+                #    valor['address'],
+                #    self.role['id'],
+                #    'images/non_p_virtues/' + self.role['id'])
+
+                #time.sleep(5)
+
                 # Get IP to ssh
                 # Get Docker login command
                 ecr = boto3.client('ecr')
@@ -277,6 +251,9 @@ class AssembleRoleThread(threading.Thread):
             ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
+        finally:
+            #valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
+            pass
 
         self.role['state'] = 'CREATED'
         ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
