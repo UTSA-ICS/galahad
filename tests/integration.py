@@ -133,10 +133,13 @@ if (__name__ == '__main__'):
         logger.info(
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
                 format(excalibur_ip))
-        ssh_inst.ssh(
-            'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
-            '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(
-                args.run_test))
+        try:
+            ssh_inst.ssh(
+                'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
+                '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(
+                    args.run_test))
+        except:
+            pass
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
         ssh_inst.scp_from('.',
@@ -145,9 +148,12 @@ if (__name__ == '__main__'):
         logger.info(
             '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
                 format(excalibur_ip))
-        ssh_inst.ssh(
-            'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
-            '--self-contained-html --junit-xml=integration-test-report.xml')
+        try:
+            ssh_inst.ssh(
+                'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
+                '--self-contained-html --junit-xml=integration-test-report.xml')
+        except:
+            pass
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
         ssh_inst.scp_from('.',
