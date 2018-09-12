@@ -8,9 +8,10 @@ import ssl
 from elastic_log_handler.handlers import CMRESHandler
 
 
-elasticLog = logging.getLogger('elasticLog')
 app = None
 is_dev = bool(os.getenv('FLASK_DEBUG'))
+
+
 
 if is_dev:
     os.environ['AUTHLIB_INSECURE_TRANSPORT'] = 'true'
@@ -24,6 +25,13 @@ if is_dev:
         return resp
 else:
     app = create_app()
+
+
+@app.before_first_request
+def initialize_logger():
+    setup_logging('elasticsearch.galahad.com', '/var/private/ssl/elasticsearch_keys/kirk.crtfull.pem',
+                  '/var/private/ssl/elasticsearch_keys/kirk.key.pem', 'admin', 'admin',
+                  '/var/private/ssl/elasticsearch_keys/ca.pem')
 
 
 @app.cli.command()
@@ -42,16 +50,12 @@ def main():
     context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     context.load_cert_chain('ssl/flask_ssl.cert', 'ssl/flask_ssl.key')
 
-
-    setup_logging('elasticsearch.galahad.com', '/var/private/ssl/elasticsearch_keys/kirk.crtfull.pem',
-                  '/var/private/ssl/elasticsearch_keys/kirk.key.pem', 'admin', 'admin',
-                  '/var/private/ssl/elasticsearch_keys/ca.pem')
-
     # Run the flask server with appropriate options
     app.run(host='0.0.0.0', port=flask_port, debug=True, ssl_context=context)
 
 
 def setup_logging(es_host, es_cert, es_key, es_user, es_pass, es_ca):
+    elasticLog = logging.getLogger('elasticLog')
     elasticHandler = CMRESHandler(hosts=[{'host': es_host, 'port': 9200}],
                                   auth_type=CMRESHandler.AuthType.HTTPS,
                                   es_index_name="excalibur",

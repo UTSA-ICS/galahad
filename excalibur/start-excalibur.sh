@@ -76,6 +76,7 @@ else
       exit
     fi
     cp -R $galahad_config_dir/flask_ssl/* ssl/.
+    cp -R $galahad_config_dir/elasticsearch_keys/* /var/private/ssl/
   fi
 
   python app.py $PORT
