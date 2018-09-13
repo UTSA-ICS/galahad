@@ -5,7 +5,7 @@ from website import create_app
 from website.models import db
 import ssl
 
-from elastic_log_handler.handlers import CMRESHandler
+from handlers import CMRESHandler
 
 
 app = None
