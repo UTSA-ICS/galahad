@@ -22,6 +22,7 @@ from pprint import pformat
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
 EXCALIBUR_IP = 'setup/excalibur_ip'
+RETHINKDB_IP = 'setup/rethinkdb_ip'
 AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 
 # aws public key name used for the instances
@@ -124,6 +125,72 @@ class Stack():
                     stack['StackName'],
                     stack['CreationTime'],
                     stack['StackStatus']))
+
+
+class RethinkDB():
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.ip_address = self.get_ip()
+        # Write out rethinkdb IP to a file
+        self.write_ip_address(self.ip_address)
+
+
+    def write_ip_address(self, ip_address):
+
+        with open(RETHINKDB_IP, 'w') as f:
+            f.write(ip_address)
+
+
+    def get_ip_address(self):
+
+        client = boto3.client('ec2')
+
+        server = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['RethinkDB']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+
+        return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+
+    def setup_keys(self, github_key, user_key):
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
+                format(self.ssh_key, github_key, self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
+                format(self.ssh_key, user_key, self.ip_address)).run()
+
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Now remove any existing public keys as they will conflict with the private key
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
+                              "rm('-f ~/.ssh/id_rsa.pub')")
+
+        # Now add the github public key to avoid host key verification prompt
+        result3 = run_ssh_cmd(
+            self.ip_address, self.ssh_key,
+            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
+        result.append(result3.stdout)
+
+        return (result)
 
 
 class Excalibur():
@@ -480,6 +547,9 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
+
+    rethinkdb = RethinkDB(stack_name, path_to_key)
+    rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     efs = EFS(stack_name, path_to_key)
     efs.setup_efs()
