@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set hostname
+echo "127.0.0.1 rethinkdb.galahad.lab" >> /etc/hosts
+
 # bbn - Install rethinkdb
 source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | tee /etc/apt/sources.list.d/rethinkdb.list
 wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | apt-key add -
@@ -7,7 +10,12 @@ apt-get update
 apt-get --assume-yes install rethinkdb
 
 # bbn - Generate cert for this host and put in correct place
-openssl req -new -x509 -key rethinkdb.pem -out rethinkdb_cert.pem -days 3650 -subj "/CN=rethinkdb.galahad.lab"
+#openssl req -new -x509 -key rethinkdb.pem -out rethinkdb_cert.pem -days 3650 -subj "/CN=rethinkdb.galahad.lab"
+
+git clone git@github.com:starlab-io/galahad-config.git
+cp rethinkdb_keys/rethinkdb.pem .
+cp rethinkdb_keys/rethinkdb_cert.pem .
+
 sudo mkdir -p /var/private/ssl/
 sudo cp rethinkdb.pem /var/private/ssl/
 sudo cp rethinkdb_cert.pem /var/private/ssl/
