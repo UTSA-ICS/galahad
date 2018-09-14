@@ -15,6 +15,7 @@ apt-get --assume-yes install rethinkdb
 sudo mkdir -p /var/private/ssl/
 sudo cp rethinkdb.pem /var/private/ssl/
 sudo cp rethinkdb_cert.pem /var/private/ssl/
+sudo cp excalibur_key.pem /var/private/ssl/
 sudo chown rethinkdb:rethinkdb /var/private/ssl/*.pem
 sudo chmod 600 /var/private/ssl/*.pem
 

@@ -10,5 +10,6 @@ sudo cp -R /mnt/efs/deploy/rethink/config /home/ubuntu
 git clone git@github.com:starlab-io/galahad-config.git
 sudo cp galahad-config/rethinkdb_keys/rethinkdb.pem config
 sudo cp galahad-config/rethinkdb_keys/rethinkdb_cert.pem config
+sudo cp galahad-config/excalibur_private_key.pem config/excalibur_key.pem
 cd /home/ubuntu/config
 sudo /bin/bash setup.sh
