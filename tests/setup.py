@@ -549,7 +549,7 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
-    rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
+    rethinkdb.setup_keys(branch, github_key, aws_config, aws_keys, user_key)
 
     efs = EFS(stack_name, path_to_key)
     efs.setup_efs()
