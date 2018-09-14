@@ -133,7 +133,7 @@ class RethinkDB():
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.ip_address = self.get_ip()
+        self.ip_address = self.get_ip_address()
         # Write out rethinkdb IP to a file
         self.write_ip_address(self.ip_address)
 
