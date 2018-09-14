@@ -34,4 +34,4 @@ sudo systemctl start rethinkdb@rethinkdb
 apt-get --assume-yes install python2.7 python-pip
 pip install rethinkdb
 
-python setup_rethinkdb.py
+sudo python setup_rethinkdb.py

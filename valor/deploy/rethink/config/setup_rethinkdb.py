@@ -22,7 +22,8 @@ if not os.path.isfile(args.excalkey):
 	sys.exit(1)
 
 # connect
-conn = r.connect(host=args.host, ssl={'ca_certs': args.cert})
+#conn = r.connect(host=args.host, ssl={'ca_certs': args.cert})
+conn = r.connect(host='localhost')
 
 # setup database and tables
 try:
