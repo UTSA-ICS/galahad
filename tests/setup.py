@@ -17,6 +17,7 @@ import time
 import argparse
 import logging
 from sultan.api import Sultan, SSHConfig
+from pprint import pformat
 
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
@@ -32,15 +33,20 @@ logger = logging.getLogger(__name__)
 
 
 class Stack():
+
     def read_template(self):
+
         file = open(self.stack_template, "r")
+
         return file.read()
 
+
     def setup_stack(self, stack_template, stack_name, suffix_value):
+
         self.stack_template = stack_template
         self.stack_name = stack_name
         self.suffix_value = suffix_value
-        #
+
         client = boto3.client('cloudformation')
         stack = client.create_stack(
             StackName=self.stack_name,
@@ -59,18 +65,22 @@ class Stack():
 
         # Log the events of the Stack
         response = client.describe_stack_events(StackName=self.stack_name)
+
         for event in response['StackEvents']:
             if 'CREATE_COMPLETE' in event['ResourceStatus']:
-                logger.info('{} {} {}'.format(event['Timestamp'],
-                                              event['ResourceType'],
-                                              event['ResourceStatus']))
+                logger.info('{} {} {}'.format(
+                    event['Timestamp'],
+                    event['ResourceType'],
+                    event['ResourceStatus']))
 
         # Wait a min to Ensure that the Stack resources are completely online.
         time.sleep(60)
 
         return stack
 
+
     def delete_stack(self, stack_name):
+
         self.stack_name = stack_name
         #
         client = boto3.client('cloudformation')
@@ -79,9 +89,12 @@ class Stack():
         waiter = boto3.client('cloudformation').get_waiter(
             'stack_delete_complete')
         waiter.wait(StackName=self.stack_name)
+
         return response
 
+
     def clear_security_groups(self):
+
         client = boto3.client('ec2')
         security_groups = client.describe_security_groups(
             Filters=[{
@@ -101,18 +114,22 @@ class Stack():
                 sec_group.revoke_egress(
                     IpPermissions=sec_group.ip_permissions_egress)
 
+
     def list_stacks(self):
         client = boto3.client('cloudformation')
         response = client.list_stacks()
         for stack in response['StackSummaries']:
             if 'UPDATE' in stack['StackStatus'] or 'CREATE' in stack['StackStatus']:
-                logger.info('{} {} {}'.format(stack['StackName'],
-                                              stack['CreationTime'],
-                                              stack['StackStatus']))
+                logger.info('{} {} {}'.format(
+                    stack['StackName'],
+                    stack['CreationTime'],
+                    stack['StackStatus']))
 
 
 class Excalibur():
+
     def __init__(self, stack_name, ssh_key):
+
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.server_ip = self.get_excalibur_server_ip()
@@ -120,11 +137,14 @@ class Excalibur():
         self.write_excalibur_ip(self.server_ip)
 
     def write_excalibur_ip(self, excalibur_ip):
+
         with open(EXCALIBUR_IP, 'w') as f:
             f.write(excalibur_ip)
 
     def get_excalibur_server_ip(self):
+
         client = boto3.client('ec2')
+
         server = client.describe_instances(
             Filters=[{
                 'Name': 'tag:aws:cloudformation:logical-id',
@@ -136,10 +156,12 @@ class Excalibur():
                 'Name': 'instance-state-name',
                 'Values': ['running']
             }])
-        # Return public IP
+
         return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
+
     def setup_keys(self, github_key, user_key):
+
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
@@ -164,7 +186,9 @@ class Excalibur():
         result.append(result1.stdout)
         result.append(result2.stdout)
         result.append(result3.stdout)
+
         return (result)
+
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -422,22 +446,35 @@ class EFS():
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
+
     config = SSHConfig(
-        identity_file=path_to_key, option='StrictHostKeyChecking=no')
+        identity_file=path_to_key,
+        option='StrictHostKeyChecking=no')
+
     with Sultan.load(
-            user='ubuntu', hostname=host_server, ssh_config=config) as s:
+        user='ubuntu',
+        hostname=host_server,
+        ssh_config=config) as s:
+
         result = eval('s.{}.run()'.format(cmd))
+
         if result.is_success:
             logger.info('success: {}'.format(result.is_success))
+
         else:
             logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
-                result.stdout, result.stderr, result.is_success))
+                pformat(result.stdout),
+                pformat(result.stderr),
+                pformat(result.is_success)))
+
         assert result.rc == 0
+
         return result
 
 
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
           aws_keys, branch, user_key):
+
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
 
@@ -448,8 +485,11 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     efs.setup_efs()
     efs.setup_valorNodes()
 
+
 def parse_args():
+
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         "-k",
         "--path_to_key",
@@ -474,8 +514,7 @@ def parse_args():
         type=str,
         required=True,
         help=
-        "The suffix used by the cloudformation stack to append to resource names"
-    )
+        "The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument(
         "-b",
         "--branch_name",
@@ -525,28 +564,43 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
+def ensure_required_files_exist(args):
 
-    # Check if the required files exist
     required_files = '{} {} {} {}'.format(
-        args.path_to_key, args.github_repo_key, args.aws_config, args.aws_keys)
+        args.path_to_key,
+        args.github_repo_key,
+        args.aws_config,
+        args.aws_keys)
+
     for file in required_files.split():
+
         if not os.path.isfile(file):
+
             logger.error('Specified file [{}] does not exit!\n'.format(file))
             sys.exit()
+
+
+def main():
+
+    args = parse_args()
+
+    ensure_required_files_exist(args)
 
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
               args.branch_name, args.default_user_key)
+
     if args.setup_stack:
+
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
+
     if args.setup_valor:
+
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
         #
@@ -556,8 +610,10 @@ def main():
         efs = EFS(args.stack_name, args.path_to_key)
         efs.setup_efs()
         efs.setup_valorNodes()
+
     if args.list_stacks:
         Stack().list_stacks()
+
     if args.delete_stack:
         Stack().delete_stack(args.stack_name)
 
