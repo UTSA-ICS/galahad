@@ -254,9 +254,9 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 	heartbeat_conn = None
 	while heartbeat_conn is None:
 		try:
-			heartbeat_conn = r.connect(host=rethinkdb_host, 
+			heartbeat_conn = r.connect(host=rethinkdb_host,
 						user='virtue', 
-						password='virtue') 
+						password='virtue')
 						#ssl={ 'ca_certs': ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
@@ -466,9 +466,9 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 	conn = None
 	while conn is None:
 		try:
-			conn = r.connect(host=rethinkdb_host, 
-				user='virtue', 
-				password='virtue') 
+			conn = r.connect(host=rethinkdb_host,
+				user='virtue',
+				password='virtue')
 				#ssl={ 'ca_certs': args.ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
