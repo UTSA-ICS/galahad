@@ -39,7 +39,7 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 
 	elasticHandler = CMRESHandler(hosts=[{'host': es_host, 'port': 9200}],
                                auth_type=CMRESHandler.AuthType.HTTPS,
-                               es_index_name="merlin",
+.                              es_index_name="merlin",
                                use_ssl=True,
 							   # This should only be false for development purposes.  Production should have certs that pass ssl verification
                                verify_ssl=False,
@@ -256,8 +256,8 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 		try:
 			heartbeat_conn = r.connect(host=rethinkdb_host, 
 						user='virtue', 
-						password='virtue', 
-						ssl={ 'ca_certs': ca_cert })
+						password='virtue') 
+						#ssl={ 'ca_certs': ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
 			sleep(30)
@@ -468,8 +468,8 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		try:
 			conn = r.connect(host=rethinkdb_host, 
 				user='virtue', 
-				password='virtue', 
-				ssl={ 'ca_certs': args.ca_cert })
+				password='virtue') 
+				#ssl={ 'ca_certs': args.ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
 			sleep(30)

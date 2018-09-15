@@ -136,8 +136,8 @@ class HeartbeatListener():
 				try:
 					conn = r.connect(host=self.rethinkdb_host, 
 						user='excalibur', 
-						password=key, 
-						ssl={ 'ca_certs': self.rdb_ca_cert })
+						password=key) 
+						#ssl={ 'ca_certs': self.rdb_ca_cert })
 					return conn
 				except r.ReqlDriverError as e:
 					self.log.error('Failed to connect to RethinkDB at host: %s; error: %s; Trying again in 30 seconds.', self.rethinkdb_host, str(e))
