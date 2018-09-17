@@ -336,12 +336,12 @@ def teardown_module():
                 'cid', virtue_id, objectClass='OpenLDAPvirtue', throw_error=True) 
 
             response = session.get(
-                base_url + '/user/role/unauthorize',
+                base_url + '/admin/user/role/unauthorize',
                 params={
                     'username': 'jmitchell',
                     'roleId': role_id
                 })
-            assert response.json() == ErrorCodes.admin['success']
+            assert response.json()['status'] == 'success'
 
             inst.del_obj(
                 'cid', role_id, objectClass='OpenLDAProle', throw_error=True)
