@@ -18,6 +18,7 @@ class Rethink():
                 print('insert')
                 virtue = Virtue(change['new_val'])
                 virtue.create_cfg()
+                virtue.startDomU()
             elif change['new_val'] is None:
                 print('delete')
             else:

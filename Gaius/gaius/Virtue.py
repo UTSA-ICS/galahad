@@ -1,3 +1,4 @@
+import subprocess
 from __init__ import CFG_OUT
 
 class Virtue():
@@ -21,5 +22,8 @@ class Virtue():
         cfg.write("extra=\"ip=" + self.guestnet + "::" + self.address + ":255.255.255.0:host:eth0:none " + \
                   "nameserver=1.1.1.1\"")
         cfg.close()
+
+    def startDomU(self):
+        subprocess.check_call(['xl','create',CFG_OUT + self.host + '.cfg'])
 
 ### add newlines to end of write statements
