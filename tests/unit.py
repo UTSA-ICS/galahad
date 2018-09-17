@@ -73,24 +73,31 @@ if (__name__ == '__main__'):
 
     ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
 
-    if args.list_tests:
-        logger.info(
-            '\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
-        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan')
-    if args.run_test:
-        logger.info(
-            '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
-                format(excalibur_ip))
-        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show  --html=unit-test-report.html '
-                     '--self-contained-html --junit-xml=unit-test-report.xml {}'.format(args.run_test))
+    # Now Run the specified Test command
+    try:
+        if args.list_tests:
+            logger.info(
+                '\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
+            ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan '
+                         '--html=integration-test-report.html --self-contained-html ' 
+                         '--junit-xml=integration-test-report.xml')
+        if args.run_test:
+            logger.info(
+                '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
+                    format(excalibur_ip))
+            ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show  --html=unit-test-report.html '
+                         '--self-contained-html --junit-xml=unit-test-report.xml {}'.format(args.run_test))
+        if args.run_all_tests:
+            ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show --html=unit-test-report.html '
+                         '--self-contained-html --junit-xml=unit-test-report.xml')
+
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/unit/unit-test-report.xml')
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/unit/unit-test-report.html')
-    if args.run_all_tests:
-        ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show --html=unit-test-report.html '
-                     '--self-contained-html --junit-xml=unit-test-report.xml')
+    except:
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/unit/unit-test-report.xml')
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/unit/unit-test-report.html')
+        raise

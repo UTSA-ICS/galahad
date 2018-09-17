@@ -321,6 +321,10 @@ Resources:
       ImageId: ami-aa2ea6d0
       InstanceType: t2.micro
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.44
@@ -342,6 +346,10 @@ Resources:
       ImageId: ami-0abd33cde76960d90
       InstanceType: t2.small
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.50
@@ -362,6 +370,10 @@ Resources:
       ImageId: ami-001116e564201bcb4
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.250
@@ -381,6 +393,10 @@ Resources:
       ImageId: ami-04b887e2a2d0bdccd
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.45
@@ -402,6 +418,10 @@ Resources:
       ImageId: ami-066b9b7e204233efd
       InstanceType: t2.large
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.46
@@ -442,6 +462,10 @@ Resources:
       ImageId: ami-aa2ea6d0
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           GroupSet:
@@ -463,6 +487,10 @@ Resources:
       ImageId: ami-a4dc46db
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.54
@@ -484,6 +512,10 @@ Resources:
       ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.53
@@ -507,6 +539,10 @@ Resources:
       ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.51
@@ -530,6 +566,10 @@ Resources:
       ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.52

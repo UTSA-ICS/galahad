@@ -508,6 +508,19 @@ class EndPoint_Admin():
 
             aws_state = aws_res.state['Name']
 
+            # Work around a AWS bug whereby the instance state is not reported
+            # correctly/consistently. Essentially even though the instance is
+            # not in 'stopped' state, aws is reported a stale status of 'stopped'
+            # This will attempt to wait a bit (max 5 secs) to allow EC2 instance
+            # state information to be updated and reported correctly.
+            if (aws_state == 'stopped'):
+                for x in range(4):
+                    time.sleep(1)
+                    aws_res.reload()
+                    aws_state = aws_res.state['Name']
+                    if (aws_state != 'stopped'):
+                        break
+
             if (aws_state == 'shutting-down'):
                 return json.dumps(ErrorCodes.admin['success'])
 
