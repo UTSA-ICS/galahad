@@ -335,11 +335,13 @@ def teardown_module():
             inst.del_obj(
                 'cid', virtue_id, objectClass='OpenLDAPvirtue', throw_error=True) 
 
-            epa = EndPoint_Admin('jmitchell', 'Test123!')
-            epa.inst = inst
-            # user_role_authorize - Cleanup role from user authorized role list
-            ret = epa.user_role_unauthorize('jmitchell', role_id)
-            assert ret == json.dumps(ErrorCodes.admin['success'])
+            response = session.get(
+                base_url + '/user/role/unauthorize',
+                params={
+                    'username': 'jmitchell',
+                    'roleId': role_id
+                })
+            assert response.json() == ErrorCodes.admin['success']
 
             inst.del_obj(
                 'cid', role_id, objectClass='OpenLDAProle', throw_error=True)
