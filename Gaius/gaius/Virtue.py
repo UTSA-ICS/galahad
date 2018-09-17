@@ -1,4 +1,4 @@
-import subprocess
+import os, subprocess
 from __init__ import CFG_OUT
 
 class Virtue():
@@ -23,7 +23,9 @@ class Virtue():
                   "nameserver=1.1.1.1\"")
         cfg.close()
 
-    def startDomU(self):
+    def createDomU(self):
         subprocess.check_call(['xl','create',CFG_OUT + self.host + '.cfg'])
 
-### add newlines to end of write statements
+    def destroyDomU(self):
+        os.remove(CFG_OUT + self.host + ".cfg")
+        subprocess.check_call(['xl','destroy', self.host])

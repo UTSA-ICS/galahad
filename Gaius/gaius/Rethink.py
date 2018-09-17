@@ -12,15 +12,17 @@ class Rethink():
         print r.db(RT_DB).table(RT_VALOR_TB).run(RT_CONN)
 
     def changes_virtue(self):
-        feed = r.db(RT_DB).table(RT_VALOR_TB).filter({'function':'virtue'}).changes().run(RT_CONN)
+        feed = r.db(RT_DB).table(RT_VALOR_TB).filter({'function':'virtue','address':self.ip}).changes().run(RT_CONN)
         for change in feed:
             if change['old_val'] is None:
                 print('insert')
                 virtue = Virtue(change['new_val'])
                 virtue.create_cfg()
-                virtue.startDomU()
+                virtue.createDomU()
             elif change['new_val'] is None:
                 print('delete')
+                virtue = Virtue(change['old_val'])
+                virtue.destroyDomU()
             else:
                 print('update')
 
