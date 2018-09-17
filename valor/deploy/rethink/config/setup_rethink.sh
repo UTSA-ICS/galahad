@@ -23,8 +23,10 @@ sudo chmod 600 /var/private/ssl/*.pem
 sudo cp rethinkdb.conf /etc/rethinkdb/instances.d/
 
 # bbn - Enable autostart and actually start rethinkdb
-sudo systemctl enable rethinkdb@rethinkdb
-sudo systemctl start rethinkdb@rethinkdb
+#sudo systemctl enable rethinkdb@rethinkdb
+#sudo systemctl start rethinkdb@rethinkdb
+
+sudo service rethinkdb restart
 
 
 # idk
