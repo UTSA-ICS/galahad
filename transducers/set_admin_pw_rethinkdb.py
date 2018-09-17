@@ -17,7 +17,7 @@ if not os.path.isfile(args.cert):
 	print 'File not found:', args.cert
 	sys.exit(1)
 
-conn = r.connect(host=args.host) #, ssl={'ca_certs': args.cert})
+conn = r.connect(host=args.host , ssl={'ca_certs': args.cert})
 
 pw = raw_input('Set rethinkdb admin password to: ').strip()
 
