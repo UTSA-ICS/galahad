@@ -231,7 +231,7 @@ class RethinkDB():
             _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
                 repo, branch)
 
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
 
     def setup(self, branch, github_key, aws_config, aws_keys, user_key):
