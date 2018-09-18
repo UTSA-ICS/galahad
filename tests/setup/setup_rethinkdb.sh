@@ -28,8 +28,7 @@ sudo cp rethinkdb.conf /etc/rethinkdb/instances.d/
 
 
 # Restart RethinkDB with its new configuration file
-sudo service rethinkdb restart
-
+sudo /etc/init.d/rethinkdb restart
 
 # Install python libraries for rethinkdb and configure the database
 sudo apt-get --assume-yes install python2.7 python-pip
