@@ -33,6 +33,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def run_ssh_cmd(host_server, path_to_key, cmd):
+
+    config = SSHConfig(
+        identity_file=path_to_key,
+        option='StrictHostKeyChecking=no')
+
+    with Sultan.load(
+        user='ubuntu',
+        hostname=host_server,
+        ssh_config=config) as s:
+
+        result = eval('s.{}.run()'.format(cmd))
+
+        if result.is_success:
+            logger.info('success: {}'.format(result.is_success))
+
+        else:
+            logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
+                pformat(result.stdout),
+                pformat(result.stderr),
+                pformat(result.is_success)))
+
+        assert result.rc == 0
+
+        return result
+
+
 class Stack():
 
     def read_template(self):
@@ -193,6 +220,36 @@ class RethinkDB():
         return (result)
 
 
+    def checkout_repo(self, repo, branch='master'):
+        # Cleanup any left over repos
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
+
+        if branch == 'master':
+            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+
+        else:
+            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+                repo, branch)
+
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+
+    def setup(self, branch, github_key, aws_config, aws_keys, user_key):
+
+        # Transfer the private key to the server to enable
+        # it to access github without being prompted for credentials
+        self.setup_keys(github_key, user_key)
+        logger.info(
+            'Now checking out relevant excalibur repos for {} branch'.format(
+                branch))
+        # Check out galahad repos required for rethinkdb
+        self.checkout_repo('galahad', branch)
+
+        _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_rethinkdb.sh')"
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+
 class Excalibur():
 
     def __init__(self, stack_name, ssh_key):
@@ -268,6 +325,7 @@ class Excalibur():
                 repo, branch)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
+
     def setup_aws_access(self, aws_config, aws_keys):
         run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
         with Sultan.load() as s:
@@ -278,7 +336,7 @@ class Excalibur():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                 format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup_excalibur(self, branch, github_key, aws_config, aws_keys, user_key):
+    def setup(self, branch, github_key, aws_config, aws_keys, user_key):
 
         logger.info('Setting up key for github access')
         self.update_security_rules()
@@ -479,7 +537,7 @@ class EFS():
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
     def setup_valorNodes(self):
-        self.configure_instance('RethinkDB', 'setup_valor_rethinkdb.sh')
+        #self.configure_instance('RethinkDB', 'setup_valor_rethinkdb.sh')
         self.configure_instance('ValorRouter', 'setup_valor_router.sh')
         self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
         self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
@@ -512,31 +570,6 @@ class EFS():
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
 
-def run_ssh_cmd(host_server, path_to_key, cmd):
-
-    config = SSHConfig(
-        identity_file=path_to_key,
-        option='StrictHostKeyChecking=no')
-
-    with Sultan.load(
-        user='ubuntu',
-        hostname=host_server,
-        ssh_config=config) as s:
-
-        result = eval('s.{}.run()'.format(cmd))
-
-        if result.is_success:
-            logger.info('success: {}'.format(result.is_success))
-
-        else:
-            logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
-                pformat(result.stdout),
-                pformat(result.stderr),
-                pformat(result.is_success)))
-
-        assert result.rc == 0
-
-        return result
 
 
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
@@ -546,10 +579,10 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
 
     excalibur = Excalibur(stack_name, path_to_key)
-    excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
+    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
-    rethinkdb.setup_keys(github_key, user_key)
+    rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     efs = EFS(stack_name, path_to_key)
     efs.setup_efs()
