@@ -14,7 +14,9 @@ import sys
 import boto3
 import json
 import time
+import threading
 import argparse
+import subprocess
 import logging
 from sultan.api import Sultan, SSHConfig
 
@@ -363,30 +365,6 @@ class EFS():
 
         return efs_id
 
-    def setup_efs(self):
-        client = boto3.client('ec2')
-        efs = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['ValorEFSServer']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name]
-            }, {
-                'Name': 'instance-state-name',
-                'Values': ['running']
-            }])
-        efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
-                format(self.ssh_key, 'setup/setup_efs_server.sh', efs_ip)).run()
-
-        # Call the setup_efs.sh script
-        _cmd = "bash('./setup_efs_server.sh {} {}')".format(self.efs_id, self.nfs_ip)
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-
     def setup_valorNodes(self):
         self.configure_instance('ValorRethinkDB', 'setup_valor_rethinkdb.sh')
         self.configure_instance('ValorRouter', 'setup_valor_router.sh')
@@ -420,6 +398,67 @@ class EFS():
         _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
+    def setup_ubuntu_img(self):
+        # Get IP address of xen-tools node
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        instance = efs['Reservations'][0]['Instances'][0]
+
+        # scp workaround payload to node
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/sources.list ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+
+        # Apply workarounds and create the ubuntu image
+        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
+        run_ssh_cmd(instance['PublicIpAddress'], self.ssh_key, ssh_cmd)
+
+        # Delete xen tool instance
+        #client.terminate_instances(InstanceIds=[instance['InstanceId']])
+
+    def setup_unity_img(self, constructor_ip):
+
+        pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
+                                 stdout=subprocess.PIPE).stdout
+
+        pub_key_cmd = '''bash('-c "echo {0} > /tmp/unity_key.pub"')'''.format(
+            pub_key.decode().strip())
+        run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
+
+        # Construct
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/domains/Unity8GB/disk.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/8GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+        # Clean up old stuff
+        mv_cmd = ("sudo('mv /mnt/efs/images/domains/Unity8GB/disk.img"
+                  " /mnt/efs/images/base_ubuntu/8GB.img')")
+        run_ssh_cmd(constructor_ip, self.ssh_key, mv_cmd)
+
+        rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
+        run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
     config = SSHConfig(
@@ -441,12 +480,18 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
 
+    efs = EFS(stack_name, path_to_key)
+    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img)
+    setup_ubuntu_img_thread.start()
+
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup_excalibur(branch, github_key, aws_config, aws_keys, user_key)
 
-    efs = EFS(stack_name, path_to_key)
-    efs.setup_efs()
-    efs.setup_valorNodes()
+    valor_node_thread = threading.Thread(target=efs.setup_valorNodes)
+    valor_node_thread.start()
+
+    setup_ubuntu_img_thread.join()
+    efs.setup_unity_img(excalibur.server_ip)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -554,7 +599,6 @@ def main():
         excalibur.update_security_rules()
         #
         efs = EFS(args.stack_name, args.path_to_key)
-        efs.setup_efs()
         efs.setup_valorNodes()
     if args.list_stacks:
         Stack().list_stacks()

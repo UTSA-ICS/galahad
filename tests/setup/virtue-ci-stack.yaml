@@ -236,19 +236,6 @@ Resources:
               - !Ref NameSuffix
               - '-EFSSecGroup'
       VpcId: !Ref VirtUEVPC
-  VirtueNFSServerSecGroupNFSIngressRule:
-    Type: 'AWS::EC2::SecurityGroupIngress'
-    Properties:
-      Description: Allow NFS Server to be contacted from local EFS Server
-      CidrIp: !Join
-        - ''
-        - - !GetAtt ValorEFSServer.PublicIp
-          - '/32'
-      FromPort: 2049
-      IpProtocol: tcp
-      ToPort: 2049
-      GroupId: sg-08dabbf530b426156
-    DependsOn: ValorEFSServer
   VirtueInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
@@ -436,27 +423,6 @@ Resources:
       SecurityGroups:
         - !Ref VirtUEAdminSecGroup
       SubnetId: !Ref VirtUEAdminSubnet
-  ValorEFSServer:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-aa2ea6d0
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          GroupSet:
-            - !Ref VirtUEEFSSecGroup
-          PrivateIpAddress: 172.30.1.47
-          SubnetId: !Ref VirtUEAdminSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorEFSServer'
   ValorRethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -547,6 +513,28 @@ Resources:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
       - ValorRethinkDB
+  XenPVMBuilder:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-01c5d8354c604b662
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          SubnetId: !Ref VirtUEAdminSubnet
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-XenPVMBuilder'
+    DependsOn:
+      - VirtUEAdminSubnet
+      - VirtUEValorEFSTarget
+      - ValorRethinkDB
   ExcaliburServerDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:
@@ -598,23 +586,6 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - RethinkDB
-  ValorEFSServerDNSRecord:
-    Type: 'AWS::Route53::RecordSet'
-    Properties:
-      HostedZoneId: !Ref VirtueHostedZone
-      Name: !Join
-          - ''
-          - - 'efs-server.'
-            - 'galahad.'
-            - 'com'
-            - '.'
-      Type: A
-      TTL: '900'
-      ResourceRecords:
-        - !GetAtt ValorEFSServer.PrivateIp
-    DependsOn:
-        - VirtueHostedZone
-        - ValorEFSServer
   ValorRouterDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:

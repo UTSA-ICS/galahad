@@ -407,6 +407,20 @@ class Assembler(object):
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'processkiller'])
 
+            shutil.copy(payload_dir + '/unity-net.service',
+                        mount_path + '/etc/systemd/system')
+            shutil.copy(payload_dir + '/unity-net.sh',
+                        mount_path + '/root/')
+
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'unity-net.service'])
+
+            os.chmod(mount_path + '/root/unity-net.sh', 0o744)
+
+            subprocess.check_call(['chroot', mount_path,
+                                   'sed', '-i', '/.*eth0.*/d',
+                                   '/etc/network/interfaces'])
+
             # Reset ownership in user directories
             os.chown(mount_path + '/home/virtue', 500, 500)
             for path, dirs, files in os.walk(mount_path + '/home/virtue'):
