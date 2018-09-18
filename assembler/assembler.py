@@ -89,27 +89,13 @@ class Assembler(object):
         if len(output) > 0:
             print (output)
             instance = output[0]
-            time.sleep(5)
+            instance.wait_until_running()
+            instance.reload()
             return instance
         else:
             print("Got unexpaced data")
             print(output)
             raise Exception("Can't start aws vm")
-
-    def get_vm_ip(self, instanceId):
-        cmd = ['aws', 'ec2', 'describe-instances', '--instance-ids', instanceId, '--query', 'Reservations[*].Instances[*].PublicIpAddress']
-        print("Calling %s" % (' '.join(cmd)))
-        is_vm_up = False
-        while not is_vm_up:
-            output = json.loads(subprocess.check_output(cmd).decode('utf-8'))
-            if len(output) == 1 and len(output[0]) == 1:
-                return output[0][0]
-            elif len(output[0]) == 0:
-                is_vm_up = False
-            else:
-                print("Got unexpected data")
-                print(output)
-                raise Exception("Can't get aws vm ip")
 
     def run_stage(self, stages, stage):
         for dep in stages[stage].DEPENDS:
@@ -155,8 +141,7 @@ class Assembler(object):
                 vmname,
                 build_options['aws_disk_size'])
             print("New instance id: %s" % (instance.id))
-            #return
-            ssh_host = self.get_vm_ip(instance.id)
+            ssh_host = instance.public_ip_address
             print("New instance ip: %s" % (ssh_host))
             ssh_port = '22'
         print("Waiting for VM to start...")
@@ -527,23 +512,11 @@ class Assembler(object):
                 private_key = rsa.read()
 
             if (build_options['create_ami']):
-
-                instance.reload()
-
-                if (instance.state['Name'] == 'stopping'):
-                    instance.wait_until_stopped()
-
-                t = time.localtime()
-                ec2 = boto3.client('ec2')
-                ami_data = ec2.create_image(
-                    InstanceId=instance.id,
-                    Name='Unity-{0}-{1}-{2}-{3}-{4}'.format(
-                        t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min),
-                    Description='Created by constructor on {0}.'.format(
-                        build_options['aws_subnet_id']))
-                print('AMI data: {0}'.format(ami_data))
-                ami_id = ami_data['ImageId']
-            return_data = (ami_id, private_key)
+                # Create an AMI for the instance
+                ami_id = self.create_aws_ami(instance)
+                return_data = (ami_id, private_key)
+            else:
+                return_data = (instance.id, private_key)
 
         elif (build_options['env'] == 'xen'):
 
@@ -578,3 +551,30 @@ class Assembler(object):
                                          check_cloudinit=False)
 
         docker_stage.run()
+
+    def create_aws_ami(self, instance, ami_name=None):
+
+        instance.reload()
+        if (instance.state['Name'] != 'stopped' or
+            instance.state['Name'] != 'stopping'):
+            instance.stop()
+            instance.reload()
+            instance.wait_until_stopped()
+        elif (instance.state['Name'] == 'stopping'):
+            instance.wait_until_stopped()
+
+        # Set the ami_name if not passed in.
+        if ami_name == None:
+            t = time.localtime()
+            ami_name='Unity-{0}-{1}-{2}-{3}-{4}'.format(
+                t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min)
+
+        ec2 = boto3.client('ec2')
+        ami_data = ec2.create_image(
+            InstanceId=instance.id,
+            Name=ami_name,
+            Description='Created by assembler/constructor')
+
+        print('AMI data: {0}'.format(ami_data))
+        ami_id = ami_data['ImageId']
+        return ami_id
