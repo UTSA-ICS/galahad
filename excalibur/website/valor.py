@@ -24,8 +24,8 @@ class ValorAPI:
         return self.valor_manager.create_valor(
             aws.get_subnet_id(),
             aws.get_sec_group().id)
-      
- 
+
+
     def valor_create_pool(self, number_of_valors):
         return self.valor_manager.create_valor_pool(number_of_valors)
 
@@ -38,7 +38,7 @@ class ValorAPI:
         return self.rethinkdb_manager.list_valors()
 
 
-    def valor_migrate_virtue(self, virtue_id, new_valor_id)
+    def valor_migrate_virtue(self, virtue_id, new_valor_id):
         return self.valor_manager.migrate_virtue(virtue_id, new_valor_id)
 
 
@@ -193,7 +193,7 @@ class ValorManager:
         self.router_manager = RouterManager()
 
 
-     def get_empty_valor(self):
+    def get_empty_valor(self):
 
         valors = self.rethinkdb_manager.list_valors()
         virtues = self.rethinkdb_manager.list_virtues()
