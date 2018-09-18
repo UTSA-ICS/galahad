@@ -51,7 +51,7 @@ class Valor:
     def __init__(self, valor_id):
 
         self.ec2 = boto3.resource('ec2')
-        self.aws_instance = ec2.Instance(valor_id)
+        self.aws_instance = self.ec2.Instance(valor_id)
 
 
     def authorize_ssh_connections(self, ip):
@@ -220,7 +220,7 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        excalibur_ip = '{0}/32'.format(aws.get_public_ip())
+        excalibur_ip = '{0}/32'.format(self.aws.get_public_ip())
 
         valor = {
             'image_id' : 'ami-01c5d8354c604b662',
