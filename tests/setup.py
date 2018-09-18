@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_ssh_cmd(host_server, path_to_key, cmd, sudo=False):
+def run_ssh_cmd(host_server, path_to_key, cmd):
 
     config = SSHConfig(
         identity_file=path_to_key,
@@ -42,8 +42,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd, sudo=False):
     with Sultan.load(
         user='ubuntu',
         hostname=host_server,
-        ssh_config=config,
-        sudo=sudo) as s:
+        ssh_config=config) as s:
 
         result = eval('s.{}.run()'.format(cmd))
 
@@ -246,9 +245,9 @@ class RethinkDB():
         # Check out galahad repos required for rethinkdb
         self.checkout_repo('galahad', branch)
 
-        _cmd1 = 'cd(\"~/galahad/tests/setup\").and_().bash(\"./setup_rethinkdb.sh\")'
+        _cmd1 = 'sudo("cd ~/galahad/tests/setup && /bin/bash ./setup_rethinkdb.sh")'
 
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1, sudo=True)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
 
 class Excalibur():
