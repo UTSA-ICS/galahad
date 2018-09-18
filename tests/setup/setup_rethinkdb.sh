@@ -13,7 +13,7 @@ sudo chmod 600 /var/private/ssl/*.pem
 
 
 # Set the hostname
-echo "127.0.0.1 rethinkdb.galahad.lab" | sudo tee -a /etc/hosts
+echo "127.0.0.1 rethinkdb.galahad.com" | sudo tee -a /etc/hosts
 
 
 # Add RethinkDB repository and install
