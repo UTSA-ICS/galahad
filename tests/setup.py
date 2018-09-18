@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_ssh_cmd(host_server, path_to_key, cmd):
+def run_ssh_cmd(host_server, path_to_key, cmd, sudo=False):
 
     config = SSHConfig(
         identity_file=path_to_key,
@@ -42,7 +42,8 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
     with Sultan.load(
         user='ubuntu',
         hostname=host_server,
-        ssh_config=config) as s:
+        ssh_config=config,
+        sudo=sudo) as s:
 
         result = eval('s.{}.run()'.format(cmd))
 
@@ -247,7 +248,7 @@ class RethinkDB():
 
         _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_rethinkdb.sh')"
 
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1, sudo=True)
 
 
 class Excalibur():
