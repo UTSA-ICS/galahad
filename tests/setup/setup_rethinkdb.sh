@@ -1,5 +1,16 @@
 #!/bin/bash
 
+
+# Set the hostname
+echo "127.0.0.1 rethinkdb.galahad.com" | sudo tee -a /etc/hosts
+
+
+# Add RethinkDB repository and install
+source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
+sudo wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
+sudo apt-get update
+sudo apt-get --assume-yes install rethinkdb
+
 # Retrieve keys and put them in their appropriate location
 sudo mkdir -p /var/private/ssl/
 git clone git@github.com:starlab-io/galahad-config.git
@@ -12,17 +23,6 @@ sudo chown rethinkdb:rethinkdb /var/private/ssl/*.pem
 sudo chmod 600 /var/private/ssl/*.pem
 
 
-# Set the hostname
-echo "127.0.0.1 rethinkdb.galahad.com" | sudo tee -a /etc/hosts
-
-
-# Add RethinkDB repository and install
-source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
-sudo wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
-sudo apt-get update
-sudo apt-get --assume-yes install rethinkdb
-
-
 # Put RethinkDB configuration file in its appropriate location
 sudo cp rethinkdb.conf /etc/rethinkdb/instances.d/
 
@@ -30,9 +30,10 @@ sudo cp rethinkdb.conf /etc/rethinkdb/instances.d/
 # Restart RethinkDB with its new configuration file
 sudo /etc/init.d/rethinkdb restart
 
+
 # Install python libraries for rethinkdb and configure the database
 sudo apt-get --assume-yes install python2.7 python-pip
 pip install rethinkdb
 
-sleep 10
+
 sudo python configure_rethinkdb.py
