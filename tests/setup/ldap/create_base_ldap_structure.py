@@ -72,7 +72,7 @@ def add_resource(id, type, unc, credentials):
     inst.add_obj(ldap_res, 'resources', 'cid', throw_error=True)
 
 
-def add_role(id, name, version, appIds, resIds, transIds, ami):
+def add_role(id, name, version, appIds, resIds, transIds, state='CREATED'):
 
     role = {
         'id': id,
@@ -81,7 +81,7 @@ def add_role(id, name, version, appIds, resIds, transIds, ami):
         'applicationIds': str(appIds),
         'startingResourceIds': str(resIds),
         'startingTransducerIds': str(transIds),
-        'amiId': ami
+        'state': state
     }
 
     ldap_role = to_ldap(role, 'OpenLDAProle')
@@ -129,7 +129,7 @@ def add_user(username, authRoleIds):
     )'''
 
 
-def add_virtue(id, username, roleid, appIds, resIds, transIds, awsId):
+def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ipAddr):
 
     virtue = {
         'id': id,
@@ -138,7 +138,8 @@ def add_virtue(id, username, roleid, appIds, resIds, transIds, awsId):
         'applicationIds': str(appIds),
         'resourceIds': str(resIds),
         'transducerIds': str(transIds),
-        'awsInstanceId': awsId
+        'state': state,
+        'ipAddress': ipAddr
     }
 
     ldap_virtue = to_ldap(virtue, 'OpenLDAPvirtue')
@@ -186,7 +187,7 @@ if (__name__ == '__main__'):
     add_resource('fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare',
                  'token')
 
-    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]', 'NULL')
+    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
 
     add_user('jmitchell', '[]')
     add_user('fpatwa', '[]')
