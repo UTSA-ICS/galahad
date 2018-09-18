@@ -1,4 +1,3 @@
 -r ../../excalibur/requirements.txt
 pytest
 pytest-html
-requests
