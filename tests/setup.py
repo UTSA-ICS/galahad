@@ -245,7 +245,7 @@ class RethinkDB():
         # Check out galahad repos required for rethinkdb
         self.checkout_repo('galahad', branch)
 
-        _cmd1 = 'sudo("cd ~/galahad/tests/setup && /bin/bash ./setup_rethinkdb.sh")'
+        _cmd1 = "cd('galahad/tests/setup').and_().sudo('/bin/bash ./setup_excalibur.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
