@@ -21,10 +21,7 @@ if not os.path.isfile(args.excalkey):
 	print 'File not found:', args.excalkey
 	sys.exit(1)
 
-# connect
 conn = r.connect(host=args.host, ssl={'ca_certs': args.cert})
-#conn = r.connect(host='localhost', ssl={'ca_certs': args.cert})
-#conn = r.connect(host='localhost')
 
 # setup database and tables
 try:
