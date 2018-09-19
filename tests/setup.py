@@ -537,7 +537,7 @@ class EFS():
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
     def setup_valorNodes(self):
-        #self.configure_instance('RethinkDB', 'setup_valor_rethinkdb.sh')
+
         self.configure_instance('ValorRouter', 'setup_valor_router.sh')
         self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
         self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
