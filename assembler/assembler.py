@@ -58,6 +58,7 @@ class Assembler(object):
             BlockDeviceMappings=[{
                 'DeviceName': '/dev/sda1',
                 'Ebs': {
+                    'DeleteOnTermination': True,
                     'VolumeSize': disk_size
                 }
             }],

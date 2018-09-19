@@ -36,6 +36,7 @@ def setup_module():
     global aggregator_ssh
     global virtue_id
     global virtue_ip
+    global role_id
 
     global session
     global base_url
@@ -102,6 +103,7 @@ def __setup_virtue():
     global virtue_id
     global virtue_ssh
     global new_virtue
+    global role_id
 
     # Read the Virtue IP and ID from a file (if they have been provided)
     if os.path.isfile('../setup/virtue_ip') and os.path.isfile('../setup/virtue_id'):
@@ -124,6 +126,7 @@ def __setup_virtue():
         virtue = create_new_virtue(inst, role, 'jmitchell')
         virtue_ip = virtue['ipAddress']
         virtue_id = virtue['id']
+        role_id = virtue['roleId']
 
     assert virtue_ip is not None
 
@@ -320,13 +323,26 @@ def test_actuator_net_block():
     })
 
 def teardown_module():
-    assert virtue_id is not None
+    if virtue_id is not None:
+        # Only delete a Virtue if it was created during these tests, not passed in manually
+        if new_virtue:
+            ret = session.get(base_url + '/user/virtue/stop', params={'virtueId': virtue_id})
+            assert ret.json()['status'] == 'success'
 
-    # Only delete a Virtue if it was created during these tests, not passed in manually
-    if new_virtue:
-        ret = session.get(base_url + '/user/virtue/stop', params={'virtueId': virtue_id})
-        assert ret.json()['status'] == 'success'
+            ret = session.get(base_url + '/admin/virtue/destroy', params={'virtueId': virtue_id})
+            assert ret.json()['status'] == 'success'
 
-        ret = session.get(base_url + '/admin/virtue/destroy', params={'virtueId': virtue_id})
-        assert ret.json()['status'] == 'success'
+            inst.del_obj(
+                'cid', virtue_id, objectClass='OpenLDAPvirtue', throw_error=True) 
+
+            response = session.get(
+                base_url + '/admin/user/role/unauthorize',
+                params={
+                    'username': 'jmitchell',
+                    'roleId': role_id
+                })
+            assert response.json()['status'] == 'success'
+
+            inst.del_obj(
+                'cid', role_id, objectClass='OpenLDAProle', throw_error=True)
 

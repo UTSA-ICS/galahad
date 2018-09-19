@@ -126,6 +126,12 @@ class AWS:
             Monitoring={'Enabled': False},
             SecurityGroupIds=[sec_group],
             SubnetId=subnet_id,
+            BlockDeviceMappings=[{
+                'DeviceName': '/dev/sda1',
+                'Ebs': {
+                    'DeleteOnTermination': True,
+                 }
+            }],
             IamInstanceProfile={
                 'Name': inst_profile_name,
                 #'Arn': inst_profile_arn
