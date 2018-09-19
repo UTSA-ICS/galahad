@@ -13,7 +13,6 @@ sudo apt-get --assume-yes install rethinkdb
 
 # Retrieve keys and put them in their appropriate location
 sudo mkdir -p /var/private/ssl/
-git clone git@github.com:starlab-io/galahad-config.git
 
 sudo cp galahad-config/rethinkdb_keys/rethinkdb.pem      /var/private/ssl/
 sudo cp galahad-config/rethinkdb_keys/rethinkdb_cert.pem /var/private/ssl/

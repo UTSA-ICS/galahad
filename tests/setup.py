@@ -274,13 +274,26 @@ class RethinkDB():
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
         self.setup_keys(github_key, user_key)
+
+        with Sultan.load() as s:
+
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/rethinkdb.conf'.
+                format(self.ssh_key, 'setup/rethinkdb.conf', self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.conf'.
+                format(self.ssh_key, 'setup/setup_rethinkdb.conf', self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/configure_rethinkdb.py'.
+                format(self.ssh_key, 'setup/configure_rethinkdb.py', self.ip_address)).run()
+
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
         # Check out galahad repos required for rethinkdb
-        self.checkout_repo('galahad', branch)
+        self.checkout_repo('galahad-config', branch)
 
-        _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_rethinkdb.sh')"
+        _cmd1 = "bash('./setup_rethinkdb.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
