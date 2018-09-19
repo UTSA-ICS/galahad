@@ -291,7 +291,7 @@ class RethinkDB():
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
         # Check out galahad repos required for rethinkdb
-        self.checkout_repo('galahad-config', branch)
+        self.checkout_repo('galahad-config')
 
         _cmd1 = "bash('./setup_rethinkdb.sh')"
 
