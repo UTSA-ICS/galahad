@@ -390,7 +390,7 @@ Resources:
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-04b887e2a2d0bdccd
+      ImageId: ami-a4dc46db
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -481,31 +481,6 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-ValorEFSServer'
-  ValorRethinkDB:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.54
-          SubnetId: !Ref VirtUEAdminSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorRethinkDB'
-    DependsOn:
-      - VirtUEAdminSubnet
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -532,7 +507,7 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
   ValorNode51:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -559,7 +534,7 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
   ValorNode52:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -586,7 +561,7 @@ Resources:
     DependsOn:
       - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
-      - ValorRethinkDB
+      - RethinkDB
   ExcaliburServerDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:

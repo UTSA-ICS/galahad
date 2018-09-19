@@ -136,7 +136,7 @@ class HeartbeatListener():
 				try:
 					conn = r.connect(host=self.rethinkdb_host, 
 						user='excalibur', 
-						password=key, 
+						password=key,
 						ssl={ 'ca_certs': self.rdb_ca_cert })
 					return conn
 				except r.ReqlDriverError as e:
