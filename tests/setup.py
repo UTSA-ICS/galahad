@@ -281,8 +281,8 @@ class RethinkDB():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/rethinkdb.conf'.
                 format(self.ssh_key, 'setup/rethinkdb.conf', self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.conf'.
-                format(self.ssh_key, 'setup/setup_rethinkdb.conf', self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.sh'.
+                format(self.ssh_key, 'setup/setup_rethinkdb.sh', self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/configure_rethinkdb.py'.
                 format(self.ssh_key, 'setup/configure_rethinkdb.py', self.ip_address)).run()
