@@ -487,7 +487,7 @@ class EndPoint_Admin():
 
     def valor_create(self):
 
-       try:
+        try:
             # Work around a AWS bug whereby the instance state is not reported
             # correctly/consistently. Essentially even though the instance is
             # not in 'stopped' state, aws is reported a stale status of 'stopped'
