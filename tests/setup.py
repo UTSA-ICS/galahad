@@ -113,6 +113,7 @@ class Stack():
         #
         client = boto3.client('cloudformation')
         self.clear_security_groups()
+        self.terminate_non_stack_instances(stack_name)
         response = client.delete_stack(StackName=stack_name)
         waiter = boto3.client('cloudformation').get_waiter(
             'stack_delete_complete')
@@ -141,6 +142,40 @@ class Stack():
             if sec_group.ip_permissions_egress:
                 sec_group.revoke_egress(
                     IpPermissions=sec_group.ip_permissions_egress)
+
+
+    def terminate_non_stack_instances(self, stack_name):
+        cloudformation = boto3.resource('cloudformation')
+        vpc_resource = cloudformation.StackResource(stack_name, 'VirtUEVPC')
+        vpc_id = vpc_resource.physical_resource_id
+        # Now find all instances in ec2 within the VPC but without the stack tags.
+        ec2 = boto3.client('ec2')
+
+        # Get ALL instances in the stack VPC
+        instances_in_vpc = []
+        vms = ec2.describe_instances(Filters=[ {'Name': 'vpc-id',
+                                                'Values': [vpc_id]} ])
+        for vm in vms['Reservations']:
+            instances_in_vpc.append(vm['Instances'][0]['InstanceId'])
+
+        # Get instances created by the stack
+        instances_in_stack = []
+        vms = ec2.describe_instances(Filters=[ {'Name': 'tag:aws:cloudformation:stack-name',
+                                                'Values': [stack_name]} ])
+        for vm in vms['Reservations']:
+            instances_in_stack.append(vm['Instances'][0]['InstanceId'])
+
+        # Figure out which instances are not created by the stack
+        instances_not_in_stack = []
+        for instance in instances_in_vpc:
+            if instance not in instances_in_stack:
+                instances_not_in_stack.append(instance)
+
+        # Now Terminate these instances not created by the stack
+        resource = boto3.resource('ec2')
+        for instance in instances_not_in_stack:
+            resource.Instance(instance).terminate()
+            print(instance)
 
 
     def list_stacks(self):
