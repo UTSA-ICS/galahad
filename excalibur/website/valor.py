@@ -76,7 +76,7 @@ class Valor:
     def get_efs_mount(self):
 
         #TODO: remove hardcoded stack_name
-        stack_name = 'test-for-mvs-2'
+        stack_name = 'test-for-192'
 
         cloudformation = boto3.resource('cloudformation')
         efs_stack = cloudformation.Stack(stack_name)
@@ -265,11 +265,11 @@ class ValorManager:
 
     def migrate_virtue(self, virtue_id, new_valor_id):
 
-        virtue = rethinkdb.db('routing').table('galahad').filter({
+        virtue = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'virtue',
             'host' : virtue_id}).run()
 
-        current_valor = rethinkdb.db('routing').table('galahad').filter({
+        current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'address' : virtue['address']}).run()
 
@@ -281,15 +281,20 @@ class ValorManager:
 class RethinkDbManager:
 
     #TODO: Remove hardcoded IP and replace with DNS name
-    ip_address = '172.30.1.54'
+    domain_name = 'rethinkdb.galahad.com'
 
     def __init__(self):
-        self.connection = rethinkdb.connect(self.ip_address, 28015).repl()
+        self.connection = rethinkdb.connect(
+            domain_name,
+            28015,
+            ssl = {
+                'ca_certs': '/home/ubuntu/rethinkdb_cert.pem',
+            }).repl()
 
 
     def list_valors(self):
 
-        response = rethinkdb.db('routing').table('galahad').filter(
+        response = rethinkdb.db('transducers').table('galahad').filter(
             {'function' : 'valor'}).run()
 
         valors = list(response.items)
@@ -299,7 +304,7 @@ class RethinkDbManager:
 
     def list_virtues(self):
 
-        response = rethinkdb.db('routing').table('galahad').filter(
+        response = rethinkdb.db('transducers').table('galahad').filter(
             {'function' : 'virtue'}).run()
 
         virtues = list(response.items)
@@ -319,18 +324,18 @@ class RethinkDbManager:
             'address' : valor.aws_instance.private_ip_address
         }
 
-        rethinkdb.db('routing').table('galahad').insert([record]).run()
+        rethinkdb.db('transducers').table('galahad').insert([record]).run()
         valor.guestnet = record['guestnet']
 
 
     def remove_valor(self, valor_id):
 
-        matching_valors = list(rethinkdb.db('routing').table('galahad').filter({
+        matching_valors = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'valor',
             'host': valor_id
         }).run())
 
-        rethinkdb.db('routing').table('galahad').filter(
+        rethinkdb.db('transducers').table('galahad').filter(
             matching_valors[0]).delete().run()
 
 
@@ -339,7 +344,7 @@ class RethinkDbManager:
         guestnet = '10.91.0.{0}'
 
         for test_number in range(1, 256):
-            results = rethinkdb.db('routing').table('galahad').filter({
+            results = rethinkdb.db('transducers').table('galahad').filter({
                 'guestnet': guestnet.format(test_number)
             }).run()
             if (len(list(results)) == 0):
@@ -354,7 +359,7 @@ class RethinkDbManager:
 
     def add_virtue(self, valor_address, virtue_hostname, efs_path):
 
-        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+        matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'host': virtue_hostname
         }).run())
@@ -371,12 +376,12 @@ class RethinkDbManager:
             'img_path': efs_path
         }
 
-        rethinkdb.db('routing').table('galahad').insert([record]).run()
+        rethinkdb.db('transducers').table('galahad').insert([record]).run()
 
 
     def get_virtue(self, virtue_hostname):
 
-        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+        matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'host': virtue_hostname
         }).run())
@@ -389,14 +394,14 @@ class RethinkDbManager:
 
     def remove_virtue(self, virtue_hostname):
 
-        matching_virtues = list(rethinkdb.db('routing').table('galahad').filter({
+        matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'host': virtue_hostname
         }).run())
 
         assert len(matching_virtues) == 1
 
-        rethinkdb.db('routing').table('galahad').filter(
+        rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
 

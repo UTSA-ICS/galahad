@@ -11,7 +11,6 @@ import subprocess
 
 el = EditingLibrary()
 changes = changes()
-#connect = connect()
 
 #changefeeds for testing purposes
 class connect():

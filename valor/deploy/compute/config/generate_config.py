@@ -1,6 +1,11 @@
 import rethinkdb as r
 import socket
-r.connect("172.30.1.45",28015).repl()
+
+r.connect(
+    "rethinkdb.galahad.com",
+    28015,
+    '/home/ubuntu/rethinkdb_cert.pem').repl()
+
 ip = socket.gethostbyname(socket.gethostname())
 
 with open('me.cfg', 'a') as config:

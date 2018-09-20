@@ -466,6 +466,7 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
+
         client = boto3.client('cloudformation')
         subnet = client.describe_stack_resource(
             StackName=self.stack_name, LogicalResourceId='VirtUEAdminSubnet')
@@ -543,7 +544,9 @@ class Excalibur():
 
 
 class EFS():
+
     def __init__(self, stack_name, ssh_key):
+
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
@@ -562,11 +565,13 @@ class EFS():
 
         return efs_id
 
+
     def setup_valorNodes(self):
 
         self.configure_instance('ValorRouter', 'setup_valor_router.sh')
         self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
         self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
+
 
     def configure_instance(self, tag_logical_id, setup_filename):
         # Get the IP for the instances specified by the logical-id tag
@@ -594,6 +599,7 @@ class EFS():
         # Execute the setup file on the instance
         _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
+
 
     def setup_ubuntu_img(self):
         # Get IP address of xen-tools node
