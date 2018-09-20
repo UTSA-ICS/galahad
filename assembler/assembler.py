@@ -514,6 +514,10 @@ class Assembler(object):
             if (build_options['create_ami']):
                 # Create an AMI for the instance
                 ami_id = self.create_aws_ami(instance)
+
+                # Now terminate the instance created
+                instance.terminate()
+
                 return_data = (ami_id, private_key)
             else:
                 return_data = (instance.id, private_key)
@@ -573,8 +577,22 @@ class Assembler(object):
         ami_data = ec2.create_image(
             InstanceId=instance.id,
             Name=ami_name,
-            Description='Created by assembler/constructor')
+            Description='Created by constructor/assembler')
 
         print('AMI data: {0}'.format(ami_data))
         ami_id = ami_data['ImageId']
+
+        # Now check if the AMI has been successfully created in AWS
+        ec2 = boto3.resource('ec2')
+        image = ec2.Image(ami_id)
+
+        # Ensure that the image is in a usable state
+        image.wait_until_exists(
+            Filters=[
+                {
+                    'Name': 'state',
+                    'Values': ['available']
+                } ]
+        )
+
         return ami_id
