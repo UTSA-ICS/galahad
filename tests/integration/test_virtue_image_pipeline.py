@@ -30,12 +30,7 @@ WORK_DIR = os.getcwd() + '/.tmp_work_dir/'
 
 
 def setup_module():
-    global virtue_ssh
-    global aggregator_ssh
-    global virtue_id
-    global virtue_ip
     global ami_id
-    global constructor_instance
     global app_ami_id
     global assembler_instance
 
@@ -83,12 +78,7 @@ def setup_module():
 
     ami_id = None
     app_ami_id = None
-    constructor_instance = None
     assembler_instance = None
-
-    with open('../../excalibur/cli/excalibur_config.json', 'r') as f:
-        config = json.load(f)
-        session.get(base_url + '/api_config', params={'configuration': json.dumps(config)})
 
 
 def __construct_unity():
@@ -222,8 +212,6 @@ def __assemble_application(unity_image, application):
 
 
 def test_role_create():
-    global ami_id
-
     if ami_id == None:
         ami_id = __construct_unity()
 
