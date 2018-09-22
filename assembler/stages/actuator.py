@@ -12,7 +12,7 @@ class ActuatorStage(SSHStage):
     def run(self):
         if not self._has_run:
             super(ActuatorStage, self).run()
-            actuator_file_path = os.path.join('payload', 'actuators')
+            actuator_file_path = os.path.join('assembler', 'payload', 'actuators')
             files = ['netblock_actuator.deb']
             for f in files:
                 self._copy_file(os.path.join(actuator_file_path, f), f)
