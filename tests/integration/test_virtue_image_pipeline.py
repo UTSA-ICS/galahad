@@ -212,6 +212,8 @@ def __assemble_application(unity_image, application):
 
 
 def test_role_create():
+    global ami_id
+
     if ami_id == None:
         ami_id = __construct_unity()
 
