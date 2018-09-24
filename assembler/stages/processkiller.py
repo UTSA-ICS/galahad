@@ -8,7 +8,7 @@ class ProcessKillerStage(SSHStage):
     NAME = 'ProcessKillerStage'
     DEPENDS = ['UserStage']
 
-    PAYLOAD_PATH = 'payload'
+    PAYLOAD_PATH = 'assembler/payload'
     DEB_FILE = 'processkiller.deb'
 
     def run(self):

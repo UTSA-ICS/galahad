@@ -10,7 +10,7 @@ class TransducerStage(SSHStage):
     NAME = 'TransducerInstallStage'
     DEPENDS = ['UserStage']
 
-    PAYLOAD_PATH = 'payload'
+    PAYLOAD_PATH = 'assembler/payload'
     MODULE_TARBALL = 'transducer-module.tar.gz'
 
     INSTALL_PREREQ_SCRIPT = '''#!/bin/bash
