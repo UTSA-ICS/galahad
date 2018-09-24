@@ -180,6 +180,7 @@ class Valor:
                 break
 
             except Exception as error:
+
                 print(error)
                 print('Attempt {0} failed to connect').format(attempt_number+1)
 
@@ -285,7 +286,7 @@ class RethinkDbManager:
 
     def __init__(self):
         self.connection = rethinkdb.connect(
-            domain_name,
+            self.domain_name,
             28015,
             ssl = {
                 'ca_certs': '/home/ubuntu/rethinkdb_cert.pem',
