@@ -206,8 +206,9 @@ class AssembleRoleThread(threading.Thread):
         virtue_path = 'images/non_p_virtues/' + self.role['id'] + '.img'
 
         try:
-            shutil.copy('/mnt/efs/' + self.base_img_path,
-                        '/mnt/efs/' + virtue_path)
+            subprocess.check_call(['sudo', 'cp',
+                                   '/mnt/efs/' + self.base_img_path,
+                                   '/mnt/efs/' + virtue_path])
 
             if (self.use_ssh):
                 # TODO: Assemble role

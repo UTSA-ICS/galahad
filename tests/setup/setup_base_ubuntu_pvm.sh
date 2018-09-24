@@ -4,11 +4,23 @@ EFS_URL=$1
 UBUNTU_MNT=~/ubuntu_mnt
 mkdir $UBUNTU_MNT
 
-sudo apt-get install -y nfs-common
+# Wait for /var/lib/dpkg/lock rather than fail
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 5
+    sudo apt-get install -y nfs-common
+    DPKG_LOCK=$?
+done
+
 sudo mkdir /mnt/efs
 sudo mount -t nfs $EFS_URL:/ /mnt/efs
 
-sudo apt-get install -y xen-tools
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 5
+    sudo apt-get install -y xen-tools
+    DPKG_LOCK=$?
+done
 
 # Workaround 1:
 sudo dpkg -r xen-util-4.6
