@@ -237,7 +237,7 @@ class AssembleRoleThread(threading.Thread):
 
                 # Run assembler
                 assembler = Assembler(work_dir='{0}/{1}'.format(
-                    os.environ['home'],
+                    os.environ['HOME'],
                     self.role['id']))
                 #assembler.assemble_running_vm(self.role['applicationIds'],
                 #                              docker_cmd,
