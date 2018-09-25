@@ -289,7 +289,7 @@ class RethinkDbManager:
             self.domain_name,
             28015,
             ssl = {
-                'ca_certs': '/home/ubuntu/rethinkdb_cert.pem',
+                'ca_certs': '/home/ubuntu/galahad-config/rethinkdb_keys/rethinkdb_cert.pem',
             }).repl()
 
 
