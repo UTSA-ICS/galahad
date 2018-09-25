@@ -18,6 +18,6 @@ with open('me.cfg', 'a') as config:
 	config.write(addr)
 
 with open('virtue-galahad.cfg', 'a') as config:
-        cursor = r.db('transducers').table('galahad').filter(r.row["function"]=="compute").run()
+        cursor = r.db('transducers').table('galahad').filter(r.row["function"]=="valor").run()
         for document in cursor:
                 config.write(document['address']+"\n")

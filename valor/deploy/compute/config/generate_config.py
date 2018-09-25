@@ -11,7 +11,7 @@ r.connect(
 ip = socket.gethostbyname(socket.gethostname())
 
 with open('me.cfg', 'a') as config:
-        cursor = r.db('transducers').table('galahad').filter((r.row["address"]==ip) & (r.row["function"]=="compute")).run()
+        cursor = r.db('transducers').table('galahad').filter((r.row["address"]==ip) & (r.row["function"]=="valor")).run()
         addr = cursor.next()['guestnet']
 	config.write(addr)
 
