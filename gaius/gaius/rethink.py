@@ -2,8 +2,10 @@
 import rethinkdb as r
 import socket
 
+rdb_address = 'rethinkdb.galahad.com'
+
 class Rethink():
-    r.connect("172.30.1.54",28015).repl()
+    r.connect(rdb_address, 28015).repl()
     ip = socket.gethostbyname(socket.gethostname())
 
     def filter(self, table, filt):

@@ -2,7 +2,7 @@
 import rethinkdb as r
 
 r.connect(
-    '172.30.1.54',
+    'rethinkdb.galahad.com',
     28015,
     ssl = {
         'ca_certs': '/home/ubuntu/rethinkdb_cert.pem'

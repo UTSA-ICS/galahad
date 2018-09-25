@@ -9,6 +9,8 @@ import threading
 import time
 import subprocess
 
+rdb_address = 'rethinkdb.galahad.com'
+
 el = EditingLibrary()
 changes = changes()
 #connect = connect()
@@ -17,7 +19,7 @@ changes = changes()
 class connect():
         #searches for new objects whose functions are compute
         def new_compute_object(self):
-                r.connect("172.30.1.54",28015).repl()
+                r.connect(rdb_address, 28015).repl()
                 cursor = r.db("routing").table("test").changes().filter(lambda change: (change["old_val"] == None) and (change["new_val"]["function"]=="compute")).run()
                 for change in cursor:
                         with open("pass.txt", "w") as testfile:
@@ -25,7 +27,7 @@ class connect():
 
         #searches for new objects whose functions are valor
         def new_valor_object(self):
-                r.connect("172.30.1.54",28015).repl()
+                r.connect(rdb_address, 28015).repl()
                 cursor = r.db("routing").table("test").changes().filter(lambda change: (change["old_val"] == None) and (change["new_val"]["function"]=="valor")).run()
                 for change in cursor:
                         with open("pass.txt", "w") as testfile:
@@ -33,7 +35,7 @@ class connect():
 
         #searches for new objects whose functions are unity
         def new_unity_object(self):
-                r.connect("172.30.1.54",28015).repl()
+                r.connect(rdb_address, 28015).repl()
                 cursor = r.db("routing").table("test").changes().filter(lambda change: (change["old_val"] == None) and (change["new_val"]["function"]=="unity")).run()
                 for change in cursor:
                         with open("pass.txt", "w") as testfile:
@@ -44,7 +46,7 @@ connect = connect()
 #test each part of the changefeed
 def test_compute():
         open("pass.txt", "w").close()
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         t = threading.Thread(target=changes.main)
         t.daemon = True
         t.start()
@@ -62,7 +64,7 @@ def test_compute():
 
 def test_valor():
         open("pass.txt", "w").close()
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         t = threading.Thread(target=changes.main)
         t.daemon = True
         t.start()
@@ -80,7 +82,7 @@ def test_valor():
 
 def test_unity():
         open("pass.txt", "w").close()
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         t = threading.Thread(target=changes.main)
         t.daemon = True
         t.start()

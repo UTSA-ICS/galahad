@@ -8,6 +8,8 @@ import threading
 from gaius.rethink import Rethink
 from gaius.migration import Migrate
 
+rdb_address = 'rethinkdb.galahad.com'
+
 rethink = Rethink()
 migrate = Migrate()
 
@@ -16,7 +18,7 @@ class changes():
 
     #what it should do if an object whose function is compute is inserted
     def compute(self):
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         computecursor = r.db("routing").table("galahad").changes().filter(lambda change: \
             (change["old_val"] == None) and (change["new_val"]["function"]=="compute")).run().next()
         with open("pass.txt", "w") as testfile:
@@ -25,7 +27,7 @@ class changes():
 
     #what it should do if an object whose function is virtue is inserted
     def virtue_new(self):
-        r.connect("172.30.1.54", 28015).repl()
+        r.connect(rdb_address, 28015).repl()
         virtuecursor = r.db("routing").table("galahad").changes().filter(lambda change: \
             (change["old_val"] == None) and (change["new_val"]["function"]=="virtue")).run()
         for virtue in virtuecursor:
@@ -39,7 +41,7 @@ class changes():
                 virtue['new_val']['img_path'])
 
     def virtue_migrate(self):
-        r.connect("172.30.1.54", 28015).repl()
+        r.connect(rdb_address, 28015).repl()
         cursor = r.db('routing').table('transducer').changes().filter(lambda change: \
             (change['old_val']['flag']=='FALSE') & (change['new_val']['flag']=='TRUE')).run()
 
@@ -63,7 +65,7 @@ class changes():
             # update virtue object
 
     def virtue_cleanup(self):
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         cursor = r.db('routing').table('galahad').changes().filter(lambda change: \
             (change['old_val']['function']=='virtue') & (change['new_val']==None)).run()
         for virtue in cursor:
@@ -74,7 +76,7 @@ class changes():
 
     #what it should do if an object whose function is valor is inserted
     def valor(self):
-        r.connect("172.30.1.54",28015).repl()
+        r.connect(rdb_address, 28015).repl()
         hostname = socket.gethostname()
         IPAddr = socket.gethostbyname(hostname)
         valorcursor = r.db("routing").table("galahad").changes().filter(lambda change: \
