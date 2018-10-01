@@ -72,7 +72,7 @@ sed -i '/exit 0/i \
 #\
 # Add routing for hello-br0 device and bring it up\
 #\
-ip address add \"$(cat me.cfg)/24\" dev hello-br0\
+ip address add \"$(cat /home/ubuntu/router/me.cfg)/24\" dev hello-br0\
 ifconfig hello-br0 up\
 \
 #\
