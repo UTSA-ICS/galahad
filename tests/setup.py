@@ -18,7 +18,6 @@ import threading
 import argparse
 import subprocess
 import logging
-import setup.update_rethinkdb_with_router
 from sultan.api import Sultan, SSHConfig
 from pprint import pformat
 
@@ -583,14 +582,6 @@ class EFS():
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
         logger.info('Public IP for instance with logical-id [{}] is [{}]'.format('ValorRouter', public_ip))
-
-        # Get the private IP and instance ID
-        private_ip = efs['Reservations'][0]['Instances'][0]['PrivateIpAddress']
-        instance_id = efs['Reservations'][0]['Instances'][0]['InstanceId']
-
-        # Add Router entry to rethinkDB
-        update_rethinkdb_with_router.add_router_instance_to_galahad_table(instance_id=instance_id,
-                                                                          private_ip=private_ip)
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:

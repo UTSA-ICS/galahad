@@ -8,6 +8,10 @@ set -eu
 /bin/bash setup_rethink.sh
 
 #
+# # Add Router entry to rethinkDB
+#
+python update_rethinkdb_with_router.py
+
 # Install necessary System packages
 #
 apt --assume-yes install ./xen-upstream-4.8.2.deb
