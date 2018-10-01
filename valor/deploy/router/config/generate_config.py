@@ -5,7 +5,7 @@ r.connect(
     "rethinkdb.galahad.com",
     28015,
     ssl={
-        'ca_certs': '/var/private/ssl/rethinkdb_cert.pem'
+        'ca_certs': '/mnt/efs/galahad-keys/rethinkdb_cert.pem'
     }).repl()
 
 ip = socket.gethostbyname(socket.gethostname())
