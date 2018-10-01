@@ -566,20 +566,18 @@ class EFS():
         return efs_id
 
 
-    def setup_valorNodes(self):
+    def setup_valor_router(self):
+        # TODO
+        # During setup of valor Router add connection to rethinkDB
+        # and addition of router entry in galahad table.
+        # Also add keys for rethinkDB in /var/private/ssl dir
 
-        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
-        self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
-        self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
-
-
-    def configure_instance(self, tag_logical_id, setup_filename):
         # Get the IP for the instances specified by the logical-id tag
         client = boto3.client('ec2')
         efs = client.describe_instances(
             Filters=[{
                 'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': [tag_logical_id]
+                'Values': ['ValorRouter']
             }, {
                 'Name': 'tag:aws:cloudformation:stack-name',
                 'Values': [self.stack_name]
@@ -588,16 +586,16 @@ class EFS():
                 'Values': ['running']
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format('ValorRouter', public_ip))
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                format(self.ssh_key, setup_filename, public_ip)).run()
+                format(self.ssh_key, 'setup_valor_router.sh', public_ip)).run()
 
         # Execute the setup file on the instance
-        _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
+        _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
 
@@ -681,7 +679,7 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    valor_node_thread = threading.Thread(target=efs.setup_valorNodes)
+    valor_node_thread = threading.Thread(target=efs.setup_valor_router)
     valor_node_thread.start()
 
     setup_ubuntu_img_thread.join()
@@ -742,10 +740,6 @@ def parse_args():
         action="store_true",
         help="setup the galahad/virtue stack only")
     parser.add_argument(
-        "--setup_valor",
-        action="store_true",
-        help="setup EFS and Valor migration ecosystem test environment")
-    parser.add_argument(
         "--list_stacks",
         action="store_true",
         help="List all the available stacks")
@@ -800,17 +794,6 @@ def main():
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
-
-    if args.setup_valor:
-
-        stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
-        #
-        excalibur = Excalibur(args.stack_name, args.path_to_key)
-        excalibur.update_security_rules()
-        #
-        efs = EFS(args.stack_name, args.path_to_key)
-        efs.setup_valorNodes()
 
     if args.list_stacks:
         Stack().list_stacks()

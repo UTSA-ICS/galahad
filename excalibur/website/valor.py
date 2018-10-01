@@ -1,12 +1,11 @@
+import os
+
 import boto3
 import botocore
-import os
-import paramiko
 import rethinkdb
-import time
-
-from paramiko import SSHClient
 from aws import AWS
+from boto.utils import get_instance_metadata
+from ssh_tool import ssh_tool
 
 
 class ValorAPI:
@@ -52,6 +51,7 @@ class Valor:
 
         self.ec2 = boto3.resource('ec2')
         self.aws_instance = self.ec2.Instance(valor_id)
+        self.client = None
 
 
     def authorize_ssh_connections(self, ip):
@@ -73,10 +73,23 @@ class Valor:
                 + 'Rule may already exist.')
 
 
+    def get_stack_name(self):
+
+        resource = boto3.resource('ec2')
+
+        meta_data = get_instance_metadata(timeout=0.5, num_retries=2)
+
+        myinstance = resource.Instance(meta_data['instance-id'])
+
+        # Find the Stack name in the instance tags
+        for tag in myinstance.tags:
+            if 'aws:cloudformation:stack-name' in tag['Key']:
+                return tag['Value']
+
+
     def get_efs_mount(self):
 
-        #TODO: remove hardcoded stack_name
-        stack_name = 'test-for-192'
+        stack_name = self.get_stack_name()
 
         cloudformation = boto3.resource('cloudformation')
         efs_stack = cloudformation.Stack(stack_name)
@@ -99,37 +112,25 @@ class Valor:
 
         mount_efs_command = 'sudo mount -t nfs {}:/ /mnt/efs'.format(efs_mount)
 
-        client = self.connect_with_ssh()
+        stdout = self.client.ssh(make_efs_mount_command, output=True)
+        print('[!] Valor.mount_efs : stdout : ' + stdout)
 
-        stdin, stdout, stderr = client.exec_command(make_efs_mount_command)
-        stdin, stdout, stderr = client.exec_command(mount_efs_command)
-
-        print('[!] Valor.mount_efs : stdout : ' + stdout.read())
-        print('[!] Valor.mount_efs : stderr : ' + stderr.read())
+        stdout = self.client.ssh(mount_efs_command, output=True)
+        print('[!] Valor.mount_efs : stdout : ' + stdout)
 
 
     def connect_with_ssh(self):
 
-        client = SSHClient()
+        self.client = ssh_tool(
+            'ubuntu',
+            self.aws_instance.public_ip_address,
+            sshkey=os.environ['HOME'] +
+                   '/galahad-keys/default-virtue-key.pem')
 
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        try:
-
-            client.load_system_host_keys()
-
-            client.connect(
-                self.aws_instance.public_ip_address,
-                username='ubuntu',
-                #TODO: Need to automatically get key in home directory
-                key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
-
-        except Exception as error:
-
-            print(error)
-            print('SSH failed to connect')
-
-        return client
+        if not self.client.check_access():
+            print('Failed to connect to valor with IP {} using SSH'.format(
+                self.aws_instance.public_ip_address))
+            raise
 
 
     def setup(self):
@@ -148,41 +149,13 @@ class Valor:
         cd_and_execute_setup_command = \
             'cd /home/ubuntu/config && sudo /bin/bash setup.sh'
 
-        client = self.connect_with_ssh()
+        stdout = self.client.ssh(
+            copy_config_directory_command, output=True)
+        print('[!] copy_config_dir : stdout : ' + stdout)
 
-        time.sleep(30)
-
-        stdin, stdout, stderr = client.exec_command(
-            copy_config_directory_command)
-        print('[!] copy_config_dir : stdout : ' + stdout.read())
-        print('[!] copy_config_dir : stderr : ' + stderr.read())
-
-        time.sleep(30)
-
-        stdin, stdout, stderr = client.exec_command(
-            cd_and_execute_setup_command)
-        print('[!] execute_setup : stdout : ' + stdout.read())
-        print('[!] execute_setup : stderr : ' + stderr.read())
-
-
-    def wait_until_accessible(self):
-
-        max_attempts = 10
-
-        for attempt_number in range(max_attempts):
-
-            try:
-
-                self.connect_with_ssh()
-                print('Successfully connected to {}'.format(
-                    self.aws_instance.public_ip_address))
-
-                break
-
-            except Exception as error:
-
-                print(error)
-                print('Attempt {0} failed to connect').format(attempt_number+1)
+        stdout = self.client.ssh(
+            cd_and_execute_setup_command, output=True)
+        print('[!] execute_setup : stdout : ' + stdout)
 
 
 class ValorManager:
@@ -241,7 +214,7 @@ class ValorManager:
 
         valor.authorize_ssh_connections(excalibur_ip)
 
-        valor.wait_until_accessible()
+        valor.connect_with_ssh()
 
         self.rethinkdb_manager.add_valor(valor)
 
@@ -255,7 +228,7 @@ class ValorManager:
     def create_valor_pool(self, number_of_valors):
         for index in range(number_of_valors):
             self.create_valor()
- 
+
 
     def destroy_valor(self, valor_id):
 
@@ -281,7 +254,6 @@ class ValorManager:
 
 class RethinkDbManager:
 
-    #TODO: Remove hardcoded IP and replace with DNS name
     domain_name = 'rethinkdb.galahad.com'
 
     def __init__(self):
@@ -289,7 +261,8 @@ class RethinkDbManager:
             self.domain_name,
             28015,
             ssl = {
-                'ca_certs': '/home/ubuntu/galahad-config/rethinkdb_keys/rethinkdb_cert.pem',
+                'ca_certs':
+                    '/var/private/ssl/rethinkdb_cert.pem',
             }).repl()
 
 
