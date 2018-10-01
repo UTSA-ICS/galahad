@@ -2,28 +2,23 @@
 
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-import argparse
 import os.path
 import rethinkdb as r
 import sys
 
-parser = argparse.ArgumentParser(description='Set up script for RethinkDB for transducer control')
-parser.add_argument('-r', '--host', help='Hostname of RethinkDB', default='rethinkdb.galahad.com')
-parser.add_argument('-c', '--cert', help='Path to RethinkDB CA cert', default='/var/private/ssl/rethinkdb_cert.pem')
-parser.add_argument('-e', '--excalkey', help='Private key for Excalibur', default='/var/private/ssl/excalibur_key.pem')
 
-args = parser.parse_args()
+hostname = 'rethinkdb.galahad.com'
+rethinkdb_cert = '/var/private/ssl/rethinkdb_cert.pem'
 
-if not os.path.isfile(args.cert):
-    print
-    'File not found:', args.cert
-    sys.exit(1)
-if not os.path.isfile(args.excalkey):
-    print
-    'File not found:', args.excalkey
+if not os.path.isfile(rethinkdb_cert):
+
+    print('File not found:', rethinkdb_cert)
     sys.exit(1)
 
-conn = r.connect(host=args.host, 28015, ssl={'ca_certs': args.cert}).repl()
+conn = r.connect(
+    host=hostname,
+    28015,
+    ssl={'ca_certs': rethinkdb_cert}).repl()
 
 # setup database and tables
 try:
@@ -50,8 +45,13 @@ except r.ReqlOpFailedError:
     # table already exists - great
     pass
 
-# key filename (for password)
-excalibur_private_key = args.excalkey
+
+excalibur_private_key = '/var/private/ssl/excalibur_private_key.pem'
+
+if not os.path.isfile(excalibur_private_key):
+
+    print('File not found:', excalibur_private_key)
+    sys.exit(1)
 
 # create users
 r.db('rethinkdb').table('users').insert({
@@ -75,5 +75,4 @@ r.db('transducers').table('acks').grant('excalibur', {'read': True, 'write': Fal
 r.db('transducers').table('commands').grant('virtue', {'read': True, 'write': False}).run(conn)
 r.db('transducers').table('acks').grant('virtue', {'read': True, 'write': True}).run(conn)
 
-print
-'Finished'
+print('Finished')
