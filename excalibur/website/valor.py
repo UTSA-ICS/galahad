@@ -261,8 +261,7 @@ class RethinkDbManager:
             host = self.domain_name,
             port = 28015,
             ssl = {
-                'ca_certs':
-                    '/va/private/ssl/rethinkdb_cert.pem',
+                'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
             }).repl()
 
 
