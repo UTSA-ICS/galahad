@@ -17,7 +17,7 @@ if not os.path.isfile(rethinkdb_cert):
 
 conn = r.connect(
     host=hostname,
-    28015,
+    port=28015,
     ssl={'ca_certs': rethinkdb_cert}).repl()
 
 # setup database and tables

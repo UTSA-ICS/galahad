@@ -258,11 +258,11 @@ class RethinkDbManager:
 
     def __init__(self):
         self.connection = rethinkdb.connect(
-            self.domain_name,
-            28015,
+            host = self.domain_name,
+            port = 28015,
             ssl = {
                 'ca_certs':
-                    '/var/private/ssl/rethinkdb_cert.pem',
+                    '/va/private/ssl/rethinkdb_cert.pem',
             }).repl()
 
 
