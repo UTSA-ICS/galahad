@@ -10,6 +10,7 @@ set -eu
 #
 # # Add Router entry to rethinkDB
 #
+pip install boto
 python update_rethinkdb_with_router.py
 
 # Install necessary System packages
@@ -22,12 +23,6 @@ apt --assume-yes install bridge-utils
 #
 # Configure scripts using information from rethinkDB
 #
-if [ -f virtue-galahad.cfg ]; then
-	rm virtue-galahad.cfg
-fi
-if [ -f me.cfg ]; then
-	rm me.cfg
-fi
 python generate_config.py
 
 #

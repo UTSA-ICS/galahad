@@ -24,7 +24,7 @@ def add_router_instance_to_galahad_table(instance_id, private_ip, guestnet_ip="1
          "address": private_ip,
          "guestnet": guestnet_ip}]).run()
 
-def if __name__ == '__main__':
+if __name__ == '__main__':
 
     instance_id, private_ip = get_instance_info()
 
