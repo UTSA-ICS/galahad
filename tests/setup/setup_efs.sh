@@ -14,7 +14,7 @@ sudo mount -a
 sudo cp -Rp $HOME/$BASE_DIR/deploy /mnt/efs
 sudo mkdir -p /mnt/efs/images/base_ubuntu
 sudo mkdir -p /mnt/efs/images/unities
-sudo mkdir -p /mnt/efs/images/non_p_virtues
-sudo mkdir -p /mnt/efs/images/p_virtues
+sudo mkdir -p /mnt/efs/images/non_provisioned_virtues
+sudo mkdir -p /mnt/efs/images/provisioned_virtues
 # Copy over the galahad-keys to EFS mount
 sudo cp -Rp $HOME/galahad-keys /mnt/efs

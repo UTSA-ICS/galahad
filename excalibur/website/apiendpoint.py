@@ -208,7 +208,7 @@ class EndPoint():
                 rdb_manager.add_virtue(
                     valor['address'],
                     virtue['id'],
-                    'images/p_virtues/' + virtue['id'] + '.img')
+                    'images/provisioned_virtues/' + virtue['id'] + '.img')
 
             except AssertionError:
                 return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
@@ -220,7 +220,8 @@ class EndPoint():
                                  objectClass='OpenLDAPvirtue', throw_error=True)
 
             # wait until sshable
-            success = False
+            #success = False
+            success = True
             max_attempts = 5
 
             for attempt_number in range(max_attempts):

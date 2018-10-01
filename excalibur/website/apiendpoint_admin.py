@@ -470,7 +470,7 @@ class EndPoint_Admin():
 
             try:
                 if (use_nfs):
-                    os.remove('/mnt/efs/images/p_virtues/' +
+                    os.remove('/mnt/efs/images/provisioned_virtues/' +
                               virtue['id'] + '.img')
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
             except:

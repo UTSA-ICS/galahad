@@ -134,7 +134,7 @@ class CreateVirtueThread(threading.Thread):
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         assert self.inst.add_obj(ldap_virtue, 'virtues', 'cid') == 0
 
-        virtue_path = 'images/p_virtues/' + virtue['id'] + '.img'
+        virtue_path = 'images/provisioned_virtues/' + virtue['id'] + '.img'
 
         try:
 
@@ -155,7 +155,7 @@ class CreateVirtueThread(threading.Thread):
 
             subprocess.check_call(['sudo', 'python', 'call_provisioner.py',
                                    '-i', virtue['id'],
-                                   '-b', '/mnt/efs/images/non_p_virtues/' +
+                                   '-b', '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
                                    '-o', '/mnt/efs/' + virtue_path,
                                    '-v', virtue_key,
@@ -203,7 +203,7 @@ class AssembleRoleThread(threading.Thread):
 
     def run(self):
 
-        virtue_path = 'images/non_p_virtues/' + self.role['id'] + '.img'
+        virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
 
         try:
             subprocess.check_call(['sudo', 'cp',
@@ -219,7 +219,7 @@ class AssembleRoleThread(threading.Thread):
                 #valor_manager.rethinkdb_manager.add_virtue(
                 #    valor['address'],
                 #    self.role['id'],
-                #    'images/non_p_virtues/' + self.role['id'])
+                #    'images/non_provisioned_virtues/' + self.role['id'])
 
                 #time.sleep(5)
 
