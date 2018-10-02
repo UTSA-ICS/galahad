@@ -150,10 +150,10 @@ class Valor:
         self.mount_efs()
 
         copy_config_directory_command = \
-            'sudo cp -r /mnt/efs/deploy/compute/config /home/ubuntu/'
+            'sudo cp -r /mnt/efs/deploy/compute /home/ubuntu/'
 
         cd_and_execute_setup_command = \
-            'cd /home/ubuntu/config && sudo /bin/bash setup.sh'
+            'cd /home/ubuntu/compute && sudo /bin/bash setup.sh'
 
         reboot_node_command = \
             'sudo reboot'
