@@ -37,22 +37,35 @@ while read line; do
 done < virtue-galahad.cfg
 
 #
-# Add routing for hello-br0 device and bring it up
+# Disable cloud init networking which sets eth0 to defult settings.
 #
-ip address add "$(cat me.cfg)/24" dev hello-br0
-ifconfig hello-br0 up
+echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+rm -f /etc/network/interfaces.d/50-cloud-init.cfg
 
 #
 # Setup and configure bridge br0 with interface eth0
 #
-echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-rm -f /etc/network/interfaces.d/50-cloud-init.cfg
+echo "" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Bridge br0 for eth0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
 echo "auto br0" >> /etc/network/interfaces
 echo "iface br0 inet dhcp" >> /etc/network/interfaces
 echo "  bridge_ports br0 eth0" >> /etc/network/interfaces
 echo "  bridge_stp off" >> /etc/network/interfaces
 echo "  bridge_fd 0" >> /etc/network/interfaces
 echo "  bridge_maxwait 0" >> /etc/network/interfaces
+
+#
+# Configure bridge hello-br0
+#
+echo "" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "auto hello-br0" >> /etc/network/interfaces
+echo "iface hello-br0 inet static" >> /etc/network/interfaces
+echo "  address $(cat me.cfg)/24" >> /etc/network/interfaces
 
 #
 # Set the IP Tables rules
@@ -63,17 +76,9 @@ iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 
 #
-# Update rc.local
+# Update rc.local for system commands
 #
-#
-# Update rc.local for hello-br0 routing and system commands
-#
-sed -i '/exit 0/i \
-#\
-# Add routing for hello-br0 device and bring it up\
-#\
-ip address add \"$(cat /home/ubuntu/router/me.cfg)/24\" dev hello-br0\
-ifconfig hello-br0 up\
+sed -i '/^exit 0/i \
 \
 #\
 # Add ip_gre module and start xencommons service\

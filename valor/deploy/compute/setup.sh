@@ -101,7 +101,7 @@ iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 
 #
-# Update rc.local for hello-br0 routing and system commands
+# Update rc.local for system commands
 #
 sed -i '/^exit 0/i \
 \
