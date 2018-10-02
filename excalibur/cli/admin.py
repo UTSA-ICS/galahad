@@ -82,6 +82,7 @@ class AdminCLI(base.BaseCLI):
         self.commands['valor create pool'] = self.valor_create_pool
 #        self.commands['valor stop'] = self.valor_stop
         self.commands['valor destroy'] = self.valor_destroy
+        self.commands['valor migrate virtue'] = self.valor_migrate_virtue
 
         #self.commands['usertoken list'] = self.usertoken_list
 
@@ -370,6 +371,23 @@ class AdminCLI(base.BaseCLI):
         result = self.session.get(
             self.base_url + '/valor/destroy',
             params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_migrate_virtue(self):
+
+        virtue_id = input('Virtue ID: ').strip()
+        valor_id = input('Destination Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/migrate_virtue',
+            params = {
+                'virtue_id': virtue_id,
+                'destination_valor_id': valor_id,
+            })
 
         data = result.json()
 
