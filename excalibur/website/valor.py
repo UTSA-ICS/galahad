@@ -158,6 +158,17 @@ class Valor:
         print('[!] execute_setup : stdout : ' + stdout)
 
 
+    def is_correctly_setup(self):
+
+        cd_and_execute_verification_command = \
+            'cd /home/ubuntu/config && ' \
+            + 'sudo /bin/bash test_that_valor_is_correctly_setup.sh'
+
+        stdout = self.client.ssh(
+            cd_and_execute_verification_command, output=True)
+        print('[!] verify_setup : stdout : ' + stdout)
+
+
 class ValorManager:
 
     def __init__(self):
@@ -221,6 +232,8 @@ class ValorManager:
         self.router_manager.add_valor(valor)
 
         valor.setup()
+
+        valor.is_correctly_setup()
 
         return instance.id
 
