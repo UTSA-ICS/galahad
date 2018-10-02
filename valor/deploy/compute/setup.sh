@@ -50,15 +50,15 @@ echo "none /proc/xen xenfs defaults 0 0" >> /etc/fstab
 #
 # Configure XEN system files
 #
-cp docs/vif-bridge /etc/xen/scripts/vif-bridge
-cp docs/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
-cp docs/xl.conf /etc/xen/xl.conf
+cp config/vif-bridge /etc/xen/scripts/vif-bridge
+cp config/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
+cp config/xl.conf /etc/xen/xl.conf
 systemctl restart xencommons
 
 #
 # Configure tty
 #
-cp docs/hvc0.conf /etc/init/
+cp config/hvc0.conf /etc/init/
 rm -f /etc/init/ttyS0.conf
 
 #
