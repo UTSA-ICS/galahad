@@ -88,6 +88,7 @@ def __get_excalibur_index():
     return index
 
 def __query_elasticsearch_excalibur(args):
+    time.sleep(10) # Sleep to ensure logs make it to elasticsearch
     index = __get_excalibur_index()
     cmdargs = ''
     for (key, value) in args:
@@ -458,7 +459,6 @@ def test_virtue_destroy():
                 or instance.state['Name'] == 'shutting-down')
 
 
-        time.sleep(20) # Race condition with check and the actual log for this test, sleep to avoid it
         result = __query_elasticsearch_excalibur(
             [('user', settings['user']), ('real_func_name', 'admin_virtue_destroy'),
              ('virtue_id', 'TEST_VIRTUE_DESTROY')])
