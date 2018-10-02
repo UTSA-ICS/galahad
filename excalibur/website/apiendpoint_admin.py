@@ -561,13 +561,13 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
-    def valor_migrate_virtue(self, virtue_id, new_valor_id):
+    def valor_migrate_virtue(self, virtue_id, destination_valor_id):
 
         try:
 
             valor_id = self.valor_api.valor_migrate_virtue(
                 virtue_id,
-                new_valor_id)
+                destination_valor_id)
 
             return json.dumps({'valor_id' : valor_id})
 
@@ -576,5 +576,3 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
-
-

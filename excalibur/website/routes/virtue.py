@@ -887,7 +887,7 @@ def admin_valor_migrate_virtue():
         ep = get_admin_endpoint()
         valor_id = ep.valor_migrate_virtue(
             request.args['virtue_id'],
-            request.args['new_valor_id'])
+            request.args['destination_valor_id'])
 
     except:
         print("Unexpected error:", sys.exc_info())

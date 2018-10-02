@@ -37,8 +37,8 @@ class ValorAPI:
         return self.rethinkdb_manager.list_valors()
 
 
-    def valor_migrate_virtue(self, virtue_id, new_valor_id):
-        return self.valor_manager.migrate_virtue(virtue_id, new_valor_id)
+    def valor_migrate_virtue(self, virtue_id, destination_valor_id):
+        return self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
 
 
 
@@ -237,7 +237,7 @@ class ValorManager:
         self.rethinkdb_manager.remove_valor(valor_id)
 
 
-    def migrate_virtue(self, virtue_id, new_valor_id):
+    def migrate_virtue(self, virtue_id, destination_valor_id):
 
         virtue = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'virtue',
