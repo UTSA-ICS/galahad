@@ -302,10 +302,9 @@ class RethinkDbManager:
 
         assert valor.guestnet == None
 
-        # TODO: We need to use new guestnet for each valor
         record = {
             'function': 'valor',
-            'guestnet': '10.91.0.1',
+            'guestnet': self.get_free_guestnet(),
             'host'    : valor.aws_instance.id,
             'address' : valor.aws_instance.private_ip_address
         }
