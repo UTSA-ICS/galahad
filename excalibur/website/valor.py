@@ -113,7 +113,7 @@ class Valor:
         add_efs_mount_point_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
                                       '/etc/fstab"'.format(efs_mount)
 
-        mount_efs_command = 'sudo su - root -c "mount -a"'
+        mount_efs_command = 'sudo mount -a'
 
         stdout = self.client.ssh(make_efs_mount_command, output=True)
         print('[!] Valor.make_efs_dir : stdout : ' + stdout)
@@ -182,15 +182,19 @@ class Valor:
             raise
 
 
-    def is_correctly_setup(self):
+    def verify_setup(self):
 
-        cd_and_execute_verification_command = \
-            'cd /home/ubuntu/config && ' \
-            + 'sudo /bin/bash test_that_valor_is_correctly_setup.sh'
+        # Verify the Valor Setup
 
-        stdout = self.client.ssh(
-            cd_and_execute_verification_command, output=True)
-        print('[!] verify_setup : stdout : ' + stdout)
+        # Verify that Xen xl command works
+        execute_xl_list_command = \
+            'sudo xl list'
+        stdout = self.client.ssh(execute_xl_list_command, output=True)
+        print('[!] verify_Xen : stdout : ' + stdout)
+
+        # Verify connectivity to rethinkDB
+        # Verify EFS mount point exists and is accessible
+        # Verify  that gaius service is up and running
 
 
 class ValorManager:
@@ -257,7 +261,7 @@ class ValorManager:
 
         valor.setup()
 
-        valor.is_correctly_setup()
+        valor.verify_setup()
 
         return instance.id
 
