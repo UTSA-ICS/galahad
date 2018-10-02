@@ -110,7 +110,7 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        mount_efs_command = 'sudo su - root -c "echo \"{}:/ /mnt/efs nfs defaults 0 0\" >> /etc/fstab"'.format(
+        mount_efs_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> /etc/fstab"'.format(
             efs_mount)
 
         stdout = self.client.ssh(make_efs_mount_command, output=True)
