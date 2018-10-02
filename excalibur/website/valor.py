@@ -110,11 +110,16 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        mount_efs_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> /etc/fstab"'.format(
-            efs_mount)
+        add_efs_mount_point_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
+                                      '/etc/fstab"'.format(efs_mount)
+
+        mount_efs_command = 'sudo su - root -c "mount -a"'
 
         stdout = self.client.ssh(make_efs_mount_command, output=True)
-        print('[!] Valor.mount_efs : stdout : ' + stdout)
+        print('[!] Valor.make_efs_dir : stdout : ' + stdout)
+
+        stdout = self.client.ssh(add_efs_mount_point_command, output=True)
+        print('[!] Valor.add_efs_mount : stdout : ' + stdout)
 
         stdout = self.client.ssh(mount_efs_command, output=True)
         print('[!] Valor.mount_efs : stdout : ' + stdout)
