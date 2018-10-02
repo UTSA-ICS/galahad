@@ -351,6 +351,8 @@ class RethinkDbManager:
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
 
+        return guestnet
+
 
     def get_virtue(self, virtue_hostname):
 

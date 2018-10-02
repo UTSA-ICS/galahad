@@ -152,7 +152,7 @@ class EndPoint():
                 ldap_tools.parse_ldap(virtue[1])
 
                 if (virtue[1]['username'] == username):
-                    virtues_ret.append(virtue)
+                    virtues_ret.append(virtue[1])
 
             return json.dumps(virtues_ret)
 
@@ -205,7 +205,7 @@ class EndPoint():
 
             # Add virtue to rethink
             try:
-                rdb_manager.add_virtue(
+                virtue['ipAddress'] = rdb_manager.add_virtue(
                     valor['address'],
                     virtue['id'],
                     'images/provisioned_virtues/' + virtue['id'] + '.img')
@@ -220,47 +220,55 @@ class EndPoint():
                                  objectClass='OpenLDAPvirtue', throw_error=True)
 
             # wait until sshable
-            #success = False
-            success = True
+            success = False
             max_attempts = 5
 
-            for attempt_number in range(max_attempts):
+            # TODO: Remove this variable before merging into master
+            see_no_evil = False
 
-                try:
+            if see_no_evil:
+                virtue['state'] = 'RUNNING (Unverified)'
+            else:
 
-                    time.sleep(3)
+                for attempt_number in range(max_attempts):
 
-                    client = SSHClient()
+                    try:
 
-                    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                    client.load_system_host_keys()
+                        time.sleep(2)
 
-                    client.connect(
-                        virtue.public_ip_address,
-                        username='ubuntu',
-                        key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
+                        client = SSHClient()
 
-                    print('Successfully connected to {}'.format(
-                        virtue.public_ip_address,))
-                    success = True
+                        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                        client.load_system_host_keys()
 
-                    break
+                        client.connect(
+                            virtue['ipAddress'],
+                            username='ubuntu',
+                            key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
 
-                except Exception as e:
-                    print(e)
-                    print('Attempt {0} failed to connect').format(attempt_number+1)
+                        print('Successfully connected to {}'.format(
+                            virtue['ipAddress'],))
+                        success = True
 
-            if (not success):
-                rdb_manager.remove_virtue(virtue['id'])
-                virtue['state'] = 'STOPPED'
-                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.modify_obj(
-                    'cid', virtue['id'], ldap_virtue,
-                    objectClass='OpenLDAPvirtue', throw_error=True)
-                return json.dumps(ErrorCodes.user['serverLaunchError'])
+                        break
+
+                    except Exception as e:
+                        print(e)
+                        print('Attempt {0} failed to connect').format(attempt_number+1)
+
+                if (not success):
+                    rdb_manager.remove_virtue(virtue['id'])
+                    virtue['state'] = 'STOPPED'
+                    ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+                    self.inst.modify_obj(
+                        'cid', virtue['id'], ldap_virtue,
+                        objectClass='OpenLDAPvirtue', throw_error=True)
+                    return json.dumps(ErrorCodes.user['serverLaunchError'])
+
+                virtue['state'] = 'RUNNING'
 
             # Set state to running
-            virtue['state'] = 'RUNNING'
+            #virtue['state'] = 'RUNNING'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
             self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
                                  objectClass='OpenLDAPvirtue', throw_error=True)
