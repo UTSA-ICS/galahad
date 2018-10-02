@@ -110,7 +110,8 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        mount_efs_command = 'sudo mount -t nfs {}:/ /mnt/efs'.format(efs_mount)
+        mount_efs_command = 'sudo su - root -c "echo \"{}:/ /mnt/efs nfs defaults 0 0\" >> /etc/fstab"'.format(
+            efs_mount)
 
         stdout = self.client.ssh(make_efs_mount_command, output=True)
         print('[!] Valor.mount_efs : stdout : ' + stdout)
@@ -149,6 +150,9 @@ class Valor:
         cd_and_execute_setup_command = \
             'cd /home/ubuntu/config && sudo /bin/bash setup.sh'
 
+        reboot_node_command = \
+            'sudo reboot'
+
         stdout = self.client.ssh(
             copy_config_directory_command, output=True)
         print('[!] copy_config_dir : stdout : ' + stdout)
@@ -156,6 +160,15 @@ class Valor:
         stdout = self.client.ssh(
             cd_and_execute_setup_command, output=True)
         print('[!] execute_setup : stdout : ' + stdout)
+
+        stdout = self.client.ssh(
+            reboot_node_command, output=True)
+        print('[!] reboot_node : stdout : ' + stdout)
+
+        if not self.client.check_access():
+            print('Failed to connect to valor with IP {} using SSH after Reboot'.format(
+                self.aws_instance.public_ip_address))
+            raise
 
 
     def is_correctly_setup(self):
