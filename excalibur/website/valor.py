@@ -166,9 +166,15 @@ class Valor:
             cd_and_execute_setup_command, output=True)
         print('[!] execute_setup : stdout : ' + stdout)
 
-        stdout = self.client.ssh(
-            reboot_node_command, output=True)
-        print('[!] reboot_node : stdout : ' + stdout)
+        try:
+            stdout = self.client.ssh(
+                reboot_node_command, output=True)
+            print('[!] reboot_node : stdout : ' + stdout)
+        except:
+            # TODO
+            # Currently issueing reboot command causes immediate disconnect and ssh_too throws an error due to that.
+            # Ignore the error for now
+            pass
 
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH after Reboot'.format(
