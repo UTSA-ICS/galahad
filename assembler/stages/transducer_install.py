@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ssh_stage import SSHStage
+from assembler.stages.core.ssh_stage import SSHStage
 import time
 import subprocess, os
 
@@ -10,7 +10,7 @@ class TransducerStage(SSHStage):
     NAME = 'TransducerInstallStage'
     DEPENDS = ['UserStage']
 
-    PAYLOAD_PATH = 'payload'
+    PAYLOAD_PATH = 'assembler/payload'
     MODULE_TARBALL = 'transducer-module.tar.gz'
 
     INSTALL_PREREQ_SCRIPT = '''#!/bin/bash
@@ -49,10 +49,14 @@ apt update && apt install syslog-ng-core=3.14.1-3 curl git -y
         mv kirk-keystore.jks /etc/syslog-ng/
         mv truststore.jks /etc/syslog-ng/
         mv sshd_config /etc/ssh/
+        mv audit.rules /etc/audit/rules.d/
+        chmod 644 syslog-ng.service
+        mv syslog-ng.service /lib/systemd/system/
+        systemctl daemon-reload
         systemctl enable syslog-ng
-        systemctl start syslog-ng
+        systemctl restart syslog-ng
 
-        echo 172.30.128.130 rethinkdb.galahad.com >> /etc/hosts
+        echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts
         rm runme.sh
         '''
 
@@ -66,9 +70,15 @@ path:
 searchguard.ssl.transport.enforce_hostname_verification: false
     '''
 
+    def __init__(self, elastic_host, elastic_node, syslog_server, ssh_host, ssh_port, work_dir='.'):
+        super(TransducerStage, self).__init__(ssh_host, ssh_port, work_dir=work_dir)
+        self._elastic_search_host = elastic_host
+        self._elastic_search_node = elastic_node
+        self._syslog_server = syslog_server
+
     def run(self):
         if not self._has_run:
-            super().run()
+            super(TransducerStage, self).run()
 
 
             syslog_template = 'syslog-ng-virtue-node.conf.template'
@@ -78,6 +88,8 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             truststore_filename = 'truststore.jks'
             install_script_filename = 'runme.sh'
             sshd_config_filename = 'sshd_config'
+            syslog_ng_service_filename = 'syslog-ng.service'
+            auditd_filename = 'audit.rules'
 
 
             module_path = os.path.join(self.PAYLOAD_PATH, self.MODULE_TARBALL)
@@ -85,6 +97,8 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             trust_path = os.path.join(self.PAYLOAD_PATH, truststore_filename)
             sshd_payload_path = os.path.join(self.PAYLOAD_PATH, sshd_config_filename)
             syslog_template_path = os.path.join(self.PAYLOAD_PATH, syslog_template)
+            auditd_path = os.path.join(self.PAYLOAD_PATH, auditd_filename)
+            syslog_service_path = os.path.join(self.PAYLOAD_PATH, syslog_ng_service_filename)
             syslog_conf_path = os.path.join(self._work_dir, syslog_conf_filename)
             elasticsearch_path = os.path.join(self._work_dir, elasticsearch_filename)
             install_path = os.path.join(self._work_dir, install_script_filename)
@@ -93,11 +107,11 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             with open(syslog_template_path, 'r') as syslog_ng_file:
                 syslog_ng_config = syslog_ng_file.read()
                 with open(syslog_conf_path, 'w') as f:
-                    f.write(syslog_ng_config % (self._args.elastic_search_node, self._args.syslog_server))
+                    f.write(syslog_ng_config % (self._elastic_search_node, self._syslog_server))
                 self._copy_file(syslog_conf_path, syslog_conf_filename)
-            
+
             with open(elasticsearch_path, 'w') as f:
-                f.write(self.ELASTIC_YML % (self._args.elastic_search_host))
+                f.write(self.ELASTIC_YML % (self._elastic_search_host))
             self._copy_file(elasticsearch_path, elasticsearch_filename)
 
             with open(install_path, 'w') as f:
@@ -108,6 +122,8 @@ searchguard.ssl.transport.enforce_hostname_verification: false
             self._copy_file(kirk_path, kirk_filename)
             self._copy_file(trust_path, truststore_filename)
             self._copy_file(sshd_payload_path, sshd_config_filename)
+            self._copy_file(syslog_service_path, syslog_ng_service_filename)
+            self._copy_file(auditd_path, auditd_filename)
 
             self._exec_cmd_with_retry('chmod +x %s' % (install_script_filename))
             self._exec_cmd_with_retry('sudo ./%s' % (install_script_filename))

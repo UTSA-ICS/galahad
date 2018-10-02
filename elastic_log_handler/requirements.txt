@@ -1,0 +1,4 @@
+pyOpenSSL==18.0.0
+elasticsearch==5.4.0
+requests==2.18.1
+enum==0.4.6

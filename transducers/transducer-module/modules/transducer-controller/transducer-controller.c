@@ -93,47 +93,61 @@ void transducer_rules_connection_thread(void *vargp) {
     struct group *grp;
     gid_t gid;
 
-    grp = getgrnam("virtue");
+    grp = getgrnam("camelot");
     gid =  grp->gr_gid;
     unlink(s_filename);
-    printf("socket path pointer in startup method: %s\n", self->socket_path);
+    msg_info("socket path pointer in startup method", evt_tag_str("Socket Path", self->socket_path));
+
+    FILE *fp;
+    fp=fopen("/var/log/file.txt","w");
+    fprintf(fp, "This is testing for fprintf...\n");
+    fclose(fp);
+    msg_info("Created test file to chown");
+
+
+
+    if (chown("/var/log/file.txt", -1, gid) == -1) {
+        int errsv = errno;
+        char * error_msg = strerror(errsv);
+        msg_info("Chown fail", evt_tag_int("Errno", errsv), evt_tag_str("Error Msg", error_msg));
+    }
 
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (sock < 0) {
-        perror("opening stream socket\n");
+        msg_info("opening stream socket");
         return 1;
     }
-
 
     server.sun_family = AF_UNIX;
     strcpy(server.sun_path, s_filename);
 
     if (bind(sock, (struct sockaddr*)&server, sizeof(struct sockaddr_un))) {
-        perror("binding stream socket\n");
+        msg_info("binding stream socket");
         return 1;
     }
 
 
     if (chmod(s_filename, 0770) == -1) {
         int errsv = errno;
-        printf("Chmod fail %d\n", errsv);
+        msg_info("Chmod fail", evt_tag_int("Errno", errsv));
         return 1;
     }
 
 
     if (chown(s_filename, -1, gid) == -1) {
         int errsv = errno;
-        printf("Chown fail %d\n", errsv);
+        char * error_msg = strerror(errsv);
+        msg_info("Chown fail", evt_tag_int("Errno", errsv), evt_tag_str("Error Msg", error_msg));
         return 1;
     }
 
-    printf("set up socket with name %s\n", server.sun_path);
+    msg_info("set up socket", evt_tag_str("Socket Name", server.sun_path));
     listen(sock, 5);
 
     for (;;) {
         msgsock = accept(sock, 0, 0);
-        printf("Accepted connection\n");
+        msg_info("Accepted connection\n");
         if (msgsock == -1) {
             perror("accept");
         } else {
@@ -141,19 +155,19 @@ void transducer_rules_connection_thread(void *vargp) {
                 perror("reading message length\n");
                 return 1;
             }
-            printf("message length: %d\n", total_len);
+            msg_debug("Merlin message", evt_tag_int("Message Length", total_len));
             rcvd_msg = (char *)malloc(total_len);
             offset = 0;
             do {
                 bzero(buf, sizeof(buf));
                 if ((rval = read(msgsock, buf, 1024)) < 0) {
-                    perror("reading stream message\n");
+                    msg_verbose("reading stream message");
                 } else if (rval == 0) {
-                    printf("finished connection\n");
+                    msg_verbose("finished connection");
                 } else {
-                    printf(">>%s\n", buf);
+                    msg_verbose(">>%s\n", buf);
                     if (total_len - rval < 0) {
-                        perror("message too long\n");
+                        perror("message too long");
                         rval = total_len;
                     }
                     total_len -= rval;
@@ -174,12 +188,12 @@ void transducer_rules_connection_thread(void *vargp) {
                 // parse command
                 cJSON* json = cJSON_Parse(rcvd_msg);
                 if (json == NULL) {
-                    perror("failed to parse command");
+                    msg_verbose("failed to parse command");
                 } else {
                     char* id;
                     int enabled;
                     if (read_command_from_json(json, transducers)) {
-                        perror("unexpected format in command");
+                        msg_verbose("unexpected format in command");
                     } else {
 
                         // free the json command
@@ -199,7 +213,7 @@ void transducer_rules_connection_thread(void *vargp) {
                 //} else {
                 //printf("unknown command: %s\n", rcvd_msg);
             }
-            printf("closing msgsock\n");
+            msg_verbose("closing msgsock");
             free(rcvd_msg);
             close(msgsock);
         }
@@ -208,7 +222,7 @@ void transducer_rules_connection_thread(void *vargp) {
 
 void transducer_set_socket(LogParser *p, char* socket_path) {
     TransducerController *self = (TransducerController *)p;
-    printf("Adding socket path of %s to module\n", socket_path);
+    msg_info("Adding socket path to module", evt_tag_str("Socket Path", socket_path));
     g_free(self->prefix);
 //    self->socket_path = socket_path;
     self->socket_path = (char*) malloc(sizeof(char) * strlen(socket_path) + 1);
@@ -279,7 +293,7 @@ static gboolean _process(LogParser *s, LogMessage **pmsg, const LogPathOptions *
 LogPipe *transducer_controller_clone_method(TransducerController *dst, TransducerController *src) {
     transducer_controller_set_prefix(&dst->super, src->prefix);
     transducer_set_socket(&dst->super, src->socket_path);
-    printf("socket path value in clone method: %s : %s\n", src->socket_path, &dst->socket_path);
+    msg_info("socket path value in clone method", evt_tag_str("Source Value", src->socket_path), evt_tag_str("Destination Value", &dst->socket_path));
     log_parser_set_template(&dst->super, log_template_ref(src->super.template));
     return &dst->super.super;
 }

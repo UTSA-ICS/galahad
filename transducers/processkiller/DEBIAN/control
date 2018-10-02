@@ -1,0 +1,8 @@
+Source: processkiller
+Section: devel
+Maintainer: Maria Zakhalyavko
+Version: 1.0
+Package: processkiller
+Architecture: all
+Depends: python
+Description: VirtUE Process Killer

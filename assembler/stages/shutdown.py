@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ssh_stage import SSHStage
+from assembler.stages.core.ssh_stage import SSHStage
 
 import subprocess, os
 
@@ -11,7 +11,7 @@ class ShutdownStage(SSHStage):
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(ShutdownStage, self).run()
             try:
                 self._exec_cmd('sudo shutdown -h now')
             except subprocess.CalledProcessError as e:

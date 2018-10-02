@@ -5,6 +5,10 @@ import threading
 import copy
 import time
 import botocore
+import shlex
+import subprocess
+import os
+from common import ssh_tool
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -111,12 +115,28 @@ class CreateVirtueThread(threading.Thread):
         sec_group = aws.get_sec_group()
 
         try:
+            # Allow SSH from excalibur node
             sec_group.authorize_ingress(
                 CidrIp=ip,
                 FromPort=22,
                 IpProtocol='tcp',
                 ToPort=22
             )
+        except botocore.exceptions.ClientError:
+            print('ClientError encountered while adding sec group rule. ' +
+                  'Rule probably exists already.')
+        try:
+            # TODO:
+            # This is for testing and needs to be moved into cloud formation or env setup.
+            # List of current allowable cidrs
+            canvas_client_cidr = '70.121.205.81/32 172.3.30.184/32 35.170.157.4/32 129.115.2.249/32'
+            for cidr in canvas_client_cidr.split():
+                sec_group.authorize_ingress(
+                    CidrIp=cidr,
+                    FromPort=6761,
+                    IpProtocol='tcp',
+                    ToPort=6771
+                )
         except botocore.exceptions.ClientError:
             print('ClientError encountered while adding sec group rule. ' +
                   'Rule probably exists already.')
@@ -131,10 +151,9 @@ class CreateVirtueThread(threading.Thread):
             sec_group=sec_group.id,
             inst_profile_name='',
             inst_profile_arn='')
-        #instance = {'id': 'id_of_aws_inst', 'state': 'state_of_aws_inst', 'ip': '10.20.30.40'}
 
         virtue = {
-            'id': 'Virtue_{0}{1}'.format(role['name'], int(time.time())),
+            'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
             'username': 'NULL',
             'roleId': self.role_id,
             'applicationIds': [],
@@ -142,7 +161,60 @@ class CreateVirtueThread(threading.Thread):
             'transducerIds': role['startingTransducerIds'],
             'awsInstanceId': instance.id
         }
-
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-
         self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+
+        self.set_virtue_keys(virtue['id'], instance.public_ip_address)
+
+        instance.stop()
+        instance.wait_until_stopped()
+        instance.reload()
+
+    def check_virtue_access(self, ssh_inst):
+        # Check if the virtue is accessible:
+        for i in range(10):
+            out = ssh_inst.ssh('uname -a', option='ConnectTimeout=10')
+            if out == 255:
+                time.sleep(30)
+            else:
+                print('Successfully connected to {}'.format(ssh_inst.ip))
+                result = True
+                return result
+        if result != True:
+            return False
+
+    def set_virtue_keys(self, virtue_id, instance_ip):
+        # Local Dir for storing of keys, this will be replaced when key management is implemented
+        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
+
+        # For now generate keys and store in local dir
+        subprocess.check_output(shlex.split(
+            'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+
+        ssh_inst = ssh_tool('ubuntu', instance_ip, '{0}/default-virtue-key.pem'.format(key_dir))
+        # Check if virtue is accessible.
+        result = self.check_virtue_access(ssh_inst)
+
+        if result == True:
+            # Populate a virtue ID
+            ssh_inst.ssh('sudo su - root -c "echo {0} > /etc/virtue-id"'.format(virtue_id))
+            ssh_inst.ssh('sudo su - root -c "echo VIRTUE_ID={0} > /etc/virtue-id-env"'.format(virtue_id))
+            # Now populate virtue Merlin Dir with this key.
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, virtue_id), '/tmp/')
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'), '/tmp/')
+            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'), '/tmp/')
+            #
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id))
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('excalibur_pub'))
+            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('rethinkdb_cert'))
+            #
+            ssh_inst.ssh('sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/')
+            ssh_inst.ssh('sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts')
+            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts"')
+            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts"')
+            ssh_inst.ssh('sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml')
+            ssh_inst.ssh('sudo sed -i \'s!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!\' /etc/syslog-ng/syslog-ng.conf')
+            ssh_inst.ssh('sudo systemctl restart merlin')
+            ssh_inst.ssh('sudo systemctl restart syslog-ng')
+        else:
+            raise Exception("Error accessing the Virtue with ID {0} and IP {1}".format(virtue_id, instance_ip))

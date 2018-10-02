@@ -1,5 +1,6 @@
 import subprocess
 import boto3
+import time
 
 
 class ssh_tool():
@@ -8,17 +9,24 @@ class ssh_tool():
         self.ip = ip_address
         self.sshkey = sshkey
 
-    def ssh(self, command, test=True):
+    def ssh(self, command, test=True, option=None, output=False):
 
         if (self.sshkey == None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]
 
-        call_list = ['ssh'] + keyls + [
-            '-o', 'StrictHostKeyChecking=no',
-            self.rem_username + '@' + self.ip, command
-        ]
+        if option == None:
+            call_list = ['ssh'] + keyls + [
+                '-o', 'StrictHostKeyChecking=no',
+                self.rem_username + '@' + self.ip, command
+            ]
+        else:
+            call_list = ['ssh'] + keyls + [
+                '-o', 'StrictHostKeyChecking=no',
+                '-o', option,
+                self.rem_username + '@' + self.ip, command
+            ]
 
         print
         print
@@ -28,13 +36,25 @@ class ssh_tool():
         ' '.join(call_list)
         print
 
-        ret = subprocess.call(call_list)
+        stdout = ''
+        ret = -1
+        if output:
+            try:
+                stdout = subprocess.check_output(call_list, stderr=subprocess.STDOUT)
+                ret = 0
+            except subprocess.CalledProcessError as e:
+                ret = e.returncode
+        else:
+            ret = subprocess.call(call_list)
 
         # By default, it is not ok to fail
         if (test):
             assert ret == 0
 
-        return ret
+        if output:
+            return stdout
+        else:
+            return ret
 
     def scp_to(self, file_path_local, file_path_remote='', test=True):
 
@@ -64,6 +84,41 @@ class ssh_tool():
 
         return ret
 
+    def check_access(self):
+        # Check if the machine is accessible:
+        for i in range(10):
+            out = self.ssh('uname -a', test=False)
+            if out == 255:
+                time.sleep(30)
+            else:
+                print('Successfully connected to {}'.format(self.ip))
+                return True
+        return False
+      
+    def scp_from(self, file_path_local, file_path_remote='', test=True):
+      
+        if (self.sshkey == None):
+            keyls = []
+        else:
+            keyls = ['-i', self.sshkey]
+
+        call_list = ['scp', '-r'] + keyls + [
+            self.rem_username + '@' + self.ip + ':' + file_path_remote,
+            file_path_local
+        ]
+
+        print
+        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
+        print
+        ' '.join(call_list)
+
+        ret = subprocess.call(call_list)
+
+        # By default, it is not ok to fail
+        if (test):
+            assert ret == 0
+
+        return ret
 
 def get_excalibur_server_ip(stack_name):
     client = boto3.client('ec2')
@@ -71,6 +126,22 @@ def get_excalibur_server_ip(stack_name):
         Filters=[{
             'Name': 'tag:aws:cloudformation:logical-id',
             'Values': ['ExcaliburServer']
+        }, {
+            'Name': 'tag:aws:cloudformation:stack-name',
+            'Values': [stack_name]
+        }, {
+            'Name': 'instance-state-name',
+            'Values': ['running']
+        }])
+    # Return public IP
+    return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+def get_aggregator_server_ip(stack_name):
+    client = boto3.client('ec2')
+    server = client.describe_instances(
+        Filters=[{
+            'Name': 'tag:aws:cloudformation:logical-id',
+            'Values': ['GalahadAggregator']
         }, {
             'Name': 'tag:aws:cloudformation:stack-name',
             'Values': [stack_name]

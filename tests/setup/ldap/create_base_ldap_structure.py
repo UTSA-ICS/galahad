@@ -44,9 +44,19 @@ def add_person(cn, sn, password):
     inst.conn.add_s(dn, user)
 
 
-def add_application(id, name, version, os):
+def add_application(
+    id,
+    name,
+    version,
+    os,
+    port=''):
 
-    app = {'name': name, 'version': version, 'os': os, 'id': id}
+    app = {
+        'name': name,
+        'version': version,
+        'os': os,
+        'id': id,
+        'port': str(port)}
 
     ldap_app = to_ldap(app, 'OpenLDAPapplication')
 
@@ -169,9 +179,9 @@ if (__name__ == '__main__'):
     add_subtree('users', 209)
     add_subtree('virtues', 210)
 
-    add_application('firefox', 'Firefox', '1.0', 'LINUX')
-    add_application('xterm', 'XTerm', '1.0', 'LINUX')
-    add_application('thunderbird', 'Thunderbird', '1.0', 'LINUX')
+    add_application('firefox', 'Firefox', '1.0', 'LINUX', port=6768)
+    add_application('xterm', 'XTerm', '1.0', 'LINUX', port=6766)
+    add_application('thunderbird', 'Thunderbird', '1.0', 'LINUX', port=6765)
 
     add_resource('fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare',
                  'token')
@@ -204,3 +214,6 @@ if (__name__ == '__main__'):
     add_transducer('srv_create_proc', 'Process Creation', 'SENSOR', True, '{}',
                    [])
     add_transducer('open_fd', 'File Open', 'SENSOR', True, '{}', [])
+
+    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, '{processes:[]}', [])
+    add_transducer('block_net', 'Block Network', 'ACTUATOR', False, '{}', [])

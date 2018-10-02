@@ -1,57 +1,147 @@
 
-How to spin up Amazon VM for a given ROLE(s)
+How to spin up VM for a given ROLE
 
 ## Prerequisites
 
-- Linux instance with ssh, python3, and py-yaml library
-	- `pip3 install pyyaml`
-	- Optional dependency: qemu-kvm (can use AWS instead) 
+- Linux instance with ssh and python3
 
-- You have access to aws cli to get docker login password
+- AWS Constructor dependency: pyyaml
+- Xen Constructor requires sudo permissions to mount and edit the image
+
+- Assembler dependencies:
+	- You have access to aws cli to get docker login password
 	- Follow this URL to configure aws cli interface: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 
-
-## Find Unity VM Image
+## Get Ubuntu 16.04 VM Image
 
 - Two options:
-	- Follow instruction in https://github.com/starlab-io/galahad/tree/build-unity/unity
-	- Download https://cloud-images.ubuntu.com/artful/current/artful-server-cloudimg-amd64.img
+	- AWS: Find recent Ubuntu 16.04 AMI
+	- Xen: Create a base Ubuntu 16.04 PVM image with the following command and take note of where disk.img is saved, usually `<dir>/domains/Unity/disk.img`:
+`sudo xen-create-image \
+    --hostname=Unity \
+    --dhcp \
+    --dir=<dir> \
+    --dist=xenial \
+    --vcpus=1 \
+    --memory=1024MB \
+    --genpass=0 \
+    --size=<size>GB`
 
-You will want to copy this file before the last step as the last step modifies the file in-place rather than creating a new one.
+## Construct the Unity
 
-## Get docker login password
+Unity construction is done with `Assembler.construct_unity(build_options, clean=False)`.
 
-Once you have aws cli configured, run `./get_docker_login_command.sh` and follow the on-screen prompts for the MFA token. Once complete the last output of that script will provide a `docker login ...` command. Store it in a bash variable or copy-paste it as an argument to the assemble.py. This readme will use `$DOCKER_LOGIN` in place of that command.
+`build_options` is a dict containing environment-specific construction arguments. Options are described later in the README.
 
-## Generate the image
+`clean` is a boolean determining whether the work directory is deleted after construction is done.
 
-`./assemble.py -h` will print a list of all options. 
-
-### Option 1: Running on QEMU
-If you have qemu-kvm installed, simply run
-
+While creating the Assembler object, `__init__` takes four optional arguments:
 ```
-./assemble.py --docker-login "$DOCKER_LOGIN" --start-vm <path_to_Unity_image> -r +3G virtue_container [virtue_container ...]
-```
-
-This will generate proper cloud-init config and start a qemu vm with that config. Once the cloud-init finishes, the SSH stages will run, and finally the machine will be shut-down and the assembly process will be complete. After this point `<path_to_Unity_image>` will contain an updated image that launches specified virtues on boot.
-
-### Option 2: Running on AWS
-
-To run the assembler on AWS instead of local QEMU build, run
-
-```
-./assemble.py --docker-login "$DOCKER_LOGIN" virtue_container [virtue_container ... ]
+es_node # The Elastic Search Node for storing logs. Defaults to 'https://172.30.128.129:9200'
+syslog_server # The IP address for the Syslog Server. Defaults to '172.30.128.131'
+rethinkdb_host # The IP address for RethinkDB. Defaults to '172.30.128.130'
+work_dir # The work directory
 ```
 
-This will first generated the cloud-init config file in `tmp/user-data` You can provide this file to AWS in order to configure an instance properly. The script will ask for SSH host and port and wait until the VM comes up. Once it is up, the SSH stages will run, and finally the machine will be shut-down and the assebly process will be complete. After this point your AWS will contain a stopped instance that launches specified virtues on boot.
+### Option 1: Constructing a Xen PVM disk image
 
-Here is an example of how to create a router-admin unity in the starlab-virtue AWS account:
+To run the constructor on a PVM image file, the running application will require root privelages so it can mount and modify the image. `build_options` must have 'env' set to 'xen' and include these keys:
 ```
-python3 assemble.py --docker-login "$DOCKER_LOGIN" --aws-security-group sg-0e125c01c684e7f6c --aws-subnet-id subnet-00664ce7230870c66 firefox terminal
+base_img
+output_dir
+```
+
+This will copy the `base_img` to `self.work_dir/disk.img` and mount it at `/tmp/img_mount`. Then, modified code from the ssh stages will run to write files to the image in-place. This process does not require a hypervisor to be installed, nor does it require access to AWS. The new modified image will be copied to `output_dir/disk.img` and can be launched as a Xen or Xenblanket PVM.
+
+Here is an example of how to create a unity from a base Ubuntu 16.04 image:
+```
+import os
+
+from assembler.assembler import Assembler
+
+build_opts = {
+    'env': 'xen',
+    'base_img': os.environ['HOME'] + '/galahad/assembler/base_ubuntu.img',
+    'output_dir': os.environ['HOME'] + '/galahad/assembler/output',
+}
+
+assembler = Assembler(work_dir='/tmp/work_dir')
+assembler.construct_unity(build_opts)
+```
+
+### Option 2: Constructing on AWS
+
+To run the constructor with AWS, `build_options` must have 'env' set to 'aws' and include these keys:
+```
+aws_image_id # The base 16.04 image mentioned above
+aws_instance_type
+aws_security_group
+aws_subnet_id
+aws_disk_size # Disk size in gigabytes
+create_ami
+```
+
+This will first generate the cloud-init config file in `keys-unity/user-data` The script will launch a VM based on `aws_image_id` in `build_options` and wait until it finishes launching. Once it is up, the SSH stages will run, and finally the machine will be shut-down and the construction process will be complete. After this point, your AWS will contain a stopped Unity instance with the type, security group, subnet ID, and disk size (In gigabytes) specified in `build_options`.
+
+An AMI of the Unity will be created if `create_ami` is set to True.
+
+Here is an example of how to create a unity in the starlab-virtue AWS account:
+```
+from assembler.assembler import Assembler
+
+build_opts = {
+    'env': 'aws',
+    'aws_image_id': 'ami-759bc50a',
+    'aws_instance_type': 't2.micro',
+    'aws_security_group': 'sg-00701349e8e18c5eb',
+    'aws_subnet_id': 'subnet-05034ec1f99d009b9',
+    'aws_disk_size': 8,
+    'create_ami': True
+}
+
+assembler = Assembler()
+assembler.construct_unity(build_opts)
 ```
 
 Office applications are very large and require a larger disk size and more RAM:
 ```
-python3 assemble.py --docker-login "$DOCKER_LOGIN" --aws-security-group sg-0e125c01c684e7f6c --aws-subnet-id subnet-00664ce7230870c66 --aws-instance-type t2.xlarge --aws-disk-size 12 office-word
+build_opts = {
+    'env': 'aws',
+    'aws_image_id': 'ami-759bc50a',
+    'aws_instance_type': 't2.xlarge',
+    'aws_security_group': 'sg-00701349e8e18c5eb',
+    'aws_subnet_id': 'subnet-05034ec1f99d009b9',
+    'aws_disk_size': 12,
+    'create_ami': True
+}
+```
+
+## Get docker login command
+
+Once you have aws cli configured, run `./get_docker_login_command.sh` and follow the on-screen prompts for the MFA token. If you don't have MFA enabled, press Enter without putting the token into the prompt. Once complete, the last output of that script will provide a `docker login ...` command. Store it in a bash variable or somewhere accessible from your script.
+
+## Assemble a role
+
+Currently, the only way to assemble a role is to launch a Unity VM and call `Assembler.assemble_running_vm(containers, docker_login, ssh_host, ssh_port='22')`.
+
+`containers` is a list of the docker containers to setup.
+
+`docker_login` is the string printed by `get_docker_login_command.sh`.
+
+`ssh_host` is the IP address of the running Unity.
+
+`ssh_port` is the port to use while ssh'ing into the Unity.
+
+This will ssh into the Unity with the key in `work_dir/id_rsa` and install all of the specified docker containers.
+
+Here is an example:
+```
+from assembler.assembler import Assembler
+
+docker_login = 'docker login very_long_string'
+
+assembler = Assembler(work_dir='/path/to/key/dir')
+assembler.assemble_running_vm(['firefox', 'xterm'],
+                              docker_login,
+                              '10.30.30.118')
 ```

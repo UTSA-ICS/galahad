@@ -3,8 +3,6 @@ import sys
 import json
 import requests
 
-from sso_login import sso_tool
-
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
@@ -13,6 +11,8 @@ from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.services.errorcodes import ErrorCodes
 from website.aws import AWS
+sys.path.insert(0, base_excalibur_dir + '/cli')
+from sso_login import sso_tool
 
 ##
 # Functionality of these API commands is tested by unit/test_user_api.py.
@@ -127,16 +127,6 @@ def test_virtue_get():
     assert response.json() == ErrorCodes.user['invalidId']['result']
 
 
-def test_virtue_create():
-
-    response = session.get(base_url + '/virtue/create')
-    assert response.json() == ErrorCodes.user['unspecifiedError']['result']
-
-    response = session.get(
-        base_url + '/virtue/create', params={'roleId': 'DoesNotExist'})
-    assert response.json() == ErrorCodes.user['invalidRoleId']['result']
-
-
 def test_virtue_launch():
 
     response = session.get(base_url + '/virtue/launch')
@@ -245,57 +235,6 @@ def test_virtue_stop():
         inst.del_obj('cid', 'TEST_VIRTUE_STOP', objectClass='OpenLDAPvirtue')
         instance.terminate()
 
-
-def test_virtue_destroy():
-
-    response = session.get(base_url + '/virtue/destroy')
-    assert response.json() == ErrorCodes.user['unspecifiedError']['result']
-
-    # Load aws_instance_info
-    # Spin up a 'Virtue'
-    aws = AWS()
-    instance = aws.instance_create(
-        image_id='ami-36a8754c',
-        inst_type='t2.small',
-        subnet_id=settings['subnet'],
-        key_name='starlab-virtue-te',
-        tag_key='Project',
-        tag_value='Virtue',
-        sec_group=settings['sec_group'],
-        inst_profile_name='',
-        inst_profile_arn=''
-    )
-    instance.stop()
-    instance.wait_until_stopped()
-
-    try:
-        # Populate it in LDAP
-        virtue = {
-            'id': 'TEST_VIRTUE_DESTROY',
-            'username': 'jmitchell',
-            'roleId': 'TBD',
-            'applicationIds': [],
-            'resourceIds': [],
-            'transducerIds': [],
-            'awsInstanceId': instance.id
-        }
-        ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-        inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
-
-        # virtue_destroy() it
-        response = session.get(base_url + '/virtue/destroy',
-                               params={'virtueId': 'TEST_VIRTUE_DESTROY'})
-        assert response.text == json.dumps(ErrorCodes.user['success'])
-
-        instance.reload()
-        assert (instance.state['Name'] == 'terminated'
-                or instance.state['Name'] == 'shutting-down')
-
-    except:
-        raise
-    finally:
-        inst.del_obj('cid', 'TEST_VIRTUE_DESTROY', objectClass='OpenLDAPvirtue')
-        instance.terminate()
 
 def test_virtue_application_launch():
 

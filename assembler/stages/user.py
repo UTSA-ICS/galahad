@@ -1,6 +1,6 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from stages.core.ci_stage import CIStage
+from assembler.stages.core.ci_stage import CIStage
 
 import subprocess, os
 
@@ -11,7 +11,7 @@ class UserStage(CIStage):
 
     def run(self):
         if not self._has_run:
-            super().run()
+            super(UserStage, self).run()
             key_file = os.path.join(self._work_dir, 'id_rsa')
             try:
                 subprocess.check_call(['ssh-keygen', '-N', '', '-f', key_file])
@@ -21,5 +21,6 @@ class UserStage(CIStage):
             with open('%s.pub' % (key_file), 'r') as f:
                 key = f.read()
             self._ci.add_user('virtue', ssh_authorized_keys=key)
-            self._ci.add_user('merlin', ssh_authorized_keys=key, groups='virtue', sudo=None)
+            self._ci.add_user('merlin', ssh_authorized_keys=key, groups='camelot', sudo=None)
+            self._ci.add_group('camelot', ['root', 'merlin'])
             self._ci.save(self._work_dir)
