@@ -29,19 +29,10 @@ echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
 #
 # Configure scripts using information from rethinkDB
 #
-if [ -f virtue-galahad.cfg ]; then
-	rm virtue-galahad.cfg
-fi
-if [ -f domus.cfg ]; then
-	rm domus.cfg
-fi
-if [ -f me.cfg ]; then
-	rm me.cfg
-fi
 python generate_config.py
 
 #
-# Setup and configure a openvswitch bridge - hello-br0
+# Create and configure a openvswitch bridge - hello-br0
 #
 ovs-vsctl add-br hello-br0
 while read line; do
@@ -50,12 +41,6 @@ while read line; do
 	port="vxlan"${array[3]}
 	ovs-vsctl add-port hello-br0 $port -- set interface $port type=vxlan options:remote_ip=$line
 done < virtue-galahad.cfg
-
-#
-# Add routing for hello-br0 device and bring it up
-#
-ip address add "$(cat me.cfg)/24" dev hello-br0
-ifconfig hello-br0 up
 
 #
 # Append entry in fstab for xen file system
@@ -71,32 +56,41 @@ cp docs/xl.conf /etc/xen/xl.conf
 systemctl restart xencommons
 
 #
-# Configure ssh keys - TODO - configure dynamic keys
-# Currently these keys do not exist
-#
-#cp docs/id_rsa /root/.ssh/
-#cp docs/id_rsa.pub /root/.ssh/
-#cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-
-#
 # Configure tty
 #
 cp docs/hvc0.conf /etc/init/
 rm -f /etc/init/ttyS0.conf
 
 #
-# Setup and configure bridge br0 with interface eth0
+# Disable cloud init networking which sets eth0 to defult settings.
 #
 echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 rm -f /etc/network/interfaces.d/50-cloud-init.cfg
+
+#
+# Setup and configure bridge br0 with interface eth0
+#
 echo "" >> /etc/network/interfaces
-echo "# Bridge for eth0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Bridge br0 for eth0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
 echo "auto br0" >> /etc/network/interfaces
 echo "iface br0 inet dhcp" >> /etc/network/interfaces
 echo "  bridge_ports br0 eth0" >> /etc/network/interfaces
 echo "  bridge_stp off" >> /etc/network/interfaces
 echo "  bridge_fd 0" >> /etc/network/interfaces
 echo "  bridge_maxwait 0" >> /etc/network/interfaces
+
+#
+# Configure bridge hello-br0
+#
+echo "" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "auto hello-br0" >> /etc/network/interfaces
+echo "iface hello-br0 inet static" >> /etc/network/interfaces
+echo "  address \"$(cat me.cfg)/24\"" >> /etc/network/interfaces
 
 #
 # Set the IP Tables rules
@@ -109,16 +103,19 @@ DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 #
 # Update rc.local for hello-br0 routing and system commands
 #
-sed -i '/exit 0/i \
-#\
-# Add routing for hello-br0 device and bring it up\
-#\
-ip address add \"$(cat /home/ubuntu/config/me.cfg)/24\" dev hello-br0\
-ifconfig hello-br0 up\
+sed -i '/^exit 0/i \
 \
 #\
 # Add ip_gre module and start xencommons service\
 #\
 modprobe ip_gre\
-systemctl start xencommons\
+systemctl restart xencommons\
 ' /etc/rc.local
+
+#
+# Configure ssh keys - TODO - configure dynamic keys
+# Currently these keys do not exist
+#
+#cp docs/id_rsa /root/.ssh/
+#cp docs/id_rsa.pub /root/.ssh/
+#cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
