@@ -1,3 +1,5 @@
+gaius/Rethink.py
+gaius/Virtue.py
 gaius/__init__.py
 gaius.egg-info/PKG-INFO
 gaius.egg-info/SOURCES.txt
