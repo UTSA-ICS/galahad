@@ -90,7 +90,7 @@ echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
 echo "#" >> /etc/network/interfaces
 echo "auto hello-br0" >> /etc/network/interfaces
 echo "iface hello-br0 inet static" >> /etc/network/interfaces
-echo "  address \"$(cat me.cfg)/24\"" >> /etc/network/interfaces
+echo "  address $(cat me.cfg)/24" >> /etc/network/interfaces
 
 #
 # Set the IP Tables rules
