@@ -110,8 +110,9 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        add_efs_mount_point_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
-                                      '/etc/fstab"'.format(efs_mount)
+        add_efs_mount_point_command = \
+            'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
+            '/etc/fstab"'.format(efs_mount)
 
         mount_efs_command = 'sudo mount -a'
 
