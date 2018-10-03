@@ -110,11 +110,16 @@ class Valor:
 
         make_efs_mount_command = 'sudo mkdir /mnt/efs'
 
-        mount_efs_command = 'sudo su - root -c "echo \"{}:/ /mnt/efs nfs defaults 0 0\" >> /etc/fstab"'.format(
-            efs_mount)
+        add_efs_mount_point_command = 'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
+                                      '/etc/fstab"'.format(efs_mount)
+
+        mount_efs_command = 'sudo mount -a'
 
         stdout = self.client.ssh(make_efs_mount_command, output=True)
-        print('[!] Valor.mount_efs : stdout : ' + stdout)
+        print('[!] Valor.make_efs_dir : stdout : ' + stdout)
+
+        stdout = self.client.ssh(add_efs_mount_point_command, output=True)
+        print('[!] Valor.add_efs_mount : stdout : ' + stdout)
 
         stdout = self.client.ssh(mount_efs_command, output=True)
         print('[!] Valor.mount_efs : stdout : ' + stdout)
@@ -145,10 +150,10 @@ class Valor:
         self.mount_efs()
 
         copy_config_directory_command = \
-            'sudo cp -r /mnt/efs/deploy/compute/config /home/ubuntu/'
+            'sudo cp -r /mnt/efs/deploy/compute /home/ubuntu/'
 
         cd_and_execute_setup_command = \
-            'cd /home/ubuntu/config && sudo /bin/bash setup.sh'
+            'cd /home/ubuntu/compute && sudo /bin/bash setup.sh'
 
         reboot_node_command = \
             'sudo reboot'
@@ -161,9 +166,15 @@ class Valor:
             cd_and_execute_setup_command, output=True)
         print('[!] execute_setup : stdout : ' + stdout)
 
-        stdout = self.client.ssh(
-            reboot_node_command, output=True)
-        print('[!] reboot_node : stdout : ' + stdout)
+        try:
+            stdout = self.client.ssh(
+                reboot_node_command, output=True)
+            print('[!] reboot_node : stdout : ' + stdout)
+        except:
+            # TODO
+            # Currently issueing reboot command causes immediate disconnect and ssh_too throws an error due to that.
+            # Ignore the error for now
+            pass
 
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH after Reboot'.format(
@@ -171,15 +182,19 @@ class Valor:
             raise
 
 
-    def is_correctly_setup(self):
+    def verify_setup(self):
 
-        cd_and_execute_verification_command = \
-            'cd /home/ubuntu/config && ' \
-            + 'sudo /bin/bash test_that_valor_is_correctly_setup.sh'
+        # Verify the Valor Setup
 
-        stdout = self.client.ssh(
-            cd_and_execute_verification_command, output=True)
-        print('[!] verify_setup : stdout : ' + stdout)
+        # Verify that Xen xl command works
+        execute_xl_list_command = \
+            'sudo xl list'
+        stdout = self.client.ssh(execute_xl_list_command, output=True)
+        print('[!] verify_Xen : stdout : ' + stdout)
+
+        # Verify connectivity to rethinkDB
+        # Verify EFS mount point exists and is accessible
+        # Verify  that gaius service is up and running
 
 
 class ValorManager:
@@ -246,7 +261,7 @@ class ValorManager:
 
         valor.setup()
 
-        valor.is_correctly_setup()
+        valor.verify_setup()
 
         return instance.id
 

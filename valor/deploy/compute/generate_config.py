@@ -20,7 +20,3 @@ with open('virtue-galahad.cfg', 'a') as config:
     cursor = r.db('transducers').table('galahad').filter(r.row["function"] == "router").run()
     addr = cursor.next()['address']
     config.write(addr + '\n')
-
-with open('domus.cfg', 'a') as config:
-    cursor = r.db('transducers').table('galahad').filter(
-        (r.row["function"] == "router") & (r.row["address"] == ip)).run()

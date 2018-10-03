@@ -50,15 +50,15 @@ echo "none /proc/xen xenfs defaults 0 0" >> /etc/fstab
 #
 # Configure XEN system files
 #
-cp docs/vif-bridge /etc/xen/scripts/vif-bridge
-cp docs/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
-cp docs/xl.conf /etc/xen/xl.conf
+cp config/vif-bridge /etc/xen/scripts/vif-bridge
+cp config/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
+cp config/xl.conf /etc/xen/xl.conf
 systemctl restart xencommons
 
 #
 # Configure tty
 #
-cp docs/hvc0.conf /etc/init/
+cp config/hvc0.conf /etc/init/
 rm -f /etc/init/ttyS0.conf
 
 #
@@ -90,7 +90,7 @@ echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
 echo "#" >> /etc/network/interfaces
 echo "auto hello-br0" >> /etc/network/interfaces
 echo "iface hello-br0 inet static" >> /etc/network/interfaces
-echo "  address \"$(cat me.cfg)/24\"" >> /etc/network/interfaces
+echo "  address $(cat me.cfg)/24" >> /etc/network/interfaces
 
 #
 # Set the IP Tables rules
@@ -101,7 +101,7 @@ iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 
 #
-# Update rc.local for hello-br0 routing and system commands
+# Update rc.local for system commands
 #
 sed -i '/^exit 0/i \
 \
