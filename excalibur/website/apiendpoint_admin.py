@@ -143,8 +143,7 @@ class EndPoint_Admin():
         use_ssh=True,
         hard_code_path='images/unities/8GB.img'):
 
-        # TODO: Copy the unity image and assemble on a running VM
-        # Then, do not create a standby virtue
+        # TODO: Assemble on a running VM
 
         try:
             role_keys = [
@@ -381,7 +380,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     # Create a virtue for the specified role, but do not launch it yet
-    def virtue_create(self, username, roleId, use_aws=True):
+    def virtue_create(self, username, roleId, use_nfs=True):
 
         try:
             user = None
@@ -438,7 +437,22 @@ class EndPoint_Admin():
 
             thr = CreateVirtueThread(self.inst.email, self.inst.password,
                                      role['id'], username, virtue_id, role=role)
-            thr.start()
+
+            if (use_nfs):
+                thr.start()
+            else:
+                virtue = {
+                    'id': virtue_id,
+                    'username': username,
+                    'roleId': roleId,
+                    'applicationIds': [],
+                    'resourceIds': role['startingResourceIds'],
+                    'transducerIds': role['startingTransducerIds'],
+                    'state': 'STOPPED',
+                    'ipAddress': 'NULL'
+                }
+                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+                self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
 
             # Return the whole thing
             # return json.dumps( virtue )
@@ -470,8 +484,10 @@ class EndPoint_Admin():
 
             try:
                 if (use_nfs):
-                    os.remove('/mnt/efs/images/provisioned_virtues/' +
-                              virtue['id'] + '.img')
+                    subprocess.check_call(
+                        ['sudo', 'rm',
+                         '/mnt/efs/images/provisioned_virtues/' +
+                         virtue['id'] + '.img'])
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
             except:
                 print('Error while deleting {0}:\n{1}'.format(

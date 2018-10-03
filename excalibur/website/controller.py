@@ -153,7 +153,9 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
-            subprocess.check_call(['sudo', 'python', 'call_provisioner.py',
+            subprocess.check_call(['sudo', 'python',
+                                   os.environ['HOME'] + '/galahad/excalibur/' + \
+                                   'call_provisioner.py',
                                    '-i', virtue['id'],
                                    '-b', '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
@@ -190,18 +192,19 @@ class AssembleRoleThread(threading.Thread):
         self.inst.get_ldap_connection()
         self.inst.conn.simple_bind_s(dn, 'Test123!')
 
-        role['state'] = 'CREATING'
         self.role = role
-
-        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
-        ret = self.inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
-
-        assert ret == 0
 
         self.base_img_path = base_img_path
         self.use_ssh = use_ssh
 
     def run(self):
+
+        self.role['state'] = 'CREATING'
+
+        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+        ret = self.inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
+
+        assert ret == 0
 
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
 
@@ -243,10 +246,19 @@ class AssembleRoleThread(threading.Thread):
                 #                              docker_cmd,
                 #                              ssh_host)
 
+            self.role['state'] = 'CREATED'
+            ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+            ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
+                                       objectClass='OpenLDAProle',
+                                       throw_error=True)
+
+            assert ret == 0
+
         except:
             print('Error while assembling role {0}:\n{1}'.format(
                 self.role['id'],
                 traceback.format_exc()))
+
             self.role['state'] = 'FAILED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
             ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
@@ -255,10 +267,3 @@ class AssembleRoleThread(threading.Thread):
         finally:
             #valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
             pass
-
-        self.role['state'] = 'CREATED'
-        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
-        ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
-                                   objectClass='OpenLDAProle', throw_error=True)
-
-        assert ret == 0

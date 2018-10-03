@@ -89,7 +89,6 @@ class EndPoint():
                         break
 
                 role['ipAddress'] = virtue_ip
-                del role['amiId']
 
                 return json.dumps(role)
 
@@ -128,7 +127,6 @@ class EndPoint():
                         break
 
                 role['ipAddress'] = virtue_ip
-                del role['amiId']
 
                 roles.append(role)
 
@@ -179,7 +177,7 @@ class EndPoint():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Launch the specified virtue, which must have already been created
-    def virtue_launch(self, username, virtueId, use_rethink=True):
+    def virtue_launch(self, username, virtueId, use_valor=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -197,21 +195,22 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeLaunched'])
 
-            valor_manager = ValorManager()
-            rdb_manager = RethinkDbManager()
+            if (use_valor):
+                valor_manager = ValorManager()
+                rdb_manager = RethinkDbManager()
 
-            # Find empty valor
-            valor = valor_manager.get_empty_valor()
+                # Find empty valor
+                valor = valor_manager.get_empty_valor()
 
-            # Add virtue to rethink
-            try:
-                virtue['ipAddress'] = rdb_manager.add_virtue(
-                    valor['address'],
-                    virtue['id'],
-                    'images/provisioned_virtues/' + virtue['id'] + '.img')
+                # Add virtue to rethink
+                try:
+                    virtue['ipAddress'] = rdb_manager.add_virtue(
+                        valor['address'],
+                        virtue['id'],
+                        'images/provisioned_virtues/' + virtue['id'] + '.img')
 
-            except AssertionError:
-                return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
+                except AssertionError:
+                    return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
 
             # Set state to launching
             virtue['state'] = 'LAUNCHING'
@@ -226,7 +225,9 @@ class EndPoint():
             # TODO: Remove this variable before merging into master
             see_no_evil = False
 
-            if see_no_evil:
+            if not use_valor:
+                virtue['state'] = 'RUNNING'
+            elif see_no_evil:
                 virtue['state'] = 'RUNNING (Unverified)'
             else:
 
@@ -280,7 +281,7 @@ class EndPoint():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Stop the specified virtue, but do not destroy it
-    def virtue_stop(self, username, virtueId, use_rethink=True):
+    def virtue_stop(self, username, virtueId, use_valor=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -297,10 +298,10 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeStopped'])
 
-            rdb_manager = RethinkDbManager()
-
             try:
-                rdb_manager.remove_virtue(virtue['id'])
+                if (use_valor):
+                    rdb_manager = RethinkDbManager()
+                    rdb_manager.remove_virtue(virtue['id'])
             except AssertionError:
                 return json.dumps(ErrorCodes.user['serverStopError'])
             else:
