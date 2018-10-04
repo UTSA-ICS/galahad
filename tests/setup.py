@@ -719,7 +719,8 @@ def parse_args():
     parser.add_argument(
         "--aws_config",
         type=str,
-        required=True,
+        required=False,
+        default='setup/aws_config',
         help="AWS config to be used to communicate with AWS")
     parser.add_argument(
         "--aws_keys",

@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import subprocess
 import requests
 
 file_path = os.path.realpath(__file__)
@@ -10,7 +11,7 @@ sys.path.insert(0, base_excalibur_dir)
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.services.errorcodes import ErrorCodes
-from website.aws import AWS
+from website.valor import RethinkDbManager
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
@@ -66,6 +67,10 @@ def setup_module():
     session.verify = settings['verify']
 
     base_url = 'https://{0}/virtue/user'.format(ip)
+
+    subprocess.call(['sudo', 'mkdir', '/mnt/efs/images/tests'])
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
+                           '/mnt/efs/images/tests/8GB.img'])
 
 
 def test_application_get():
@@ -132,26 +137,15 @@ def test_virtue_launch():
     response = session.get(base_url + '/virtue/launch')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
-    # Load aws_instance_info
-    # Spin up a 'Virtue'
-    aws = AWS()
-    instance = aws.instance_create(
-        image_id='ami-36a8754c',
-        inst_type='t2.small',
-        subnet_id=settings['subnet'],
-        key_name='starlab-virtue-te',
-        tag_key='Project',
-        tag_value='Virtue',
-        sec_group=settings['sec_group'],
-        inst_profile_name='',
-        inst_profile_arn=''
-    )
-    instance.stop()
-    instance.wait_until_stopped()
+    rethink_manager = RethinkDbManager()
 
     try:
-        print(instance.private_ip_address)
-        # Populate it in LDAP
+
+        # 'Create' a Virtue
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                                'TEST_VIRTUE_LAUNCH.img')])
+
         virtue = {
             'id': 'TEST_VIRTUE_LAUNCH',
             'username': 'jmitchell',
@@ -159,7 +153,8 @@ def test_virtue_launch():
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
-            'awsInstanceId': instance.id
+            'state': 'STOPPED',
+            'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
@@ -169,8 +164,16 @@ def test_virtue_launch():
                                params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['success'])
 
-        instance.reload()
-        assert instance.state['Name'] == 'running'
+        real_virtue = inst.get_obj(
+            'cid',
+            'TEST_VIRTUE_LAUNCH',
+            objectClass='OpenLDAPvirtue',
+            throw_error=True)
+        ldap_tools.parse_ldap(real_virtue)
+
+        assert real_virtue['state'] == 'RUNNING'
+
+        assert type(rethink_manager.get_virtue('TEST_VIRTUE_LAUNCH')) == dict
 
         response = session.get(base_url + '/virtue/launch',
                                params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
@@ -180,7 +183,11 @@ def test_virtue_launch():
         raise
     finally:
         inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        instance.terminate()
+        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
+        subprocess.check_call(['sudo', 'mv',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                                'TEST_VIRTUE_LAUNCH.img'),
+                               '/mnt/efs/images/tests/8GB.img'])
 
 
 def test_virtue_stop():
@@ -188,23 +195,15 @@ def test_virtue_stop():
     response = session.get(base_url + '/virtue/stop')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
-    # Load aws_instance_info
-    # Spin up a 'Virtue'
-    aws = AWS()
-    instance = aws.instance_create(
-        image_id='ami-36a8754c',
-        inst_type='t2.small',
-        subnet_id=settings['subnet'],
-        key_name='starlab-virtue-te',
-        tag_key='Project',
-        tag_value='Virtue',
-        sec_group=settings['sec_group'],
-        inst_profile_name='',
-        inst_profile_arn=''
-    )
+    rethink_manager = RethinkDbManager()
 
     try:
-        # Populate it in LDAP
+
+        # 'Create' a Virtue
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                                'TEST_VIRTUE_STOP.img')])
+
         virtue = {
             'id': 'TEST_VIRTUE_STOP',
             'username': 'jmitchell',
@@ -212,18 +211,31 @@ def test_virtue_stop():
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
-            'awsInstanceId': instance.id
+            'state': 'RUNNING',
+            'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+
+        rethink_manager.add_virtue('NULL', 'TEST_VIRTUE_STOP',
+                                   ('images/provisioned_virtues/'
+                                    'TEST_VIRTUE_STOP.img'))
 
         # virtue_stop() it
         response = session.get(base_url + '/virtue/stop',
                                params={'virtueId': 'TEST_VIRTUE_STOP'})
         assert response.text == json.dumps(ErrorCodes.user['success'])
 
-        instance.reload()
-        assert instance.state['Name'] == 'stopped'
+        real_virtue = inst.get_obj(
+            'cid',
+            'TEST_VIRTUE_STOP',
+            objectClass='OpenLDAPvirtue',
+            throw_error=True)
+        ldap_tools.parse_ldap(real_virtue)
+
+        assert real_virtue['state'] == 'STOPPED'
+
+        assert rethink_manager.get_virtue('TEST_VIRTUE_STOP') == []
 
         response = session.get(base_url + '/virtue/stop',
                                params={'virtueId': 'TEST_VIRTUE_STOP'})
@@ -233,7 +245,10 @@ def test_virtue_stop():
         raise
     finally:
         inst.del_obj('cid', 'TEST_VIRTUE_STOP', objectClass='OpenLDAPvirtue')
-        instance.terminate()
+        subprocess.check_call(['sudo', 'mv',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                                'TEST_VIRTUE_STOP.img'),
+                               '/mnt/efs/images/tests/8GB.img'])
 
 
 def test_virtue_application_launch():

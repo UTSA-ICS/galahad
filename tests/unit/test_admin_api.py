@@ -3,6 +3,8 @@
 import json
 import os
 import sys
+import time
+import subprocess
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -19,6 +21,7 @@ def setup_module():
     global inst
     global ep
     global test_role_id
+    global test_virtue_id
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -35,24 +38,10 @@ def setup_module():
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
-        'amiId': 'NULL'
-    }
-
-    virtue = {
-        'id': 'admintestvirtue0',
-        'username': 'NULL',
-        'roleId': 'admintestrole0',
-        'applicationIds': [],
-        'resourceIds': [],
-        'transducerIds': [],
-        'awsInstanceId': 'NULL'
     }
 
     ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
     inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
-
-    ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-    inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
 
     user = inst.get_obj(
         'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
@@ -70,6 +59,7 @@ def setup_module():
 
     # set to satisfy pytest when listing tests
     test_role_id = None
+    test_virtue_id = None
 
 def teardown_module():
 
@@ -79,9 +69,36 @@ def teardown_module():
     inst.del_obj(
         'cid', 'admintestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True)
 
+    if os.path.exists(('/mnt/efs/images/non_provisioned_virtues/'
+                       'admintestrole0.img')):
+        subprocess.check_call(['sudo', 'rm',
+                               ('/mnt/efs/images/non_provisioned_virtues/'
+                                'admintestrole0.img')])
+
+    if os.path.exists(('/mnt/efs/images/provisioned_virtues/'
+                       'admintestvirtue0.img')):
+        subprocess.check_call(['sudo', 'rm',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                                'admintestvirtue0.img')])
+
     if test_role_id is not None:
-        inst.del_obj(
-            'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True)
+        inst.del_obj('cid', test_role_id,
+                     objectClass='OpenLDAProle', throw_error=True)
+        if os.path.exists(('/mnt/efs/images/non_provisioned_virtues/'
+                           '{0}.img').format(test_role_id)):
+            subprocess.check_call(['sudo', 'rm',
+                                   ('/mnt/efs/images/non_provisioned_virtues/'
+                                    '{0}.img').format(test_role_id)])
+
+    if test_virtue_id is not None:
+        inst.del_obj('cid', test_virtue_id,
+                     objectClass='OpenLDAPvirtue', throw_error=True)
+        if os.path.exists(('/mnt/efs/images/provisioned_virtues/'
+                           '{0}.img').format(test_virtue_id)):
+            subprocess.check_call(['sudo', 'rm',
+                                   ('/mnt/efs/images/provisioned_virtues/'
+                                    '{0}.img').format(test_virtue_id)])
+
 
     user = inst.get_obj(
         'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
@@ -95,19 +112,6 @@ def teardown_module():
         ldap_user,
         objectClass='OpenLDAPuser',
         throw_error=True)
-
-    if test_role_id is not None:
-        virtue = inst.get_obj(
-            'croleId',
-            test_role_id,
-            objectClass='OpenLDAPvirtue',
-            throw_error=True)
-
-        assert inst.del_obj(
-            'cid',
-            virtue['cid'][0],
-            objectClass='OpenLDAPvirtue',
-            throw_error=True) == 0
 
 
 def test_application_calls():
@@ -202,22 +206,22 @@ def test_role_calls():
     }
 
     assert json.dumps(ErrorCodes.admin['invalidFormat']) == ep.role_create(
-        bad_role_1, use_aws=False)
+        bad_role_1, use_ssh=False)
     assert json.dumps(ErrorCodes.admin['invalidFormat']) == ep.role_create(
-        bad_role_2, use_aws=False)
+        bad_role_2, use_ssh=False)
 
     assert json.dumps(
         ErrorCodes.admin['invalidApplicationId']) == ep.role_create(
-            bad_role_3, use_aws=False)
+            bad_role_3, use_ssh=False)
 
     assert json.dumps(ErrorCodes.admin['invalidResourceId']) == ep.role_create(
-        bad_role_4, use_aws=False)
+        bad_role_4, use_ssh=False)
 
     assert json.dumps(
         ErrorCodes.admin['invalidTransducerId']) == ep.role_create(
-            bad_role_5, use_aws=False)
+            bad_role_5, use_ssh=False)
 
-    result_role_json = ep.role_create(good_role, use_aws=False)
+    result_role_json = ep.role_create(good_role, use_ssh=False)
 
     result_role = json.loads(result_role_json)
 
@@ -226,11 +230,25 @@ def test_role_calls():
     assert result_role == {'id': result_role['id'], 'name': good_role['name']}
 
     good_role['id'] = result_role['id']
+    good_role['state'] = 'CREATING'
 
-    ldap_role = inst.get_obj('cid', result_role['id'])
-    ldap_tools.parse_ldap( ldap_role )
-    del ldap_role['amiId']
+    time.sleep(1)
+
+    ldap_role = inst.get_obj('cid', result_role['id'],
+                             objectClass='OpenLDAProle')
+    assert ldap_role != ()
+    ldap_tools.parse_ldap(ldap_role)
     assert ldap_role == good_role
+
+    # TODO: Make sure loops like these don't continue forever.
+    while (ldap_role['state'] == 'CREATING'):
+        time.sleep(5)
+        ldap_role = inst.get_obj('cid', result_role['id'])
+        ldap_tools.parse_ldap(ldap_role)
+
+    assert ldap_role['state'] == 'CREATED'
+    assert os.path.exists(('/mnt/efs/images/non_provisioned_virtues/'
+                           '{0}.img').format(result_role['id']))
 
     # This will be used in teardown_module()
     global test_role_id
@@ -241,9 +259,6 @@ def test_role_calls():
 
     ldap_role_list = inst.get_objs_of_type('OpenLDAProle')
     real_role_list = ldap_tools.parse_ldap_list(ldap_role_list)
-
-    for role in real_role_list:
-        del role['amiId']
 
     assert role_list == json.dumps(real_role_list)
 
@@ -256,7 +271,6 @@ def test_role_calls():
         ErrorCodes.admin['invalidRoleId']) == ep.user_role_authorize(
             'jmitchell', 'DoesNotExist')
 
-    # user_role_authorize only returns when there's an error
     assert ep.user_role_authorize('jmitchell', test_role_id) == json.dumps(
         ErrorCodes.admin['success'])
 
@@ -283,7 +297,6 @@ def test_role_calls():
 
     # Todo: Check return when user is using a virtue
 
-    # user_role_unauthorize only returns when there's an error
     assert ep.user_role_unauthorize('jmitchell', test_role_id) == json.dumps(
         ErrorCodes.admin['success'])
 
@@ -342,53 +355,87 @@ def test_user_calls():
 
     for v in parsed_virtue_list:
         if (v['username'] == 'jmitchell'):
-            del v['awsInstanceId']
-            v['state'] = 'NULL'
-            v['ipAddress'] = 'NULL'
             real_virtue_list.append(v)
 
     assert json.loads(virtue_list) == real_virtue_list
 
 def test_virtue_create():
 
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
+                           ('/mnt/efs/images/non_provisioned_virtues/'
+                            'admintestrole0.img')])
+
     assert json.dumps(ErrorCodes.admin['invalidUsername']) == ep.virtue_create(
-        'DoesNotExist', 'admintestrole0', use_aws=False)
+        'DoesNotExist', 'admintestrole0')
 
     assert json.dumps(ErrorCodes.admin['invalidRoleId']) == ep.virtue_create(
-        'jmitchell', 'DoesNotExist', use_aws=False)
+        'jmitchell', 'DoesNotExist')
 
     assert json.dumps(
         ErrorCodes.admin['userNotAlreadyAuthorized']) == ep.virtue_create(
-            'jmitchell', 'emptyrole', use_aws=False)
+            'jmitchell', 'emptyrole')
 
-    result = json.loads(
-        ep.virtue_create('jmitchell', 'admintestrole0', use_aws=False))
+    result = json.loads(ep.virtue_create('jmitchell', 'admintestrole0'))
 
-    real_virtue = inst.get_obj(
+    assert set(result.keys()) == set(['id', 'ipAddress'])
+
+    global test_virtue_id
+    test_virtue_id = result['id']
+
+    time.sleep(1)
+
+    ldap_virtue = inst.get_obj(
         'cid',
-        'admintestvirtue0',
+        result['id'],
         objectClass='OpenLDAPvirtue',
         throw_error=True)
-    ldap_tools.parse_ldap(real_virtue)
+    ldap_tools.parse_ldap(ldap_virtue)
 
-    assert result == {
-        'id': 'admintestvirtue0',
-        'ipAddress': 'NULL'
-    }
+    assert ldap_virtue['username'] == 'jmitchell'
+    assert ldap_virtue['state'] == 'CREATING'
 
-    assert real_virtue['username'] == 'jmitchell'
+    # TODO: Make sure loops like these don't continue forever.
+    while (ldap_virtue['state'] == 'CREATING'):
+        time.sleep(5)
+        ldap_virtue = inst.get_obj('cid', result['id'])
+        ldap_tools.parse_ldap(ldap_virtue)
+
+    assert ldap_virtue['state'] == 'STOPPED'
+    assert os.path.exists(('/mnt/efs/images/provisioned_virtues/'
+                           '{0}.img').format(result['id']))
 
     assert json.dumps(
         ErrorCodes.user['virtueAlreadyExistsForRole']) == ep.virtue_create(
-            'jmitchell', 'admintestrole0', use_aws=False)
+            'jmitchell', 'admintestrole0')
+
+    inst.del_obj('cid', result['id'], objectClass='OpenLDAPvirtue',
+                 throw_error=True)
 
 def test_virtue_destroy():
+    
+    virtue = {
+        'id': 'admintestvirtue0',
+        'username': 'NULL',
+        'roleId': 'admintestrole0',
+        'applicationIds': [],
+        'resourceIds': [],
+        'transducerIds': [],
+        'state': 'STOPPED',
+        'ipAddress': 'NULL'
+    }
+
+    ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+    inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+
+    img_path = '/mnt/efs/images/provisioned_virtues/admintestvirtue0.img'
+
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
+                           img_path])
 
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_destroy(
-        'DoesNotExist', use_aws=False)
+        'DoesNotExist')
 
-    assert ep.virtue_destroy(
-        'admintestvirtue0', use_aws=False) == json.dumps(
+    assert ep.virtue_destroy('admintestvirtue0') == json.dumps(
             ErrorCodes.user['success'])
 
     real_virtue = inst.get_obj(
@@ -398,3 +445,5 @@ def test_virtue_destroy():
         throw_error=True)
 
     assert real_virtue == ()
+
+    assert not os.path.exists(img_path)
