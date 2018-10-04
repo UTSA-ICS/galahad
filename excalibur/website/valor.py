@@ -190,8 +190,15 @@ class Valor:
         # Verify that Xen xl command works
         execute_xl_list_command = \
             'sudo xl list'
-        stdout = self.client.ssh(execute_xl_list_command, output=True)
-        print('[!] verify_Xen : stdout : ' + stdout)
+
+        try:
+            stdout = self.client.ssh(execute_xl_list_command, output=True)
+            print('[!] verify_Xen : stdout : ' + stdout)
+
+        except Exception as error:
+
+            print(error)
+            print('need to wait to reboot before verifying')
 
         # Verify connectivity to rethinkDB
         # Verify EFS mount point exists and is accessible
@@ -262,7 +269,7 @@ class ValorManager:
 
         valor.setup()
 
-        valor.verify_setup()
+        # valor.verify_setup()
 
         return instance.id
 
@@ -299,12 +306,17 @@ class RethinkDbManager:
     domain_name = 'rethinkdb.galahad.com'
 
     def __init__(self):
-        self.connection = rethinkdb.connect(
-            host = self.domain_name,
-            port = 28015,
-            ssl = {
-                'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
-            }).repl()
+
+        try:
+            self.connection = rethinkdb.connect(
+                host = self.domain_name,
+                port = 28015,
+                ssl = {
+                    'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
+                }).repl()
+
+        except Exception as error:
+            print(error)
 
 
     def list_valors(self):
