@@ -5,7 +5,7 @@ set -eu
 GUESTNET_IP = "10.91.0.254"
 
 #
-# Call the base setuo script
+# Call the base setup script
 #
 /bin/bash ../base_setup.sh "${GUESTNET_IP}"
 

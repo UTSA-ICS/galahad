@@ -5,7 +5,7 @@ GUESTNET_IP="${1}"
 ROUTER_IP="${2}"
 
 #
-# Call the base setuo script
+# Call the base setup script
 #
 /bin/bash ../base_setup.sh "${GUESTNET_IP}"
 
