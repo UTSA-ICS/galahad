@@ -1,6 +1,6 @@
 [Unit]
 Description=Gaius Service
-After=network.target
+After=network.target mnt-efs.mount
 
 [Service]
 User=root
