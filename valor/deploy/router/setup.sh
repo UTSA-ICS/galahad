@@ -2,7 +2,7 @@
 
 set -eu
 
-GUESTNET_IP = "10.91.0.254"
+GUESTNET_IP="10.91.0.254"
 
 #
 # Call the base setup script
