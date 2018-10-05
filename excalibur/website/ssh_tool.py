@@ -45,8 +45,12 @@ class ssh_tool():
             except subprocess.CalledProcessError as e:
                 ret = e.returncode
                 print e
+                print stdout
         else:
             ret = subprocess.call(call_list)
+
+        if ret != 0:
+            print stdout
 
         # By default, it is not ok to fail
         if (test):

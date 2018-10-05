@@ -6,7 +6,7 @@ import rethinkdb
 from aws import AWS
 from boto.utils import get_instance_metadata
 from ssh_tool import ssh_tool
-
+import time
 
 class ValorAPI:
 
@@ -44,14 +44,13 @@ class ValorAPI:
 
 class Valor:
 
-    aws_instance = None
-    guestnet = None
-
     def __init__(self, valor_id):
 
         self.ec2 = boto3.resource('ec2')
         self.aws_instance = self.ec2.Instance(valor_id)
         self.client = None
+        self.guestnet = None
+        self.router_ip = None
 
 
     def authorize_ssh_connections(self, ip):
@@ -108,7 +107,7 @@ class Valor:
 
         efs_mount = self.get_efs_mount()
 
-        make_efs_mount_command = 'sudo mkdir /mnt/efs'
+        make_efs_mount_command = 'sudo mkdir -p /mnt/efs'
 
         add_efs_mount_point_command = \
             'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
@@ -137,7 +136,8 @@ class Valor:
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH'.format(
                 self.aws_instance.public_ip_address))
-            raise
+            raise Exception(
+                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.public_ip_address))
 
 
     def setup(self):
@@ -150,22 +150,23 @@ class Valor:
 
         self.mount_efs()
 
-        copy_config_directory_command = \
-            'sudo cp -r /mnt/efs/deploy/compute /home/ubuntu/'
+        execute_setup_command = \
+            'cd /mnt/efs/valor/deploy/compute && sudo /bin/bash setup.sh "{0}" "{1}"'.format(
+                self.guestnet, self.router_ip)
 
-        cd_and_execute_setup_command = \
-            'cd /home/ubuntu/compute && sudo /bin/bash setup.sh'
+        setup_gaius_command = \
+            'cd /mnt/efs/valor/gaius && sudo /bin/bash setup_gaius.sh'
 
         reboot_node_command = \
             'sudo reboot'
 
         stdout = self.client.ssh(
-            copy_config_directory_command, output=True)
-        print('[!] copy_config_dir : stdout : ' + stdout)
+            execute_setup_command, output=True)
+        print('[!] execute_setup : stdout : ' + stdout)
 
         stdout = self.client.ssh(
-            cd_and_execute_setup_command, output=True)
-        print('[!] execute_setup : stdout : ' + stdout)
+            setup_gaius_command, output=True)
+        print('[!] setup_gaius : stdout : ' + stdout)
 
         try:
             stdout = self.client.ssh(
@@ -177,16 +178,23 @@ class Valor:
             # Ignore the error for now
             pass
 
+        # Wait for 20 seconds for valor node to reboot
+        time.sleep(20)
+
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH after Reboot'.format(
                 self.aws_instance.public_ip_address))
-            raise
+            raise Exception('Failed to connect to valor with IP {} using SSH after Reboot'.format(
+                self.aws_instance.public_ip_address))
 
 
     def verify_setup(self):
 
         # Verify the Valor Setup
 
+        # TODO: Currently the test below fails as the command is issued
+        #       too soon after the reboot and Xen services are still coming up.
+        #       Figure out a way to handle this condition.
         # Verify that Xen xl command works
         execute_xl_list_command = \
             'sudo xl list'
@@ -203,6 +211,7 @@ class Valor:
         # Verify connectivity to rethinkDB
         # Verify EFS mount point exists and is accessible
         # Verify  that gaius service is up and running
+        return True
 
 
 class ValorManager:
@@ -351,7 +360,10 @@ class RethinkDbManager:
         }
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
+
         valor.guestnet = record['guestnet']
+
+        valor.router_ip = self.get_router()['address']
 
 
     def remove_valor(self, valor_id):
@@ -431,6 +443,12 @@ class RethinkDbManager:
 
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
+
+    def get_router(self):
+
+        router = rethinkdb.db('transducers').table('galahad').filter({'function': 'router' }).run()
+
+        return router.next()
 
 
 class RouterManager:
