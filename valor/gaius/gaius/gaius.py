@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import logging
 import os
 import socket
 import subprocess
@@ -26,11 +27,15 @@ RT_ACK_TB = "acks"
 RT_ARC_TB = "archive"
 
 CFG_OUT = "./cfg/"
+GAIUS_LOGFILE = "/var/log/gaius.log"
+
+logging.basicConfig(filename=GAIUS_LOGFILE, level=logging.DEBUG)
 
 
 class RethinkDB():
 
     def __init__(self):
+        logging.debug('Starting Gaius Service to monitor rethinkDB for changes')
         self.ip = socket.gethostbyname(socket.gethostname())
 
     def printtable(self):
@@ -84,15 +89,21 @@ class RethinkDB():
             "confirm migration"
 
     def changes(self):
+        logging.debug('Starting to monitor changes in rethinkDB...')
+
         feed = r.db(RT_DB).table(RT_VALOR_TB).union(r.db(RT_DB).table(RT_COMM_TB)).filter({'address': self.ip}).changes(
             include_types=True).run(RT_CONN)
 
+        logging.debug('Go through the stream and check what type of change has occurred')
         for change in feed:
             if change['type'] == 'add':
+                logging.debug('Detected a [Addition] in database - {}'.format(change))
                 self.add(change['new_val'])
             if change['type'] == 'remove':
+                logging.debug('Detected a [Remove] in database - {}'.format(change))
                 self.remove(change['old_val'])
             if change['type'] == 'change':
+                logging.debug('Detected a [Change] in database - {}'.format(change))
                 print
                 "update"
 
