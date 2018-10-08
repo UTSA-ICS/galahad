@@ -545,7 +545,6 @@ class EFS():
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
-        self.nfs_ip = '18.210.83.5'
 
     def get_efs_id(self):
         cloudformation = boto3.resource('cloudformation')
@@ -581,7 +580,7 @@ class EFS():
                 format(self.ssh_key, 'setup/setup_efs_server.sh', efs_ip)).run()
 
         # Call the setup_efs.sh script
-        _cmd = "bash('./setup_efs_server.sh {} {}')".format(self.efs_id, self.nfs_ip)
+        _cmd = "bash('./setup_efs_server.sh {} {}')".format(self.efs_id)
         run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
 
     def setup_valorNodes(self):
