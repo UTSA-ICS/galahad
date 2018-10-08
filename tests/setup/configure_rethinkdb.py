@@ -8,7 +8,7 @@ import rethinkdb as r
 import sys
 
 parser = argparse.ArgumentParser(description='Set up script for RethinkDB for transducer control')
-parser.add_argument('-h', '--host', help='Hostname of RethinkDB', default='rethinkdb.galahad.lab')
+parser.add_argument('-r', '--host', help='Hostname of RethinkDB', default='rethinkdb.galahad.com')
 parser.add_argument('-c', '--cert', help='Path to RethinkDB CA cert', default='/var/private/ssl/rethinkdb_cert.pem')
 parser.add_argument('-e', '--excalkey', help='Private key for Excalibur', default='/var/private/ssl/excalibur_key.pem')
 
@@ -21,7 +21,6 @@ if not os.path.isfile(args.excalkey):
 	print 'File not found:', args.excalkey
 	sys.exit(1)
 
-# connect
 conn = r.connect(host=args.host, ssl={'ca_certs': args.cert})
 
 # setup database and tables
@@ -39,6 +38,12 @@ except r.ReqlOpFailedError:
 
 try:
 	r.db('transducers').table_create('acks').run(conn)
+except r.ReqlOpFailedError:
+	# table already exists - great
+	pass
+
+try:
+	r.db('transducers').table_create('galahad').run(conn)
 except r.ReqlOpFailedError:
 	# table already exists - great
 	pass

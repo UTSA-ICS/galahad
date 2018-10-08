@@ -198,6 +198,7 @@ class CreateVirtueThread(threading.Thread):
         if result == True:
             # Populate a virtue ID
             ssh_inst.ssh('sudo su - root -c "echo {0} > /etc/virtue-id"'.format(virtue_id))
+            ssh_inst.ssh('sudo su - root -c "echo VIRTUE_ID={0} > /etc/virtue-id-env"'.format(virtue_id))
             # Now populate virtue Merlin Dir with this key.
             ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, virtue_id), '/tmp/')
             ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'), '/tmp/')

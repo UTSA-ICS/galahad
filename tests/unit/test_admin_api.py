@@ -18,6 +18,7 @@ def setup_module():
 
     global inst
     global ep
+    global test_role_id
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -67,6 +68,8 @@ def setup_module():
             objectClass='OpenLDAPuser',
             throw_error=True)
 
+    # set to satisfy pytest when listing tests
+    test_role_id = None
 
 def teardown_module():
 
@@ -76,8 +79,9 @@ def teardown_module():
     inst.del_obj(
         'cid', 'admintestvirtue0', objectClass='OpenLDAPvirtue', throw_error=True)
 
-    inst.del_obj(
-        'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True)
+    if test_role_id is not None:
+        inst.del_obj(
+            'cid', test_role_id, objectClass='OpenLDAProle', throw_error=True)
 
     user = inst.get_obj(
         'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
@@ -92,17 +96,18 @@ def teardown_module():
         objectClass='OpenLDAPuser',
         throw_error=True)
 
-    virtue = inst.get_obj(
-        'croleId',
-        test_role_id,
-        objectClass='OpenLDAPvirtue',
-        throw_error=True)
+    if test_role_id is not None:
+        virtue = inst.get_obj(
+            'croleId',
+            test_role_id,
+            objectClass='OpenLDAPvirtue',
+            throw_error=True)
 
-    assert inst.del_obj(
-        'cid',
-        virtue['cid'][0],
-        objectClass='OpenLDAPvirtue',
-        throw_error=True) == 0
+        assert inst.del_obj(
+            'cid',
+            virtue['cid'][0],
+            objectClass='OpenLDAPvirtue',
+            throw_error=True) == 0
 
 
 def test_application_calls():

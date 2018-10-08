@@ -19,3 +19,4 @@ elasticsearch==5.4.0
 requests==2.18.1
 enum==0.4.6
 urllib3==1.21.1
+awscli

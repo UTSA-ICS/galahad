@@ -9,7 +9,7 @@ class MerlinStage(SSHStage):
     NAME = 'MerlinStage'
     DEPENDS = ['UserStage']
 
-    PAYLOAD_PATH = '../transducers'
+    PAYLOAD_PATH = 'transducers'
     DEB_FILE = 'merlin.deb'
 
     def run(self):

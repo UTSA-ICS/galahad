@@ -30,6 +30,8 @@ from handlers import CMRESHandler
 log = logging.getLogger('merlin')
 elasticLog = logging.getLogger('elasticMerlin')
 
+virtue_id = None
+
 def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 	logfile = logging.FileHandler(filename)
 	formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -57,11 +59,11 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 
 def error_wrapper(msg, error):
 	log.error(msg, error)
-	elasticLog.error(msg, error)
+	elasticLog.error(msg, error, extra={'virtue_id': virtue_id})
 
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
 def signal_handler(signal, frame):
-	elasticLog.info("Merlin shutdown")
+	elasticLog.info("Merlin shutdown", extra={'virtue_id': virtue_id})
 	exit.set()
 	sys.exit(0)
 
@@ -254,9 +256,9 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 	heartbeat_conn = None
 	while heartbeat_conn is None:
 		try:
-			heartbeat_conn = r.connect(host=rethinkdb_host, 
+			heartbeat_conn = r.connect(host=rethinkdb_host,
 						user='virtue', 
-						password='virtue', 
+						password='virtue',
 						ssl={ 'ca_certs': ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
@@ -466,9 +468,9 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 	conn = None
 	while conn is None:
 		try:
-			conn = r.connect(host=rethinkdb_host, 
-				user='virtue', 
-				password='virtue', 
+			conn = r.connect(host=rethinkdb_host,
+				user='virtue',
+				password='virtue',
 				ssl={ 'ca_certs': args.ca_cert })
 		except r.ReqlDriverError as e:
 			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
@@ -599,6 +601,8 @@ if __name__ == '__main__':
 		excalibur_key = RSA.importKey(f.read())
 
 	lock = Lock()
+
+        virtue_id = args.virtue_id
 
 	heartbeat_thread = Thread(target = heartbeat, args=(
 		args.virtue_id, args.rdb_host, args.ca_cert, args.heartbeat, 
