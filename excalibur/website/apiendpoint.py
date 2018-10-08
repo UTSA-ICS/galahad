@@ -207,7 +207,7 @@ class EndPoint():
                     virtue['ipAddress'] = rdb_manager.add_virtue(
                         valor['address'],
                         virtue['id'],
-                        'images/provisioned_virtues/' + virtue['id'] + '.img')
+                        '/mnt/efs/images/provisioned_virtues/' + virtue['id'] + '.img')
 
                 except AssertionError:
                     return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])

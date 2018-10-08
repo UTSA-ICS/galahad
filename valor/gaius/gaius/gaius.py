@@ -26,7 +26,7 @@ RT_COMM_TB = "commands"
 RT_ACK_TB = "acks"
 RT_ARC_TB = "archive"
 
-CFG_OUT = "./cfg/"
+CFG_OUT = "/mnt/efs/virtue_configs/"
 GAIUS_LOGFILE = "/var/log/gaius.log"
 
 logging.basicConfig(filename=GAIUS_LOGFILE, level=logging.DEBUG)
@@ -119,12 +119,14 @@ class RethinkDB():
 
 class Virtue():
     def __init__(self, v_dict):
+        logging.debug("Creating a new virtue with information: {}".format(v_dict))
         self.host = v_dict['host']
         self.address = v_dict['address']
         self.guestnet = v_dict['guestnet']
         self.img_path = v_dict['img_path']
 
     def create_cfg(self):
+        logging.debug("Writing config file to {}.cfg".format(CFG_OUT + self.host))
         cfg = open(CFG_OUT + self.host + ".cfg", "w+")
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
         cfg.write("vcpus=1\n")
