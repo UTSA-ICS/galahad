@@ -395,11 +395,11 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, virtue_hostname, efs_path):
+    def add_virtue(self, valor_address, virtue_id, efs_path):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_hostname
+            'host': virtue_id
         }).run())
 
         assert len(matching_virtues) == 0
@@ -408,7 +408,7 @@ class RethinkDbManager:
 
         record = {
             'function': 'virtue',
-            'host'    : virtue_hostname,
+            'host'    : virtue_id,
             'address' : valor_address,
             'guestnet': guestnet,
             'img_path': efs_path
