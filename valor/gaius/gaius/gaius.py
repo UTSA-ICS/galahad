@@ -39,8 +39,7 @@ class RethinkDB():
         self.ip = socket.gethostbyname(socket.gethostname())
 
     def printtable(self):
-        print
-        r.db(RT_DB).table(RT_VALOR_TB).run(RT_CONN)
+        print(r.db(RT_DB).table(RT_VALOR_TB).run(RT_CONN))
 
     def getid(self, table, search):
 
@@ -89,23 +88,28 @@ class RethinkDB():
             "confirm migration"
 
     def changes(self):
+
         logging.debug('Starting to monitor changes in rethinkDB...')
 
         feed = r.db(RT_DB).table(RT_VALOR_TB).union(r.db(RT_DB).table(RT_COMM_TB)).filter({'address': self.ip}).changes(
             include_types=True).run(RT_CONN)
 
         logging.debug('Go through the stream and check what type of change has occurred')
+
         for change in feed:
+
             if change['type'] == 'add':
+
                 logging.debug('Detected a [Addition] in database - {}'.format(change))
                 self.add(change['new_val'])
-            if change['type'] == 'remove':
+
+            elif change['type'] == 'remove':
+
                 logging.debug('Detected a [Remove] in database - {}'.format(change))
                 self.remove(change['old_val'])
-            if change['type'] == 'change':
+
+            elif change['type'] == 'change':
                 logging.debug('Detected a [Change] in database - {}'.format(change))
-                print
-                "update"
 
         """
             elif change['new_val'] is None:
@@ -118,14 +122,18 @@ class RethinkDB():
 
 
 class Virtue():
+
     def __init__(self, v_dict):
+
         logging.debug("Creating a new virtue with information: {}".format(v_dict))
         self.host = v_dict['host']
         self.address = v_dict['address']
         self.guestnet = v_dict['guestnet']
         self.img_path = v_dict['img_path']
 
+
     def create_cfg(self):
+
         logging.debug("Writing config file to {}.cfg".format(CFG_OUT + self.host))
         cfg = open(CFG_OUT + self.host + ".cfg", "w+")
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
@@ -141,10 +149,13 @@ class Virtue():
                   "nameserver=1.1.1.1\"")
         cfg.close()
 
+
     def createDomU(self):
         subprocess.check_call(['xl', 'create', CFG_OUT + self.host + '.cfg'])
 
+
     def destroyDomU(self):
+
         os.remove(CFG_OUT + self.host + ".cfg")
         subprocess.check_call(['xl', 'destroy', self.host])
 
