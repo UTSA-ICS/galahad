@@ -89,7 +89,7 @@ def __get_excalibur_index():
 
 def __query_elasticsearch_excalibur(args):
     assert aggregator_ssh.check_access()  # This prevents the result from being "added to know host" result from failing tests
-    time.sleep(15) # Sleep to ensure logs make it to elasticsearch
+    time.sleep(30) # Sleep to ensure logs make it to elasticsearch
     index = __get_excalibur_index()
     cmdargs = ''
     for (key, value) in args:

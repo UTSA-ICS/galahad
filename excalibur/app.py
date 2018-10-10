@@ -62,7 +62,7 @@ def setup_logging(es_host, es_cert, es_key, es_user, es_pass, es_ca):
                                   use_ssl=True,
                                   # This should only be false for development purposes.  Production should have certs that pass ssl verification
                                   verify_ssl=False,
-                                  buffer_size=2,
+                                  buffer_size=1,
                                   flush_frequency_in_sec=1000,
                                   ca_certs=es_ca,
                                   client_cert=es_cert,
