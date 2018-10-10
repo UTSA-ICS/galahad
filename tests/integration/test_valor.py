@@ -94,7 +94,7 @@ class Test_ValorAPI:
 
         self.valor_api.valor_destroy(Test_ValorAPI.valor_id)
         assert not is_valor_in_rethinkdb(Test_ValorAPI.valor_id)
-        assert not is_valor_pingable(valor_id)
+        assert not is_valor_pingable(Test_ValorAPI.valor_id)
 
 
     def test_valor_create_pool(self):
