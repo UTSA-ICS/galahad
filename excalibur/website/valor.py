@@ -385,7 +385,7 @@ class RethinkDbManager:
             results = rethinkdb.db('transducers').table('galahad').filter({
                 'guestnet': guestnet.format(test_number)
             }).run()
-            if (len(list(results)) == 0):
+            if len(list(results)) == 0:
                 guestnet = guestnet.format(test_number)
                 break
 
@@ -426,7 +426,7 @@ class RethinkDbManager:
             'host': virtue_hostname
         }).run())
 
-        if (len(matching_virtues) != 1):
+        if len(matching_virtues) != 1:
             return matching_virtues
 
         return matching_virtues[0]
