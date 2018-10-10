@@ -199,10 +199,8 @@ class EndPoint():
                 valor_manager = ValorManager()
                 rdb_manager = RethinkDbManager()
 
-                # Find empty valor
                 valor = valor_manager.get_empty_valor()
 
-                # Add virtue to rethink
                 try:
                     virtue['ipAddress'] = rdb_manager.add_virtue(
                         valor['address'],
@@ -212,7 +210,6 @@ class EndPoint():
                 except AssertionError:
                     return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
 
-            # Set state to launching
             virtue['state'] = 'LAUNCHING'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
             self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
@@ -223,7 +220,7 @@ class EndPoint():
             max_attempts = 5
 
             # TODO: Remove this variable before merging into master
-            see_no_evil = False
+            see_no_evil = True
 
             if not use_valor:
                 virtue['state'] = 'RUNNING'
@@ -268,8 +265,6 @@ class EndPoint():
 
                 virtue['state'] = 'RUNNING'
 
-            # Set state to running
-            #virtue['state'] = 'RUNNING'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
             self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
                                  objectClass='OpenLDAPvirtue', throw_error=True)
