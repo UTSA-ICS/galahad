@@ -284,8 +284,15 @@ class ValorManager:
 
 
     def create_valor_pool(self, number_of_valors):
+
+        valor_ids = []
+
         for index in range(number_of_valors):
-            self.create_valor()
+
+            valor_id = self.create_valor()
+            valor_ids.append(valor_id)
+
+        return valor_ids
 
 
     def destroy_valor(self, valor_id):
