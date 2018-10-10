@@ -26,7 +26,14 @@ class ValorAPI:
 
 
     def valor_create_pool(self, number_of_valors):
-        return self.valor_manager.create_valor_pool(number_of_valors)
+
+        aws = AWS()
+
+        return self.valor_manager.create_valor_pool(
+            number_of_valors
+            aws.get_subnet_id(),
+            aws.get_sec_group().id)
+
 
 
     def valor_destroy(self, valor_id):
@@ -283,7 +290,11 @@ class ValorManager:
         return instance.id
 
 
-    def create_valor_pool(self, number_of_valors):
+    def create_valor_pool(
+        self,
+        number_of_valors,
+        subnet,
+        sec_group):
 
         valor_ids = []
 
