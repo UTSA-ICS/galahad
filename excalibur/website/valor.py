@@ -30,7 +30,7 @@ class ValorAPI:
         aws = AWS()
 
         return self.valor_manager.create_valor_pool(
-            number_of_valors
+            number_of_valors,
             aws.get_subnet_id(),
             aws.get_sec_group().id)
 
