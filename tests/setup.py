@@ -69,7 +69,7 @@ class Stack():
         return file.read()
 
 
-    def setup_stack(self, stack_template, stack_name, suffix_value):
+    def setup_stack(self, stack_template, stack_name, suffix_value, env_type='StarLab', import_stack_name='None'):
 
         self.stack_template = stack_template
         self.stack_name = stack_name
@@ -85,6 +85,12 @@ class Stack():
             }, {
                 'ParameterKey': 'NameSuffix',
                 'ParameterValue': self.suffix_value
+            }, {
+                'ParameterKey': 'EnvType',
+                'ParameterValue': env_type
+            }, {
+                'ParameterKey': 'ImportStackName',
+                'ParameterValue': import_stack_name
             }])
 
         logger.info('Starting up Stack [{}] ...'.format(self.stack_name))
@@ -619,11 +625,11 @@ class EFS():
 
 
 
-def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
+def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, github_key, aws_config,
           aws_keys, branch, user_key):
 
     stack = Stack()
-    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, env_type, import_stack_name)
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
@@ -665,6 +671,21 @@ def parse_args():
         required=True,
         help=
         "The suffix used by the cloudformation stack to append to resource names")
+    parser.add_argument(
+        "--env_type",
+        type=str,
+        default='StarLab',
+        choices=['StarLab', 'JHUAPL'],
+        required=False,
+        help=
+        "The Environment Type specifying the Deployment to StarLab or JHUAPL")
+    parser.add_argument(
+        "--import_stack",
+        type=str,
+        default='None',
+        required=False,
+        help=
+        "The Name of the Stack containing resources that will be imported for use in this stack")
     parser.add_argument(
         "-b",
         "--branch_name",
@@ -738,13 +759,13 @@ def main():
 
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
-              args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name, args.default_user_key)
+              args.env_type, args.import_stack, args.github_repo_key, args.aws_config,
+              args.aws_keys, args.branch_name, args.default_user_key)
 
     if args.setup_stack:
 
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.env_type, args.import_stack)
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
