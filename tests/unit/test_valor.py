@@ -54,6 +54,9 @@ def is_valor_pingable(valor_id):
 
     matching_valors = list(response)
 
+    if matching_valors == []:
+        return False
+
     ip_address = matching_valors[0]['address']
 
     response = os.system("ping -c 1 " + ip_address)
@@ -99,7 +102,7 @@ class Test_ValorAPI:
 
     def test_valor_create_pool(self):
 
-        number_of_valors = 3 
+        number_of_valors = 0
 
         valor_ids = self.valor_api.valor_create_pool(number_of_valors)
 
