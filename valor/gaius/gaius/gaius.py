@@ -5,6 +5,7 @@ import logging
 import os
 import socket
 import subprocess
+import base64
 
 import rethinkdb as r
 
@@ -51,7 +52,9 @@ class RethinkDB():
 
         if 'function' in change and change['function'] == 'virtue':
             virtue = Virtue(change)
-            virtue.create_cfg()
+            valor = r.db(RT_DB).table(RT_VALOR_TB).filter({'function': 'valor',
+                                                           'address': self.ip}).run(RT_CONN).next()
+            virtue.create_cfg(valor['guestnet'])
             virtue.createDomU()
             comm = {
                 'transducer_id': virtue.img_path,
@@ -132,21 +135,26 @@ class Virtue():
         self.img_path = v_dict['img_path']
 
 
-    def create_cfg(self):
+    def create_cfg(self, valor_guestnet):
+
+        unity_net = ('ip addr add {0}/24 dev eth0;ip link set dev eth0 up;'
+                     'ip route add default via {1} dev eth0').format(
+                         self.guestnet, valor_guestnet)
+
+        unity_net64 = base64.b64encode(unity_net.encode())
 
         logging.debug("Writing config file to {}.cfg".format(CFG_OUT + self.host))
         cfg = open(CFG_OUT + self.host + ".cfg", "w+")
-        cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
-        cfg.write("vcpus=1\n")
-        cfg.write("memory=1024\n")
-        cfg.write("disk=['file:" + self.img_path + ",xvda2,w']\n")
-        cfg.write("name='" + self.host + "'\n")
-        cfg.write("vif=['bridge=hello-br0']\n")
-        cfg.write("on_poweroff='destroy'\n")
-        cfg.write("on_reboot='restart'\n")
-        cfg.write("on_crash='restart'\n")
-        cfg.write("extra=\"ip=" + self.guestnet + "::" + self.address + ":255.255.255.0:host:eth0:none " + \
-                  "nameserver=1.1.1.1\"")
+        cfg.write("bootloader  = '/usr/local/lib/xen/bin/pygrub\'\n")
+        cfg.write("vcpus       = 1\n")
+        cfg.write("memory      = 1024\n")
+        cfg.write("disk        = ['file:" + self.img_path + ",xvda2,w']\n")
+        cfg.write("name        = '" + self.host + "'\n")
+        cfg.write("vif         = ['bridge=hello-br0']\n")
+        cfg.write("on_poweroff = 'destroy'\n")
+        cfg.write("on_reboot   = 'restart'\n")
+        cfg.write("on_crash    = 'restart'\n")
+        cfg.write('cmdline     = "unity-net={0} nameserver=1.1.1.1"'.format(unity_net64.decode()))
         cfg.close()
 
 
