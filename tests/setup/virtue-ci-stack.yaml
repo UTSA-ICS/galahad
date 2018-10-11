@@ -211,11 +211,6 @@ Resources:
           FromPort: '0'
           ToPort: '65535'
           IpProtocol: '-1'
-        - CidrIp: 18.210.83.5/32
-          Description: VirtUE NFS Server In
-          FromPort: '0'
-          ToPort: '65535'
-          IpProtocol: '-1'
         - CidrIp: 0.0.0.0/0
           Description: HTTP TCP In
           FromPort: '80'
@@ -236,19 +231,6 @@ Resources:
               - !Ref NameSuffix
               - '-EFSSecGroup'
       VpcId: !Ref VirtUEVPC
-  VirtueNFSServerSecGroupNFSIngressRule:
-    Type: 'AWS::EC2::SecurityGroupIngress'
-    Properties:
-      Description: Allow NFS Server to be contacted from local EFS Server
-      CidrIp: !Join
-        - ''
-        - - !GetAtt ValorEFSServer.PublicIp
-          - '/32'
-      FromPort: 2049
-      IpProtocol: tcp
-      ToPort: 2049
-      GroupId: sg-08dabbf530b426156
-    DependsOn: ValorEFSServer
   VirtueInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
