@@ -375,7 +375,7 @@ def test_user_role_authorize():
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
     response = session.get(
-        base_url + '/user/get',
+        base_url + '/user/role/authorize',
         params={
             'username': 'DoesNotExist',
             'roleId': 'DoesNotExist'
