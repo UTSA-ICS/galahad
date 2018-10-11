@@ -243,7 +243,7 @@ def test_sensor_disable():
     virtue_ssh.ssh('mkdir ' + dirname)
 
     # Give elasticsearch a few seconds to receive the new logs
-    time.sleep(30)
+    time.sleep(60)
 
     # Check that the log DIDN'T appear on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])
@@ -280,7 +280,7 @@ def test_sensor_enable():
     virtue_ssh.ssh('mkdir ' + dirname)
 
     # Give elasticsearch a few seconds to receive the new logs
-    time.sleep(15)
+    time.sleep(60)
 
     # Check that the log appeared on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])

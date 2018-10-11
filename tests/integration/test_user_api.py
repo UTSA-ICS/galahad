@@ -21,6 +21,9 @@ sys.path.insert(0, '..')
 from common import ssh_tool
 
 
+ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
+SLEEP_TIME = 10 # Time to sleep
+
 ##
 # Functionality of these API commands is tested by unit/test_user_api.py.
 # These tests verify that the return values get into the https response correctly.
@@ -100,6 +103,14 @@ def __query_elasticsearch_excalibur(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+def query_elasticsearch_with_timeout(args):
+    elasped_time = 0
+    while elasped_time < ELASTIC_TIMEOUT:
+        result = __query_elasticsearch_excalibur(args)
+        if 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0:
+            return result
+        elasped_time += SLEEP_TIME
+    return result # Return last result, this will fail tests
 
 def test_application_get():
 
@@ -113,7 +124,7 @@ def test_application_get():
         base_url + '/application/get', params={'appId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'application_get'), ('app_id', 'DoesNotExist')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
@@ -127,7 +138,7 @@ def test_role_get():
         base_url + '/role/get', params={'roleId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'role_get'), ('role_id', 'DoesNotExist')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
@@ -144,7 +155,7 @@ def test_user_role_list():
             'startingTransducerIds', 'ipAddress'
         ])
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'user_role_list')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
@@ -161,7 +172,7 @@ def test_user_virtue_list():
             'transducerIds', 'state', 'ipAddress'
         ])
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'user_virtue_list')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
@@ -175,7 +186,7 @@ def test_virtue_get():
         base_url + '/virtue/get', params={'virtueId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'virtue_get'), ('virtue_id', 'DoesNotExist')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
@@ -229,7 +240,7 @@ def test_virtue_launch():
                                params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyLaunched']['result'])
 
-        result = __query_elasticsearch_excalibur(
+        result = query_elasticsearch_with_timeout(
             [('user', settings['user']), ('real_func_name', 'virtue_launch'),
              ('virtue_id', 'TEST_VIRTUE_LAUNCH')])
         assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
@@ -287,7 +298,7 @@ def test_virtue_stop():
                                params={'virtueId': 'TEST_VIRTUE_STOP'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyStopped']['result'])
 
-        result = __query_elasticsearch_excalibur(
+        result = query_elasticsearch_with_timeout(
             [('user', settings['user']), ('real_func_name', 'virtue_stop'),
              ('virtue_id', 'TEST_VIRTUE_STOP')])
         assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
@@ -314,7 +325,7 @@ def test_virtue_application_launch():
         response.json() == ErrorCodes.user['invalidVirtueId']['result'] or
         response.json() == ErrorCodes.user['invalidApplicationId']['result'])
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'virtue_application_launch'),
          ('virtue_id', 'DoesNotExist'), ('app_id', 'DoesNotExist')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
@@ -335,7 +346,7 @@ def test_virtue_application_stop():
         response.json() == ErrorCodes.user['invalidVirtueId']['result'] or
         response.json() == ErrorCodes.user['invalidApplicationId']['result'])
 
-    result = __query_elasticsearch_excalibur(
+    result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'virtue_application_stop'),
          ('virtue_id', 'DoesNotExist'), ('app_id', 'DoesNotExist')])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
