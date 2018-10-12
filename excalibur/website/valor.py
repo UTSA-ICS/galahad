@@ -316,7 +316,7 @@ class ValorManager:
 
         valor_ids = []
 
-        for index in range(number_of_valors):
+        for index in range(int(number_of_valors)):
 
             valor_id = self.create_valor(subnet, sec_group)
             valor_ids.append(valor_id)

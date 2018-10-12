@@ -859,6 +859,40 @@ def admin_valor_create_pool():
     return make_response(valor_ids)
 
 
+@bp.route('/admin/valor/launch', methods=['GET'])
+@require_oauth()
+def admin_valor_launch():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_launch(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/stop', methods=['GET'])
+@require_oauth()
+def admin_valor_stop():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_stop(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
 @bp.route('/admin/valor/destroy', methods=['GET'])
 @require_oauth()
 def admin_valor_destroy():

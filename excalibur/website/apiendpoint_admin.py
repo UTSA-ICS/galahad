@@ -532,6 +532,36 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
+    def valor_launch(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_launch(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_stop(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_stop(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
     def valor_destroy(self, valor_id):
 
         try:
