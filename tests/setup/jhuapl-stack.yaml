@@ -1,0 +1,309 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  CloudFormation template to provision the VPC, subnets, routing tables,
+  security groups, and FSR in support of the Starlab Far-side Testbed
+
+Parameters:
+  FSREIPAllocationId:
+    Type: String
+    Default: "eipalloc-0e9ebec0a858cd1f6"
+  FarSideKeyPair:
+    Type: String
+    Default: "starlab-virtue-te"
+  FarSideVPCAZ:
+    Type: String
+    AllowedValues:
+      - "us-east-1a"
+      - "us-east-1b"
+      - "us-east-1c"
+      - "us-east-1d"
+      - "us-east-1e"
+      - "us-east-1f"
+    Default: "us-east-1b"
+  FSRAMI:
+    Type: String
+    Default: "ami-aa2ea6d0"
+  FSRInstanceType:
+    Type: String
+    Default: "t2.nano"
+
+Resources:
+  VirtUELog4VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "172.30.0.0/16"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-infrastructure-vpc"
+  PublicOpenVPNSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      CidrBlock: "172.30.192.0/27"
+      AvailabilityZone: !Ref FarSideVPCAZ
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-public-openvpn-subnet"
+  VirtUELog4AdminSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      CidrBlock: "172.30.0.0/18"
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Ref FarSideVPCAZ
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-admin-subnet"
+  VirtUELog4LoggingSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      CidrBlock: "172.30.128.0/18"
+      AvailabilityZone: !Ref FarSideVPCAZ
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-logging-subnet"
+  VirtUELog4UserSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      CidrBlock: "172.30.64.0/18"
+      AvailabilityZone: !Ref FarSideVPCAZ
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-user-subnet"
+  VirtUELog4IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-vpc-igw"
+  VirtUELog4IGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref VirtUELog4IGW
+      VpcId: !Ref VirtUELog4VPC
+  PublicOpenVPNSubnetRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-virtue-openvpn-rt"
+  PublicOpenVPNSubnetDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VirtUELog4IGW
+    Properties:
+      RouteTableId: !Ref PublicOpenVPNSubnetRT
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref VirtUELog4IGW
+  PublicOpenVPNSubnetRTAttachment:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicOpenVPNSubnet
+      RouteTableId: !Ref PublicOpenVPNSubnetRT
+  AdminSubnetRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-virtue-admin-rt"
+  AdminSubnetDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: FSRAdminSubnetENI
+    Properties:
+      RouteTableId: !Ref AdminSubnetRT
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref VirtUELog4IGW
+  AdminSubnetRTAttachment:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VirtUELog4AdminSubnet
+      RouteTableId: !Ref AdminSubnetRT
+  UserSubnetRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-virtue-user-rt"
+  UserSubnetDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: FSRUserSubnetENI
+    Properties:
+      RouteTableId: !Ref UserSubnetRT
+      DestinationCidrBlock: "0.0.0.0/0"
+      NetworkInterfaceId: !Ref FSRUserSubnetENI
+  UserSubnetRTAttachment:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VirtUELog4UserSubnet
+      RouteTableId: !Ref UserSubnetRT
+  LoggingSubnetRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-virtue-logging-rt"
+  LoggingSubnetDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: FSRLoggingSubnetENI
+    Properties:
+      RouteTableId: !Ref LoggingSubnetRT
+      DestinationCidrBlock: "0.0.0.0/0"
+      NetworkInterfaceId: !Ref FSRLoggingSubnetENI
+  LoggingSubnetRTAttachment:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VirtUELog4LoggingSubnet
+      RouteTableId: !Ref LoggingSubnetRT
+  FSRPublicENI:
+    Type: AWS::EC2::NetworkInterface
+    DependsOn: FSRPublicENISecGrp
+    Properties:
+      Description: "FSR Public OpenVPN Subnet Interface"
+      PrivateIpAddress: "172.30.192.5"
+      SourceDestCheck: False
+      SubnetId: !Ref PublicOpenVPNSubnet
+      GroupSet:
+      - !GetAtt FSRPublicENISecGrp.GroupId
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-public-openvpn-eni"
+  FSRAdminSubnetENI:
+    Type: AWS::EC2::NetworkInterface
+    DependsOn: FSRPrivateENISecGrp
+    Properties:
+      Description: "FSR Private Admin Subnet Interface"
+      PrivateIpAddress: "172.30.0.5"
+      SourceDestCheck: False
+      SubnetId: !Ref VirtUELog4AdminSubnet
+      GroupSet:
+      - !GetAtt FSRPrivateENISecGrp.GroupId
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-private-admin-fsr-eni"
+  FSRLoggingSubnetENI:
+    Type: AWS::EC2::NetworkInterface
+    DependsOn: FSRPrivateENISecGrp
+    Properties:
+      Description: "FSR Private Logging Subnet Interface"
+      PrivateIpAddress: "172.30.128.5"
+      SourceDestCheck: False
+      SubnetId: !Ref VirtUELog4LoggingSubnet
+      GroupSet:
+      - !GetAtt FSRPrivateENISecGrp.GroupId
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-private-logging-fsr-eni"
+  FSRUserSubnetENI:
+    Type: AWS::EC2::NetworkInterface
+    DependsOn: FSRPrivateENISecGrp
+    Properties:
+      Description: "FSR Private User Subnet Interface"
+      PrivateIpAddress: "172.30.64.5"
+      SourceDestCheck: False
+      SubnetId: !Ref VirtUELog4UserSubnet
+      GroupSet:
+      - !GetAtt FSRPrivateENISecGrp.GroupId
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-private-user-fsr-eni"
+  FSRPublicENISecGrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "starlab-finals-public-eni-sg"
+      GroupDescription: "FSR public eni security group"
+      VpcId: !Ref VirtUELog4VPC
+      SecurityGroupIngress:
+        - IpProtocol: "-1"
+          FromPort: "-1"
+          ToPort: "-1"
+          CidrIp: "192.168.4.0/24"
+        - IpProtocol: "udp"
+          FromPort: "1194"
+          ToPort: "1194"
+          CidrIp: "128.244.8.64/28"
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "128.244.8.0/24"
+        - IpProtocol: "icmp"
+          FromPort: "-1"
+          ToPort: "-1"
+          CidrIp: "128.244.8.0/24"
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-fsr-public-eni-sg"
+  FSRPublicENIEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    DependsOn: FSRPublicENI
+    Properties:
+      AllocationId: !Ref FSREIPAllocationId
+      NetworkInterfaceId: !Ref FSRPublicENI
+  FSRPrivateENISecGrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "starlab-finals-private-eni-sg"
+      GroupDescription: "FSR private eni security group"
+      VpcId: !Ref VirtUELog4VPC
+      SecurityGroupIngress:
+      - IpProtocol: "-1"
+        FromPort: "-1"
+        ToPort: "-1"
+        CidrIp: "192.168.4.0/24"
+      - IpProtocol: "-1"
+        FromPort: "-1"
+        ToPort: "-1"
+        CidrIp: "10.200.0.0/30"
+      - IpProtocol: "-1"
+        FromPort: "-1"
+        ToPort: "-1"
+        CidrIp: "172.30.0.0/16"
+      Tags:
+      - Key: Name
+        Value: "starlab-finals-fsr-private-eni-sg"
+
+Outputs:
+  StarlabFinalsVirtUEVPCId:
+    Description: "VPC Established for finals testing"
+    Value: !Ref VirtUELog4VPC
+    Export:
+      Name: !Sub "${AWS::StackName}--VIRTUE-VPCID"
+  StarlabFinalsAdminSubnetId:
+    Description: "virtue subnet to deploy admin assets"
+    Value: !Ref VirtUELog4AdminSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}--ADMIN-SUBNETID"
+  StarlabFinalsUserSubnetId:
+    Description: "virtue subnet to deploy user assets"
+    Value: !Ref VirtUELog4UserSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}--USER-SUBNETID"
+  StarlabFinalsLoggingSubnetId:
+    Description: "infrastructure subnet to deploy admin assets"
+    Value: !Ref VirtUELog4LoggingSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}--LOGGING-SUBNETID"
+  StarlabFinalsPrivateSecGrp:
+    Description: "Security group to associate with siege solution"
+    Value: !GetAtt FSRPrivateENISecGrp.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}--PRIVATE-SECGRPID"
+  StarlabFinalsKeyPair:
+    Description: "SSH Key Pair Name"
+    Value: !Ref FarSideKeyPair
+    Export:
+      Name: !Sub "${AWS::StackName}--KEYPAIR"
+  StarlabFinalsDefaultDeployVPCAZ:
+    Description: "Default Deployment AZ for Infrastructure VPC"
+    Value: !Ref FarSideVPCAZ
+    Export:
+      Name: !Sub "${AWS::StackName}--DEFAULT-DEPLOYAZ"

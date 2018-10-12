@@ -9,15 +9,17 @@
 # -
 ###
 
+import argparse
+import json
+import logging
 import os
 import sys
-import boto3
-import json
 import time
-import argparse
-import logging
-from sultan.api import Sultan, SSHConfig
 from pprint import pformat
+
+import boto3
+import botocore
+from sultan.api import Sultan, SSHConfig
 
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
@@ -69,7 +71,7 @@ class Stack():
         return file.read()
 
 
-    def setup_stack(self, stack_template, stack_name, suffix_value):
+    def setup_stack(self, stack_template, stack_name, suffix_value, env_type='StarLab', import_stack_name='None'):
 
         self.stack_template = stack_template
         self.stack_name = stack_name
@@ -85,6 +87,12 @@ class Stack():
             }, {
                 'ParameterKey': 'NameSuffix',
                 'ParameterValue': self.suffix_value
+            }, {
+                'ParameterKey': 'EnvType',
+                'ParameterValue': env_type
+            }, {
+                'ParameterKey': 'ImportStackName',
+                'ParameterValue': import_stack_name
             }])
 
         logger.info('Starting up Stack [{}] ...'.format(self.stack_name))
@@ -145,9 +153,9 @@ class Stack():
 
 
     def terminate_non_stack_instances(self, stack_name):
-        cloudformation = boto3.resource('cloudformation')
-        vpc_resource = cloudformation.StackResource(stack_name, 'VirtUEVPC')
-        vpc_id = vpc_resource.physical_resource_id
+        excalibur = Excalibur(stack_name, None)
+        vpc_id = excalibur.vpc_id
+
         # Now find all instances in ec2 within the VPC but without the stack tags.
         ec2 = boto3.client('ec2')
 
@@ -304,7 +312,11 @@ class Excalibur():
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.server_ip = self.get_excalibur_server_ip()
+        self.server_ip = None
+        self.vpc_id = None
+        self.subnet_id = None
+        self.default_security_group_id = None
+        self.update_aws_info()
         # Write out excalibur IP to a file
         self.write_excalibur_ip(self.server_ip)
 
@@ -313,7 +325,7 @@ class Excalibur():
         with open(EXCALIBUR_IP, 'w') as f:
             f.write(excalibur_ip)
 
-    def get_excalibur_server_ip(self):
+    def update_aws_info(self):
 
         client = boto3.client('ec2')
 
@@ -329,7 +341,15 @@ class Excalibur():
                 'Values': ['running']
             }])
 
-        return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        self.server_ip = server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+        self.vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
+
+        self.subnet_id = server['Reservations'][0]['Instances'][0]['SubnetId']
+
+        for group in server['Reservations'][0]['Instances'][0]['SecurityGroups']:
+            if group['GroupName'] == 'default':
+                self.default_security_group_id = group['GroupId']
 
 
     def setup_keys(self, github_key, user_key):
@@ -464,18 +484,14 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
-        client = boto3.client('cloudformation')
-        subnet = client.describe_stack_resource(
-            StackName=self.stack_name, LogicalResourceId='VirtUEAdminSubnet')
-        subnet = subnet['StackResourceDetail']['PhysicalResourceId']
         aws_instance_info = {}
         aws_instance_info['image_id'] = 'ami-aa2ea6d0'
         aws_instance_info['inst_type'] = 't2.micro'
-        aws_instance_info['subnet_id'] = subnet
+        aws_instance_info['subnet_id'] = self.subnet_id
         aws_instance_info['key_name'] = 'starlab-virtue-te'
         aws_instance_info['tag_key'] = 'Project'
         aws_instance_info['tag_value'] = 'Virtue'
-        aws_instance_info['sec_group'] = self.get_default_security_group_id()
+        aws_instance_info['sec_group'] = self.default_security_group_id
         aws_instance_info['inst_profile_name'] = ''
         aws_instance_info['inst_profile_arn'] = ''
 
@@ -491,54 +507,37 @@ class Excalibur():
 
         return aws_instance_info
 
-    def get_vpc_id(self):
-        ec2 = boto3.resource('ec2')
-        vpc_filter = [{
-            'Name': 'tag-key',
-            'Values': ['aws:cloudformation:stack-name']
-        }, {
-            'Name': 'tag-value',
-            'Values': [self.stack_name]
-        }]
-        vpc_id = list(ec2.vpcs.filter(Filters=vpc_filter))[0].id
-        return vpc_id
-
-    def get_default_security_group_id(self):
-        client = boto3.client('ec2')
-        vpc_id = self.get_vpc_id()
-        group_filter = [{
-            'Name': 'group-name',
-            'Values': ['default']
-        }, {
-            'Name': 'vpc-id',
-            'Values': [vpc_id]
-        }]
-        group_id = client.describe_security_groups(Filters=group_filter)
-        return group_id['SecurityGroups'][0]['GroupId']
 
     def update_security_rules(self):
-        group_id = self.get_default_security_group_id()
         ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(group_id)
-        client_cidrs_to_allow_access =  [ '{}/32'.format(self.server_ip),
-                                          '70.121.205.81/32',
-                                          '45.31.214.87/32',
-                                          '35.170.157.4/32',
-                                          '129.115.2.249/32',
-                                          '199.46.124.36/32',
-                                          '128.89.0.0/16',
-                                          '50.53.74.115/32' ]
+        security_group = ec2.SecurityGroup(self.default_security_group_id)
+        client_cidrs_to_allow_access = ['{}/32'.format(self.server_ip),
+                                        '70.121.205.81/32',
+                                        '45.31.214.87/32',
+                                        '35.170.157.4/32',
+                                        '129.115.2.249/32',
+                                        '199.46.124.36/32',
+                                        '128.89.0.0/16',
+                                        '128.244.0.0/16',
+                                        '50.53.74.115/32']
         for cidr in client_cidrs_to_allow_access:
-            security_group.authorize_ingress(
-                CidrIp=cidr,
-                FromPort=22,
-                ToPort=22,
-                IpProtocol='TCP')
-            security_group.authorize_ingress(
-                CidrIp=cidr,
-                FromPort=5002,
-                ToPort=5002,
-                IpProtocol='TCP')
+            try:
+                security_group.authorize_ingress(
+                    CidrIp=cidr,
+                    FromPort=22,
+                    ToPort=22,
+                    IpProtocol='TCP')
+                security_group.authorize_ingress(
+                    CidrIp=cidr,
+                    FromPort=5002,
+                    ToPort=5002,
+                    IpProtocol='TCP')
+            except botocore.exceptions.ClientError:
+                # If Security Rule exists then move on
+                # This should only happen if the default security
+                # group is hosted off a VPC created by a different
+                # stack i.e for the JHUAPL stack
+                pass
 
 
 class EFS():
@@ -620,11 +619,11 @@ class EFS():
 
 
 
-def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
+def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, github_key, aws_config,
           aws_keys, branch, user_key):
 
     stack = Stack()
-    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, env_type, import_stack_name)
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
@@ -666,6 +665,21 @@ def parse_args():
         required=True,
         help=
         "The suffix used by the cloudformation stack to append to resource names")
+    parser.add_argument(
+        "--env_type",
+        type=str,
+        default='StarLab',
+        choices=['StarLab', 'JHUAPL'],
+        required=False,
+        help=
+        "The Environment Type specifying the Deployment to StarLab or JHUAPL")
+    parser.add_argument(
+        "--import_stack",
+        type=str,
+        default='None',
+        required=False,
+        help=
+        "The Name of the Stack containing resources that will be imported for use in this stack")
     parser.add_argument(
         "-b",
         "--branch_name",
@@ -739,13 +753,13 @@ def main():
 
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
-              args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name, args.default_user_key)
+              args.env_type, args.import_stack, args.github_repo_key, args.aws_config,
+              args.aws_keys, args.branch_name, args.default_user_key)
 
     if args.setup_stack:
 
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.env_type, args.import_stack)
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
