@@ -225,7 +225,7 @@ class EndPoint():
             if not use_valor:
                 virtue['state'] = 'RUNNING'
             elif see_no_evil:
-                virtue['state'] = 'RUNNING (Unverified)'
+                virtue['state'] = 'RUNNING'
             else:
 
                 for attempt_number in range(max_attempts):
