@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 import sys
 
@@ -5,11 +7,12 @@ file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
-
+import time
 import pytest
 import rethinkdb
 
 from website import valor
+from website import apiendpoint
 
 
 def get_rethinkdb_connection():
@@ -90,14 +93,39 @@ class Test_ValorAPI:
         Test_ValorAPI.valor_id = valor_id
 
         assert is_valor_in_rethinkdb(valor_id)
+        assert not is_valor_pingable(valor_id)
+
+
+    def test_valor_launch(self):
+
+        valor_id = Test_ValorAPI.valor_id
+
+        self.valor_api.valor_launch(valor_id)
+
+        time.sleep(120)
+
+        assert is_valor_in_rethinkdb(valor_id)
         assert is_valor_pingable(valor_id)
+
+
+    def test_valor_stop(self):
+
+        valor_id = Test_ValorAPI.valor_id
+
+        self.valor_api.valor_stop(valor_id)
+
+        assert is_valor_in_rethinkdb(valor_id)
+        assert not is_valor_pingable(valor_id)
 
 
     def test_valor_destroy(self):
 
-        self.valor_api.valor_destroy(Test_ValorAPI.valor_id)
-        assert not is_valor_in_rethinkdb(Test_ValorAPI.valor_id)
-        assert not is_valor_pingable(Test_ValorAPI.valor_id)
+        valor_id = Test_ValorAPI.valor_id
+
+        self.valor_api.valor_destroy(valor_id)
+
+        assert not is_valor_in_rethinkdb(valor_id)
+        assert not is_valor_pingable(valor_id)
 
 
     def test_valor_create_pool(self):
@@ -112,3 +140,15 @@ class Test_ValorAPI:
             assert is_valor_pingable(valor_id)
 
             self.valor_api.valor_destroy(valor_id)
+
+
+    '''
+    def test_valor_migrate_virtue(self):
+
+        end_point = apiendpoint.EndPoint('jmitchell', 'Test123!')
+
+        virtue_id = virtue_launch()
+        destination_valor_id = self.valor_api.valor_create()
+
+        valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
+    '''

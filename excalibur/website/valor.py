@@ -25,6 +25,10 @@ class ValorAPI:
             aws.get_sec_group().id)
 
 
+    def valor_launch(self, valor_id):
+        return self.valor_manager.launch_valor(valor_id)
+
+
     def valor_create_pool(self, number_of_valors):
 
         aws = AWS()
@@ -34,6 +38,9 @@ class ValorAPI:
             aws.get_subnet_id(),
             aws.get_sec_group().id)
 
+
+    def valor_stop(self, valor_id):
+        return self.valor_manager.stop_valor(valor_id)
 
 
     def valor_destroy(self, valor_id):
@@ -287,6 +294,17 @@ class ValorManager:
 
         # valor.verify_setup()
 
+        instance.stop()
+        instance.wait_until_stopped()
+        instance.reload()
+
+        return instance.id
+
+
+    def launch_valor(self, valor_id):
+
+        instance = self.aws.instance_launch(valor_id)
+
         return instance.id
 
 
@@ -304,6 +322,13 @@ class ValorManager:
             valor_ids.append(valor_id)
 
         return valor_ids
+
+
+    def stop_valor(self, valor_id):
+
+        instance = self.aws.instance_stop(valor_id)
+
+        return instance.id 
 
 
     def destroy_valor(self, valor_id):
