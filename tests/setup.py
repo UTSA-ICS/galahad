@@ -526,7 +526,8 @@ class Excalibur():
                                           '35.170.157.4/32',
                                           '129.115.2.249/32',
                                           '199.46.124.36/32',
-                                          '128.89.0.0/16' ]
+                                          '128.89.0.0/16',
+                                          '50.53.74.115/32' ]
         for cidr in client_cidrs_to_allow_access:
             security_group.authorize_ingress(
                 CidrIp=cidr,
