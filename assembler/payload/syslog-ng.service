@@ -10,6 +10,7 @@ ExecStart=/usr/sbin/syslog-ng -Fd $SYSLOGNG_OPTS
 ExecReload=/bin/kill -HUP $MAINPID
 EnvironmentFile=-/etc/default/syslog-ng
 EnvironmentFile=-/etc/sysconfig/syslog-ng
+EnvironmentFile=-/etc/virtue-id-env
 StandardOutput=journal
 StandardError=journal
 Restart=on-failure
