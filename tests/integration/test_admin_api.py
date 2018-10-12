@@ -70,8 +70,8 @@ def setup_module():
     base_url = 'https://{0}/virtue/admin'.format(ip)
 
     subprocess.call(['sudo', 'mkdir', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
-                           '/mnt/efs/images/tests/8GB.img'])
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/4GB.img',
+                           '/mnt/efs/images/tests/4GB.img'])
 
 
 def test_application_list():
@@ -328,7 +328,7 @@ def test_virtue_destroy():
     try:
 
         # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
                                'TEST_VIRTUE_DESTROY.img')])
 
