@@ -51,6 +51,18 @@ def create_new_virtue(inst, role_data, user, hard_code_path=None):
     user_virtue = json.loads(epa.virtue_create('jmitchell', new_role['id']))
     assert set(user_virtue.keys()) == set(['id', 'ipAddress'])
 
+    time.sleep(5)
+
+    # Wait for virtue to create
+    virtue = inst.get_obj('cid', user_virtue['id'],
+                          objectClass='OpenLDAPvirtue')
+    ldap_tools.parse_ldap(virtue)
+    while (virtue['state'] == 'CREATING'):
+        time.sleep(2)
+        virtue = inst.get_obj('cid', virtue['id'], objectClass='OpenLDAPvirtue')
+        ldap_tools.parse_ldap(virtue)
+    assert virtue['state'] == 'STOPPED'
+
     # virtue_launch
     ep.virtue_launch('jmitchell', user_virtue['id'])
 
