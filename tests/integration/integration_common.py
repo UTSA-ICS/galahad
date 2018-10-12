@@ -34,16 +34,18 @@ def create_new_virtue(inst, role_data, user, hard_code_path=None):
 
     assert new_role not in ErrorCodes.admin.values()
 
-    # user_role_authorize
-    ret = epa.user_role_authorize(user, new_role['id'])
-    assert ret == json.dumps(ErrorCodes.admin['success'])
+    time.sleep(5)
 
     # Wait for role to create
     role = {'state': 'CREATING'}
     while (role['state'] == 'CREATING'):
         time.sleep(2)
-        role = inst.get_obj('cid', new_role['id'], objectClass='OpenLDAPvirtue')
+        role = inst.get_obj('cid', new_role['id'], objectClass='OpenLDAProle')
         ldap_tools.parse_ldap(role)
+
+    # user_role_authorize
+    ret = epa.user_role_authorize(user, new_role['id'])
+    assert ret == json.dumps(ErrorCodes.admin['success'])
 
     # virtue_create
     user_virtue = json.loads(epa.virtue_create('jmitchell', new_role['id']))
