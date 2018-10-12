@@ -215,9 +215,6 @@ class EndPoint_Admin():
 
             roles = ldap_tools.parse_ldap_list(ldap_roles)
 
-            #for role in roles:
-            #    del role['amiId']
-
             return json.dumps(roles)
 
         except Exception as e:
@@ -504,23 +501,7 @@ class EndPoint_Admin():
     def valor_create(self):
 
         try:
-            # Work around a AWS bug whereby the instance state is not reported
-            # correctly/consistently. Essentially even though the instance is
-            # not in 'stopped' state, aws is reported a stale status of 'stopped'
-            # This will attempt to wait a bit (max 5 secs) to allow EC2 instance
-            # state information to be updated and reported correctly.
-            '''
-            if (aws_state == 'stopped'):
-                for x in range(4):
-                    time.sleep(1)
-                    aws_res.reload()
-                    aws_state = aws_res.state['Name']
-                    if (aws_state != 'stopped'):
-                        break
 
-            if (aws_state == 'shutting-down'):
-                return json.dumps(ErrorCodes.admin['success'])
-            '''
             valor_id = self.valor_api.valor_create()
 
             return json.dumps({'valor_id' : valor_id})

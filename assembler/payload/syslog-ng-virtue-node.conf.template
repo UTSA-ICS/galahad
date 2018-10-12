@@ -9,8 +9,15 @@ source s_auditd {
     file(/var/log/audit/audit.log flags(no-parse));
 };
 
+template add_virtue_id {
+    template("VirtueID: $(env VIRTUE_ID) ${MESSAGE}\n");
+};
 
-destination d_file { file("/var/log/syslog-ng-msg"); };
+destination d_file { 
+    file("/var/log/syslog-ng-msg" 
+        template(add_virtue_id)
+    );
+};
 
 destination d_elastic {
     elasticsearch2(
@@ -27,11 +34,17 @@ destination d_elastic {
         java_truststore_password("changeit")
         http_auth_type("clientcert")
         resource("/etc/syslog-ng/elasticsearch.yml")
-        template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE @timestamp=${ISODATE} @virtue_ip=${HOST})")
+        template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE --pair VirtueID=$(env VIRTUE_ID) @timestamp=${ISODATE} @virtue_ip=${HOST})")
     );
 };
 
-destination d_network { syslog("%s" transport("tcp") template("${S_ISODATE} ${HOST} ${MESSAGE}")); };
+destination d_network { 
+    syslog("%s" 
+        transport("tcp") 
+        template("${S_ISODATE} ${HOST} ${MESSAGE}") 
+        template(add_virtue_id)
+    );
+};
 
 parser p_auditd {
     linux-audit-parser (prefix(".auditd."));
