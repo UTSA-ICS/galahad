@@ -80,7 +80,8 @@ class AdminCLI(base.BaseCLI):
         self.commands['valor list'] = self.valor_list
         self.commands['valor create'] = self.valor_create
         self.commands['valor create pool'] = self.valor_create_pool
-#        self.commands['valor stop'] = self.valor_stop
+        self.commands['valor launch'] = self.valor_launch
+        self.commands['valor stop'] = self.valor_stop
         self.commands['valor destroy'] = self.valor_destroy
         self.commands['valor migrate virtue'] = self.valor_migrate_virtue
 
@@ -353,11 +354,37 @@ class AdminCLI(base.BaseCLI):
 
     def valor_create_pool(self):
 
-        number_of_valors = input('Number of valors: ').strip()
+        number_of_valors = int(input('Number of valors: ').strip())
 
         result = self.session.get(
             self.base_url + '/valor/create_pool',
             params={'number_of_valors': number_of_valors})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_launch(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/launch',
+            params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_stop(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/stop',
+            params={'valor_id': valor_id})
 
         data = result.json()
 
