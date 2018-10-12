@@ -471,7 +471,38 @@ class RethinkDbManager:
 
 class RouterManager:
 
-    ip_address = ''
+    def __init__(self):
+
+        self.ip_address = None
+        self.client = None
 
     def add_valor(self, valor):
-        pass
+        # Call into router to add port to ovs bridge for the
+        # valor being added to the system
+
+        self.ip_address = valor.router_ip
+
+        self.connect_with_ssh()
+
+        add_valor_command = \
+            'cd /mnt/efs/valor/deploy/router && sudo /bin/bash add_valor.sh "{0}"'.format(
+                valor.aws_instance.private_ip_address)
+
+        stdout = self.client.ssh(
+            add_valor_command, output=True)
+        print('[!] add_valor_command : stdout : ' + stdout)
+
+
+    def connect_with_ssh(self):
+
+        self.client = ssh_tool(
+            'ubuntu',
+            self.ip_address,
+            sshkey=os.environ['HOME'] +
+                   '/galahad-keys/default-virtue-key.pem')
+
+        if not self.client.check_access():
+            print('Failed to connect to valor with IP {} using SSH'.format(
+                self.ip_address))
+            raise Exception(
+                'Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
