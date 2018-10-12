@@ -1,10 +1,11 @@
 import rethinkdb as r
 
-RT_IP="172.30.1.54"
+RT_IP="rethinkdb.galahad.com"
 RT_PORT=28015
-RT_CONN=r.connect(RT_IP,RT_PORT)
+RT_CERT={"ca_certs":"/mnt/efs/galahad-keys/rethinkdb_cert.pem"}
+RT_CONN=r.connect(RT_IP,RT_PORT,ssl=RT_CERT)
 
-RT_DB="routing"
+RT_DB="transducers"
 RT_VALOR_TB="galahad"
 RT_TRANS_TB="transducer"
 RT_COMM_TB="commands"

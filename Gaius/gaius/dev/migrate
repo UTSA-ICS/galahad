@@ -1,0 +1,5 @@
+from gaius import RT_CONN
+import rethinkdb as r
+
+r.db("transducers").table("commands").filter({'enabled':False}).update({"enabled":True}).run(RT_CONN)
+print(r.db("transducers").table("commands").run(RT_CONN))

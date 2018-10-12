@@ -1,0 +1,6 @@
+from gaius import RT_CONN
+import rethinkdb as r
+
+r.db("transducers").table("galahad").filter({'guestnet':'10.91.0.3'}).delete().run(RT_CONN)
+r.db("transducers").table("commands").filter({'type':'MIGRATION'}).delete().run(RT_CONN)
+print(r.db("transducers").table("galahad").run(RT_CONN))
