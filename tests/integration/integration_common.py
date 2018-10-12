@@ -17,7 +17,7 @@ from website.services.errorcodes import ErrorCodes
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
-def create_new_virtue(inst, role_data, user):
+def create_new_virtue(inst, role_data, user, hard_code_path=None):
 
     ep = EndPoint('jmitchell', 'Test123!')
     ep.inst = inst
@@ -25,15 +25,10 @@ def create_new_virtue(inst, role_data, user):
     epa = EndPoint_Admin('jmitchell', 'Test123!')
     epa.inst = inst
 
-    # Get number of virtues
-    ldap_virtues = inst.get_objs_of_type('OpenLDAPvirtue')
-    ldap_virtue_len = len(ldap_virtues)
-
     # role_create
-    if ('amiId' in role_data.keys()):
-        ami_id = role_data['amiId']
-        del role_data['amiId']
-        new_role = json.loads(epa.role_create(role_data, hard_code_ami=ami_id))
+    if (hard_code_path != None):
+        new_role = json.loads(epa.role_create(role_data,
+                                              hard_code_path=hard_code_path))
     else:
         new_role = json.loads(epa.role_create(role_data))
 
@@ -43,22 +38,12 @@ def create_new_virtue(inst, role_data, user):
     ret = epa.user_role_authorize(user, new_role['id'])
     assert ret == json.dumps(ErrorCodes.admin['success'])
 
-    # Wait for virtue
-    while (len(ldap_virtues) == ldap_virtue_len):
+    # Wait for role to create
+    role = {'state': 'CREATING'}
+    while (role['state'] == 'CREATING'):
         time.sleep(2)
-        ldap_virtues = inst.get_objs_of_type('OpenLDAPvirtue')
-    virtues = ldap_tools.parse_ldap_list(ldap_virtues)
-
-    for v in virtues:
-        if (v['roleId'] == new_role['id'] and v['username'] == 'NULL'):
-            virtue = v
-
-    ec2 = boto3.resource('ec2')
-    instance = ec2.Instance(virtue['awsInstanceId'])
-    instance.load()
-    instance.wait_until_stopped()
-
-    time.sleep(20)
+        role = inst.get_obj('cid', new_role['id'], objectClass='OpenLDAPvirtue')
+        ldap_tools.parse_ldap(role)
 
     # virtue_create
     user_virtue = json.loads(epa.virtue_create('jmitchell', new_role['id']))
