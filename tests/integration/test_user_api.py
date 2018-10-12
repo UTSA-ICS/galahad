@@ -74,8 +74,8 @@ def setup_module():
     base_url = 'https://{0}/virtue/user'.format(ip)
 
     subprocess.call(['sudo', 'mkdir', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
-                           '/mnt/efs/images/tests/8GB.img'])
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/4GB.img',
+                           '/mnt/efs/images/tests/4GB.img'])
 
     response = session.get('https://{0}/virtue/admin/valor/create'.format(ip))
 
@@ -163,7 +163,7 @@ def test_virtue_launch():
     try:
 
         # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_LAUNCH.img')])
 
@@ -236,7 +236,7 @@ def test_virtue_launch():
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_LAUNCH.img'),
-                               '/mnt/efs/images/tests/8GB.img'])
+                               '/mnt/efs/images/tests/4GB.img'])
 
 
 def test_virtue_stop():
@@ -249,7 +249,7 @@ def test_virtue_stop():
     try:
 
         # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_STOP.img')])
 
@@ -322,7 +322,7 @@ def test_virtue_stop():
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_STOP.img'),
-                               '/mnt/efs/images/tests/8GB.img'])
+                               '/mnt/efs/images/tests/4GB.img'])
 
 
 def test_virtue_application_launch():

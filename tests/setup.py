@@ -639,18 +639,21 @@ class EFS():
             pub_key.decode().strip())
         run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
 
-        # Construct
+        # Construct 8GB Unity
         construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
-                                 ' -b /mnt/efs/images/domains/Unity8GB/disk.img'
+                                 ' -b /mnt/efs/images/base_ubuntu/8GB.img'
                                  ' -p /tmp/unity_key.pub'
                                  ' -o /mnt/efs/images/unities/8GB.img'
                                  ' -w /mnt/efs/tmp'))'''
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
-        # Clean up old stuff
-        mv_cmd = ("sudo('mv /mnt/efs/images/domains/Unity8GB/disk.img"
-                  " /mnt/efs/images/base_ubuntu/8GB.img')")
-        run_ssh_cmd(constructor_ip, self.ssh_key, mv_cmd)
+        # Construct 4GB Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/4GB.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/4GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
         rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
         run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)

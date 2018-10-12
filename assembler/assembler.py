@@ -253,7 +253,7 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
-            os.chmod(mount_path + '/opt/merlin', 0777)
+            os.chmod(mount_path + '/opt/merlin', 0o777)
 
             os.chown(mount_path + '/var/private/ssl', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/var/private/ssl'):
@@ -351,7 +351,7 @@ class Assembler(object):
                     f.write(elastic_yml % (self.elastic_search_host))
 
             # Execute runme.sh with chroot
-            os.chmod(mount_path + '/home/virtue/runme.sh', 0775)
+            os.chmod(mount_path + '/home/virtue/runme.sh', 0o775)
             runme_cmd = ['chroot', mount_path, 'bash', '-c',
                          'cd \"/home/virtue\" && ./runme.sh']
             subprocess.check_call(runme_cmd)
@@ -393,6 +393,7 @@ class Assembler(object):
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'processkiller'])
 
+            # Install the unity-net service for Valor networking
             shutil.copy(payload_dir + '/unity-net.service',
                         mount_path + '/etc/systemd/system')
             shutil.copy(payload_dir + '/unity-net.sh',
@@ -622,10 +623,10 @@ class Assembler(object):
             for path, dirs, files in os.walk(image_mount + '/var/private'):
                 for f in files:
                     os.chown(os.path.join(path, f), 501, 500)
-                    os.chmod(os.path.join(path, f), 0700)
+                    os.chmod(os.path.join(path, f), 0o700)
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 500)
-                    os.chmod(os.path.join(path, d), 0700)
+                    os.chmod(os.path.join(path, d), 0o700)
 
             subprocess.check_call(['chroot', image_mount,
                                    'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
