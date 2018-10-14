@@ -1,21 +1,18 @@
+import json
 import os
 import sys
 import time
-import json
-import requests
-import boto3
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
+
 from website import ldap_tools
 from website.apiendpoint import EndPoint
 from website.apiendpoint_admin import EndPoint_Admin
-from website.aws import AWS
 from website.services.errorcodes import ErrorCodes
-sys.path.insert(0, base_excalibur_dir + '/cli')
-from sso_login import sso_tool
+
 
 def create_new_role(inst, role_data, hard_code_path=None):
 

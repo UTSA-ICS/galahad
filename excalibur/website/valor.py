@@ -1,4 +1,5 @@
 import os
+import time
 
 import boto3
 import botocore
@@ -6,7 +7,7 @@ import rethinkdb
 from aws import AWS
 from boto.utils import get_instance_metadata
 from ssh_tool import ssh_tool
-import time
+
 
 class ValorAPI:
 
@@ -171,8 +172,8 @@ class Valor:
         setup_gaius_command = \
             'cd /mnt/efs/valor/gaius && sudo /bin/bash setup_gaius.sh'
 
-        reboot_node_command = \
-            'sudo reboot'
+        shutdown_node_command = \
+            'sudo shutdown -h now'
 
         stdout = self.client.ssh(
             execute_setup_command, output=True)
@@ -184,22 +185,14 @@ class Valor:
 
         try:
             stdout = self.client.ssh(
-                reboot_node_command, output=True)
-            print('[!] reboot_node : stdout : ' + stdout)
+                shutdown_node_command, output=True)
+            print('[!] shutdown_node : stdout : ' + stdout)
         except:
             # TODO
-            # Currently issueing reboot command causes immediate disconnect and ssh_too throws an error due to that.
+            # Currently the shutdown command is issued it causes immediate disconnect
+            # and ssh_tool throws an error due to that.
             # Ignore the error for now
             pass
-
-        # Wait for 20 seconds for valor node to reboot
-        time.sleep(20)
-
-        if not self.client.check_access():
-            print('Failed to connect to valor with IP {} using SSH after Reboot'.format(
-                self.aws_instance.public_ip_address))
-            raise Exception('Failed to connect to valor with IP {} using SSH after Reboot'.format(
-                self.aws_instance.public_ip_address))
 
 
     def verify_setup(self):
@@ -242,7 +235,6 @@ class ValorManager:
         valors = self.rethinkdb_manager.list_valors()
         virtues = self.rethinkdb_manager.list_virtues()
 
-        empty_valor = None
         for valor in valors:
 
             valor_is_empty = True
@@ -254,12 +246,19 @@ class ValorManager:
                     break
 
             if valor_is_empty:
-                empty_valor = valor
-                break
+                # return this empty valor
+                return valor
 
-        #TODO: if no empty valors are found
+        # If no empty valors are found then create a valor
+        aws = AWS()
 
-        return valor
+        valor_id = self.create_valor(
+            aws.get_subnet_id(),
+            aws.get_sec_group().id)
+
+        self.launch_valor(valor_id)
+
+        return self.rethinkdb_manager.get_valor(valor_id)
 
 
     def create_valor(self, subnet, sec_group):
@@ -294,7 +293,6 @@ class ValorManager:
 
         # valor.verify_setup()
 
-        instance.stop()
         instance.wait_until_stopped()
         instance.reload()
 
@@ -304,6 +302,13 @@ class ValorManager:
     def launch_valor(self, valor_id):
 
         instance = self.aws.instance_launch(valor_id)
+
+        # Wait for 20 seconds for valor node to start
+        time.sleep(20)
+
+        valor = Valor(valor_id)
+
+        valor.connect_with_ssh()
 
         return instance.id
 
@@ -370,6 +375,17 @@ class RethinkDbManager:
         except Exception as error:
             print(error)
 
+
+    def get_valor(self, valor_id):
+
+        response = rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'valor', 'host': valor_id}).run()
+
+        valor = list(response.items)
+
+        # Return the first item in the list as there should only be 1 valor entry
+        # corresponding to the specified valor_id
+        return valor[0]
 
     def list_valors(self):
 

@@ -1,17 +1,18 @@
+import json
 import os
+import subprocess
 import sys
 import time
-import json
-import subprocess
+
 import requests
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
+
 from website import ldap_tools
 from website.ldaplookup import LDAP
-from website.aws import AWS
 from website.services.errorcodes import ErrorCodes
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
