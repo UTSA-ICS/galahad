@@ -81,6 +81,9 @@ def setup_module():
 
     test_valor_id = response.json()['valor_id']
 
+    response = session.get('https://{0}/virtue/admin/valor/launch'.format(ip),
+                           params={'valor_id': test_valor_id})
+    assert (response.json() == {'valor_id': test_valor_id})
 
 
 def teardown_module():
