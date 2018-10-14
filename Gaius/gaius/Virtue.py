@@ -31,6 +31,13 @@ class Virtue():
         subprocess.check_call(['xl','create',CFG_OUT + self.host + '.cfg'])
         print("Virtue() domU created")
 
+    def migrateDomU(self, target_ip):
+        subprocess.check_call(['xl','migrate', self.host, target_ip])
+        print("Virtue() migrated") 
+
     def destroyDomU(self):
-        os.remove(CFG_OUT + self.host + ".cfg")
+        try:
+            os.remove(CFG_OUT + self.host + ".cfg")
+        except:
+            print("Error: {} not found".format(CFG_OUT + self.host + ".cfg"))
         subprocess.check_call(['xl','destroy', self.host])

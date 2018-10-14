@@ -10,7 +10,6 @@ from Virtue import Virtue
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
-        print("Changes __init__")
         threading.Thread.__init__(self)
         self.feed = feed
         self.ip = socket.gethostbyname(socket.gethostname())
@@ -18,16 +17,12 @@ class Changes(threading.Thread):
         self.rt = rt
 
     def run(self):
-        print("Changes run")
         if self.name == "valor":
-            print("self.name == 'valor'")
             self.valor()    
         elif self.name == "migration":
-            print("self.name == 'migration'")
             self.migration()
 
     def valor(self):
-        print("Changes valor\r")
         for change in self.feed:
             if change["type"] == "add":
                 print("change['type'] == 'add'\r")
@@ -41,7 +36,6 @@ class Changes(threading.Thread):
         return doc.next()["id"]
 
     def add(self, change):
-        print("Changes add")
         if change["function"] == "virtue":
             virtue = Virtue(change)
             virtue.create_cfg()
@@ -50,31 +44,48 @@ class Changes(threading.Thread):
                 "transducer_id": virtue.img_path,
                 "virtue_id": self.getid(RT_VALOR_TB, {"host": virtue.host}),
                 "valor_ip": self.ip,
+                "valor_dest": None,
                 "enabled": False,
                 "type": "MIGRATION",
                 "history": [{
                     "valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})}]
             }
             r.db(RT_DB).table(RT_COMM_TB).insert(comm).run(self.rt)
-            print("Virtue transducer object added to commands table")
-            print("Commands table = {}".format(r.db(RT_DB).table(RT_COMM_TB).run(self.rt)))
 
     def remove(self, change):
-        print("Changes remove")
         if change["function"] == "virtue":
             virtue = Virtue(change)
             virtue.destroyDomU()
-            print("Virtue DomU destroyed")
 
     def migrate(self, change):
         print("Changes migrate")
-        r.db(RT_DB).table(RT_COMM_TB).filter({change["valor_ip"]==self.ip}).update({"enabled": False}).run(self.rt)
+        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt).next()
+        print("virtue_dict={}".format(virtue_dict))
+        virtue = Virtue(virtue_dict)
+        virtue.migrateDomU(change["valor_dest"])
+        valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": change["valor_dest"]}).run(self.rt).next()
+        history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": change["virtue_id"]}).run(self.rt).next()["history"]
+        history.append({"valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})})
+        print("history={}".format(history))
+
+        ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
+        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"enabled": False}).run(self.rt)
+        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"valor_ip": change["valor_dest"]}).run(self.rt)
+        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"valor_dest": None}).run(self.rt)
+        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"history": history}).run(self.rt)
+
+        ### Updates Virtue object with new Valor IP
+        r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).update({"address": change["valor_dest"]}).run(self.rt)
+        print("comm table = {}".format(r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).run(self.rt)))
+        print("valor table = {}".format(r.db(RT_DB).table(RT_COMM_TB).filter({"id": change["virtue_id"]}).run(self.rt)))
 
     def migration(self):
         print("Changes migration")
         for change in self.feed:
-            print("change")
+            print("type = {}".format(change["type"]))
+            print("change = {}".format(change))
             if (change["type"] == "change") and change["new_val"]["enabled"]:
+                print("self.migrate")
                 self.migrate(change["new_val"])
 
 class Rethink():
@@ -87,14 +98,11 @@ class Rethink():
     def changes_valor(self, feed):
         for change in feed:
             if change['type'] == 'add':
-                print("change['type'] == 'add'")
                 self.add(change['new_val'])
             elif change['type'] == 'remove':
-                print("change['type'] == 'remove'")
                 self.remove(change['old_val'])
 
     def changes(self):
-        print("Entered changes")
 
         valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue", "address": self.ip}).changes(include_types=True).run(valor_rt)
