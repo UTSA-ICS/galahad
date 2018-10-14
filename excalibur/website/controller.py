@@ -209,7 +209,7 @@ class AssembleRoleThread(threading.Thread):
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
 
         try:
-            subprocess.check_call(['sudo', 'cp',
+            subprocess.check_call(['sudo', 'rsync',
                                    '/mnt/efs/' + self.base_img_path,
                                    '/mnt/efs/' + virtue_path])
 

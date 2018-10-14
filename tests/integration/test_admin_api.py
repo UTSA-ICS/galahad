@@ -70,8 +70,8 @@ def setup_module():
 
     base_url = 'https://{0}/virtue/admin'.format(ip)
 
-    subprocess.call(['sudo', 'mkdir', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/4GB.img',
+    subprocess.call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
                            '/mnt/efs/images/tests/4GB.img'])
 
 
