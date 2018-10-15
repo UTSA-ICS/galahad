@@ -29,6 +29,7 @@ class Changes(threading.Thread):
                 self.add(change["new_val"])
             elif change["type"] == "remove":
                 print("change['type'] == 'remove'\r")
+                print("change = {}".format(change))
                 self.remove(change["old_val"])
 
     def getid(self, table, search):
@@ -60,13 +61,11 @@ class Changes(threading.Thread):
     def migrate(self, change):
         print("Changes migrate")
         virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt).next()
-        print("virtue_dict={}".format(virtue_dict))
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
         valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": change["valor_dest"]}).run(self.rt).next()
         history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": change["virtue_id"]}).run(self.rt).next()["history"]
         history.append({"valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})})
-        print("history={}".format(history))
 
         ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
         r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"enabled": False}).run(self.rt)
@@ -77,15 +76,14 @@ class Changes(threading.Thread):
         ### Updates Virtue object with new Valor IP
         r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).update({"address": change["valor_dest"]}).run(self.rt)
         print("comm table = {}".format(r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).run(self.rt)))
-        print("valor table = {}".format(r.db(RT_DB).table(RT_COMM_TB).filter({"id": change["virtue_id"]}).run(self.rt)))
+        print("virtue table = {}".format(r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt)))
 
     def migration(self):
         print("Changes migration")
         for change in self.feed:
             print("type = {}".format(change["type"]))
-            print("change = {}".format(change))
             if (change["type"] == "change") and change["new_val"]["enabled"]:
-                print("self.migrate")
+                print("change within if statement = {}".format(change))
                 self.migrate(change["new_val"])
 
 class Rethink():

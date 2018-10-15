@@ -8,8 +8,6 @@ class Virtue():
         self.guestnet = v_dict['guestnet']
         self.img_path = v_dict['img_path']
 
-        print("Virtue() created")
-
     def create_cfg(self):
         cfg = open(CFG_OUT + self.host + ".cfg", "w+")
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
@@ -25,19 +23,28 @@ class Virtue():
                   "nameserver=1.1.1.1\"")
         cfg.close()
 
-        print("Virtue() cfg created")
-
     def createDomU(self):
-        subprocess.check_call(['xl','create',CFG_OUT + self.host + '.cfg'])
-        print("Virtue() domU created")
+        try:
+            subprocess.check_call(['xl','create',CFG_OUT + self.host + '.cfg'])
+            print("Virtue() domU created")
+        except:
+            print("Error: Virtue creation failed")
 
     def migrateDomU(self, target_ip):
-        subprocess.check_call(['xl','migrate', self.host, target_ip])
-        print("Virtue() migrated") 
+        try:
+            subprocess.check_call(['xl','migrate', self.host, target_ip])
+            print("Virtue() migrated")
+        except:
+            print("Error: Virtue migration failed") 
 
     def destroyDomU(self):
         try:
             os.remove(CFG_OUT + self.host + ".cfg")
         except:
             print("Error: {} not found".format(CFG_OUT + self.host + ".cfg"))
-        subprocess.check_call(['xl','destroy', self.host])
+
+        try:
+            # Needs to be in separate try statement because virtue may exist when .cfg doesn't
+            subprocess.check_call(['xl','destroy', self.host])
+        except:
+            print("Error: Virtue destruction failed")
