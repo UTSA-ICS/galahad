@@ -1,6 +1,4 @@
-gaius/rethinkdb_client.py
-gaius/virtue_client.py
-gaius/__init__.py
+gaius/gaius.py
 gaius.egg-info/PKG-INFO
 gaius.egg-info/SOURCES.txt
 gaius.egg-info/dependency_links.txt
