@@ -1,16 +1,18 @@
+import json
 import os
+import subprocess
 import sys
 import time
-import json
+
 import requests
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
+
 from website import ldap_tools
 from website.ldaplookup import LDAP
-from website.aws import AWS
 from website.services.errorcodes import ErrorCodes
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
@@ -67,6 +69,10 @@ def setup_module():
     session.verify = settings['verify']
 
     base_url = 'https://{0}/virtue/admin'.format(ip)
+
+    subprocess.call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
+                           '/mnt/efs/images/tests/4GB.img'])
 
 
 def test_application_list():
@@ -154,35 +160,30 @@ def test_role_create():
 
     role_id = response.json()['id']
 
+    time.sleep(1)
+
     role = inst.get_obj('cid', role_id, objectClass='OpenLDAProle', throw_error=True)
     assert role != ()
     ldap_tools.parse_ldap(role)
-    assert role['amiId'][0:4] == 'ami-'
 
-    test_virtue = inst.get_obj('croleId', role_id,
-                               objectClass='OpenLDAPvirtue', throw_error=True)
+    # TODO: Make sure loops like these don't continue forever.
+    while (role['state'] == 'CREATING'):
+        time.sleep(5)
+        role = inst.get_obj('cid', role_id, objectClass='OpenLDAProle')
+        ldap_tools.parse_ldap(role)
 
-    i = 0
-    while (test_virtue == () and i < 120):
-        time.sleep(1)
-        test_virtue = inst.get_obj(
-            'croleId', role_id, objectClass='OpenLDAPvirtue', throw_error=True
-        )
-        i = i + 1
-    assert test_virtue != ()
+    assert role['state'] == 'CREATED'
 
-    ldap_tools.parse_ldap(test_virtue)
-    assert test_virtue['username'] == 'NULL'
-    assert test_virtue['applicationIds'] == []
-    assert test_virtue['awsInstanceId'][0:2] == 'i-'
+    # TODO: Verify that the assembler has been run
+    assert os.path.exists(('/mnt/efs/images/non_provisioned_virtues/'
+                           '{0}.img').format(role['id']))
 
-    aws = AWS()
-    test_virtue = aws.populate_virtue_dict(test_virtue)
-    assert test_virtue['state'] in aws.aws_state_to_virtue_state.values()
-
-    aws.instance_destroy(test_virtue['awsInstanceId'], block=False)
-    inst.del_obj('cid', test_virtue['id'], objectClass='OpenLDAPvirtue',
+    inst.del_obj('cid', role['id'], objectClass='OpenLDAPvirtue',
                  throw_error=True)
+
+    subprocess.check_call(['sudo', 'rm',
+                           ('/mnt/efs/images/non_provisioned_virtues/'
+                            '{0}.img').format(role['id'])])
 
 
 def test_role_list():
@@ -194,6 +195,9 @@ def test_role_list():
         assert set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
             'startingTransducerIds'
+        ]) or set(obj.keys()) == set([
+            'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
+            'startingTransducerIds', 'state'
         ])
 
 
@@ -322,25 +326,13 @@ def test_virtue_destroy():
     response = session.get(base_url + '/virtue/destroy')
     assert response.json() == ErrorCodes.user['unspecifiedError']['result']
 
-    # Load aws_instance_info
-    # Spin up a 'Virtue'
-    aws = AWS()
-    instance = aws.instance_create(
-        image_id='ami-36a8754c',
-        inst_type='t2.small',
-        subnet_id=settings['subnet'],
-        key_name='starlab-virtue-te',
-        tag_key='Project',
-        tag_value='Virtue',
-        sec_group=settings['sec_group'],
-        inst_profile_name='',
-        inst_profile_arn=''
-    )
-    instance.stop()
-    instance.wait_until_stopped()
-
     try:
-        # Populate it in LDAP
+
+        # 'Create' a Virtue
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
+                               ('/mnt/efs/images/provisioned_virtues/'
+                               'TEST_VIRTUE_DESTROY.img')])
+
         virtue = {
             'id': 'TEST_VIRTUE_DESTROY',
             'username': 'jmitchell',
@@ -348,7 +340,8 @@ def test_virtue_destroy():
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
-            'awsInstanceId': instance.id
+            'state': 'STOPPED',
+            'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
         inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
@@ -358,12 +351,14 @@ def test_virtue_destroy():
                                params={'virtueId': 'TEST_VIRTUE_DESTROY'})
         assert response.text == json.dumps(ErrorCodes.admin['success'])
 
-        instance.reload()
-        assert (instance.state['Name'] == 'terminated'
-                or instance.state['Name'] == 'shutting-down')
+        assert not os.path.exists(('/mnt/efs/images/provisioned_virtues/'
+                                   'TEST_VIRTUE_DESTROY.img'))
+
+        assert () == inst.get_obj('cid', 'TEST_VIRTUE_DESTROY',
+                                  objectClass='OpenLDAPvirtue',
+                                  throw_error=True)
 
     except:
         raise
     finally:
         inst.del_obj('cid', 'TEST_VIRTUE_DESTROY', objectClass='OpenLDAPvirtue')
-        instance.terminate()

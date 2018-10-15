@@ -806,3 +806,125 @@ def transducer_list_enabled():
 
         return make_response(
             json.dumps(ErrorCodes.security['unspecifiedError']))
+
+
+@bp.route('/admin/valor/list', methods=['GET'])
+@require_oauth()
+def admin_valor_list():
+
+    valors = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valors = ep.valor_list()
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valors)
+
+
+@bp.route('/admin/valor/create', methods=['GET'])
+@require_oauth()
+def admin_valor_create():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_create()
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/create_pool', methods=['GET'])
+@require_oauth()
+def admin_valor_create_pool():
+
+    valor_ids = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_ids = ep.valor_create_pool(request.args['number_of_valors'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_ids)
+
+
+@bp.route('/admin/valor/launch', methods=['GET'])
+@require_oauth()
+def admin_valor_launch():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_launch(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/stop', methods=['GET'])
+@require_oauth()
+def admin_valor_stop():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_stop(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/destroy', methods=['GET'])
+@require_oauth()
+def admin_valor_destroy():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_destroy(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/migrate_virtue', methods=['GET'])
+@require_oauth()
+def admin_valor_migrate_virtue():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_migrate_virtue(
+            request.args['virtue_id'],
+            request.args['destination_valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+

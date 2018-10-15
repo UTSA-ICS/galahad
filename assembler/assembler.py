@@ -29,14 +29,10 @@ class Assembler(object):
     NAME = ''
 
     def __init__(self,
-                 #build_options,
-                 #docker_login,
                  es_node='https://172.30.1.46:9200',
                  syslog_server='172.30.128.131',
                  rethinkdb_host='172.30.1.45',
                  work_dir='tmp'):
-        #self.build_options = build_options
-        #self.docker_login = docker_login
         self.elastic_search_node = es_node
         self.elastic_search_host = urlparse(es_node).hostname
         self.syslog_server = syslog_server
@@ -168,8 +164,9 @@ class Assembler(object):
         #                       '--size={0}GB'.format(build_options['img_size'])])
         shutil.copy(build_options['base_img'],
                     work_dir + '/disk.img')
+
         # Mount the image
-        mount_path = '/tmp/img_mount'
+        mount_path = work_dir + '/img_mount'
         print('Image created. Mounting at ' + mount_path + '\n')
         if (not os.path.exists(mount_path)):
             os.makedirs(mount_path)
@@ -196,6 +193,12 @@ class Assembler(object):
             mount_dev_cmd = ['mount', '-o', 'bind',
                               '/dev', mount_path + '/dev']
             subprocess.check_call(mount_dev_cmd)
+
+            # If the Ubuntu image wasn't created on the same network,
+            # resolv.conf may have the wrong nameserver set. This nameserver
+            # will be wiped when the VM is launched.
+            with open(mount_path + '/etc/resolv.conf', 'w') as resolv:
+                resolv.write('nameserver 8.8.8.8')
 
             # Update installed packages
             subprocess.check_call(['chroot', mount_path, 'apt-get',
@@ -250,7 +253,7 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
-            os.chmod(mount_path + '/opt/merlin', 0777)
+            os.chmod(mount_path + '/opt/merlin', 0o777)
 
             os.chown(mount_path + '/var/private/ssl', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/var/private/ssl'):
@@ -309,9 +312,11 @@ class Assembler(object):
                 bashrc.write(bashrc_line)
 
             # Add public ssh key to /home/*/.ssh/authorized_hosts
-            shutil.copy(work_dir + '/id_rsa.pub',
+            ssh_key_path = build_options.get('ssh_key',
+                                             work_dir + '/id_rsa.pub')
+            shutil.copy(ssh_key_path,
                         mount_path + '/home/virtue/.ssh/authorized_keys')
-            shutil.copy(work_dir + '/id_rsa.pub',
+            shutil.copy(ssh_key_path,
                         mount_path + '/home/merlin/.ssh/authorized_keys')
 
             # Install Transducers
@@ -346,7 +351,7 @@ class Assembler(object):
                     f.write(elastic_yml % (self.elastic_search_host))
 
             # Execute runme.sh with chroot
-            os.chmod(mount_path + '/home/virtue/runme.sh', 0775)
+            os.chmod(mount_path + '/home/virtue/runme.sh', 0o775)
             runme_cmd = ['chroot', mount_path, 'bash', '-c',
                          'cd \"/home/virtue\" && ./runme.sh']
             subprocess.check_call(runme_cmd)
@@ -387,6 +392,21 @@ class Assembler(object):
 
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'processkiller'])
+
+            # Install the unity-net service for Valor networking
+            shutil.copy(payload_dir + '/unity-net.service',
+                        mount_path + '/etc/systemd/system')
+            shutil.copy(payload_dir + '/unity-net.sh',
+                        mount_path + '/root/')
+
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'unity-net.service'])
+
+            os.chmod(mount_path + '/root/unity-net.sh', 0o744)
+
+            subprocess.check_call(['chroot', mount_path,
+                                   'sed', '-i', '/.*eth0.*/d',
+                                   '/etc/network/interfaces'])
 
             # Reset ownership in user directories
             os.chown(mount_path + '/home/virtue', 500, 500)
@@ -499,7 +519,7 @@ class Assembler(object):
                     self.run_stage(stage_dict, stage)#'''
 
         return_data = ''
-        print("Assembler is done")
+        print("Constructor is done")
         if build_options['env'] == 'aws':
             print("Created instance id: %s, name: %s" % (instance.id, vmname))
             with open(os.path.join(WORK_DIR, "README.md"), 'w') as f:
@@ -525,23 +545,29 @@ class Assembler(object):
 
         elif (build_options['env'] == 'xen'):
 
-            if (not os.path.exists(build_options['output_dir'])):
-                os.makedirs(build_options['output_dir'])
+            output_dir = build_options['output_path']
+            if ('ssh_key' in build_options):
+                output_dir = os.path.dirname(build_options['output_path'])
+
+            if (not os.path.exists(output_dir)):
+                os.makedirs(output_dir)
 
             if (clean):
                 shutil.move(os.path.join(WORK_DIR, 'disk.img'),
-                            build_options['output_dir'])
-                shutil.move(os.path.join(WORK_DIR, 'id_rsa'),
-                            build_options['output_dir'])
-                shutil.move(os.path.join(WORK_DIR, 'id_rsa.pub'),
-                            build_options['output_dir'])
+                            build_options['output_path'])
+                if ('ssh_key' not in build_options):
+                    shutil.move(os.path.join(WORK_DIR, 'id_rsa'),
+                                output_dir)
+                    shutil.move(os.path.join(WORK_DIR, 'id_rsa.pub'),
+                                output_dir)
             else:
                 shutil.copy(os.path.join(WORK_DIR, 'disk.img'),
-                            build_options['output_dir'])
-                shutil.copy(os.path.join(WORK_DIR, 'id_rsa'),
-                            build_options['output_dir'])
-                shutil.copy(os.path.join(WORK_DIR, 'id_rsa.pub'),
-                            build_options['output_dir'])
+                            build_options['output_path'])
+                if ('ssh_key' not in build_options):
+                    shutil.copy(os.path.join(WORK_DIR, 'id_rsa'),
+                                output_dir)
+                    shutil.copy(os.path.join(WORK_DIR, 'id_rsa.pub'),
+                                output_dir)
 
         if clean:
             shutil.rmtree(WORK_DIR)
@@ -556,6 +582,75 @@ class Assembler(object):
                                          check_cloudinit=False)
 
         docker_stage.run()
+
+
+    def provision_virtue(self,
+                         virtue_id,
+                         img_path,
+                         output_path,
+                         virtue_key, # The Virtue's private key
+                         excalibur_key, # Excalibur's public key
+                         rethinkdb_cert): # RethinkDB's SSL cert
+
+        image_mount = '{0}/{1}'.format(os.environ['HOME'], virtue_id)
+        os.mkdir(image_mount)
+
+        try:
+
+            shutil.copy(img_path, output_path)
+
+            subprocess.check_call(['mount',
+                                   output_path,
+                                   image_mount])
+
+            with open(image_mount + '/etc/virtue-id', 'w') as id_file:
+                id_file.write(virtue_id)
+
+            if (not os.path.exists(image_mount + '/var/private/ssl')):
+                os.makedirs(image_mount + '/var/private/ssl')
+
+            with open(image_mount + '/var/private/ssl/virtue_1_key.pem',
+                      'w') as virtue_1_key:
+                virtue_1_key.write(virtue_key)
+            with open(image_mount + '/var/private/ssl/excalibur_pub.pem',
+                      'w') as excalibur_pub:
+                excalibur_pub.write(excalibur_key)
+            with open(image_mount + '/var/private/ssl/rethinkdb_cert.pem',
+                      'w') as rethinkdb_cert_file:
+                rethinkdb_cert_file.write(rethinkdb_cert)
+
+            os.chown(image_mount + '/var/private', 501, 500)
+            for path, dirs, files in os.walk(image_mount + '/var/private'):
+                for f in files:
+                    os.chown(os.path.join(path, f), 501, 500)
+                    os.chmod(os.path.join(path, f), 0o700)
+                for d in dirs:
+                    os.chown(os.path.join(path, d), 501, 500)
+                    os.chmod(os.path.join(path, d), 0o700)
+
+            subprocess.check_call(['chroot', image_mount,
+                                   'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
+
+            with open(image_mount + '/etc/hosts', 'a') as hosts_file:
+                hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
+                hosts_file.write('172.30.1.46 elasticsearch.galahad.com\n')
+
+            subprocess.check_call([
+                'chroot', image_mount, 'sed', '-i',
+                's/host:.*/host: elasticsearch.galahad.com/',
+                '/etc/syslog-ng/elasticsearch.yml'])
+            subprocess.check_call([
+                'chroot', image_mount, 'sed', '-i',
+                's!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!',
+                '/etc/syslog-ng/syslog-ng.conf'])
+
+        except:
+            os.remove(output_path)
+            raise
+        finally:
+            subprocess.call(['umount', image_mount])
+            os.rmdir(image_mount)
+
 
     def create_aws_ami(self, instance, ami_name=None):
 

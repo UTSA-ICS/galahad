@@ -3,6 +3,53 @@ import json
 
 import base
 
+#TODO: need to add exception handling if response cannot be jsonified
+# received an error for data = result.json()
+# received an error for:
+'''
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='54.174.121.195', port=5002): Max retries exceeded with url: /virtue/admin/role/list (Caused by NewConnectionError('<requests.packages.urllib3.connection.VerifiedHTTPSConnection object at 0x7f19dd083780>: Failed to establish a new connection: [Errno 111] Connection refused',))
+'''
+'''
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/requests/adapters.py", line 376, in send
+    timeout=timeout
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 610, in urlopen
+    _stacktrace=sys.exc_info()[2])
+  File "/usr/lib/python3/dist-packages/urllib3/util/retry.py", line 247, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "/usr/lib/python3/dist-packages/six.py", line 685, in reraise
+    raise value.with_traceback(tb)
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 560, in urlopen
+    body=body, headers=headers)
+  File "/usr/lib/python3/dist-packages/urllib3/connectionpool.py", line 379, in _make_request
+    httplib_response = conn.getresponse()
+  File "/usr/lib/python3.5/http/client.py", line 1197, in getresponse
+    response.begin()
+  File "/usr/lib/python3.5/http/client.py", line 297, in begin
+    version, status, reason = self._read_status()
+  File "/usr/lib/python3.5/http/client.py", line 266, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+requests.packages.urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+
+'''
+'''
+Traceback (most recent call last):
+  File "admin.py", line 346, in <module>
+    cli.handle_command(command)
+  File "/home/senofsky/galahad/galahad/excalibur/cli/base.py", line 29, in handle_command
+    print(self.commands[real_command]())
+  File "admin.py", line 305, in valor_create
+    result = self.session.get(self.base_url + '/valor/create')
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 480, in get
+    return self.request('GET', url, **kwargs)
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 468, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/usr/lib/python3/dist-packages/requests/sessions.py", line 576, in send
+    r = adapter.send(request, **kwargs)
+  File "/usr/lib/python3/dist-packages/requests/adapters.py", line 426, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response',))
+'''
 class AdminCLI(base.BaseCLI):
 
     def __init__(self, ip):
@@ -30,8 +77,16 @@ class AdminCLI(base.BaseCLI):
         self.commands['user role unauthorize'] = self.user_role_unauth
         self.commands['virtue create'] = self.virtue_create
         self.commands['virtue destroy'] = self.virtue_destroy
+        self.commands['valor list'] = self.valor_list
+        self.commands['valor create'] = self.valor_create
+        self.commands['valor create pool'] = self.valor_create_pool
+        self.commands['valor launch'] = self.valor_launch
+        self.commands['valor stop'] = self.valor_stop
+        self.commands['valor destroy'] = self.valor_destroy
+        self.commands['valor migrate virtue'] = self.valor_migrate_virtue
 
         #self.commands['usertoken list'] = self.usertoken_list
+
 
     def app_list(self):
 
@@ -39,6 +94,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def resource_get(self):
 
@@ -50,6 +106,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_list(self):
 
         result = self.session.get(self.base_url + '/resource/list')
@@ -57,6 +114,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_attach(self):
 
         resource_id = input('Resource ID: ').strip()
@@ -70,6 +128,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def resource_detach(self):
 
         resource_id = input('Resource ID: ').strip()
@@ -83,6 +142,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def role_create(self):
 
         role_path = input('Role configuration file (json): ')
@@ -112,6 +172,7 @@ class AdminCLI(base.BaseCLI):
 
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def role_list(self):
 
         result = self.session.get(self.base_url + '/role/list')
@@ -119,6 +180,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def system_export(self):
 
         result = self.session.get(self.base_url + '/system/export')
@@ -126,6 +188,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def system_import(self):
 
         data_path = input('Path to .json file: ')
@@ -146,6 +209,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_user(self):
 
         which = input('Which: ').strip()
@@ -156,6 +220,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_app(self):
 
         which = input('Which: ').strip()
@@ -166,6 +231,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def test_import_role(self):
 
         which = input('Which: ').strip()
@@ -176,12 +242,14 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
     
+    
     def user_list(self):
 
         result = self.session.get(self.base_url + '/user/list')
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+    
     
     def user_get(self):
 
@@ -193,6 +261,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def user_virtue_list(self):
 
         user = input('Username: ').strip()
@@ -203,6 +272,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+    
     def user_logout(self):
 
         user = input('Username: ').strip()
@@ -212,6 +282,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def user_role_auth(self):
 
@@ -225,6 +296,7 @@ class AdminCLI(base.BaseCLI):
         
         return json.dumps(data, indent=4, sort_keys=True)
 
+
     def user_role_unauth(self):
 
         user = input('Username: ').strip()
@@ -236,6 +308,7 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
         
         return json.dumps(data, indent=4, sort_keys=True)
+
 
     def virtue_create(self):
 
@@ -249,6 +322,7 @@ class AdminCLI(base.BaseCLI):
 
         return json.dumps(data, indent=4, sort_keys=True)
 
+
     def virtue_destroy(self):
 
         virtue_id = input('Virtue ID: ').strip()
@@ -258,6 +332,94 @@ class AdminCLI(base.BaseCLI):
         data = result.json()
 
         return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_list(self):
+
+        result = self.session.get(self.base_url + '/valor/list')
+
+        data = result.json()
+        
+        return json.dumps(data, indent=4, sort_keys=True)
+
+ 
+    def valor_create(self):
+
+        result = self.session.get(self.base_url + '/valor/create')
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_create_pool(self):
+
+        number_of_valors = int(input('Number of valors: ').strip())
+
+        result = self.session.get(
+            self.base_url + '/valor/create_pool',
+            params={'number_of_valors': number_of_valors})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_launch(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/launch',
+            params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_stop(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/stop',
+            params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_destroy(self):
+
+        valor_id = input('Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/destroy',
+            params={'valor_id': valor_id})
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
+
+    def valor_migrate_virtue(self):
+
+        virtue_id = input('Virtue ID: ').strip()
+        valor_id = input('Destination Valor ID: ').strip()
+
+        result = self.session.get(
+            self.base_url + '/valor/migrate_virtue',
+            params = {
+                'virtue_id': virtue_id,
+                'destination_valor_id': valor_id,
+            })
+
+        data = result.json()
+
+        return json.dumps(data, indent=4, sort_keys=True)
+
 
 if (__name__ == '__main__'):
 

@@ -1,0 +1,4 @@
+from gaius import RT_CONN
+import rethinkdb as r
+
+print(r.db("transducers").table("commands").run(RT_CONN))

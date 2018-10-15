@@ -1,0 +1,12 @@
+from gaius import RT_CONN
+import rethinkdb as r
+
+#r.db("transducers").table("commands").filter({'enabled':False}).update({"valor_ip":"172.30.57.100","enabled":True}).run(RT_CONN)
+#doc = r.db("transducers").table("commands").filter({"valor_ip": "172.30.5.188"}).run(RT_CONN).next()
+#doc["valor_ip"] = "172.30.57.100"
+#doc["enabled"] = True
+#r.db("transducers").table("commands").filter({"valor_ip": "172.30.5.188"}).replace(doc).run(RT_CONN)
+
+r.db("transducers").table("commands").filter({"valor_ip": "172.30.5.188"}).update({"valor_dest":"172.30.57.100"}).run(RT_CONN)
+r.db("transducers").table("commands").filter({"valor_ip": "172.30.5.188"}).update({"enabled": True}).run(RT_CONN)
+print(r.db("transducers").table("commands").run(RT_CONN))
