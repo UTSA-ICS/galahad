@@ -1,0 +1,8 @@
+[Unit]
+Description=Unity network configuration service
+
+[Service]
+ExecStart=/root/unity-net.sh
+
+[Install]
+WantedBy=multi-user.target

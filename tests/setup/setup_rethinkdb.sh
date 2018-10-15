@@ -16,7 +16,7 @@ sudo mkdir -p /var/private/ssl/
 
 sudo cp galahad-config/rethinkdb_keys/rethinkdb.pem      /var/private/ssl/
 sudo cp galahad-config/rethinkdb_keys/rethinkdb_cert.pem /var/private/ssl/
-sudo cp galahad-config/excalibur_private_key.pem         /var/private/ssl/excalibur_key.pem
+sudo cp galahad-config/excalibur_private_key.pem         /var/private/ssl/
 
 sudo chown rethinkdb:rethinkdb /var/private/ssl/*.pem
 sudo chmod 600 /var/private/ssl/*.pem

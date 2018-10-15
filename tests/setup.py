@@ -15,6 +15,9 @@ import logging
 import os
 import sys
 import time
+import threading
+import subprocess
+import logging
 from pprint import pformat
 
 import boto3
@@ -541,7 +544,9 @@ class Excalibur():
 
 
 class EFS():
+
     def __init__(self, stack_name, ssh_key):
+
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
@@ -559,43 +564,14 @@ class EFS():
 
         return efs_id
 
-    def setup_efs(self):
-        client = boto3.client('ec2')
-        efs = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['ValorEFSServer']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name]
-            }, {
-                'Name': 'instance-state-name',
-                'Values': ['running']
-            }])
-        efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
-                format(self.ssh_key, 'setup/setup_efs_server.sh', efs_ip)).run()
-
-        # Call the setup_efs.sh script
-        _cmd = "bash('./setup_efs_server.sh {}')".format(self.efs_id)
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-
-    def setup_valorNodes(self):
-
-        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
-        self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
-        self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
-
-    def configure_instance(self, tag_logical_id, setup_filename):
+    def setup_valor_router(self):
         # Get the IP for the instances specified by the logical-id tag
         client = boto3.client('ec2')
         efs = client.describe_instances(
             Filters=[{
                 'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': [tag_logical_id]
+                'Values': ['ValorRouter']
             }, {
                 'Name': 'tag:aws:cloudformation:stack-name',
                 'Values': [self.stack_name]
@@ -604,18 +580,83 @@ class EFS():
                 'Values': ['running']
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format('ValorRouter', public_ip))
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                format(self.ssh_key, setup_filename, public_ip)).run()
+                format(self.ssh_key, 'setup_valor_router.sh', public_ip)).run()
 
         # Execute the setup file on the instance
-        _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
+        _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
+
+    def setup_ubuntu_img(self):
+        # Get IP address of xen-tools node
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        instance = efs['Reservations'][0]['Instances'][0]
+
+        # scp workaround payload to node
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/sources.list ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+
+        # Apply workarounds and create the ubuntu image
+        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
+        run_ssh_cmd(instance['PublicIpAddress'], self.ssh_key, ssh_cmd)
+
+        # Delete xen tool instance
+        #client.terminate_instances(InstanceIds=[instance['InstanceId']])
+
+    def setup_unity_img(self, constructor_ip):
+
+        pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
+                                 stdout=subprocess.PIPE).stdout
+
+        pub_key_cmd = '''bash('-c "echo {0} > /tmp/unity_key.pub"')'''.format(
+            pub_key.decode().strip())
+        run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
+
+        # Construct 8GB Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/8GB.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/8GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+        # Construct 4GB Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/4GB.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/4GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+        rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
+        run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
 
 
 
@@ -625,15 +666,21 @@ def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, gi
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, env_type, import_stack_name)
 
+    efs = EFS(stack_name, path_to_key)
+    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img)
+    setup_ubuntu_img_thread.start()
+
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    efs = EFS(stack_name, path_to_key)
-    efs.setup_efs()
-    efs.setup_valorNodes()
+    valor_node_thread = threading.Thread(target=efs.setup_valor_router)
+    valor_node_thread.start()
+
+    setup_ubuntu_img_thread.join()
+    efs.setup_unity_img(excalibur.server_ip)
 
 
 def parse_args():
@@ -689,7 +736,8 @@ def parse_args():
     parser.add_argument(
         "--aws_config",
         type=str,
-        required=True,
+        required=False,
+        default='setup/aws_config',
         help="AWS config to be used to communicate with AWS")
     parser.add_argument(
         "--aws_keys",
@@ -704,10 +752,6 @@ def parse_args():
         "--setup_stack",
         action="store_true",
         help="setup the galahad/virtue stack only")
-    parser.add_argument(
-        "--setup_valor",
-        action="store_true",
-        help="setup EFS and Valor migration ecosystem test environment")
     parser.add_argument(
         "--list_stacks",
         action="store_true",
@@ -763,18 +807,6 @@ def main():
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
-
-    if args.setup_valor:
-
-        stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
-        #
-        excalibur = Excalibur(args.stack_name, args.path_to_key)
-        excalibur.update_security_rules()
-        #
-        efs = EFS(args.stack_name, args.path_to_key)
-        efs.setup_efs()
-        efs.setup_valorNodes()
 
     if args.list_stacks:
         Stack().list_stacks()

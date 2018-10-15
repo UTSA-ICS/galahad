@@ -8,9 +8,10 @@ import subprocess
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
-from controller import CreateVirtueThread
+from controller import CreateVirtueThread, AssembleRoleThread
 from . import ldap_tools
 from aws import AWS
+from valor import ValorAPI
 
 from assembler.assembler import Assembler
 
@@ -18,10 +19,13 @@ DEBUG_PERMISSIONS = False
 
 
 class EndPoint_Admin():
-    def __init__(self, user, password):
-        self.inst = LDAP(user, password)
 
+    def __init__(self, user, password):
+
+        self.inst = LDAP(user, password)
         self.inst.bind_ldap()
+        self.valor_api = ValorAPI()
+
 
     def application_list(self):
 
@@ -37,6 +41,7 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
 
     def resource_get(self, resourceId):
 
@@ -90,8 +95,6 @@ class EndPoint_Admin():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'DELETING'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
@@ -137,8 +140,10 @@ class EndPoint_Admin():
     def role_create(
         self,
         role,
-        use_aws=True,
-        hard_code_ami='ami-017f03c010f273b92'):
+        use_ssh=True,
+        hard_code_path='images/unities/8GB.img'):
+
+        # TODO: Assemble on a running VM
 
         try:
             role_keys = [
@@ -187,35 +192,14 @@ class EndPoint_Admin():
 
             new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
 
-            # Todo: Create AWS AMI file with BBN's assembler
-            new_role['amiId'] = hard_code_ami
-
-            ldap_role = ldap_tools.to_ldap(new_role, 'OpenLDAProle')
-
-            ret = self.inst.add_obj(ldap_role, 'roles', 'cid')
-
-            if (ret != 0):
+            try:
+                # Call a controller thread to create and assemble the new image
+                thr = AssembleRoleThread(self.inst.email, self.inst.password,
+                                         new_role, hard_code_path,
+                                         use_ssh=use_ssh)
+            except AssertionError:
                 return json.dumps(ErrorCodes.admin['storageError'])
-
-            if (use_aws == True):
-                # Call a controller thread to create a new standby virtue on a new thread
-                thr = CreateVirtueThread(self.inst.email, self.inst.password,
-                                         new_role['id'], role=new_role)
-                thr.start()
-            else:
-                # Write a dummy virtue to LDAP
-                virtue = {
-                    'id': 'virtue_{0}{1}'.format(new_role['name'],
-                                                 int(time.time())),
-                    'username': 'NULL',
-                    'roleId': new_role['id'],
-                    'applicationIds': [],
-                    'resourceIds': new_role['startingResourceIds'],
-                    'transducerIds': new_role['startingTransducerIds'],
-                    'awsInstanceId': 'NULL'
-                }
-                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-                self.inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+            thr.start()
 
             return json.dumps({'id': new_role['id'], 'name': new_role['name']})
 
@@ -230,9 +214,6 @@ class EndPoint_Admin():
             assert ldap_roles != None
 
             roles = ldap_tools.parse_ldap_list(ldap_roles)
-
-            for role in roles:
-                del role['amiId']
 
             return json.dumps(roles)
 
@@ -396,7 +377,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     # Create a virtue for the specified role, but do not launch it yet
-    def virtue_create(self, username, roleId, use_aws=True):
+    def virtue_create(self, username, roleId, use_nfs=True):
 
         try:
             user = None
@@ -418,13 +399,13 @@ class EndPoint_Admin():
             if (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
 
+            # TODO: If role is still CREATING or FAILED, return error
+
             virtue = None
             curr_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
             for v in curr_virtues:
                 ldap_tools.parse_ldap(v[1])
-                if (v[1]['username'] == 'NULL' and v[1]['roleId'] == roleId):
-                    virtue = v[1]
-                elif (v[1]['username'] == username
+                if (v[1]['username'] == username
                       and v[1]['roleId'] == roleId):
                     return json.dumps(
                         ErrorCodes.user['virtueAlreadyExistsForRole'])
@@ -449,33 +430,34 @@ class EndPoint_Admin():
 
                 transducers.append(transducer)
 
-            if (virtue == None):
-                # Pending virtue does not exist
-                return json.dumps(ErrorCodes.user['resourceCreationError'])
+            virtue_id = 'Virtue_{0}_{1}'.format(role['name'], int(time.time()))
 
-            virtue['username'] = username
+            thr = CreateVirtueThread(self.inst.email, self.inst.password,
+                                     role['id'], username, virtue_id, role=role)
 
-            virtue_ldap = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-
-            ret = self.inst.modify_obj(
-                'cid',
-                virtue_ldap['cid'],
-                virtue_ldap,
-                objectClass='OpenLDAPvirtue',
-                throw_error=True)
-
-            if (ret != 0):
-                return json.dumps(ErrorCodes.user['resourceCreationError'])
+            if (use_nfs):
+                thr.start()
+            else:
+                virtue = {
+                    'id': virtue_id,
+                    'username': username,
+                    'roleId': roleId,
+                    'applicationIds': [],
+                    'resourceIds': role['startingResourceIds'],
+                    'transducerIds': role['startingTransducerIds'],
+                    'state': 'STOPPED',
+                    'ipAddress': 'NULL'
+                }
+                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+                self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
 
             # Return the whole thing
             # return json.dumps( virtue )
 
             # Return a json of the id and ip address
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
             return json.dumps({
-                'ipAddress': virtue['ipAddress'],
-                'id': virtue['id']
+                'ipAddress': 'NULL',
+                'id': virtue_id
             })
 
         except:
@@ -483,7 +465,7 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Destroy the specified stopped virtue
-    def virtue_destroy(self, virtueId, use_aws=True):
+    def virtue_destroy(self, virtueId, use_nfs=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -494,43 +476,130 @@ class EndPoint_Admin():
             #if (virtue['username'] != username):
             #    return json.dumps(ErrorCodes.admin['userNotAuthorized'])
 
-            if (use_aws == False):
-                self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return json.dumps(ErrorCodes.admin['success'])
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
-            aws_res = aws.instance_destroy(virtue['awsInstanceId'], block=False)
-
-            aws_state = aws_res.state['Name']
-
-            # Work around a AWS bug whereby the instance state is not reported
-            # correctly/consistently. Essentially even though the instance is
-            # not in 'stopped' state, aws is reported a stale status of 'stopped'
-            # This will attempt to wait a bit (max 5 secs) to allow EC2 instance
-            # state information to be updated and reported correctly.
-            if (aws_state == 'stopped'):
-                for x in range(4):
-                    time.sleep(1)
-                    aws_res.reload()
-                    aws_state = aws_res.state['Name']
-                    if (aws_state != 'stopped'):
-                        break
-
-            if (aws_state == 'shutting-down'):
-                return json.dumps(ErrorCodes.admin['success'])
-
-            elif (aws_state == 'terminated'):
+            try:
+                if (use_nfs):
+                    subprocess.check_call(
+                        ['sudo', 'rm',
+                         '/mnt/efs/images/provisioned_virtues/' +
+                         virtue['id'] + '.img'])
                 self.inst.del_obj('cid', virtue['id'], throw_error=True)
-                return json.dumps(ErrorCodes.admin['success'])
-
-            else:
+            except:
+                print('Error while deleting {0}:\n{1}'.format(
+                    virtue['id'], traceback.format_exc()))
                 return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+            return json.dumps(ErrorCodes.admin['success'])
 
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_create(self):
+
+        try:
+
+            valor_id = self.valor_api.valor_create()
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_launch(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_launch(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_stop(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_stop(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_destroy(self, valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_destroy(valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_list(self):
+
+        try:
+
+            valors = self.valor_api.valor_list()
+
+            return json.dumps(valors)
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_create_pool(self, number_of_valors):
+
+        try:
+
+            valor_ids = self.valor_api.valor_create_pool(number_of_valors)
+
+            return json.dumps({'valor_ids' : valor_ids})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def valor_migrate_virtue(self, virtue_id, destination_valor_id):
+
+        try:
+
+            valor_id = self.valor_api.valor_migrate_virtue(
+                virtue_id,
+                destination_valor_id)
+
+            return json.dumps({'valor_id' : valor_id})
+
+        except:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+
             return json.dumps(ErrorCodes.user['unspecifiedError'])

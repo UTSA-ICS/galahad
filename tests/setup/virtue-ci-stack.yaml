@@ -488,47 +488,12 @@ Resources:
       SecurityGroups:
         - !Ref VirtUEAdminSecGroup
       SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
-  ValorEFSServer:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-aa2ea6d0
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          GroupSet:
-            - !Ref VirtUEEFSSecGroup
-          PrivateIpAddress: 172.30.1.47
-          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorEFSServer'
-        - !If
-          - CreateStarLabResources
-          -
-            Key: Dependency
-            Value: !Ref VirtUEAdminSubnet
-          - !Ref "AWS::NoValue"
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.53
@@ -551,7 +516,7 @@ Resources:
     DependsOn:
       - VirtUEValorEFSTarget
       - RethinkDB
-  ValorNode51:
+  XenPVMBuilder:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-01c5d8354c604b662
@@ -563,7 +528,6 @@ Resources:
             DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.51
           SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
@@ -573,39 +537,7 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-ValorNode51'
-        - !If
-          - CreateStarLabResources
-          -
-            Key: Dependency
-            Value: !Ref VirtUEAdminSubnet
-          - !Ref "AWS::NoValue"
-    DependsOn:
-      - VirtUEValorEFSTarget
-      - RethinkDB
-  ValorNode52:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-01c5d8354c604b662
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.52
-          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorNode52'
+              - '-XenPVMBuilder'
         - !If
           - CreateStarLabResources
           -
@@ -666,23 +598,6 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - RethinkDB
-  ValorEFSServerDNSRecord:
-    Type: 'AWS::Route53::RecordSet'
-    Properties:
-      HostedZoneId: !Ref VirtueHostedZone
-      Name: !Join
-          - ''
-          - - 'efs-server.'
-            - 'galahad.'
-            - 'com'
-            - '.'
-      Type: A
-      TTL: '900'
-      ResourceRecords:
-        - !GetAtt ValorEFSServer.PrivateIp
-    DependsOn:
-        - VirtueHostedZone
-        - ValorEFSServer
   ValorRouterDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:

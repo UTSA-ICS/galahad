@@ -1,5 +1,0 @@
-#!/bin/bash
-#puts gaius in the home/ubuntu directory and starts the changefeed
-cp -R /mnt/nfs/deploy/compute/gaius /home/ubuntu
-cd /home/ubuntu/gaius/changefeed
-./run.py &

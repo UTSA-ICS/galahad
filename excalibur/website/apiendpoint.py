@@ -1,13 +1,17 @@
 import os
+import time
 import json
 import traceback
 import subprocess
 import shlex
+import paramiko
+from paramiko import SSHClient
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
 from aws import AWS
+from valor import ValorManager, RethinkDbManager
 
 DEBUG_PERMISSIONS = False
 
@@ -81,13 +85,10 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        aws = AWS()
-                        virtue = aws.populate_virtue_dict(v)
-                        virtue_ip = virtue['ipAddress']
+                        virtue_ip = v['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
-                del role['amiId']
 
                 return json.dumps(role)
 
@@ -111,7 +112,6 @@ class EndPoint():
             ldap_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
             virtues = ldap_tools.parse_ldap_list(ldap_virtues)
 
-            aws = AWS()
             for roleId in user['authorizedRoleIds']:
                 role = self.inst.get_obj('cid', roleId, 'openLDAProle')
                 if (role == None or role == ()):
@@ -123,12 +123,10 @@ class EndPoint():
 
                 for v in virtues:
                     if (v['username'] == username and v['roleId'] == roleId):
-                        virtue = aws.populate_virtue_dict(v)
-                        virtue_ip = virtue['ipAddress']
+                        virtue_ip = v['ipAddress']
                         break
 
                 role['ipAddress'] = virtue_ip
-                del role['amiId']
 
                 roles.append(role)
 
@@ -148,14 +146,11 @@ class EndPoint():
 
             virtues_ret = []
 
-            aws = AWS()
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
 
                 if (virtue[1]['username'] == username):
-                    v = aws.populate_virtue_dict(virtue[1])
-                    del v['awsInstanceId']
-                    virtues_ret.append(v)
+                    virtues_ret.append(virtue[1])
 
             return json.dumps(virtues_ret)
 
@@ -173,9 +168,6 @@ class EndPoint():
             ldap_tools.parse_ldap(virtue)
 
             if (virtue['username'] == username or DEBUG_PERMISSIONS):
-                aws = AWS()
-                virtue = aws.populate_virtue_dict(virtue)
-                del virtue['awsInstanceId']
                 return json.dumps(virtue)
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
@@ -185,7 +177,7 @@ class EndPoint():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Launch the specified virtue, which must have already been created
-    def virtue_launch(self, username, virtueId, use_aws=True):
+    def virtue_launch(self, username, virtueId, use_valor=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -195,12 +187,6 @@ class EndPoint():
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
-
-            if (use_aws == False):
-                return json.dumps(ErrorCodes.user['success'])
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['state'] == 'RUNNING'
                     or virtue['state'] == 'LAUNCHING'):
@@ -209,10 +195,79 @@ class EndPoint():
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeLaunched'])
 
-            instance = aws.instance_launch(virtue['awsInstanceId'])
+            if (use_valor):
+                valor_manager = ValorManager()
+                rdb_manager = RethinkDbManager()
 
-            if (instance.state['Name'] != 'running'):
-                return json.dumps(ErrorCodes.user['serverLaunchError'])
+                valor = valor_manager.get_empty_valor()
+
+                try:
+                    virtue['ipAddress'] = rdb_manager.add_virtue(
+                        valor['address'],
+                        virtue['id'],
+                        '/mnt/efs/images/provisioned_virtues/' + virtue['id'] + '.img')
+
+                except AssertionError:
+                    return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
+
+            virtue['state'] = 'LAUNCHING'
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+            self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
+                                 objectClass='OpenLDAPvirtue', throw_error=True)
+
+            # wait until sshable
+            success = False
+            max_attempts = 5
+
+            # TODO: Remove this variable before merging into master
+            see_no_evil = True
+
+            if not use_valor:
+                virtue['state'] = 'RUNNING'
+            elif see_no_evil:
+                virtue['state'] = 'RUNNING'
+            else:
+
+                for attempt_number in range(max_attempts):
+
+                    try:
+
+                        time.sleep(2)
+
+                        client = SSHClient()
+
+                        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                        client.load_system_host_keys()
+
+                        client.connect(
+                            virtue['ipAddress'],
+                            username='ubuntu',
+                            key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
+
+                        print('Successfully connected to {}'.format(
+                            virtue['ipAddress'],))
+                        success = True
+
+                        break
+
+                    except Exception as e:
+                        print(e)
+                        print('Attempt {0} failed to connect').format(attempt_number+1)
+
+                if (not success):
+                    rdb_manager.remove_virtue(virtue['id'])
+                    virtue['state'] = 'STOPPED'
+                    ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+                    self.inst.modify_obj(
+                        'cid', virtue['id'], ldap_virtue,
+                        objectClass='OpenLDAPvirtue', throw_error=True)
+                    return json.dumps(ErrorCodes.user['serverLaunchError'])
+
+                virtue['state'] = 'RUNNING'
+
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+            self.inst.modify_obj('cid', virtue['id'], ldap_virtue,
+                                 objectClass='OpenLDAPvirtue', throw_error=True)
 
             return json.dumps(ErrorCodes.user['success'])
 
@@ -221,7 +276,7 @@ class EndPoint():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     # Stop the specified virtue, but do not destroy it
-    def virtue_stop(self, username, virtueId, use_aws=True):
+    def virtue_stop(self, username, virtueId, use_valor=True):
 
         try:
             virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
@@ -232,22 +287,24 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (use_aws == False):
-                return json.dumps(ErrorCodes.user['success'])
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
-
             if (virtue['state'] == 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueAlreadyStopped'])
             elif (virtue['state'] != 'RUNNING'):
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeStopped'])
 
-            instance = aws.instance_stop(virtue['awsInstanceId'])
-
-            if (instance.state['Name'] != 'stopped'):
+            try:
+                if (use_valor):
+                    rdb_manager = RethinkDbManager()
+                    rdb_manager.remove_virtue(virtue['id'])
+            except AssertionError:
                 return json.dumps(ErrorCodes.user['serverStopError'])
+            else:
+                virtue['state'] = 'STOPPED'
+                ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+                self.inst.modify_obj(
+                    'cid', virtue['id'], ldap_virtue,
+                    objectClass='OpenLDAPvirtue', throw_error=True)
 
             return json.dumps(ErrorCodes.user['success'])
 
@@ -263,9 +320,6 @@ class EndPoint():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.user['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
@@ -329,9 +383,6 @@ class EndPoint():
             if (virtue == ()):
                 return json.dumps(ErrorCodes.user['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
-
-            aws = AWS()
-            virtue = aws.populate_virtue_dict(virtue)
 
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])

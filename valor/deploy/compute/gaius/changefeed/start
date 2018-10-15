@@ -1,9 +1,0 @@
-#!/bin/bash
-#not finished
-type=$1
-if $type == "compute":
-        echo "compute"
-if $type == "valor":
-        echo "valor"
-if $type == "unity":
-        echo "unity"
