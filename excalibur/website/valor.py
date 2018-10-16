@@ -170,7 +170,7 @@ class Valor:
                 self.guestnet, self.router_ip)
 
         setup_gaius_command = \
-            'cd /mnt/efs/valor/gaius && sudo /bin/bash setup_gaius.sh'
+            'cd /mnt/efs/valor && sudo /bin/bash setup_gaius.sh'
 
         shutdown_node_command = \
             'sudo shutdown -h now'
