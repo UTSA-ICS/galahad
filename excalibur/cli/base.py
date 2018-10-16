@@ -36,13 +36,18 @@ class BaseCLI:
     def login(self):
         self.username = input('Email: ').strip()
         password = getpass.getpass('Password: ').strip()
-        client_id = input('Client ID: ').strip()
+
+        app_name = input('OAuth APP name (Default name \'APP_1\' Press Enter): ').strip()
+
+        if app_name == '':
+            app_name = 'APP_1'
+
         self.logout()
 
         if (not self.sso.login(self.username, password)):
             return 'Failed to login'
 
-        if (not self.get_token(client_id)):
+        if (not self.get_token(app_name)):
             return 'Failed to login'
 
         return 'Successfully logged in'
@@ -53,9 +58,14 @@ class BaseCLI:
 
         return 'Logged out'
 
-    def get_token(self, client_id):
+    def get_token(self, app_name):
 
         redirect = 'https://{0}:5002/virtue/test'.format(self.ip)
+
+        client_id = self.sso.get_app_client_id(app_name)
+        if (client_id == None):
+            client_id = self.sso.create_app(app_name, redirect)
+            assert client_id
 
         code = self.sso.get_oauth_code(client_id, redirect)
 

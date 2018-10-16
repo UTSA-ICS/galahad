@@ -375,12 +375,7 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
-        ami_id = request.args.get('ami_id')
-        if (ami_id == None):
-            ret = ep.role_create(json.loads(request.args['role']))
-        else:
-            ret = ep.role_create(json.loads(request.args['role']),
-                                 hard_code_ami=ami_id)
+        ret = ep.role_create(json.loads(request.args['role']))
 
     except:
         print("Unexpected error:", sys.exc_info())
