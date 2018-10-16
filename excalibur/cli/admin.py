@@ -157,16 +157,7 @@ class AdminCLI(base.BaseCLI):
         except json.decoder.JSONDecodeError:
             return 'Json file has invalid format.'
 
-        ami_id = input('AMI ID for the new role (Optional): ')
-
-        if (ami_id[:4] == 'ami-'):
-            result = self.session.get(self.base_url + '/role/create',
-                                      params={
-                                          'role': json.dumps(role),
-                                          'ami_id': ami_id
-                                      })
-        else:
-            result = self.session.get(self.base_url + '/role/create',
+        result = self.session.get(self.base_url + '/role/create',
                                       params={'role': json.dumps(role)})
         data = result.json()
 
