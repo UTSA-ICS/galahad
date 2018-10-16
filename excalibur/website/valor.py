@@ -53,7 +53,9 @@ class ValorAPI:
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id):
-        return self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
+        return self.valor_manager.migrate_virtue(
+            virtue_id,
+            destination_valor_id)
 
 
 
@@ -347,13 +349,27 @@ class ValorManager:
 
         virtue = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'virtue',
-            'host' : virtue_id}).run()
+            'host' : virtue_id}).run().next()
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
-            'address' : virtue['address']}).run()
+            'address' : virtue['address']}).run().next()
 
-        current_valor_id = current_valor['host']
+
+        destination_valor = rethinkdb.db('transducers').table('galahad').filter({
+            'function' : 'valor',
+            'host' : destination_valor_id}).run().next()
+
+        current_valor_ip_address = current_valor['address']
+        destination_valor_ip_address = destination_valor['address']
+
+        r.db("transducers").table("commands") \
+            .filter({"valor_ip": current_valor_ip_address}) \
+            .update({"valor_dest": destination_valor_ip_address}).run()
+
+        r.db("transducers").table("commands") \
+            .filter({"valor_ip": current_valor_ip_address}) \
+            .update({"enabled": True}).run()
 
 
 
