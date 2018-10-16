@@ -210,7 +210,7 @@ def test_virtue_calls():
         objectClass='OpenLDAPvirtue',
         throw_error=True)
     ldap_tools.parse_ldap(real_virtue)
-    assert real_virtue['state'] == 'RUNNING'
+    assert 'RUNNING' in real_virtue['state']
 
     # virtue_application_launch
     assert (json.dumps(ErrorCodes.user['userNotAuthorized']) ==
