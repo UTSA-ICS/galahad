@@ -195,7 +195,7 @@ def test_virtue_launch():
             throw_error=True)
         ldap_tools.parse_ldap(real_virtue)
 
-        assert real_virtue['state'] == 'RUNNING'
+        assert 'RUNNING' in real_virtue['state']
 
         rethink_virtue = rethink_manager.get_virtue('TEST_VIRTUE_LAUNCH')
 
