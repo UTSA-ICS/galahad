@@ -188,7 +188,7 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (virtue['state'] == 'RUNNING'
+            if ('RUNNING' in virtue['state']
                     or virtue['state'] == 'LAUNCHING'):
                 return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
             elif (virtue['state'] != 'STOPPED'):
@@ -225,7 +225,7 @@ class EndPoint():
             if not use_valor:
                 virtue['state'] = 'RUNNING'
             elif see_no_evil:
-                virtue['state'] = 'RUNNING'
+                virtue['state'] = 'RUNNING (Unverified)'
             else:
 
                 for attempt_number in range(max_attempts):
@@ -289,7 +289,7 @@ class EndPoint():
 
             if (virtue['state'] == 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueAlreadyStopped'])
-            elif (virtue['state'] != 'RUNNING'):
+            elif ('RUNNING' not in virtue['state']):
                 return json.dumps(
                     ErrorCodes.user['virtueStateCannotBeStopped'])
 
@@ -324,7 +324,7 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (virtue['state'] != 'RUNNING' and use_ssh):
+            if ('RUNNING' not in virtue['state'] and use_ssh):
                 return json.dumps(ErrorCodes.user['virtueNotRunning'])
 
             app = self.inst.get_obj('cid', applicationId,
@@ -387,7 +387,7 @@ class EndPoint():
             if (virtue['username'] != username):
                 return json.dumps(ErrorCodes.user['userNotAuthorized'])
 
-            if (virtue['state'] != 'RUNNING' and use_ssh):
+            if ('RUNNING' not in virtue['state'] and use_ssh):
                 return json.dumps(ErrorCodes.user['virtueNotRunning'])
 
             app = self.inst.get_obj('cid', applicationId,
