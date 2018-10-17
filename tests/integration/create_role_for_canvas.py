@@ -1,8 +1,9 @@
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
+
 import boto3
 
 file_path = os.path.realpath(__file__)
@@ -13,8 +14,6 @@ from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.apiendpoint import EndPoint
 from website.apiendpoint_admin import EndPoint_Admin
-from website.aws import AWS
-from website.services.errorcodes import ErrorCodes
 
 
 def parse_args():

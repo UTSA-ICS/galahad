@@ -1,8 +1,9 @@
-import os
-import sys
 import json
-import time
+import os
 import subprocess
+import sys
+import time
+
 import requests
 
 file_path = os.path.realpath(__file__)

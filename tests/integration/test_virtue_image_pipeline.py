@@ -1,12 +1,12 @@
-import pytest
 import json
 import os
-import sys
-import time
-import boto3
-import requests
 import shlex
 import subprocess
+import sys
+import time
+
+import boto3
+import requests
 
 # For excalibur methods (API, etc)
 file_path = os.path.realpath(__file__)

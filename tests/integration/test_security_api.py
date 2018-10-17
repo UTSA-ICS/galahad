@@ -1,12 +1,10 @@
-import pytest
+import datetime
 import json
 import os
 import sys
 import time
-import datetime
-import boto3
-import requests
 
+import requests
 from integration_common import create_new_virtue
 
 # For excalibur methods (API, etc)
@@ -19,14 +17,7 @@ sys.path.insert(0, base_excalibur_dir)
 sys.path.insert(0, '..')
 
 from common import ssh_tool
-from website import ldap_tools
 from website.ldaplookup import LDAP
-from website.apiendpoint import EndPoint
-from website.apiendpoint_admin import EndPoint_Admin
-from website.apiendpoint_security import EndPoint_Security
-from website.services.errorcodes import ErrorCodes
-from website.aws import AWS
-from website.controller import CreateVirtueThread
 
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
