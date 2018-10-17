@@ -32,19 +32,17 @@ while (( $DPKG_LOCK -nz )); do
 done
 
 #
-# Set the Network System Variables
+# Set the IP Tables rules
 #
-sed -i 's/#net.ipv4.ip_forward/net.ipv4.ip_forward/' /etc/sysctl.conf
-echo "#" >> /etc/sysctl.conf
-echo "# Network variables for Valor Network" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.rp_filter=0" >> /etc/sysctl.conf
-echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
+iptables -A FORWARD --in-interface br0 -j ACCEPT
+iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
+# Now save the iptables rules by installing the persistent package
+DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 
 #
 # Configure a port in the ovs switch with Router's remote IP
 #
 while read line; do
-        echo $line
 	IFS='.' read -r -a array <<< "$line"
 	port="vxlan"${array[3]}
 	ovs-vsctl add-port hello-br0 $port -- set interface $port type=vxlan options:remote_ip=$line
