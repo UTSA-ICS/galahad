@@ -121,7 +121,7 @@ def __setup_virtue():
 
     assert virtue_ip is not None
 
-    virtue_ssh = ssh_tool('ubuntu', virtue_ip, sshkey='~/default-user-key.pem')
+    virtue_ssh = ssh_tool('virtue', virtue_ip, sshkey='~/default-user-key.pem')
 
     # Check that the virtue is ready and reachable via ssh
     assert virtue_ssh.check_access()
