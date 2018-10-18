@@ -363,11 +363,11 @@ class ValorManager:
         current_valor_ip_address = current_valor['address']
         destination_valor_ip_address = destination_valor['address']
 
-        r.db("transducers").table("commands") \
+        rethinkdb.db("transducers").table("commands") \
             .filter({"valor_ip": current_valor_ip_address}) \
             .update({"valor_dest": destination_valor_ip_address}).run()
 
-        r.db("transducers").table("commands") \
+        rethinkdb.db("transducers").table("commands") \
             .filter({"valor_ip": current_valor_ip_address}) \
             .update({"enabled": True}).run()
 
