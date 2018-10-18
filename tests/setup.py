@@ -662,17 +662,13 @@ def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, gi
     setup_ubuntu_img_thread.start()
 
     excalibur = Excalibur(stack_name, path_to_key)
-    excalibur_setup_thread = threading.Thread(target=excalibur.setup,
-                                              args=(branch, github_key, aws_config, aws_keys, user_key))
-    excalibur_setup_thread.start()
+    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    valor_node_thread = threading.Thread(target=efs.setup_valor_router)
-    valor_node_thread.start()
+    efs.setup_valor_router()
 
-    excalibur_setup_thread.join()
     setup_ubuntu_img_thread.join()
 
     setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
