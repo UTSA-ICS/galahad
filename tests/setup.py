@@ -644,7 +644,7 @@ class EFS():
                                  ' -b /mnt/efs/images/base_ubuntu/{0}'
                                  ' -p /tmp/{1}_unity_key.pub'
                                  ' -o /mnt/efs/images/unities/{0}'
-                                 ' -w /mnt/efs/tmp'))'''.format(image_name, image_name.split('.')[0])
+                                 ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
         #rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
@@ -654,7 +654,6 @@ class EFS():
 
 def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, github_key, aws_config,
           aws_keys, branch, user_key):
-
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, env_type, import_stack_name)
 
@@ -663,8 +662,8 @@ def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, gi
     setup_ubuntu_img_thread.start()
 
     excalibur = Excalibur(stack_name, path_to_key)
-    excalibur_setup_thread = threading.Thread(target=excalibur.setup(branch, github_key, aws_config, aws_keys,
-                                                                     user_key))
+    excalibur_setup_thread = threading.Thread(target=excalibur.setup,
+                                              args=(branch, github_key, aws_config, aws_keys, user_key))
     excalibur_setup_thread.start()
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
@@ -675,9 +674,16 @@ def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, gi
 
     excalibur_setup_thread.join()
     setup_ubuntu_img_thread.join()
-    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img(excalibur.server_ip, '8GB.img'))
+
+    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip, '8GB.img'))
     setup_8GB_unity_thread.start()
-    efs.setup_unity_img(excalibur.server_ip, '4GB.img')
+
+    setup_4GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip, '4GB.img'))
+    setup_4GB_unity_thread.start()
+
+    setup_4GB_unity_thread.join()
     setup_8GB_unity_thread.join()
 
 
