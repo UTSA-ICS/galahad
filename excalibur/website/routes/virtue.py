@@ -22,7 +22,7 @@ from ..services.oauth2 import require_oauth
 from ..services.errorcodes import ErrorCodes
 from authlib.flask.oauth2 import current_token
 
-bp = Blueprint('virtue', inspect.currentframe().f_code.co_name)
+bp = Blueprint('virtue', __name__)
 
 
 def get_endpoint():
@@ -439,24 +439,13 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
-        ami_id = request.args.get('ami_id')
-        if (ami_id == None):
-            ret = ep.role_create(json.loads(request.args['role']))
-            log_to_elasticsearch('Create admin role',
-                                 extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
-                                 func_name=inspect.currentframe().f_code.co_name)
-        else:
-            ret = ep.role_create(json.loads(request.args['role']),
-                                 hard_code_ami=ami_id)
-            log_to_elasticsearch('Create admin role',
-                                 extra={'user': get_user(), 'role_id': request.args['role'],
-                                        'ami_id': request.args['ami_id']}, ret=ret,
-                                 func_name=inspect.currentframe().f_code.co_name)
-
+        ret = ep.role_create(json.loads(request.args['role']))
+        log_to_elasticsearch('Create admin role',
+                             extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
-
 
     return make_response(ret)
 
@@ -651,7 +640,6 @@ def admin_user_role_authorize():
 
     except:
         print("Unexpected error:", sys.exc_info())
-
 
     return make_response(ret)
 
@@ -912,3 +900,125 @@ def transducer_list_enabled():
 
         return make_response(
             json.dumps(ErrorCodes.security['unspecifiedError']))
+
+
+@bp.route('/admin/valor/list', methods=['GET'])
+@require_oauth()
+def admin_valor_list():
+
+    valors = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valors = ep.valor_list()
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valors)
+
+
+@bp.route('/admin/valor/create', methods=['GET'])
+@require_oauth()
+def admin_valor_create():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_create()
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/create_pool', methods=['GET'])
+@require_oauth()
+def admin_valor_create_pool():
+
+    valor_ids = []
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_ids = ep.valor_create_pool(request.args['number_of_valors'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_ids)
+
+
+@bp.route('/admin/valor/launch', methods=['GET'])
+@require_oauth()
+def admin_valor_launch():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_launch(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/stop', methods=['GET'])
+@require_oauth()
+def admin_valor_stop():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_stop(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/destroy', methods=['GET'])
+@require_oauth()
+def admin_valor_destroy():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_destroy(request.args['valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+
+
+@bp.route('/admin/valor/migrate_virtue', methods=['GET'])
+@require_oauth()
+def admin_valor_migrate_virtue():
+
+    valor_id = ''
+
+    try:
+
+        ep = get_admin_endpoint()
+        valor_id = ep.valor_migrate_virtue(
+            request.args['virtue_id'],
+            request.args['destination_valor_id'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(valor_id)
+

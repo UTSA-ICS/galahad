@@ -1,3 +1,7 @@
+import shutil
+import boto3
+import traceback
+import base64
 from ldaplookup import LDAP
 import ldap_tools
 from aws import AWS
@@ -9,6 +13,8 @@ import shlex
 import subprocess
 import os
 from common import ssh_tool
+
+from assembler.assembler import Assembler
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -81,7 +87,8 @@ class BackgroundThread(threading.Thread):
 
 
 class CreateVirtueThread(threading.Thread):
-    def __init__(self, ldap_user, ldap_password, role_id, role=None):
+    def __init__(self, ldap_user, ldap_password, role_id, user, virtue_id,
+                 role=None):
         super(CreateVirtueThread, self).__init__()
 
         self.inst = LDAP(ldap_user, ldap_password)
@@ -89,7 +96,13 @@ class CreateVirtueThread(threading.Thread):
         self.role_id = role_id
         self.role = role
 
+        self.username = user
+        self.virtue_id = virtue_id
+
     def run(self):
+
+        # Local Dir for storing of keys, this will be replaced when key management is implemented
+        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
 
         thread_list.append(self)
 
@@ -108,113 +121,149 @@ class CreateVirtueThread(threading.Thread):
         else:
             role = self.role
 
-        # Create by calling AWS
-        aws = AWS()
-        ip = '{0}/32'.format(aws.get_public_ip())
-        subnet = aws.get_subnet_id()
-        sec_group = aws.get_sec_group()
-
-        try:
-            # Allow SSH from excalibur node
-            sec_group.authorize_ingress(
-                CidrIp=ip,
-                FromPort=22,
-                IpProtocol='tcp',
-                ToPort=22
-            )
-        except botocore.exceptions.ClientError:
-            print('ClientError encountered while adding sec group rule. ' +
-                  'Rule probably exists already.')
-        try:
-            # TODO:
-            # This is for testing and needs to be moved into cloud formation or env setup.
-            # List of current allowable cidrs
-            canvas_client_cidr = '70.121.205.81/32 172.3.30.184/32 35.170.157.4/32 129.115.2.249/32'
-            for cidr in canvas_client_cidr.split():
-                sec_group.authorize_ingress(
-                    CidrIp=cidr,
-                    FromPort=6761,
-                    IpProtocol='tcp',
-                    ToPort=6771
-                )
-        except botocore.exceptions.ClientError:
-            print('ClientError encountered while adding sec group rule. ' +
-                  'Rule probably exists already.')
-
-        instance = aws.instance_create(
-            image_id=role['amiId'],
-            inst_type='t2.small',
-            subnet_id=subnet,
-            key_name='starlab-virtue-te',
-            tag_key='Project',
-            tag_value='Virtue',
-            sec_group=sec_group.id,
-            inst_profile_name='',
-            inst_profile_arn='')
-
         virtue = {
-            'id': 'Virtue_{0}_{1}'.format(role['name'], int(time.time())),
-            'username': 'NULL',
+            'id': self.virtue_id,
+            'username': self.username,
             'roleId': self.role_id,
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
-            'awsInstanceId': instance.id
+            'state': 'CREATING',
+            'ipAddress': 'NULL'
         }
         ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-        self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+        assert self.inst.add_obj(ldap_virtue, 'virtues', 'cid') == 0
 
-        self.set_virtue_keys(virtue['id'], instance.public_ip_address)
+        virtue_path = 'images/provisioned_virtues/' + virtue['id'] + '.img'
 
-        instance.stop()
-        instance.wait_until_stopped()
-        instance.reload()
+        try:
 
-    def check_virtue_access(self, ssh_inst):
-        # Check if the virtue is accessible:
-        for i in range(10):
-            out = ssh_inst.ssh('uname -a', option='ConnectTimeout=10')
-            if out == 255:
-                time.sleep(30)
-            else:
-                print('Successfully connected to {}'.format(ssh_inst.ip))
-                result = True
-                return result
-        if result != True:
-            return False
+            # For now generate keys and store in local dir
+            subprocess.check_output(shlex.split(
+                ('ssh-keygen -t rsa -f {0}/{1}.pem -C'
+                 ' "Virtue Key for {1}" -N ""').format(key_dir, virtue['id'])))
 
-    def set_virtue_keys(self, virtue_id, instance_ip):
-        # Local Dir for storing of keys, this will be replaced when key management is implemented
-        key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
+            with open(key_dir + '/' + virtue['id'] + '.pem',
+                      'r') as virtue_key_file:
+                virtue_key = virtue_key_file.read().strip()
+            with open(key_dir + '/excalibur_pub.pem',
+                      'r') as excalibur_key_file:
+                excalibur_key = excalibur_key_file.read().strip()
+            with open(key_dir + '/rethinkdb_cert.pem',
+                      'r') as rdb_cert_file:
+                rdb_cert = rdb_cert_file.read().strip()
 
-        # For now generate keys and store in local dir
-        subprocess.check_output(shlex.split(
-            'ssh-keygen -t rsa -f {0}/{1}.pem -C "Virtue Key for {1}" -N ""'.format(key_dir, virtue_id)))
+            subprocess.check_call(['sudo', 'python',
+                                   os.environ['HOME'] + '/galahad/excalibur/' + \
+                                   'call_provisioner.py',
+                                   '-i', virtue['id'],
+                                   '-b', '/mnt/efs/images/non_provisioned_virtues/' +
+                                   role['id'] + '.img',
+                                   '-o', '/mnt/efs/' + virtue_path,
+                                   '-v', virtue_key,
+                                   '-e', excalibur_key,
+                                   '-r', rdb_cert])
 
-        ssh_inst = ssh_tool('ubuntu', instance_ip, '{0}/default-virtue-key.pem'.format(key_dir))
-        # Check if virtue is accessible.
-        result = self.check_virtue_access(ssh_inst)
+            virtue['state'] = 'STOPPED'
+            ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
+            assert self.inst.modify_obj('cid', virtue['id'], ldap_virtue) == 0
+        except:
+            print('Error while creating Virtue for role {0}:\n{1}'.format(
+                role['id'], traceback.format_exc()))
+            assert self.inst.del_obj('cid', virtue['id'],
+                                     objectClass='OpenLDAPvirtue',
+                                     throw_error=True) == 0
+            os.remove('{0}/{1}.pem'.format(key_dir, virtue['id']))
+            os.remove('{0}/{1}.pem.pub'.format(key_dir, virtue['id']))
+            os.remove('/mnt/efs/' + virtue_path)
 
-        if result == True:
-            # Populate a virtue ID
-            ssh_inst.ssh('sudo su - root -c "echo {0} > /etc/virtue-id"'.format(virtue_id))
-            ssh_inst.ssh('sudo su - root -c "echo VIRTUE_ID={0} > /etc/virtue-id-env"'.format(virtue_id))
-            # Now populate virtue Merlin Dir with this key.
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, virtue_id), '/tmp/')
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'excalibur_pub'), '/tmp/')
-            ssh_inst.scp_to('{0}/{1}.pem'.format(key_dir, 'rethinkdb_cert'), '/tmp/')
-            #
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/virtue_1_key.pem'.format(virtue_id))
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('excalibur_pub'))
-            ssh_inst.ssh('sudo mv /tmp/{0}.pem /var/private/ssl/{0}.pem'.format('rethinkdb_cert'))
-            #
-            ssh_inst.ssh('sudo chmod -R 700 /var/private;sudo chown -R merlin.virtue /var/private/')
-            ssh_inst.ssh('sudo sed -i \'/.*rethinkdb.*/d\' /etc/hosts')
-            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts"')
-            ssh_inst.ssh('sudo su - root -c "echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts"')
-            ssh_inst.ssh('sudo sed -i \'s/host:.*/host: elasticsearch.galahad.com/\' /etc/syslog-ng/elasticsearch.yml')
-            ssh_inst.ssh('sudo sed -i \'s!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!\' /etc/syslog-ng/syslog-ng.conf')
-            ssh_inst.ssh('sudo systemctl restart merlin')
-            ssh_inst.ssh('sudo systemctl restart syslog-ng')
-        else:
-            raise Exception("Error accessing the Virtue with ID {0} and IP {1}".format(virtue_id, instance_ip))
+class AssembleRoleThread(threading.Thread):
+
+    def __init__(self, ldap_user, ldap_password, role,
+                 base_img_path,
+                 use_ssh=True):
+        super(AssembleRoleThread, self).__init__()
+
+        self.inst = LDAP(ldap_user, ldap_password)
+
+        # Going to need to write to LDAP
+        #self.inst.bind_ldap()
+        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+        self.inst.get_ldap_connection()
+        self.inst.conn.simple_bind_s(dn, 'Test123!')
+
+        self.role = role
+
+        self.base_img_path = base_img_path
+        self.use_ssh = use_ssh
+
+    def run(self):
+
+        self.role['state'] = 'CREATING'
+
+        ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+        ret = self.inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
+
+        assert ret == 0
+
+        virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
+
+        try:
+            subprocess.check_call(['sudo', 'rsync',
+                                   '/mnt/efs/' + self.base_img_path,
+                                   '/mnt/efs/' + virtue_path])
+
+            if (self.use_ssh):
+                # TODO: Assemble role
+
+                # Launch by adding a 'virtue' to RethinkDB
+                #valor_manager = ValorManager()
+                #valor = ValorManager.get_empty_valor()
+                #valor_manager.rethinkdb_manager.add_virtue(
+                #    valor['address'],
+                #    self.role['id'],
+                #    'images/non_provisioned_virtues/' + self.role['id'])
+
+                #time.sleep(5)
+
+                # Get IP to ssh
+                # Get Docker login command
+                ecr = boto3.client('ecr')
+                docker_auth_token = ecr.get_authorization_token()[
+                    'authorizationData'][0]
+                docker_cmd = 'docker login -u AWS -p {0} {1}'.format(
+                    base64.b64decode(
+                        docker_auth_token['authorizationToken']).split(':')[-1],
+                    docker_auth_token['proxyEndpoint'])
+
+                print('docker_cmd: ' + docker_cmd)
+
+                # Run assembler
+                assembler = Assembler(work_dir='{0}/{1}'.format(
+                    os.environ['HOME'],
+                    self.role['id']))
+                #assembler.assemble_running_vm(self.role['applicationIds'],
+                #                              docker_cmd,
+                #                              ssh_host)
+
+            self.role['state'] = 'CREATED'
+            ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+            ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
+                                       objectClass='OpenLDAProle',
+                                       throw_error=True)
+
+            assert ret == 0
+
+        except:
+            print('Error while assembling role {0}:\n{1}'.format(
+                self.role['id'],
+                traceback.format_exc()))
+
+            self.role['state'] = 'FAILED'
+            ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
+            ret = self.inst.modify_obj('cid', self.role['id'], ldap_role,
+                                       objectClass='OpenLDAProle',
+                                       throw_error=True)
+        finally:
+            #valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
+            pass

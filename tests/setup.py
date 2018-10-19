@@ -9,15 +9,20 @@
 # -
 ###
 
+import argparse
+import json
+import logging
 import os
 import sys
-import boto3
-import json
 import time
-import argparse
+import threading
+import subprocess
 import logging
-from sultan.api import Sultan, SSHConfig
 from pprint import pformat
+
+import boto3
+import botocore
+from sultan.api import Sultan, SSHConfig
 
 # File names
 STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
@@ -69,7 +74,7 @@ class Stack():
         return file.read()
 
 
-    def setup_stack(self, stack_template, stack_name, suffix_value):
+    def setup_stack(self, stack_template, stack_name, suffix_value, env_type='StarLab', import_stack_name='None'):
 
         self.stack_template = stack_template
         self.stack_name = stack_name
@@ -85,6 +90,12 @@ class Stack():
             }, {
                 'ParameterKey': 'NameSuffix',
                 'ParameterValue': self.suffix_value
+            }, {
+                'ParameterKey': 'EnvType',
+                'ParameterValue': env_type
+            }, {
+                'ParameterKey': 'ImportStackName',
+                'ParameterValue': import_stack_name
             }])
 
         logger.info('Starting up Stack [{}] ...'.format(self.stack_name))
@@ -145,9 +156,9 @@ class Stack():
 
 
     def terminate_non_stack_instances(self, stack_name):
-        cloudformation = boto3.resource('cloudformation')
-        vpc_resource = cloudformation.StackResource(stack_name, 'VirtUEVPC')
-        vpc_id = vpc_resource.physical_resource_id
+        excalibur = Excalibur(stack_name, None)
+        vpc_id = excalibur.vpc_id
+
         # Now find all instances in ec2 within the VPC but without the stack tags.
         ec2 = boto3.client('ec2')
 
@@ -304,7 +315,11 @@ class Excalibur():
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.server_ip = self.get_excalibur_server_ip()
+        self.server_ip = None
+        self.vpc_id = None
+        self.subnet_id = None
+        self.default_security_group_id = None
+        self.update_aws_info()
         # Write out excalibur IP to a file
         self.write_excalibur_ip(self.server_ip)
 
@@ -313,7 +328,7 @@ class Excalibur():
         with open(EXCALIBUR_IP, 'w') as f:
             f.write(excalibur_ip)
 
-    def get_excalibur_server_ip(self):
+    def update_aws_info(self):
 
         client = boto3.client('ec2')
 
@@ -329,7 +344,15 @@ class Excalibur():
                 'Values': ['running']
             }])
 
-        return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        self.server_ip = server['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+        self.vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
+
+        self.subnet_id = server['Reservations'][0]['Instances'][0]['SubnetId']
+
+        for group in server['Reservations'][0]['Instances'][0]['SecurityGroups']:
+            if group['GroupName'] == 'default':
+                self.default_security_group_id = group['GroupId']
 
 
     def setup_keys(self, github_key, user_key):
@@ -464,18 +487,14 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
-        client = boto3.client('cloudformation')
-        subnet = client.describe_stack_resource(
-            StackName=self.stack_name, LogicalResourceId='VirtUEAdminSubnet')
-        subnet = subnet['StackResourceDetail']['PhysicalResourceId']
         aws_instance_info = {}
         aws_instance_info['image_id'] = 'ami-aa2ea6d0'
         aws_instance_info['inst_type'] = 't2.micro'
-        aws_instance_info['subnet_id'] = subnet
+        aws_instance_info['subnet_id'] = self.subnet_id
         aws_instance_info['key_name'] = 'starlab-virtue-te'
         aws_instance_info['tag_key'] = 'Project'
         aws_instance_info['tag_value'] = 'Virtue'
-        aws_instance_info['sec_group'] = self.get_default_security_group_id()
+        aws_instance_info['sec_group'] = self.default_security_group_id
         aws_instance_info['inst_profile_name'] = ''
         aws_instance_info['inst_profile_arn'] = ''
 
@@ -491,57 +510,43 @@ class Excalibur():
 
         return aws_instance_info
 
-    def get_vpc_id(self):
-        ec2 = boto3.resource('ec2')
-        vpc_filter = [{
-            'Name': 'tag-key',
-            'Values': ['aws:cloudformation:stack-name']
-        }, {
-            'Name': 'tag-value',
-            'Values': [self.stack_name]
-        }]
-        vpc_id = list(ec2.vpcs.filter(Filters=vpc_filter))[0].id
-        return vpc_id
-
-    def get_default_security_group_id(self):
-        client = boto3.client('ec2')
-        vpc_id = self.get_vpc_id()
-        group_filter = [{
-            'Name': 'group-name',
-            'Values': ['default']
-        }, {
-            'Name': 'vpc-id',
-            'Values': [vpc_id]
-        }]
-        group_id = client.describe_security_groups(Filters=group_filter)
-        return group_id['SecurityGroups'][0]['GroupId']
 
     def update_security_rules(self):
-        group_id = self.get_default_security_group_id()
         ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(group_id)
-        client_cidrs_to_allow_access =  [ '{}/32'.format(self.server_ip),
-                                          '70.121.205.81/32',
-                                          '45.31.214.87/32',
-                                          '35.170.157.4/32',
-                                          '129.115.2.249/32',
-                                          '199.46.124.36/32',
-                                          '128.89.0.0/16' ]
+        security_group = ec2.SecurityGroup(self.default_security_group_id)
+        client_cidrs_to_allow_access = ['{}/32'.format(self.server_ip),
+                                        '70.121.205.81/32',
+                                        '45.31.214.87/32',
+                                        '35.170.157.4/32',
+                                        '129.115.2.249/32',
+                                        '199.46.124.36/32',
+                                        '128.89.0.0/16',
+                                        '128.244.0.0/16',
+                                        '50.53.74.115/32']
         for cidr in client_cidrs_to_allow_access:
-            security_group.authorize_ingress(
-                CidrIp=cidr,
-                FromPort=22,
-                ToPort=22,
-                IpProtocol='TCP')
-            security_group.authorize_ingress(
-                CidrIp=cidr,
-                FromPort=5002,
-                ToPort=5002,
-                IpProtocol='TCP')
+            try:
+                security_group.authorize_ingress(
+                    CidrIp=cidr,
+                    FromPort=22,
+                    ToPort=22,
+                    IpProtocol='TCP')
+                security_group.authorize_ingress(
+                    CidrIp=cidr,
+                    FromPort=5002,
+                    ToPort=5002,
+                    IpProtocol='TCP')
+            except botocore.exceptions.ClientError:
+                # If Security Rule exists then move on
+                # This should only happen if the default security
+                # group is hosted off a VPC created by a different
+                # stack i.e for the JHUAPL stack
+                pass
 
 
 class EFS():
+
     def __init__(self, stack_name, ssh_key):
+
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
@@ -559,43 +564,14 @@ class EFS():
 
         return efs_id
 
-    def setup_efs(self):
-        client = boto3.client('ec2')
-        efs = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['ValorEFSServer']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name]
-            }, {
-                'Name': 'instance-state-name',
-                'Values': ['running']
-            }])
-        efs_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
 
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.'.
-                format(self.ssh_key, 'setup/setup_efs_server.sh', efs_ip)).run()
-
-        # Call the setup_efs.sh script
-        _cmd = "bash('./setup_efs_server.sh {}')".format(self.efs_id)
-        run_ssh_cmd(efs_ip, self.ssh_key, _cmd)
-
-    def setup_valorNodes(self):
-
-        self.configure_instance('ValorRouter', 'setup_valor_router.sh')
-        self.configure_instance('ValorNode51', 'setup_valor_compute.sh')
-        self.configure_instance('ValorNode52', 'setup_valor_compute.sh')
-
-    def configure_instance(self, tag_logical_id, setup_filename):
+    def setup_valor_router(self):
         # Get the IP for the instances specified by the logical-id tag
         client = boto3.client('ec2')
         efs = client.describe_instances(
             Filters=[{
                 'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': [tag_logical_id]
+                'Values': ['ValorRouter']
             }, {
                 'Name': 'tag:aws:cloudformation:stack-name',
                 'Values': [self.stack_name]
@@ -604,26 +580,95 @@ class EFS():
                 'Values': ['running']
             }])
         public_ip = efs['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format(tag_logical_id, public_ip))
+        logger.info('Public IP for instance with logical-id [{}] is [{}]'.format('ValorRouter', public_ip))
 
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                format(self.ssh_key, setup_filename, public_ip)).run()
+                format(self.ssh_key, 'setup_valor_router.sh', public_ip)).run()
 
         # Execute the setup file on the instance
-        _cmd = "bash('./{} {}')".format(setup_filename, self.efs_id)
+        _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
         run_ssh_cmd(public_ip, self.ssh_key, _cmd)
 
 
+    def setup_ubuntu_img(self):
+        # Get IP address of xen-tools node
+        client = boto3.client('ec2')
+        efs = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]
+            }, {
+                'Name': 'instance-state-name',
+                'Values': ['running']
+            }])
+        instance = efs['Reservations'][0]['Instances'][0]
+
+        # scp workaround payload to node
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/sources.list ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
+                format(self.ssh_key, instance['PublicIpAddress'])).run()
+
+        # Apply workarounds and create the ubuntu image
+        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
+        run_ssh_cmd(instance['PublicIpAddress'], self.ssh_key, ssh_cmd)
+
+        # Delete xen tool instance
+        #client.terminate_instances(InstanceIds=[instance['InstanceId']])
+
+    def setup_unity_img(self, constructor_ip):
+
+        pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
+                                 stdout=subprocess.PIPE).stdout
+
+        pub_key_cmd = '''bash('-c "echo {0} > /tmp/unity_key.pub"')'''.format(
+            pub_key.decode().strip())
+        run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
+
+        # Construct 8GB Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/8GB.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/8GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+        # Construct 4GB Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/4GB.img'
+                                 ' -p /tmp/unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/4GB.img'
+                                 ' -w /mnt/efs/tmp'))'''
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+        rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
+        run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
 
 
-def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
+
+def setup(path_to_key, stack_name, stack_suffix, env_type, import_stack_name, github_key, aws_config,
           aws_keys, branch, user_key):
 
     stack = Stack()
-    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, env_type, import_stack_name)
+
+    efs = EFS(stack_name, path_to_key)
+    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img)
+    setup_ubuntu_img_thread.start()
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
@@ -631,9 +676,11 @@ def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    efs = EFS(stack_name, path_to_key)
-    efs.setup_efs()
-    efs.setup_valorNodes()
+    valor_node_thread = threading.Thread(target=efs.setup_valor_router)
+    valor_node_thread.start()
+
+    setup_ubuntu_img_thread.join()
+    efs.setup_unity_img(excalibur.server_ip)
 
 
 def parse_args():
@@ -666,6 +713,21 @@ def parse_args():
         help=
         "The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument(
+        "--env_type",
+        type=str,
+        default='StarLab',
+        choices=['StarLab', 'JHUAPL'],
+        required=False,
+        help=
+        "The Environment Type specifying the Deployment to StarLab or JHUAPL")
+    parser.add_argument(
+        "--import_stack",
+        type=str,
+        default='None',
+        required=False,
+        help=
+        "The Name of the Stack containing resources that will be imported for use in this stack")
+    parser.add_argument(
         "-b",
         "--branch_name",
         type=str,
@@ -674,7 +736,8 @@ def parse_args():
     parser.add_argument(
         "--aws_config",
         type=str,
-        required=True,
+        required=False,
+        default='setup/aws_config',
         help="AWS config to be used to communicate with AWS")
     parser.add_argument(
         "--aws_keys",
@@ -689,10 +752,6 @@ def parse_args():
         "--setup_stack",
         action="store_true",
         help="setup the galahad/virtue stack only")
-    parser.add_argument(
-        "--setup_valor",
-        action="store_true",
-        help="setup EFS and Valor migration ecosystem test environment")
     parser.add_argument(
         "--list_stacks",
         action="store_true",
@@ -738,28 +797,16 @@ def main():
 
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
-              args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name, args.default_user_key)
+              args.env_type, args.import_stack, args.github_repo_key, args.aws_config,
+              args.aws_keys, args.branch_name, args.default_user_key)
 
     if args.setup_stack:
 
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.env_type, args.import_stack)
         #
         excalibur = Excalibur(args.stack_name, args.path_to_key)
         excalibur.update_security_rules()
-
-    if args.setup_valor:
-
-        stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix)
-        #
-        excalibur = Excalibur(args.stack_name, args.path_to_key)
-        excalibur.update_security_rules()
-        #
-        efs = EFS(args.stack_name, args.path_to_key)
-        efs.setup_efs()
-        efs.setup_valorNodes()
 
     if args.list_stacks:
         Stack().list_stacks()

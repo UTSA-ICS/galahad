@@ -11,9 +11,25 @@ Parameters:
     MinLength: 1
     MaxLength: 5
     AllowedPattern: '^[a-zA-Z0-9]+$'
+  ImportStackName:
+    Description: Name of Stack to import VPC/Subnets from
+    Type: String
+    Default: None
+    ConstraintDescription: Specify Name of Stack if EnvType is JHUAPL or None if EnvType is StarLab
+  EnvType:
+    Description: Environment Type for Deployment of Stack
+    Default: StarLab
+    Type: String
+    AllowedValues:
+      - StarLab
+      - JHUAPL
+    ConstraintDescription: Must Specify either StarLab or JHUAPL
+Conditions:
+  CreateStarLabResources: !Equals [ !Ref EnvType, StarLab ]
 Resources:
   VirtUEVPC:
     Type: 'AWS::EC2::VPC'
+    Condition: CreateStarLabResources
     Properties:
       CidrBlock: 172.30.0.0/16
       EnableDnsSupport: true
@@ -47,10 +63,11 @@ Resources:
           - - 'galahad.'
             - 'com'
       VPCs:
-        - VPCId: !Ref VirtUEVPC
+        - VPCId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
           VPCRegion: !Ref "AWS::Region"
   VirtUEAdminSubnet:
     Type: 'AWS::EC2::Subnet'
+    Condition: CreateStarLabResources
     Properties:
       CidrBlock: 172.30.0.0/18
       MapPublicIpOnLaunch: true
@@ -66,6 +83,7 @@ Resources:
       VpcId: !Ref VirtUEVPC
   VirtUEUserSubnet:
     Type: 'AWS::EC2::Subnet'
+    Condition: CreateStarLabResources
     Properties:
       CidrBlock: 172.30.64.0/18
       MapPublicIpOnLaunch: true
@@ -111,7 +129,7 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AdminADSecGroup'
-      VpcId: !Ref VirtUEVPC
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
   VirtUEAdminSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -147,7 +165,7 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AdminSecGroup'
-      VpcId: !Ref VirtUEVPC
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
   VirtUEUserSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -178,7 +196,7 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-UserSecGroup'
-      VpcId: !Ref VirtUEVPC
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
   VirtUEUserStandbySecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -194,7 +212,7 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-UserStandbySecGroup'
-      VpcId: !Ref VirtUEVPC
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
   VirtUEEFSSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -208,11 +226,6 @@ Resources:
       SecurityGroupIngress:
         - CidrIp: 172.30.0.0/16
           Description: Allow Talking Internally
-          FromPort: '0'
-          ToPort: '65535'
-          IpProtocol: '-1'
-        - CidrIp: 18.210.83.5/32
-          Description: VirtUE NFS Server In
           FromPort: '0'
           ToPort: '65535'
           IpProtocol: '-1'
@@ -235,9 +248,10 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-EFSSecGroup'
-      VpcId: !Ref VirtUEVPC
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
   VirtueInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
+    Condition: CreateStarLabResources
     Properties:
       Tags:
         - Key: Project
@@ -250,11 +264,13 @@ Resources:
               - '-InternetGateway'
   VirtueInternetGatewayAttachment:
     Type: 'AWS::EC2::VPCGatewayAttachment'
+    Condition: CreateStarLabResources
     Properties:
       InternetGatewayId: !Ref VirtueInternetGateway
       VpcId: !Ref VirtUEVPC
   VirtUEUserSubnetRT:
     Type: 'AWS::EC2::RouteTable'
+    Condition: CreateStarLabResources
     Properties:
       VpcId: !Ref VirtUEVPC
       Tags:
@@ -268,17 +284,20 @@ Resources:
               - '-UserSubnetRT'
   VirtUEUserSubnetRTAss:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: CreateStarLabResources
     Properties:
       RouteTableId: !Ref VirtUEUserSubnetRT
       SubnetId: !Ref VirtUEUserSubnet
   VirtUEUserSubnetPublicRoute:
     Type: 'AWS::EC2::Route'
+    Condition: CreateStarLabResources
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref VirtueInternetGateway
       RouteTableId: !Ref VirtUEUserSubnetRT
   VirtUEAdminSubnetRT:
     Type: 'AWS::EC2::RouteTable'
+    Condition: CreateStarLabResources
     Properties:
       VpcId: !Ref VirtUEVPC
       Tags:
@@ -292,18 +311,19 @@ Resources:
               - '-AdminSubnetRT'
   VirtUEAdminSubnetRTAss:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: CreateStarLabResources
     Properties:
       RouteTableId: !Ref VirtUEAdminSubnetRT
       SubnetId: !Ref VirtUEAdminSubnet
   VirtUEAdminSubnetPublicRoute:
     Type: 'AWS::EC2::Route'
+    Condition: CreateStarLabResources
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref VirtueInternetGateway
       RouteTableId: !Ref VirtUEAdminSubnetRT
   ExcaliburServer:
     Type: 'AWS::EC2::Instance'
-    DependsOn: VirtUEAdminSubnet
     Properties:
       ImageId: ami-aa2ea6d0
       InstanceType: t2.micro
@@ -315,7 +335,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.44
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -325,10 +345,14 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Excalibur'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
-    DependsOn:
-      - VirtUEUserSubnet
     Properties:
       ImageId: ami-0abd33cde76960d90
       InstanceType: t2.small
@@ -340,7 +364,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.50
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -350,9 +374,14 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Canvas'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
   GalahadAD:
     Type: 'AWS::EC2::Instance'
-    DependsOn: VirtUEAdminSubnet
     Properties:
       ImageId: ami-001116e564201bcb4
       InstanceType: t2.medium
@@ -364,7 +393,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.250
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -374,6 +403,12 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AD'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -387,7 +422,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.45
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -397,8 +432,12 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-RethinkDB'
-    DependsOn:
-      - VirtUEAdminSubnet
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
   GalahadAggregator:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -412,7 +451,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.46
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -422,6 +461,12 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Aggregator'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
   VirtUEValorEFS:
     Type: 'AWS::EFS::FileSystem'
     Properties:
@@ -442,46 +487,17 @@ Resources:
       FileSystemId: !Ref VirtUEValorEFS
       SecurityGroups:
         - !Ref VirtUEAdminSecGroup
-      SubnetId: !Ref VirtUEAdminSubnet
-  ValorEFSServer:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-aa2ea6d0
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          GroupSet:
-            - !Ref VirtUEEFSSecGroup
-          PrivateIpAddress: 172.30.1.47
-          SubnetId: !Ref VirtUEAdminSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorEFSServer'
+      SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-01c5d8354c604b662
       InstanceType: t2.medium
       KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.53
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -491,11 +507,16 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-ValorRouter'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
     DependsOn:
-      - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
       - RethinkDB
-  ValorNode51:
+  XenPVMBuilder:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-01c5d8354c604b662
@@ -507,8 +528,7 @@ Resources:
             DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.51
-          SubnetId: !Ref VirtUEAdminSubnet
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
       Tags:
         - Key: Project
           Value: Virtue
@@ -517,36 +537,14 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-ValorNode51'
+              - '-XenPVMBuilder'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
     DependsOn:
-      - VirtUEAdminSubnet
-      - VirtUEValorEFSTarget
-      - RethinkDB
-  ValorNode52:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-01c5d8354c604b662
-      InstanceType: t2.medium
-      KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        - DeviceName: "/dev/sda1"
-          Ebs:
-            DeleteOnTermination: "true"
-      NetworkInterfaces:
-        - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.52
-          SubnetId: !Ref VirtUEAdminSubnet
-      Tags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorNode52'
-    DependsOn:
-      - VirtUEAdminSubnet
       - VirtUEValorEFSTarget
       - RethinkDB
   ExcaliburServerDNSRecord:
@@ -600,23 +598,6 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - RethinkDB
-  ValorEFSServerDNSRecord:
-    Type: 'AWS::Route53::RecordSet'
-    Properties:
-      HostedZoneId: !Ref VirtueHostedZone
-      Name: !Join
-          - ''
-          - - 'efs-server.'
-            - 'galahad.'
-            - 'com'
-            - '.'
-      Type: A
-      TTL: '900'
-      ResourceRecords:
-        - !GetAtt ValorEFSServer.PrivateIp
-    DependsOn:
-        - VirtueHostedZone
-        - ValorEFSServer
   ValorRouterDNSRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:

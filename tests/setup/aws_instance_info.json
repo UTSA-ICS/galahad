@@ -1,11 +1,1 @@
-{
-    "image_id": "ami-aa2ea6d0",
-    "inst_profile_arn": "",
-    "inst_profile_name": "",
-    "inst_type": "t2.micro",
-    "key_name": "starlab-virtue-te",
-    "sec_group": "sg-0e125c01c684e7f6c",
-    "subnet_id": "subnet-0d4eb5ce2ba7ca317",
-    "tag_key": "Project",
-    "tag_value": "Virtue"
-}
+{"inst_type": "t2.micro", "tag_value": "Virtue", "inst_profile_arn": "", "key_name": "starlab-virtue-te", "tag_key": "Project", "subnet_id": "subnet-0bd1c585c6086b64a", "inst_profile_name": "", "image_id": "ami-aa2ea6d0", "sec_group": "sg-09ff861c231b89840"}

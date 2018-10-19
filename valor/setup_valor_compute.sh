@@ -8,5 +8,4 @@ sudo mount -a
 sudo cp -R /mnt/efs/deploy/compute/config /home/ubuntu
 cd /home/ubuntu/config
 sudo /bin/bash setup.sh
-sudo systemctl restart rc-local
 sudo shutdown -r
