@@ -46,7 +46,7 @@ def is_valor_in_rethinkdb(valor_id):
     connection = get_rethinkdb_connection()
 
     response = rethinkdb.db('transducers').table('galahad').filter({
-        'host': valor_id
+        'valor_id': valor_id
     }).run(connection)
 
     matching_valors = list(response)
@@ -62,7 +62,7 @@ def is_valor_pingable(valor_id):
     connection = get_rethinkdb_connection()
 
     response = rethinkdb.db('transducers').table('galahad').filter({
-        'host': valor_id
+        'valor_id': valor_id
     }).run(connection)
 
     matching_valors = list(response)
@@ -231,7 +231,6 @@ def virtue_launch():
 
     except:
         raise
-    finally:
         inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
         rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
@@ -261,7 +260,7 @@ def get_valor_ip(valor_id):
     connection = get_rethinkdb_connection()
 
     response = rethinkdb.db('transducers').table('galahad').filter(
-        {'function': 'valor', 'host': valor_id}).run()
+        {'function': 'valor', 'valor_id': valor_id}).run()
 
     valor = list(response.items)
 
