@@ -267,7 +267,7 @@ class ValorManager:
 
         excalibur_ip = '{0}/32'.format(self.aws.get_public_ip())
 
-        valor = {
+        valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
             'inst_type' : 't2.medium',
             'subnet_id' : subnet,
@@ -279,7 +279,7 @@ class ValorManager:
             'inst_profile_arn' : '',
         }
 
-        instance = self.aws.instance_create(**valor)
+        instance = self.aws.instance_create(**valor_config)
 
         valor = Valor(instance.id)
 
@@ -349,7 +349,7 @@ class ValorManager:
 
         virtue = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'virtue',
-            'host' : virtue_id}).run().next()
+            'virtue_id' : virtue_id}).run().next()
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
@@ -358,7 +358,7 @@ class ValorManager:
 
         destination_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
-            'host' : destination_valor_id}).run().next()
+            'valor_id' : destination_valor_id}).run().next()
 
         current_valor_ip_address = current_valor['address']
         destination_valor_ip_address = destination_valor['address']
@@ -395,7 +395,7 @@ class RethinkDbManager:
     def get_valor(self, valor_id):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'valor', 'host': valor_id}).run()
+            {'function': 'valor', 'valor_id': valor_id}).run()
 
         valor = list(response.items)
 
@@ -430,7 +430,7 @@ class RethinkDbManager:
         record = {
             'function': 'valor',
             'guestnet': self.get_free_guestnet(),
-            'host'    : valor.aws_instance.id,
+            'valor_id'    : valor.aws_instance.id,
             'address' : valor.aws_instance.private_ip_address
         }
 
@@ -445,7 +445,7 @@ class RethinkDbManager:
 
         matching_valors = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'valor',
-            'host': valor_id
+            'valor_id': valor_id
         }).run())
 
         rethinkdb.db('transducers').table('galahad').filter(
@@ -470,11 +470,11 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, virtue_id, efs_path):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_id
+            'virtue_id': virtue_id
         }).run())
 
         assert len(matching_virtues) == 0
@@ -482,11 +482,12 @@ class RethinkDbManager:
         guestnet = self.get_free_guestnet()
 
         record = {
-            'function': 'virtue',
-            'host'    : virtue_id,
-            'address' : valor_address,
-            'guestnet': guestnet,
-            'img_path': efs_path
+            'function'  : 'virtue',
+            'virtue_id' : virtue_id,
+            'valor_id'  : valor_id
+            'address'   : valor_address,
+            'guestnet'  : guestnet,
+            'img_path'  : efs_path
         }
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
@@ -494,11 +495,11 @@ class RethinkDbManager:
         return guestnet
 
 
-    def get_virtue(self, virtue_hostname):
+    def get_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_hostname
+            'virtue_id': virtue_id
         }).run())
 
         if len(matching_virtues) != 1:
@@ -507,11 +508,11 @@ class RethinkDbManager:
         return matching_virtues[0]
 
 
-    def remove_virtue(self, virtue_hostname):
+    def remove_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_hostname
+            'virtue_id': virtue_id
         }).run())
 
         assert len(matching_virtues) == 1
@@ -519,9 +520,11 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
+
     def get_router(self):
 
-        router = rethinkdb.db('transducers').table('galahad').filter({'function': 'router' }).run()
+        router = rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'router' }).run()
 
         return router.next()
 

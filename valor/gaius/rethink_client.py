@@ -52,7 +52,7 @@ class Changes(threading.Thread):
             virtue.createDomU()
             comm = {
                 "transducer_id": virtue.img_path,
-                "virtue_id": self.getid(RT_VALOR_TB, {"host": virtue.host}),
+                "virtue_id": self.getid(RT_VALOR_TB, {"virtue_id": virtue.virtue_id}),
                 "valor_ip": self.ip,
                 "valor_dest": None,
                 "enabled": False,
