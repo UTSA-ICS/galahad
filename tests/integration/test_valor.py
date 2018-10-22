@@ -238,14 +238,14 @@ def virtue_launch():
                                 'TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
 
-    return (rethink_virtue['id'], rethink_valor['address'])
+    return (rethink_virtue['virtue_id'], rethink_valor['address'])
 '''
 END of bad functions
 '''
 
 
 
-def is_virtue_running(key_path, ip_address):
+def is_virtue_running(ip_address):
 
         xl_list = subprocess.check_output(
             ['ssh', '-i', key_path, 'ubuntu@' + ip_address,
@@ -274,7 +274,7 @@ class Test_ValorAPI:
 
     valor_id = None
 
-    '''
+
     def test_valor_create(self):
 
         valor_id = self.valor_api.valor_create()
@@ -330,15 +330,10 @@ class Test_ValorAPI:
 
             self.valor_api.valor_destroy(valor_id)
 
-    '''
 
     def test_valor_migrate_virtue(self):
 
         virtue_id, valor_ip_address = virtue_launch()
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print(virtue_id)
-        print(valor_ip_address)
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
         destination_valor_id = self.valor_api.valor_create()
 

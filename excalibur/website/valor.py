@@ -484,7 +484,7 @@ class RethinkDbManager:
         record = {
             'function'  : 'virtue',
             'virtue_id' : virtue_id,
-            'valor_id'  : valor_id
+            'valor_id'  : valor_id,
             'address'   : valor_address,
             'guestnet'  : guestnet,
             'img_path'  : efs_path
