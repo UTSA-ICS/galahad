@@ -1,7 +1,6 @@
+import json
 import os
 import sys
-import json
-import requests
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(

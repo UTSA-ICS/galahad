@@ -57,20 +57,10 @@ echo "iface hello-br0 inet static" >> /etc/network/interfaces
 echo "  address ${GUESTNET_IP}/24" >> /etc/network/interfaces
 
 #
-# Set the IP Tables rules
+# Set the Network System Variables
 #
-iptables -A FORWARD --in-interface br0 -j ACCEPT
-iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
-# Now save the iptables rules by installing the persistent package
-DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
-
-#
-# Update rc.local for system commands
-#
-sed -i '/^exit 0/i \
-\
-#\
-# Add ip_gre module\
-#\
-modprobe ip_gre\
-' /etc/rc.local
+sed -i 's/#net.ipv4.ip_forward/net.ipv4.ip_forward/' /etc/sysctl.conf
+echo "#" >> /etc/sysctl.conf
+echo "# Network variables for Valor Network" >> /etc/sysctl.conf
+echo "net.ipv4.conf.all.rp_filter=0" >> /etc/sysctl.conf
+echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
