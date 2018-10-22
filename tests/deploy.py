@@ -321,7 +321,7 @@ class DeployServer():
                 pass
 
 
-def setup(path_to_key, stack_name, stack_suffix, env_type, github_key, aws_config,
+def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
           aws_keys, branch, user_key):
     stack = JHUAPL_Stack()
     stack.setup_stack(JHUAPL_STACK_TEMPLATE, stack_name, stack_suffix)

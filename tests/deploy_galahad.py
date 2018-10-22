@@ -33,6 +33,7 @@ key_name = 'starlab-virtue-te'
 EXCALIBUR_IP = 'excalibur.galahad.com'
 RETHINKDB_IP = 'rethinkdb.galahad.com'
 VALOR_ROUTER_IP = 'valor-router.galahad.com'
+XEN_PVM_BUILDER_IP = 'xenpvmbuilder.galahad.com'
 
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
@@ -496,38 +497,24 @@ class EFS():
         run_ssh_cmd(VALOR_ROUTER_IP, self.ssh_key, _cmd)
 
     def setup_ubuntu_img(self):
-        # Get IP address of xen-tools node
-        client = boto3.client('ec2')
-        efs = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['XenPVMBuilder']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name]
-            }, {
-                'Name': 'instance-state-name',
-                'Values': ['running']
-            }])
-        instance = efs['Reservations'][0]['Instances'][0]
 
         # scp workaround payload to node
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
-                    format(self.ssh_key, instance['PublicIpAddress'])).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/sources.list ubuntu@{}:~/.').
-                    format(self.ssh_key, instance['PublicIpAddress'])).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, instance['PublicIpAddress'])).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
 
         # Apply workarounds and create the ubuntu image
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
-        run_ssh_cmd(instance['PublicIpAddress'], self.ssh_key, ssh_cmd)
+        run_ssh_cmd(XEN_PVM_BUILDER_IP, self.ssh_key, ssh_cmd)
 
         # Delete xen tool instance
         # client.terminate_instances(InstanceIds=[instance['InstanceId']])
