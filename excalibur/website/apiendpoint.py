@@ -220,7 +220,7 @@ class EndPoint():
             max_attempts = 5
 
             # TODO: Remove this variable before merging into master
-            see_no_evil = True
+            see_no_evil = False
 
             if not use_valor:
                 virtue['state'] = 'RUNNING'
@@ -232,7 +232,7 @@ class EndPoint():
 
                     try:
 
-                        time.sleep(2)
+                        time.sleep(30)
 
                         client = SSHClient()
 
@@ -241,8 +241,8 @@ class EndPoint():
 
                         client.connect(
                             virtue['ipAddress'],
-                            username='ubuntu',
-                            key_filename=os.environ['HOME'] + '/starlab-virtue-te.pem')
+                            username='virtue',
+                            key_filename=os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
 
                         print('Successfully connected to {}'.format(
                             virtue['ipAddress'],))

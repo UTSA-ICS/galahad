@@ -27,6 +27,7 @@ RT_COMM_TB = "commands"
 RT_ACK_TB = "acks"
 RT_ARC_TB = "archive"
 
+EFS_PATH = "/mnt/efs/"
 CFG_OUT = "/mnt/efs/virtue_configs/"
 GAIUS_LOGFILE = "/var/log/gaius.log"
 
@@ -148,7 +149,7 @@ class Virtue():
         cfg.write("bootloader  = '/usr/local/lib/xen/bin/pygrub\'\n")
         cfg.write("vcpus       = 1\n")
         cfg.write("memory      = 1024\n")
-        cfg.write("disk        = ['file:" + self.img_path + ",xvda2,w']\n")
+        cfg.write("disk        = ['file:" + EFS_PATH + self.img_path + ",xvda2,w']\n")
         cfg.write("name        = '" + self.host + "'\n")
         cfg.write("vif         = ['bridge=hello-br0']\n")
         cfg.write("on_poweroff = 'destroy'\n")

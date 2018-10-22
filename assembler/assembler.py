@@ -217,7 +217,8 @@ class Assembler(object):
                             'software-properties-common',
                             'openssh-server',
                             'auditd',
-                            'dkms'])
+                            'dkms',
+                            'psmisc'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
