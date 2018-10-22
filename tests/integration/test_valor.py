@@ -231,7 +231,6 @@ def virtue_launch():
 
     except:
         raise
-    finally:
         inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
         rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
@@ -239,7 +238,7 @@ def virtue_launch():
                                 'TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
 
-    return (real_virtue['id'], rethink_valor['address'])
+    return (rethink_virtue['id'], rethink_valor['address'])
 '''
 END of bad functions
 '''
@@ -263,7 +262,7 @@ def get_valor_ip(valor_id):
     response = rethinkdb.db('transducers').table('galahad').filter(
         {'function': 'valor', 'host': valor_id}).run()
 
-    valor = list(response.items)
+    valor = list(response.items)[0]
 
     return valor['address']
     
@@ -336,14 +335,23 @@ class Test_ValorAPI:
     def test_valor_migrate_virtue(self):
 
         virtue_id, valor_ip_address = virtue_launch()
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print(virtue_id)
+        print(valor_ip_address)
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
         destination_valor_id = self.valor_api.valor_create()
 
+        self.valor_api.valor_launch(destination_valor_id)
+
+        time.sleep(180)
         destination_valor_ip_address = get_valor_ip(
             destination_valor_id)
 
-        valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
+        self.valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
 
         time.sleep(5) 
         assert not is_virtue_running(valor_ip_address) 
         assert is_virtue_running(destination_valor_ip_address)
+
+        self.valor_api.valor_destroy(destination_valor_id)
