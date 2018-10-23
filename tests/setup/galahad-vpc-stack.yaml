@@ -336,6 +336,7 @@ Resources:
         - DeviceIndex: '0'
           GroupSet:
             - !Ref DeployServerSecGroup
+            - !GetAtt VirtUELog4VPC.DefaultSecurityGroup
           SubnetId: !Ref VirtUELog4AdminSubnet
       Tags:
         - Key: Project
