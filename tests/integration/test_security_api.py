@@ -1,12 +1,10 @@
-import pytest
+import datetime
 import json
 import os
 import sys
 import time
-import datetime
-import boto3
-import requests
 
+import requests
 from integration_common import create_new_virtue
 
 # For excalibur methods (API, etc)
@@ -19,17 +17,13 @@ sys.path.insert(0, base_excalibur_dir)
 sys.path.insert(0, '..')
 
 from common import ssh_tool
-from website import ldap_tools
 from website.ldaplookup import LDAP
-from website.apiendpoint import EndPoint
-from website.apiendpoint_admin import EndPoint_Admin
-from website.apiendpoint_security import EndPoint_Security
-from website.services.errorcodes import ErrorCodes
-from website.aws import AWS
-from website.controller import CreateVirtueThread
 
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
+
+EXCALIBUR_IP = 'excalibur.galahad.com'
+AGGREGATOR_IP = 'aggregator.galahad.com'
 
 def setup_module():
     global virtue_ssh
@@ -46,19 +40,14 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    excalibur_ip = None
-    with open('../setup/excalibur_ip', 'r') as infile:
-        excalibur_ip = infile.read().strip() + ':' + settings['port']
+    excalibur_ip = EXCALIBUR_IP + ':' + settings['port']
 
-    aggregator_ip = None
-    with open('../setup/aggregator_ip', 'r') as infile:
-        aggregator_ip = infile.read().strip()
+    aggregator_ip = AGGREGATOR_IP
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
-
 
     # Connect to Excalibur's REST interface
     redirect = settings['redirect'].format(excalibur_ip)
@@ -84,7 +73,6 @@ def setup_module():
     session.verify = settings['verify']
 
     base_url = 'https://{0}/virtue'.format(excalibur_ip)
-
 
     virtue_ip = None
     virtue_id = None

@@ -17,6 +17,8 @@ from website.services.errorcodes import ErrorCodes
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
+EXCALIBUR_IP = 'excalibur.galahad.com'
+
 ##
 # Functionality of these API commands is tested by user/test_admin_api.py.
 # These tests verify that the return values get into the https response correctly.
@@ -38,8 +40,7 @@ def setup_module():
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']
 
-    with open('../setup/excalibur_ip', 'r') as infile:
-        ip = infile.read().strip() + ':' + settings['port']
+    ip = EXCALIBUR_IP + ':' + settings['port']
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
