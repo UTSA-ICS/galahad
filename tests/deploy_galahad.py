@@ -23,7 +23,7 @@ import boto3
 from sultan.api import Sultan, SSHConfig
 
 # File names
-STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
+STACK_TEMPLATE = 'setup/galahad-stack.yaml'
 AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 
 # aws public key name used for the instances

@@ -21,8 +21,8 @@ import botocore
 from sultan.api import Sultan, SSHConfig
 
 # File names
-STACK_TEMPLATE = 'setup/virtue-ci-stack.yaml'
-JHUAPL_STACK_TEMPLATE = 'setup/jhuapl-stack.yaml'
+STACK_TEMPLATE = 'setup/galahad-stack.yaml'
+JHUAPL_STACK_TEMPLATE = 'setup/galahad-vpc-stack.yaml'
 AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 
 # aws public key name used for the instances
@@ -163,7 +163,7 @@ class DeployServer():
         self.ssh_key = ssh_key
         self.server_id = None
         self.server_ip = None
-        self.default_security_group_id = None
+        self.security_group_id = None
         self.update_aws_info()
 
     def update_aws_info(self):
@@ -172,7 +172,7 @@ class DeployServer():
         resources = cloudformation.list_stack_resources(StackName=self.import_stack_name)
 
         for resource in resources['StackResourceSummaries']:
-            if 'DeployServer' in str(resource):
+            if 'DeployServer' in str(resource) and resource['ResourceType'] == 'AWS::EC2::Instance':
                 self.server_id = resource['PhysicalResourceId']
 
         ec2 = boto3.resource('ec2')
@@ -181,8 +181,8 @@ class DeployServer():
         self.server_ip = instance.public_ip_address
 
         for group in instance.security_groups:
-            if group['GroupName'] == 'default':
-                self.default_security_group_id = group['GroupId']
+            if 'DeployServer' in group['GroupName']:
+                self.security_group_id = group['GroupId']
 
     def setup_keys(self, github_key, user_key):
 
@@ -288,11 +288,12 @@ class DeployServer():
                         ' --import_stack {5}'
                         ' --setup"'))'''.format(GALAHAD_KEY_DIR, key_name, branch, stack_suffix, self.stack_name,
                                                 self.import_stack_name)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        logger.info(_cmd)
+        #run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def update_security_rules(self):
         ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(self.default_security_group_id)
+        security_group = ec2.SecurityGroup(self.security_group_id)
         client_cidrs_to_allow_access = ['70.121.205.81/32',
                                         '45.31.214.87/32',
                                         '35.170.157.4/32',

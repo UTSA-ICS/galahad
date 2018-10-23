@@ -1,0 +1,659 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Sets up a single VPC Multi Subnet Configuration for Galahad/VirtUE
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+  NameSuffix:
+    Description: Suffix to add to all 'Name' tags for easy searching and viewing
+    Type: String
+    MinLength: 1
+    MaxLength: 5
+    AllowedPattern: '^[a-zA-Z0-9]+$'
+  ImportStackName:
+    Description: Name of Stack to import VPC/Subnets from
+    Type: String
+    Default: None
+    ConstraintDescription: Specify Name of Stack if EnvType is JHUAPL or None if EnvType is StarLab
+  EnvType:
+    Description: Environment Type for Deployment of Stack
+    Default: StarLab
+    Type: String
+    AllowedValues:
+      - StarLab
+      - JHUAPL
+    ConstraintDescription: Must Specify either StarLab or JHUAPL
+Conditions:
+  CreateStarLabResources: !Equals [ !Ref EnvType, StarLab ]
+Resources:
+  VirtUEVPC:
+    Type: 'AWS::EC2::VPC'
+    Condition: CreateStarLabResources
+    Properties:
+      CidrBlock: 172.30.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-VPC'
+  VirtueHostedZone:
+    Type: 'AWS::Route53::HostedZone'
+    Properties:
+      HostedZoneConfig:
+        Comment: "VPC-private zone for service discovery"
+      HostedZoneTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Zone'
+      Name: !Join
+          - ''
+          - - 'galahad.'
+            - 'com'
+      VPCs:
+        - VPCId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+          VPCRegion: !Ref "AWS::Region"
+  VirtUEAdminSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Condition: CreateStarLabResources
+    Properties:
+      CidrBlock: 172.30.0.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnet'
+      VpcId: !Ref VirtUEVPC
+  VirtUEUserSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Condition: CreateStarLabResources
+    Properties:
+      CidrBlock: 172.30.64.0/18
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnet'
+      VpcId: !Ref VirtUEVPC
+  VirtUEAdminADSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        VirtUE Security Group for the VirtUE AD Server on the Administration
+        Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: '-0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 172.30.0.0/16
+          Description: Allow Talking Internally
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+        - CidrIp: 0.0.0.0/0
+          Description: RDP Inn
+          FromPort: '3389'
+          ToPort: '3389'
+          IpProtocol: '-1'
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminADSecGroup'
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+  VirtUEAdminSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE Administration Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 172.30.0.0/16
+          Description: Allow Talking Internally
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+        - CidrIp: 0.0.0.0/0
+          Description: SSH TCP In
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: tcp
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP TCP In
+          FromPort: '8080'
+          ToPort: '8080'
+          IpProtocol: tcp
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSecGroup'
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+  VirtUEUserSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/16
+          Description: General Traffic Out
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 172.30.0.0/16
+          Description: AllowTalkingInternally
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+        - CidrIp: 0.0.0.0/0
+          Description: SSH TCP In
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: tcp
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSecGroup'
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+  VirtUEUserStandbySecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE User Standby Instance Pool.
+      SecurityGroupEgress: []
+      SecurityGroupIngress: []
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserStandbySecGroup'
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+  VirtUEEFSSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: VirtUE Security Group for the VirtUE EFS Target.
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 172.30.0.0/16
+          Description: Allow Talking Internally
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP TCP In
+          FromPort: '80'
+          ToPort: '80'
+          IpProtocol: tcp
+        - CidrIp: 0.0.0.0/0
+          Description: SSH TCP In
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: tcp
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-EFSSecGroup'
+      VpcId: !If [CreateStarLabResources, !Ref VirtUEVPC, "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"]
+  VirtueInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Condition: CreateStarLabResources
+    Properties:
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-InternetGateway'
+  VirtueInternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Condition: CreateStarLabResources
+    Properties:
+      InternetGatewayId: !Ref VirtueInternetGateway
+      VpcId: !Ref VirtUEVPC
+  VirtUEUserSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Condition: CreateStarLabResources
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-UserSubnetRT'
+  VirtUEUserSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: CreateStarLabResources
+    Properties:
+      RouteTableId: !Ref VirtUEUserSubnetRT
+      SubnetId: !Ref VirtUEUserSubnet
+  VirtUEUserSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Condition: CreateStarLabResources
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEUserSubnetRT
+  VirtUEAdminSubnetRT:
+    Type: 'AWS::EC2::RouteTable'
+    Condition: CreateStarLabResources
+    Properties:
+      VpcId: !Ref VirtUEVPC
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AdminSubnetRT'
+  VirtUEAdminSubnetRTAss:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: CreateStarLabResources
+    Properties:
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+      SubnetId: !Ref VirtUEAdminSubnet
+  VirtUEAdminSubnetPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Condition: CreateStarLabResources
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VirtueInternetGateway
+      RouteTableId: !Ref VirtUEAdminSubnetRT
+  ExcaliburServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-aa2ea6d0
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.44
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Excalibur'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+  CanvasInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0abd33cde76960d90
+      InstanceType: t2.small
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.50
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Canvas'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+  GalahadAD:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-001116e564201bcb4
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.250
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-AD'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+  RethinkDB:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-a4dc46db
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.45
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-RethinkDB'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+  GalahadAggregator:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-066b9b7e204233efd
+      InstanceType: t2.large
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.46
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Aggregator'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+  VirtUEValorEFS:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      FileSystemTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorEFS'
+  VirtUEValorEFSTarget:
+    Type: 'AWS::EFS::MountTarget'
+    DependsOn:
+      - VirtUEValorEFS
+    Properties:
+      FileSystemId: !Ref VirtUEValorEFS
+      SecurityGroups:
+        - !Ref VirtUEAdminSecGroup
+      SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+  ValorRouter:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-01c5d8354c604b662
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.53
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorRouter'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+    DependsOn:
+      - VirtUEValorEFSTarget
+      - RethinkDB
+  XenPVMBuilder:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-01c5d8354c604b662
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.47
+          SubnetId: !If [CreateStarLabResources, !Ref VirtUEAdminSubnet, "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"]
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-XenPVMBuilder'
+        - !If
+          - CreateStarLabResources
+          -
+            Key: Dependency
+            Value: !Ref VirtUEAdminSubnet
+          - !Ref "AWS::NoValue"
+    DependsOn:
+      - VirtUEValorEFSTarget
+      - RethinkDB
+  ExcaliburServerDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'excalibur.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt ExcaliburServer.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - ExcaliburServer
+  GalahadADDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'ad.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadAD.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - GalahadAD
+  RethinkDBDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'rethinkdb.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt RethinkDB.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - RethinkDB
+  ValorRouterDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'valor-router.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt ValorRouter.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - ValorRouter
+  GalahadAggregatorDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'aggregator.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt GalahadAggregator.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - GalahadAggregator
+  XenPVMBuilderDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'xenpvmbuilder.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt XenPVMBuilder.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - XenPVMBuilder
+Outputs:
+  MountTargetID:
+    Description: Mount target ID
+    Value: !Ref VirtUEValorEFSTarget
+  FileSystemID:
+    Description: File system ID
+    Value: !Ref VirtUEValorEFS
