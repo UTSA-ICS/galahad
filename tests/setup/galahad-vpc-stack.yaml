@@ -270,6 +270,58 @@ Resources:
       Tags:
       - Key: Name
         Value: "starlab-finals-fsr-private-eni-sg"
+  DeployServerSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        Security Group for the Deploy Server on the Administration Network
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: General Traffic Out
+          FromPort: '0'
+          ToPort: '65535'
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        - CidrIp: 70.121.205.81/32
+          Description: StarLab San Antonio (STX) Office
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 128.89.0.0/16
+          Description: Alex - BBN Location
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 199.46.124.36/32
+          Description: StarLab Hunsville (HSV) Office
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 129.115.2.249/32
+          Description: Farhan - UTSA
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 45.31.214.87/32
+          Description: Farhan - Home
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 50.53.74.115/32
+          Description: Christopher Clark
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-DeployServerSecGroup'
+      VpcId: !Ref VirtUELog4VPC
   DeployServer:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -282,6 +334,8 @@ Resources:
             DeleteOnTermination: "true"
       NetworkInterfaces:
         - DeviceIndex: '0'
+          GroupSet:
+            - !Ref DeployServerSecGroup
           SubnetId: !Ref VirtUELog4AdminSubnet
       Tags:
         - Key: Project
