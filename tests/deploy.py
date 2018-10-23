@@ -252,7 +252,7 @@ class DeployServer():
                         ' -g ~/.ssh/id_rsa'
                         ' --aws_config ~/.aws/config'
                         ' --aws_keys ~/.aws/credentials'
-                        ' --default_user_key {0}/{1}' 
+                        ' --default_user_key {0}/{1}.pem'
                         ' -b {2}'
                         ' -s {3}' 
                         ' -n {4}'
