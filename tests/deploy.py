@@ -17,12 +17,11 @@ import time
 from pprint import pformat
 
 import boto3
-import botocore
 from sultan.api import Sultan, SSHConfig
 
 # File names
 STACK_TEMPLATE = 'setup/galahad-stack.yaml'
-JHUAPL_STACK_TEMPLATE = 'setup/galahad-vpc-stack.yaml'
+VPC_STACK_TEMPLATE = 'setup/galahad-vpc-stack.yaml'
 AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 
 # aws public key name used for the instances
@@ -64,7 +63,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
         return result
 
 
-class JHUAPL_Stack():
+class VPC_Stack():
 
     def read_template(self):
 
@@ -114,34 +113,12 @@ class JHUAPL_Stack():
         self.stack_name = stack_name
         #
         client = boto3.client('cloudformation')
-        self.clear_security_groups()
         response = client.delete_stack(StackName=stack_name)
         waiter = boto3.client('cloudformation').get_waiter(
             'stack_delete_complete')
         waiter.wait(StackName=self.stack_name)
 
         return response
-
-    def clear_security_groups(self):
-
-        client = boto3.client('ec2')
-        security_groups = client.describe_security_groups(
-            Filters=[{
-                'Name': 'tag-key',
-                'Values': ['aws:cloudformation:stack-name']
-            }, {
-                'Name': 'tag-value',
-                'Values': [self.stack_name]
-            }])
-        ec2 = boto3.resource('ec2')
-        for group in security_groups['SecurityGroups']:
-            sec_group = ec2.SecurityGroup(group['GroupId'])
-            if sec_group.ip_permissions:
-                sec_group.revoke_ingress(
-                    IpPermissions=sec_group.ip_permissions)
-            if sec_group.ip_permissions_egress:
-                sec_group.revoke_egress(
-                    IpPermissions=sec_group.ip_permissions_egress)
 
     def list_stacks(self):
         client = boto3.client('cloudformation')
@@ -163,7 +140,6 @@ class DeployServer():
         self.ssh_key = ssh_key
         self.server_id = None
         self.server_ip = None
-        self.security_group_id = None
         self.update_aws_info()
 
     def update_aws_info(self):
@@ -179,10 +155,6 @@ class DeployServer():
         instance = ec2.Instance(self.server_id)
 
         self.server_ip = instance.public_ip_address
-
-        for group in instance.security_groups:
-            if 'DeployServer' in group['GroupName']:
-                self.security_group_id = group['GroupId']
 
     def setup_keys(self, github_key, user_key):
 
@@ -237,7 +209,6 @@ class DeployServer():
     def setup(self, branch, github_key, aws_config, aws_keys, user_key, stack_suffix):
 
         logger.info('Setting up key for github access')
-        self.update_security_rules()
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
         self.setup_keys(github_key, user_key)
@@ -289,43 +260,13 @@ class DeployServer():
                         ' --setup"'))'''.format(GALAHAD_KEY_DIR, key_name, branch, stack_suffix, self.stack_name,
                                                 self.import_stack_name)
         logger.info(_cmd)
-        #run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-
-    def update_security_rules(self):
-        ec2 = boto3.resource('ec2')
-        security_group = ec2.SecurityGroup(self.security_group_id)
-        client_cidrs_to_allow_access = ['70.121.205.81/32',
-                                        '45.31.214.87/32',
-                                        '35.170.157.4/32',
-                                        '129.115.2.249/32',
-                                        '199.46.124.36/32',
-                                        '128.89.0.0/16',
-                                        '128.244.0.0/16',
-                                        '50.53.74.115/32']
-        for cidr in client_cidrs_to_allow_access:
-            try:
-                security_group.authorize_ingress(
-                    CidrIp=cidr,
-                    FromPort=22,
-                    ToPort=22,
-                    IpProtocol='TCP')
-                security_group.authorize_ingress(
-                    CidrIp=cidr,
-                    FromPort=5002,
-                    ToPort=5002,
-                    IpProtocol='TCP')
-            except botocore.exceptions.ClientError:
-                # If Security Rule exists then move on
-                # This should only happen if the default security
-                # group is hosted off a VPC created by a different
-                # stack i.e for the JHUAPL stack
-                pass
+        # run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
           aws_keys, branch, user_key):
-    stack = JHUAPL_Stack()
-    stack.setup_stack(JHUAPL_STACK_TEMPLATE, stack_name, stack_suffix)
+    stack = VPC_Stack()
+    stack.setup_stack(VPC_STACK_TEMPLATE, stack_name, stack_suffix)
 
     deploy = DeployServer(stack_name, path_to_key)
     deploy.setup(branch, github_key, aws_config, aws_keys, user_key, stack_suffix)
@@ -437,10 +378,10 @@ def main():
               args.aws_keys, args.branch_name, args.default_user_key)
 
     if args.list_stacks:
-        JHUAPL_Stack().list_stacks()
+        VPC_Stack().list_stacks()
 
     if args.delete_stack:
-        JHUAPL_Stack().delete_stack(args.stack_name)
+        VPC_Stack().delete_stack(args.stack_name)
 
 
 if __name__ == '__main__':
