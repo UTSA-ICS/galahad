@@ -35,25 +35,25 @@ class Virtue():
     def createDomU(self):
         try:
             subprocess.check_call(['xl','create',CFG_OUT + self.virtue_id + '.cfg'])
-            print("Virtue() domU created")
+            logging.debug("Virtue domU created")
         except:
-            print("Error: Virtue creation failed")
+            logging.debug("Error: Virtue creation failed")
 
     def migrateDomU(self, target_ip):
         try:
             subprocess.check_call(['xl','migrate', self.virtue_id, target_ip])
-            print("Virtue() migrated")
+            logging.debug("Virtue migrated")
         except:
-            print("Error: Virtue migration failed") 
+            logging.debug("Error: Virtue migration failed")
 
     def destroyDomU(self):
         try:
             os.remove(CFG_OUT + self.virtue_id + ".cfg")
         except:
-            print("Error: {} not found".format(CFG_OUT + self.virtue_id + ".cfg"))
+            logging.debug("Error: {} not found".format(CFG_OUT + self.virtue_id + ".cfg"))
 
         try:
             # Needs to be in separate try statement because virtue may exist when .cfg doesn't
             subprocess.check_call(['xl','destroy', self.virtue_id])
         except:
-            print("Error: Virtue destruction failed")
+            logging.debug("Error: Virtue destruction failed")
