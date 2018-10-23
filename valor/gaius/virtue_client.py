@@ -23,7 +23,7 @@ class Virtue():
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
         cfg.write("vcpus=1\n")
         cfg.write("memory=1024\n")
-        cfg.write("disk=['file:" + self.img_path + ",xvda2,w']\n")
+        cfg.write("disk=['file:/mnt/efs/" + self.img_path + ",xvda2,w']\n")
         cfg.write("name='" + self.virtue_id + "'\n")
         cfg.write("vif=['bridge=hello-br0']\n")
         cfg.write("on_poweroff='destroy'\n")

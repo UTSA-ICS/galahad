@@ -4,6 +4,7 @@
 # Copy Gaius Code to appropriate location
 #
 cp -R ../valor /usr/share/valor
+mkdir /usr/share/valor/gaius/cfg
 chmod 755 /usr/share/valor/gaius/*
 pip install /usr/share/valor
 

@@ -32,11 +32,10 @@ class Changes(threading.Thread):
     def valor(self):
         for change in self.feed:
             if change["type"] == "add":
-                print("change['type'] == 'add'\r")
+                logging.debug("Valor changefeed, change type = add")
                 self.add(change["new_val"])
             elif change["type"] == "remove":
-                print("change['type'] == 'remove'\r")
-                print("change = {}".format(change))
+                logging.debug("Valor changefeed, change type = remove")
                 self.remove(change["old_val"])
 
     def getid(self, table, search):
@@ -68,7 +67,6 @@ class Changes(threading.Thread):
             virtue.destroyDomU()
 
     def migrate(self, change):
-        print("Changes migrate")
         virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
@@ -84,15 +82,12 @@ class Changes(threading.Thread):
 
         ### Updates Virtue object with new Valor IP
         r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).update({"address": change["valor_dest"]}).run(self.rt)
-        print("comm table = {}".format(r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).run(self.rt)))
-        print("virtue table = {}".format(r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt)))
 
     def migration(self):
-        print("Changes migration")
         for change in self.feed:
-            print("type = {}".format(change["type"]))
             if (change["type"] == "change") and change["new_val"]["enabled"]:
-                print("change within if statement = {}".format(change))
+                logging.debug("Migration changefeed, change =")
+                logging.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
 
 class Rethink():
@@ -112,12 +107,12 @@ class Rethink():
         valor_thread = Changes("valor", valor_feed, valor_rt)
         valor_thread.daemon = True
         valor_thread.start()
-        print("Valor thread started")
+        logging.debug("Valor thread starting...")
 
         migration_thread = Changes("migration", migration_feed, migration_rt)
         migration_thread.daemon = True
         migration_thread.start()
-        print("Migration thread started")
+        logging.debug("Migration thread starting...")
 
 if __name__ == "__main__":
     rt = Rethink()

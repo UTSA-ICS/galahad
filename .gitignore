@@ -30,3 +30,4 @@ transducers/listener/opt/heartbeatlistener/keys
 transducers/listener/opt/heartbeatlistener/listener.py
 gaius/gaius/rethinkdb_data
 valor/gaius/bak
+valor/gaius/dev
