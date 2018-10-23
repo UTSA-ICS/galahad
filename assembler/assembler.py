@@ -138,7 +138,7 @@ class Assembler(object):
                 vmname,
                 build_options['aws_disk_size'])
             print("New instance id: %s" % (instance.id))
-            ssh_host = instance.public_ip_address
+            ssh_host = instance.private_ip_address
             print("New instance ip: %s" % (ssh_host))
             ssh_port = '22'
         print("Waiting for VM to start...")

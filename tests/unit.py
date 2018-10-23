@@ -2,37 +2,24 @@
 
 import argparse
 import logging
-import sys
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 if (__name__ == '__main__'):
     from common import ssh_tool
-    import common
 
+EXCALIBUR_IP = 'excalibur.galahad.com'
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '-n',
-        '--stack_name',
-        type=str,
-        required=False,
-        help='The path to the private key to use ssh with')
     parser.add_argument(
         '-i',
         '--sshkey',
         type=str,
         required=True,
         help='The path to the private key to use ssh with')
-    parser.add_argument(
-        '-e',
-        '--excalibur_server_ip',
-        type=str,
-        required=False,
-        help='The IP address of an existing aws excalibur instance.')
     parser.add_argument(
         '--run_test',
         type=str,
@@ -61,17 +48,7 @@ if (__name__ == '__main__'):
 
     args = parse_args()
 
-    excalibur_ip = None
-    if args.stack_name != None:
-        excalibur_ip = common.get_excalibur_server_ip(args.stack_name)
-    elif args.excalibur_server_ip != None:
-        excalibur_ip = args.excalibur_server_ip
-    else:
-        logger.error(
-            '\nPlease specify either stack_name or excalibur_user_ip!\n')
-        sys.exit()
-
-    ssh_inst = ssh_tool('ubuntu', excalibur_ip, sshkey=args.sshkey)
+    ssh_inst = ssh_tool('ubuntu', EXCALIBUR_IP, sshkey=args.sshkey)
 
     # Now Run the specified Test command
     try:
@@ -84,7 +61,7 @@ if (__name__ == '__main__'):
         if args.run_test:
             logger.info(
                 '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
-                    format(excalibur_ip))
+                    format(EXCALIBUR_IP))
             ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show  --html=unit-test-report.html '
                          '--self-contained-html --junit-xml=unit-test-report.xml {}'.format(args.run_test))
         if args.run_all_tests:
