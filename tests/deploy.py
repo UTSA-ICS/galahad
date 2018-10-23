@@ -259,8 +259,7 @@ class DeployServer():
                         ' --import_stack {5}'
                         ' --setup"'))'''.format(GALAHAD_KEY_DIR, key_name, branch, stack_suffix, self.stack_name,
                                                 self.import_stack_name)
-        logger.info(_cmd)
-        # run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
 def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
