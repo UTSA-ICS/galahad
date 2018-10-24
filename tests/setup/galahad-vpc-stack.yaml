@@ -282,18 +282,23 @@ Resources:
           ToPort: '65535'
           IpProtocol: '-1'
       SecurityGroupIngress:
+        - CidrIp: 35.170.157.4/32
+          Description: Jenkins Server
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
         - CidrIp: 70.121.205.81/32
-          Description: StarLab San Antonio (STX) Office
+          Description: StarLab - STX
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
         - CidrIp: 128.89.0.0/16
-          Description: Alex - BBN Location
+          Description: Alex - BBN
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
         - CidrIp: 199.46.124.36/32
-          Description: StarLab Hunsville (HSV) Office
+          Description: StarLab - HSV
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'

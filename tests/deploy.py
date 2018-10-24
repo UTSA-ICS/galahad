@@ -49,10 +49,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
         result = eval('s.{}.run()'.format(cmd))
 
-        if result.is_success:
-            logger.info('success: {}'.format(result.is_success))
-
-        else:
+        if 'deploy_galahad' in str(cmd):
             logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
                 pformat(result.stdout),
                 pformat(result.stderr),
