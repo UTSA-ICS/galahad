@@ -1,0 +1,17 @@
+dn: cn=module{0},cn=config
+changetype: modify
+add: olcModuleLoad
+olcModuleLoad: back_ldap
+
+dn: olcBackend=ldap,cn=config
+objectClass: olcBackendConfig
+olcBackend: ldap
+
+dn: olcDatabase=ldap,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcLDAPConfig
+olcDatabase: ldap
+olcSuffix: ou=virtue,dc=virtue,dc=com
+olcRootDN: cn=slapd,ou=virtue,dc=virtue,dc=com
+olcRootPW: {SSHA}LdvOFkhg7oDktPMyEEAkFO+Fpt+fyIoU
+olcDbURI: "ldap://ad.galahad.com"
