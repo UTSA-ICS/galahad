@@ -3,8 +3,10 @@
 #
 # Copy Gaius Code to appropriate location
 #
-cp -R gaius /usr/share/
-chmod 755 /usr/share/gaius/*
+cp -R ../valor /usr/share/valor
+mkdir /usr/share/valor/gaius/cfg
+chmod 755 /usr/share/valor/gaius/*
+pip install /usr/share/valor
 
 #
 # Copy over service definition file

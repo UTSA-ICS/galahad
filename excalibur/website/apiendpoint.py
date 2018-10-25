@@ -204,6 +204,7 @@ class EndPoint():
                 try:
                     virtue['ipAddress'] = rdb_manager.add_virtue(
                         valor['address'],
+                        valor['valor_id'],
                         virtue['id'],
                         '/mnt/efs/images/provisioned_virtues/' + virtue['id'] + '.img')
 
