@@ -326,7 +326,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-aa2ea6d0
-      InstanceType: t2.micro
+      InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"

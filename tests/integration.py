@@ -93,7 +93,7 @@ if (__name__ == '__main__'):
         if args.run_test:
             logger.info(
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-                    format(excalibur_ip))
+                    format(EXCALIBUR_IP))
             ssh_inst.ssh(
                 'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
                 '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(

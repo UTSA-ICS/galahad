@@ -237,7 +237,10 @@ class DeployServer():
         _cmd = "sudo('apt update')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-        _cmd = "sudo('apt install -y python3-dev python3-pip')"
+        _cmd = "sudo('apt install -y python-minimal python-pip python3-dev python3-pip')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+        _cmd = "sudo('pip install boto3')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         _cmd = "sudo('pip3 install boto3 sultan')"
