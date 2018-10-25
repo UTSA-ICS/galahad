@@ -18,7 +18,7 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    ip = EXCALIBUR_IP_
+    ip = EXCALIBUR_IP
 
     ip = ip + ':' + settings['port']
 
