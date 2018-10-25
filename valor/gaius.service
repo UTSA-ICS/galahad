@@ -6,7 +6,8 @@ After=network.target mnt-efs.mount
 User=root
 Restart=always
 Type=simple
-ExecStart=/usr/share/gaius/gaius.py
+ExecStart=/usr/bin/python /usr/share/valor/gaius/rethink_client.py
+WorkingDirectory=/usr/share/valor/gaius
 
 [Install]
 WantedBy=multi-user.target
