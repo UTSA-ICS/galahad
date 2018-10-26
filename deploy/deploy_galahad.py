@@ -386,11 +386,11 @@ class Excalibur():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         # Call the setup_excalibur.sh script for system and pip packages.
-        _cmd1 = "cd('galahad/tests/setup').and_().bash('./setup_excalibur.sh')"
+        _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_excalibur.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
 
         # Call the setup_ldap.sh script for openldap installation and config.
-        _cmd2 = "cd('galahad/tests/setup').and_().bash('./setup_ldap.sh')"
+        _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
         self.setup_aws_instance_info()
@@ -435,7 +435,7 @@ class Excalibur():
         # Initialize the EFS class
         efs = EFS(self.stack_name, self.ssh_key)
         # Setup the EFS mount and populate Valor config files
-        _cmd7 = "cd('galahad/tests/setup').and_().bash('./setup_efs.sh {}')".format(efs.efs_id)
+        _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh {}')".format(efs.efs_id)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
@@ -457,7 +457,7 @@ class Excalibur():
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/tests/{3}'.
+                '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.
                     format(self.ssh_key, filename, self.server_ip, AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info

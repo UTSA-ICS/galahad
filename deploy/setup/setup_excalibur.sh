@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install everything required for testing, except the openldap server
-BASE_DIR="galahad/tests/setup"
+BASE_DIR="galahad/deploy/setup"
 
 #
 # Setup Routes to be able to get to the guestnet network for access to virtues

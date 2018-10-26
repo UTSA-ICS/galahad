@@ -297,7 +297,7 @@ class DeployServer():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         # Start the normal deployment process - Run the setup script
-        _cmd = '''bash(('-c "cd galahad/tests && python3 deploy_galahad.py'
+        _cmd = '''bash(('-c "cd galahad/deploy && python3 deploy_galahad.py'
                         ' -k {0}/{1}.pem'
                         ' -g ~/.ssh/id_rsa'
                         ' --aws_config ~/.aws/config'
