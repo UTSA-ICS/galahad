@@ -22,8 +22,8 @@ from website.ldaplookup import LDAP
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
-EXCALIBUR_IP = 'excalibur.galahad.com'
-AGGREGATOR_IP = 'aggregator.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
 def setup_module():
     global virtue_ssh
@@ -40,9 +40,9 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    excalibur_ip = EXCALIBUR_IP + ':' + settings['port']
+    excalibur_ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
-    aggregator_ip = AGGREGATOR_IP
+    aggregator_ip = AGGREGATOR_HOSTNAME
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'

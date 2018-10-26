@@ -8,7 +8,7 @@ base_excalibur_dir = os.path.dirname(
 sys.path.insert(0, base_excalibur_dir)
 from cli.sso_login import sso_tool
 
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def setup_module():
 
@@ -18,7 +18,7 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    ip = EXCALIBUR_IP
+    ip = EXCALIBUR_HOSTNAME
 
     ip = ip + ':' + settings['port']
 

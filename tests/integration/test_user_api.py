@@ -19,7 +19,7 @@ from sso_login import sso_tool
 
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 ##
 # Functionality of these API commands is tested by unit/test_user_api.py.
@@ -44,7 +44,7 @@ def setup_module():
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']
 
-    ip = EXCALIBUR_IP + ':' + settings['port']
+    ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'

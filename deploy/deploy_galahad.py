@@ -30,7 +30,7 @@ AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 key_name = 'starlab-virtue-te'
 
 # Node addresses
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 RETHINKDB_IP = 'rethinkdb.galahad.com'
 VALOR_ROUTER_IP = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_IP = 'xenpvmbuilder.galahad.com'
@@ -280,7 +280,7 @@ class Excalibur():
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.server_ip = EXCALIBUR_IP
+        self.server_ip = EXCALIBUR_HOSTNAME
         self.vpc_id = None
         self.subnet_id = None
         self.default_security_group_id = None

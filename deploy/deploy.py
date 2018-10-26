@@ -196,6 +196,7 @@ class DeployServer():
         for resource in resources['StackResourceSummaries']:
             if 'DeployServer' in str(resource) and resource['ResourceType'] == 'AWS::EC2::Instance':
                 self.server_id = resource['PhysicalResourceId']
+                break
 
         ec2 = boto3.resource('ec2')
         instance = ec2.Instance(self.server_id)

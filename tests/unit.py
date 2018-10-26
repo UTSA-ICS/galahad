@@ -3,13 +3,12 @@
 import argparse
 import logging
 
+from ssh_tool import ssh_tool
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-if (__name__ == '__main__'):
-    from common import ssh_tool
-
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -48,7 +47,7 @@ if (__name__ == '__main__'):
 
     args = parse_args()
 
-    ssh_inst = ssh_tool('ubuntu', EXCALIBUR_IP, sshkey=args.sshkey)
+    ssh_inst = ssh_tool('ubuntu', EXCALIBUR_HOSTNAME, sshkey=args.sshkey)
 
     # Now Run the specified Test command
     try:
@@ -56,12 +55,12 @@ if (__name__ == '__main__'):
             logger.info(
                 '\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
             ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan '
-                         '--html=integration-test-report.html --self-contained-html ' 
-                         '--junit-xml=integration-test-report.xml')
+                         '--html=unit-test-report.html --self-contained-html ' 
+                         '--junit-xml=unit-test-report.xml')
         if args.run_test:
             logger.info(
                 '\n!!!!!!!!!\nRun Test on excalibur server [{}]\n!!!!!!!!!!'.
-                    format(EXCALIBUR_IP))
+                    format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-show  --html=unit-test-report.html '
                          '--self-contained-html --junit-xml=unit-test-report.xml {}'.format(args.run_test))
         if args.run_all_tests:

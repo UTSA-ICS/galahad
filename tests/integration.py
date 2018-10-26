@@ -2,16 +2,13 @@
 
 import argparse
 import logging
-import sys
+
+from ssh_tool import ssh_tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-if (__name__ == '__main__'):
-    from common import ssh_tool
-    import common
-
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -72,7 +69,7 @@ if (__name__ == '__main__'):
             logger.warn(
                 '\nWarning: a new Virtue will be created\n')  
 
-    ssh_inst = ssh_tool('ubuntu', EXCALIBUR_IP, sshkey=args.sshkey)
+    ssh_inst = ssh_tool('ubuntu', EXCALIBUR_HOSTNAME, sshkey=args.sshkey)
 
     # Populate the virtue_ip and virtue_id file needed for all the tests.
     if virtue_ip is not None:
@@ -93,7 +90,7 @@ if (__name__ == '__main__'):
         if args.run_test:
             logger.info(
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-                    format(EXCALIBUR_IP))
+                    format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh(
                 'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
                 '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(
@@ -101,7 +98,7 @@ if (__name__ == '__main__'):
         if args.run_all_tests:
             logger.info(
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
-                    format(EXCALIBUR_IP))
+                    format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh(
                 'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
                 '--self-contained-html --junit-xml=integration-test-report.xml')

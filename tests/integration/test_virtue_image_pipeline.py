@@ -26,7 +26,7 @@ from sso_login import sso_tool
 
 WORK_DIR = os.getcwd() + '/.tmp_work_dir/'
 
-EXCALIBUR_IP = 'excalibur.galahad.com'
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def setup_module():
     global assembler_instance
@@ -39,7 +39,7 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    excalibur_ip = EXCALIBUR_IP + ':' + settings['port']
+    excalibur_ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'

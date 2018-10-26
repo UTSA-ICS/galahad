@@ -4,13 +4,12 @@ import argparse
 import logging
 import sys
 
-from deploy import DeployServer
+import boto3
+
+from ssh_tool import ssh_tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-if (__name__ == '__main__'):
-    from common import ssh_tool
 
 
 def parse_args():
@@ -64,6 +63,22 @@ def parse_args():
     return arg
 
 
+def get_deploy_server_ip(stack_name):
+    cloudformation = boto3.client('cloudformation')
+    resources = cloudformation.list_stack_resources(StackName=stack_name + '-VPC')
+
+    server_id = None
+    for resource in resources['StackResourceSummaries']:
+        if 'DeployServer' in str(resource) and resource['ResourceType'] == 'AWS::EC2::Instance':
+            server_id = resource['PhysicalResourceId']
+            break
+
+    ec2 = boto3.resource('ec2')
+    instance = ec2.Instance(server_id)
+
+    return instance.public_ip_address
+
+
 if (__name__ == '__main__'):
 
     args = parse_args()
@@ -73,7 +88,7 @@ if (__name__ == '__main__'):
     deploy_server_ip = None
 
     if args.stack_name != None:
-        deploy_server_ip = DeployServer(args.stack_name, args.sshkey).server_ip
+        deploy_server_ip = get_deploy_server_ip(args.stack_name)
     else:
         logger.error(
             '\nPlease specify either stack_name!\n')
