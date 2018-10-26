@@ -27,11 +27,6 @@ AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
 # aws public key name used for the instances
 key_name = 'starlab-virtue-te'
 
-# Node addresses
-EXCALIBUR_IP = 'excalibur.galahad.com'
-RETHINKDB_IP = 'rethinkdb.galahad.com'
-VALOR_ROUTER_IP = 'valor-router.galahad.com'
-
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,7 +41,6 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
             user='ubuntu',
             hostname=host_server,
             ssh_config=config) as s:
-
         result = eval('s.{}.run()'.format(cmd))
 
         if 'deploy_galahad' in str(cmd):
@@ -107,15 +101,35 @@ class VPC_Stack():
 
     def delete_stack(self, stack_name):
 
-        self.stack_name = stack_name
-        #
         client = boto3.client('cloudformation')
-        response = client.delete_stack(StackName=stack_name)
+
+        # Delete the galahad stack specified
+        #   terminate extra instances created by galahad - e.g valors
+        self.terminate_non_stack_instances(stack_name)
+
+        response = list()
+        response1 = client.delete_stack(StackName=stack_name)
         waiter = boto3.client('cloudformation').get_waiter(
             'stack_delete_complete')
-        waiter.wait(StackName=self.stack_name)
+        waiter.wait(StackName=stack_name)
+        response.append(response1)
 
-        return response
+        # Now delete the -VPC stack that was created with the deployment server
+        # if the stack exists
+        vpc_stack_name = stack_name + '-VPC'
+        skip_vpc_stack = False
+        try:
+            response2 = client.delete_stack(StackName=vpc_stack_name)
+            response.append(response2)
+        except botocore.exceptions.ClientError:
+            skip_vpc_stack = True
+            pass
+        if not skip_vpc_stack:
+            waiter = boto3.client('cloudformation').get_waiter(
+                'stack_delete_complete')
+            waiter.wait(StackName=vpc_stack_name)
+
+        return (response)
 
     def list_stacks(self):
         client = boto3.client('cloudformation')
@@ -126,6 +140,41 @@ class VPC_Stack():
                     stack['StackName'],
                     stack['CreationTime'],
                     stack['StackStatus']))
+
+    def terminate_non_stack_instances(self, stack_name):
+        # Find the VPC ID from the excalibur Instance
+        client = boto3.client('ec2')
+        server = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ExcaliburServer']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [stack_name]
+            }])
+
+        try:
+            vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
+        except:
+            logger.error("Unable to find VPC ID from instance Excalibur")
+            raise
+
+        # Now find all instances in ec2 within the VPC but without the stack tags.
+        ec2 = boto3.client('ec2')
+
+        # Get ALL instances in the stack VPC
+        vms = ec2.describe_instances(Filters=[{'Name': 'vpc-id',
+                                               'Values': [vpc_id]}])
+        instances_not_in_stack = []
+        for vm in vms['Reservations']:
+            if 'aws:cloudformation:stack-name' not in str(vm['Instances'][0]['Tags']):
+                instances_not_in_stack.append(vm['Instances'][0]['InstanceId'])
+
+        # Now Terminate these instances not created by the stack
+        resource = boto3.resource('ec2')
+        for instance in instances_not_in_stack:
+            resource.Instance(instance).terminate()
+            logger.info('Terminating instance [{}] not created by the stack'.format(instance))
 
 
 class DeployServer():
@@ -210,9 +259,9 @@ class DeployServer():
         # it to access github without being prompted for credentials
         self.setup_keys(github_key, user_key)
         logger.info(
-            'Now checking out relevant excalibur repos for {} branch'.format(
+            'Now checking out relevant galahad repos for {} branch'.format(
                 branch))
-        # Check out galahad repos required for excalibur
+        # Check out galahad repos required for galahad
         self.checkout_repo('galahad-config')
         self.checkout_repo('galahad', branch)
 
@@ -312,7 +361,7 @@ def parse_args():
         "--branch_name",
         type=str,
         default="master",
-        help="The branch name to be used for excalibur repo")
+        help="The branch name to be used for galahad repo")
     parser.add_argument(
         "--aws_config",
         type=str,
