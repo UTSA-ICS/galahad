@@ -222,6 +222,7 @@ class AssembleRoleThread(threading.Thread):
                 valor = valor_manager.get_empty_valor()
                 virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
                     valor['address'],
+                    valor['id'],
                     self.role['id'],
                     virtue_path)
 
@@ -234,12 +235,12 @@ class AssembleRoleThread(threading.Thread):
                 print('docker_cmd: ' + docker_cmd)
 
                 # Run assembler
-                assembler = Assembler(work_dir='{0}/{1}'.format(
-                    os.environ['HOME'],
-                    self.role['id']))
-                assembler.assemble_running_vm(self.role['applicationIds'],
-                                              docker_cmd,
-                                              virtue_ip)
+                #assembler = Assembler(work_dir='{0}/{1}'.format(
+                #    os.environ['HOME'],
+                #    self.role['id']))
+                #assembler.assemble_running_vm(self.role['applicationIds'],
+                #                              docker_cmd,
+                #                              virtue_ip)
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
