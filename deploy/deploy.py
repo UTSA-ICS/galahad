@@ -22,7 +22,7 @@ from sultan.api import Sultan, SSHConfig
 # File names
 STACK_TEMPLATE = 'setup/galahad-stack.yaml'
 VPC_STACK_TEMPLATE = 'setup/galahad-vpc-stack.yaml'
-AWS_INSTANCE_INFO = 'setup/aws_instance_info.json'
+AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 
 # aws public key name used for the instances
 key_name = 'starlab-virtue-te'
