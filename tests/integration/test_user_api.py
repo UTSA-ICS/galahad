@@ -39,11 +39,6 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../aws_instance_info.json', 'r') as infile:
-        tmp = json.load(infile)
-        settings['subnet'] = tmp['subnet_id']
-        settings['sec_group'] = tmp['sec_group']
-
     ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
     inst = LDAP( '', '' )
@@ -237,11 +232,11 @@ def test_virtue_launch():
         raise
     finally:
         inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
+        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
 
 
 def test_virtue_stop():
