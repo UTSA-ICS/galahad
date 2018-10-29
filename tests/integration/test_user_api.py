@@ -39,7 +39,7 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../setup/aws_instance_info.json', 'r') as infile:
+    with open('../aws_instance_info.json', 'r') as infile:
         tmp = json.load(infile)
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']

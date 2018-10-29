@@ -16,7 +16,7 @@ sys.path.insert(0, base_excalibur_dir)
 # For common.py
 sys.path.insert(0, '..')
 
-from common import ssh_tool
+from ssh_tool import ssh_tool
 from website.ldaplookup import LDAP
 
 sys.path.insert(0, base_excalibur_dir + '/cli')
