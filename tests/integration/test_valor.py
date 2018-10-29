@@ -1,29 +1,32 @@
 #!/usr/bin/python
 
+import json
 import os
+import subprocess
 import sys
+import time
+
+import pytest
+import requests
+import rethinkdb
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
-import time
-import pytest
-import rethinkdb
 
 from website import valor
-from website import apiendpoint
-sys.path.insert(0, base_excalibur_dir + '/cli')
 from website.services.errorcodes import ErrorCodes
-from sso_login import sso_tool
 from website.valor import RethinkDbManager
 from website import ldap_tools
 from website.ldaplookup import LDAP
-import subprocess
-import requests
-import json
+
+sys.path.insert(0, base_excalibur_dir + '/cli')
+from sso_login import sso_tool
+
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
-import time
+
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def get_rethinkdb_connection():
 
@@ -110,9 +113,7 @@ def virtue_launch():
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']
 
-    with open('../setup/excalibur_ip', 'r') as infile:
-        ip = infile.read().strip() + ':' + settings['port']
-
+    ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -120,7 +121,6 @@ def virtue_launch():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     redirect = settings['redirect'].format(ip)
-
 
     sso = sso_tool(ip)
     assert sso.login(settings['user'], settings['password'])
@@ -135,7 +135,6 @@ def virtue_launch():
 
     token = sso.get_oauth_token(client_id, code, redirect)
     assert 'access_token' in token
-
 
     session = requests.Session()
     session.headers = {
