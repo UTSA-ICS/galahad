@@ -1021,4 +1021,3 @@ def admin_valor_migrate_virtue():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(valor_id)
-

@@ -158,7 +158,7 @@ class AdminCLI(base.BaseCLI):
             return 'Json file has invalid format.'
 
         result = self.session.get(self.base_url + '/role/create',
-                                      params={'role': json.dumps(role)})
+                                  params={'role': json.dumps(role)})
         data = result.json()
 
         return json.dumps(data, indent=4, sort_keys=True)

@@ -42,5 +42,5 @@ sudo cp sources.list $UBUNTU_MNT/etc/apt
 sudo umount $UBUNTU_MNT
 
 sudo mkdir -p /mnt/efs/images/base_ubuntu
-sudo cp $HOME/domains/Unity8GB/disk.img /mnt/efs/images/base_ubuntu/8GB.img
-sudo cp $HOME/domains/Unity4GB/disk.img /mnt/efs/images/base_ubuntu/4GB.img
+sudo rsync $HOME/domains/Unity8GB/disk.img /mnt/efs/images/base_ubuntu/8GB.img
+sudo rsync $HOME/domains/Unity4GB/disk.img /mnt/efs/images/base_ubuntu/4GB.img
