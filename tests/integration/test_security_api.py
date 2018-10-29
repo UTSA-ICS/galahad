@@ -94,11 +94,11 @@ def __setup_virtue():
     global role_id
 
     # Read the Virtue IP and ID from a file (if they have been provided)
-    if os.path.isfile('../setup/virtue_ip') and os.path.isfile('../setup/virtue_id'):
+    if os.path.isfile('virtue_ip') and os.path.isfile('virtue_id'):
         new_virtue = False
-        with open('../setup/virtue_ip', 'r') as infile:
+        with open('virtue_ip', 'r') as infile:
             virtue_ip = infile.read().strip()
-        with open('../setup/virtue_id', 'r') as infile:
+        with open('virtue_id', 'r') as infile:
             virtue_id = infile.read().strip()
     # Otherwise, create a new Virtue
     else:

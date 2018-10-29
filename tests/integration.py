@@ -73,10 +73,10 @@ if (__name__ == '__main__'):
 
     # Populate the virtue_ip and virtue_id file needed for all the tests.
     if virtue_ip is not None:
-        ssh_inst.ssh('cd galahad/tests/setup && echo {} > virtue_ip'.format(
+        ssh_inst.ssh('cd galahad/tests/integration && echo {} > virtue_ip'.format(
             virtue_ip))
     if virtue_id is not None:
-        ssh_inst.ssh('cd galahad/tests/setup && echo {} > virtue_id'.format(
+        ssh_inst.ssh('cd galahad/tests/integration && echo {} > virtue_id'.format(
             virtue_id))
 
     # Run the specified Test command
