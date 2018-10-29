@@ -206,7 +206,7 @@ class EndPoint():
                         valor['address'],
                         valor['valor_id'],
                         virtue['id'],
-                        '/mnt/efs/images/provisioned_virtues/' + virtue['id'] + '.img')
+                        'images/provisioned_virtues/' + virtue['id'] + '.img')
 
                 except AssertionError:
                     return json.dumps(ErrorCodes.user['virtueAlreadyLaunched'])
