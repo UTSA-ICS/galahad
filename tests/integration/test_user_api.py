@@ -1,10 +1,12 @@
 import json
 import os
+import datetime
 import subprocess
 import sys
 import time
 
 import requests
+import time
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -18,6 +20,14 @@ sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+
+# For common.py
+sys.path.insert(0, '..')
+from common import ssh_tool
+
+
+ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
+SLEEP_TIME = 10 # Time to sleep
 
 ##
 # Functionality of these API commands is tested by unit/test_user_api.py.
@@ -33,6 +43,7 @@ def setup_module():
     global ip
     global base_url
     global test_valor_id
+    global aggregator_ssh
 
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
@@ -44,6 +55,10 @@ def setup_module():
 
     with open('../setup/excalibur_ip', 'r') as infile:
         ip = infile.read().strip() + ':' + settings['port']
+
+    aggregator_ip = None
+    with open('../setup/aggregator_ip', 'r') as infile:
+        aggregator_ip = infile.read().strip()
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -86,6 +101,8 @@ def setup_module():
                            params={'valor_id': test_valor_id})
     assert (response.json() == {'valor_id': test_valor_id})
 
+    aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
+
 
 def teardown_module():
 
@@ -94,6 +111,34 @@ def teardown_module():
     assert (response.json() == ErrorCodes.admin['success'] or
             response.json() == {'valor_id': None})
 
+
+
+
+def __get_excalibur_index():
+    # A new index is created every day
+    now = datetime.datetime.now()
+    index = now.strftime('excalibur-%Y.%m.%d')
+    return index
+
+def __query_elasticsearch_excalibur(args):
+    assert aggregator_ssh.check_access() # This prevents the result from being "added to know host" result from failing tests
+    time.sleep(30) # Sleep to ensure logs make it to elasticsearch
+    index = __get_excalibur_index()
+    cmdargs = ''
+    for (key, value) in args:
+        cmdargs += '&q=' + str(key) + ':' + str(value)
+    cmd = 'curl -s -X GET --insecure "https://admin:admin@localhost:9200/%s/_search?size=1&pretty%s"' % (index, cmdargs)
+    output = aggregator_ssh.ssh(cmd, output=True)
+    return json.loads(output)
+
+def query_elasticsearch_with_timeout(args):
+    elasped_time = 0
+    while elasped_time < ELASTIC_TIMEOUT:
+        result = __query_elasticsearch_excalibur(args)
+        if 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0:
+            return result
+        elasped_time += SLEEP_TIME
+    return result # Return last result, this will fail tests
 
 def test_application_get():
 
@@ -107,6 +152,10 @@ def test_application_get():
         base_url + '/application/get', params={'appId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
 
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'application_get'), ('app_id', 'DoesNotExist')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
 
 def test_role_get():
 
@@ -116,6 +165,10 @@ def test_role_get():
     response = session.get(
         base_url + '/role/get', params={'roleId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
+
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'role_get'), ('role_id', 'DoesNotExist')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
 
 def test_user_role_list():
@@ -133,6 +186,10 @@ def test_user_role_list():
             'startingTransducerIds', 'ipAddress', 'state'
         ]))
 
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'user_role_list')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
 
 def test_user_virtue_list():
 
@@ -146,6 +203,10 @@ def test_user_virtue_list():
             'transducerIds', 'state', 'ipAddress'
         ])
 
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'user_virtue_list')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
 
 def test_virtue_get():
 
@@ -155,6 +216,10 @@ def test_virtue_get():
     response = session.get(
         base_url + '/virtue/get', params={'virtueId': 'DoesNotExist'})
     assert response.json() == ErrorCodes.user['invalidId']['result']
+
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'virtue_get'), ('virtue_id', 'DoesNotExist')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
 
 def test_virtue_launch():
@@ -231,6 +296,11 @@ def test_virtue_launch():
         response = session.get(base_url + '/virtue/launch',
                                params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyLaunched']['result'])
+
+        result = query_elasticsearch_with_timeout(
+            [('user', settings['user']), ('real_func_name', 'virtue_launch'),
+             ('virtue_id', 'TEST_VIRTUE_LAUNCH')])
+        assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
     except:
         raise
@@ -319,6 +389,11 @@ def test_virtue_stop():
                                params={'virtueId': 'TEST_VIRTUE_STOP'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyStopped']['result'])
 
+        result = query_elasticsearch_with_timeout(
+            [('user', settings['user']), ('real_func_name', 'virtue_stop'),
+             ('virtue_id', 'TEST_VIRTUE_STOP')])
+        assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
     except:
         raise
     finally:
@@ -344,6 +419,11 @@ def test_virtue_application_launch():
         response.json() == ErrorCodes.user['invalidVirtueId']['result'] or
         response.json() == ErrorCodes.user['invalidApplicationId']['result'])
 
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'virtue_application_launch'),
+         ('virtue_id', 'DoesNotExist'), ('app_id', 'DoesNotExist')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
 
 def test_virtue_application_stop():
 
@@ -359,3 +439,8 @@ def test_virtue_application_stop():
     assert (
         response.json() == ErrorCodes.user['invalidVirtueId']['result'] or
         response.json() == ErrorCodes.user['invalidApplicationId']['result'])
+
+    result = query_elasticsearch_with_timeout(
+        [('user', settings['user']), ('real_func_name', 'virtue_application_stop'),
+         ('virtue_id', 'DoesNotExist'), ('app_id', 'DoesNotExist')])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0

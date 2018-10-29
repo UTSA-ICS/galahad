@@ -201,6 +201,21 @@ def __query_elasticsearch_merlin(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+def __get_excalibur_index():
+    # A new index is created every day
+    now = datetime.datetime.now()
+    index = now.strftime('excalibur-%Y.%m.%d')
+    return index
+
+def __query_elasticsearch_excalibur(args):
+    index = __get_excalibur_index()
+    cmdargs = ''
+    for (key, value) in args:
+        cmdargs += '&q=' + str(key) + ':' + str(value)
+    cmd = 'curl -s -X GET --insecure "https://admin:admin@localhost:9200/%s/_search?size=1&pretty%s"' % (index, cmdargs)
+    output = aggregator_ssh.ssh(cmd, output=True)
+    return json.loads(output)
+
 def test_sensor_disable():
     if virtue_ssh is None:
         __setup_virtue()
@@ -219,7 +234,7 @@ def test_sensor_disable():
     virtue_ssh.ssh('mkdir ' + dirname)
 
     # Give elasticsearch a few seconds to receive the new logs
-    time.sleep(15)
+    time.sleep(60)
 
     # Check that the log DIDN'T appear on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])
@@ -227,6 +242,11 @@ def test_sensor_disable():
 
     result = __query_elasticsearch_merlin(
         [('transducer_id', 'path_mkdir'), ('enabled', 'false'), ('virtue_id', virtue_id)])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
+    result = __query_elasticsearch_excalibur([('transducer_id', 'path_mkdir'),
+                                              ('real_func_name', 'transducer_disable'),
+                                              ('virtue_id', virtue_id)])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
     # Cleanup
@@ -251,7 +271,7 @@ def test_sensor_enable():
     virtue_ssh.ssh('mkdir ' + dirname)
 
     # Give elasticsearch a few seconds to receive the new logs
-    time.sleep(15)
+    time.sleep(60)
 
     # Check that the log appeared on elasticsearch
     result = __query_elasticsearch([('LogType', 'Virtue'), ('Event', 'path_mkdir'), ('Child', dirname)])
@@ -259,6 +279,10 @@ def test_sensor_enable():
 
     result = __query_elasticsearch_merlin(
         [('transducer_id', 'path_mkdir'), ('enabled', 'true'), ('virtue_id', virtue_id)])
+    assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
+
+    result = __query_elasticsearch_excalibur(
+        [('transducer_id', 'path_mkdir'), ('real_func_name', 'transducer_enable'), ('virtue_id', virtue_id)])
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
     # Cleanup
