@@ -1,0 +1,59 @@
+<tr>
+  <td width="290px" align="center">
+    <ngx-charts-bar-vertical
+      [view]="barView"
+      [scheme]="barColorScheme"
+      [results]="barData"
+      [gradient]="barGradient"
+      [xAxis]="barShowXAxis"
+      [yAxis]="barShowYAxis"
+      [legend]="barShowLegend"
+      [showXAxisLabel]="barShowXAxisLabel"
+      [showYAxisLabel]="barShowYAxisLabel"
+      [xAxisLabel]="barXAxisLabel"
+      [yAxisLabel]="barYAxisLabel"
+      (select)="onSelect($event)">
+    </ngx-charts-bar-vertical>
+  </td>
+  <td width="290px" align="center">
+
+  </td>
+</tr>
+<p-table [value]="tableData" [columns]="cols" [resizableColumns]="true" dataKey="id">
+  <ng-template pTemplate="header">
+    <tr>
+      <th style="width: 3em"></th>
+      <th *ngFor="let col of cols" pResizableColumn>
+        {{col.header}}
+      </th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-rowData let-expanded="expanded" let-columns="columns">
+    <tr>
+      <td>
+        <a href="#" [pRowToggler]="rowData">
+          <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
+        </a>
+      </td>
+      <td *ngFor="let col of columns" class="ui-resizable-column">
+        {{rowData[col.field]}}
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="rowexpansion" let-rowData let-columns="columns">
+    <tr>
+      <td [attr.colspan]="cols.length + 1">
+        <div class="ui-g ui-fluid" style="font-size:12px;padding:20px">
+          <div class="ui-g-12 ui-md-3" style="text-align:center">
+            <b>Role ID's:</b>
+          </div>
+      <td *ngFor="let role of rowData['cauthRoleIds']">
+        <div class="ui-g-12">
+          {{role}}
+        </div>
+      </td>
+      </div>
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
