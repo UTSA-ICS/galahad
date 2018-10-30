@@ -109,7 +109,6 @@ if (__name__ == '__main__'):
 
         if args.list_tests:
 
-
             logger.info('\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
 
             ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan {} {}'
