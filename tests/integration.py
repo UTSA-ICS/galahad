@@ -19,30 +19,47 @@ def parse_args():
         type=str,
         required=True,
         help='The path to the private key to use ssh with')
+
     parser.add_argument(
         '-v',
         '--virtue_ip',
         type=str,
         required=False,
         help='The IP address of an existing aws Virtue instance.')
+
     parser.add_argument(
         '-d',
         '--virtue_id',
         type=str,
         required=False,
         help='The Virtue ID of an existing aws Virtue instance.')
+
     parser.add_argument(
         '--run_test',
         type=str,
         help='The specified Integration Test that will be run')
+
     parser.add_argument(
         '--list_tests',
         action='store_true',
         help='List All available Integration Tests')
+
     parser.add_argument(
         '--run_all_tests',
         action='store_true',
         help='Run All available Integration Tests')
+
+    parser.add_argument(
+        '--profile',
+        action='store_true',
+        required=False,
+        help='enable profiling')
+
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        required=False,
+        help='enable verbose reporting')
 
     arg = parser.parse_args()
 
@@ -80,34 +97,53 @@ if (__name__ == '__main__'):
             virtue_id))
 
     # Run the specified Test command
+
+    if args.verbose:
+        verbose_tag = '--verbose'
+    else:
+        verbose_tag = ''
+
+    if args.profile:
+        profile_tag = '--profile'
+    else:
+        profile_tag = ''
+
     try:
+
         if args.list_tests:
+
             logger.info(
                 '\n!!!!!!!!!\nListing of All Integration Tests\n!!!!!!!!!!')
-            ssh_inst.ssh('cd galahad/tests/integration && pytest --setup-plan '
+
+            ssh_inst.ssh('cd galahad/tests/integration && pytest {} {} --setup-plan '
                          '--html=integration-test-report.html --self-contained-html '
-                         '--junit-xml=integration-test-report.xml')
+                         '--junit-xml=integration-test-report.xml'.format(verbose_tag, profile_tag))
         if args.run_test:
             logger.info(
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
                     format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh(
-                'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
-                '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(
-                        args.run_test))
+                'cd galahad/tests/integration && pytest {} {} --setup-show --html=integration-test-report.html '
+                '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(verbose_tag, profile_tag, args.run_test))
+
         if args.run_all_tests:
+
             logger.info(
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
                     format(EXCALIBUR_HOSTNAME))
+
             ssh_inst.ssh(
-                'cd galahad/tests/integration && pytest --setup-show --html=integration-test-report.html '
-                '--self-contained-html --junit-xml=integration-test-report.xml')
+                'cd galahad/tests/integration && pytest {} {} --setup-show --html=integration-test-report.html '
+                '--self-contained-html --junit-xml=integration-test-report.xml'.format(verbose_tag, profile_tag))
 
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/integration/integration-test-report.html')
-    except:
+    except Exception as error:
+
+        print(error)
+
         ssh_inst.scp_from('.',
                           '/home/ubuntu/galahad/tests/integration/integration-test-report.xml')
         ssh_inst.scp_from('.',
