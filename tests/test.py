@@ -20,7 +20,7 @@ def parse_args():
         '--stack_name',
         type=str,
         required=False,
-        help='The path to the private key to use ssh with')
+        help='Name of galahad stack to run the tests against')
     parser.add_argument(
         '-i',
         '--sshkey',

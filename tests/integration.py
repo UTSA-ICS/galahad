@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument(
         '--run_test',
         type=str,
-        help='The Integration Test that will be run')
+        help='The specified Integration Test that will be run')
     parser.add_argument(
         '--list_tests',
         action='store_true',

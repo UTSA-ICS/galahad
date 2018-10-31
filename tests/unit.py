@@ -22,13 +22,7 @@ def parse_args():
     parser.add_argument(
         '--run_test',
         type=str,
-        help='The Unit Test that will be run')
-    parser.add_argument(
-        '--test_admin_api', action='store_true', help='The ADMIN API Tests')
-    parser.add_argument(
-        '--test_user_api', action='store_true', help='The USER API Tests')
-    parser.add_argument(
-        '--test_aws', action='store_true', help='The AWS Tests')
+        help='The specified Unit Test that will be run')
     parser.add_argument(
         '--list_tests',
         action='store_true',
