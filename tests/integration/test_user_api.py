@@ -25,6 +25,7 @@ from ssh_tool import ssh_tool
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
 SLEEP_TIME = 10 # Time to sleep
 
@@ -49,9 +50,7 @@ def setup_module():
 
     ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
-    aggregator_ip = None
-    with open('../setup/aggregator_ip', 'r') as infile:
-        aggregator_ip = infile.read().strip()
+    aggregator_ip = AGGREGATOR_HOSTNAME
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
