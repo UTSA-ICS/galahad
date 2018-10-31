@@ -10,6 +10,7 @@ from aws import AWS
 from ldaplookup import LDAP
 
 from valor import ValorManager
+from assembler.assembler import Assembler
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
