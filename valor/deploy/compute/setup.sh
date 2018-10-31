@@ -49,6 +49,18 @@ while read line; do
 done <<< $ROUTER_IP
 
 #
+# Set the MTU of eth0 to 9001 (Jumbo Frames) to ensure
+# proper network connectivity with external nodes e.g excalibur
+# Without this MTU increase (from 1500) SSH connections from excalibur to valor will hang.
+#
+echo "" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Increase MTU from 1500 to 9001 to ensure proper network connectivity" >> /etc/network/interfaces
+echo "# with external nodes wjthn a higher MTU" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "post-up ip link set dev eth0 mtu 9001" >> /etc/network/interfaces
+
+#
 # Append entry in fstab for xen file system
 #
 echo "none /proc/xen xenfs defaults 0 0" >> /etc/fstab
