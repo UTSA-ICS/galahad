@@ -233,10 +233,10 @@ class AssembleRoleThread(threading.Thread):
                 assembler = Assembler(work_dir='{0}/.{1}_assembly'.format(
                     os.environ['HOME'],
                     self.role['id']))
-                assembler.assemble_running_vm(self.role['applicationIds'],
-                                              docker_cmd,
-                                              key_path,
-                                              virtue_ip)
+                #assembler.assemble_running_vm(self.role['applicationIds'],
+                #                              docker_cmd,
+                #                              key_path,
+                #                              virtue_ip)
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
