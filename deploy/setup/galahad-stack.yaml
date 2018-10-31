@@ -325,7 +325,7 @@ Resources:
   ExcaliburServer:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-aa2ea6d0
+      ImageId: ami-a4dc46db
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -492,7 +492,7 @@ Resources:
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-01c5d8354c604b662
+      ImageId: ami-a4dc46db
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
