@@ -457,9 +457,6 @@ class Assembler(object):
         stage_dict[UserStage.NAME] = UserStage(WORK_DIR)
         stage_dict[AptStage.NAME] = AptStage(WORK_DIR)
 
-        if not os.path.exists(WORK_DIR):
-            os.makedirs(WORK_DIR)
-
         for stage in stage_dict:
             if isinstance(stage_dict[stage], CIStage):
                 self.run_stage(stage_dict, stage)
@@ -575,14 +572,26 @@ class Assembler(object):
 
         return return_data
 
-    def assemble_running_vm(self, containers, docker_login,
-                            ssh_host, ssh_port='22'):
+    def assemble_running_vm(self, containers, docker_login, key_path,
+                            ssh_host, ssh_port = '22', clean=True):
+
+        if os.path.exists(self.work_dir) and os.listdir(self.work_dir) != []:
+            print("Cleaning working directory...")
+            shutil.rmtree(self.work_dir)
+
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
+
+        shutil.copy(key_path, self.work_dir + '/id_rsa')
 
         docker_stage = DockerVirtueStage(docker_login, containers, ssh_host,
                                          str(ssh_port), self.work_dir,
                                          check_cloudinit=False)
 
         docker_stage.run()
+
+        if clean:
+            shutil.rmtree(self.work_dir)
 
 
     def provision_virtue(self,
