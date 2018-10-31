@@ -167,10 +167,10 @@ def virtue_launch():
         # 'Create' a Virtue
         subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
-                                'TEST_VIRTUE_LAUNCH.img')])
+                                'VALOR_TEST_VIRTUE_LAUNCH.img')])
 
         virtue = {
-            'id': 'TEST_VIRTUE_LAUNCH',
+            'id': 'VALOR_TEST_VIRTUE_LAUNCH',
             'username': 'jmitchell',
             'roleId': 'TBD',
             'applicationIds': [],
@@ -184,19 +184,19 @@ def virtue_launch():
 
         # virtue_launch() it
         response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
+                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['success'])
 
         real_virtue = inst.get_obj(
             'cid',
-            'TEST_VIRTUE_LAUNCH',
+            'VALOR_TEST_VIRTUE_LAUNCH',
             objectClass='OpenLDAPvirtue',
             throw_error=True)
         ldap_tools.parse_ldap(real_virtue)
 
         assert 'RUNNING' in real_virtue['state']
 
-        rethink_virtue = rethink_manager.get_virtue('TEST_VIRTUE_LAUNCH')
+        rethink_virtue = rethink_manager.get_virtue('VALOR_TEST_VIRTUE_LAUNCH')
 
         assert type(rethink_virtue) == dict
 
@@ -225,16 +225,16 @@ def virtue_launch():
         assert xl_list.count('\n') == 3
 
         response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
+                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyLaunched']['result'])
 
     except:
         raise
-        inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
+        inst.del_obj('cid', 'VALOR_TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
+        rethink_manager.remove_virtue('VALOR_TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
-                                'TEST_VIRTUE_LAUNCH.img'),
+                                'VALOR_TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
 
     return (rethink_virtue['virtue_id'], rethink_valor['address'])
