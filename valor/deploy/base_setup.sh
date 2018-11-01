@@ -26,26 +26,6 @@ pip install rethinkdb
 ovs-vsctl add-br hello-br0
 
 #
-# Disable cloud init networking which sets eth0 to default settings.
-#
-echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-rm -f /etc/network/interfaces.d/50-cloud-init.cfg
-
-#
-# Setup and configure bridge br0 with interface eth0
-#
-echo "" >> /etc/network/interfaces
-echo "#" >> /etc/network/interfaces
-echo "# Bridge br0 for eth0" >> /etc/network/interfaces
-echo "#" >> /etc/network/interfaces
-echo "auto br0" >> /etc/network/interfaces
-echo "iface br0 inet dhcp" >> /etc/network/interfaces
-echo "  bridge_ports br0 eth0" >> /etc/network/interfaces
-echo "  bridge_stp off" >> /etc/network/interfaces
-echo "  bridge_fd 0" >> /etc/network/interfaces
-echo "  bridge_maxwait 0" >> /etc/network/interfaces
-
-#
 # Configure bridge hello-br0
 #
 echo "" >> /etc/network/interfaces
