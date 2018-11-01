@@ -31,9 +31,9 @@ key_name = 'starlab-virtue-te'
 
 # Node addresses
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
-RETHINKDB_IP = 'rethinkdb.galahad.com'
-VALOR_ROUTER_IP = 'valor-router.galahad.com'
-XEN_PVM_BUILDER_IP = 'xenpvmbuilder.galahad.com'
+RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
+VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
+XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
 
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
@@ -202,7 +202,7 @@ class RethinkDB():
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.ip_address = RETHINKDB_IP
+        self.ip_address = RETHINKDB_HOSTNAME
 
     def setup_keys(self, github_key, user_key):
 
@@ -484,68 +484,60 @@ class EFS():
 
         return efs_id
 
-    def setup_valor_router(self):
 
+    def setup_valor_router(self):
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_IP)).run()
+                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
 
         # Execute the setup file on the instance
         _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
-        run_ssh_cmd(VALOR_ROUTER_IP, self.ssh_key, _cmd)
+        run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
+
 
     def setup_ubuntu_img(self):
-
         # scp workaround payload to node
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
-                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/sources.list ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_IP)).run()
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
 
         # Apply workarounds and create the ubuntu image
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
-        run_ssh_cmd(XEN_PVM_BUILDER_IP, self.ssh_key, ssh_cmd)
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
         # Delete xen tool instance
-        # client.terminate_instances(InstanceIds=[instance['InstanceId']])
+        #client.terminate_instances(InstanceIds=[instance['InstanceId']])
 
-    def setup_unity_img(self, constructor_ip):
+    def setup_unity_img(self, constructor_ip, image_name):
 
         pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
                                  stdout=subprocess.PIPE).stdout
 
-        pub_key_cmd = '''bash('-c "echo {0} > /tmp/unity_key.pub"')'''.format(
-            pub_key.decode().strip())
+        pub_key_cmd = '''bash('-c "echo {0} > /tmp/{1}_unity_key.pub"')'''.format(
+            pub_key.decode().strip(), image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
 
-        # Construct 8GB Unity
+        # Construct Unity
         construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
-                                 ' -b /mnt/efs/images/base_ubuntu/8GB.img'
-                                 ' -p /tmp/unity_key.pub'
-                                 ' -o /mnt/efs/images/unities/8GB.img'
-                                 ' -w /mnt/efs/tmp'))'''
+                                 ' -b /mnt/efs/images/base_ubuntu/{0}'
+                                 ' -p /tmp/{1}_unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/{0}'
+                                 ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
-        # Construct 4GB Unity
-        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
-                                 ' -b /mnt/efs/images/base_ubuntu/4GB.img'
-                                 ' -p /tmp/unity_key.pub'
-                                 ' -o /mnt/efs/images/unities/4GB.img'
-                                 ' -w /mnt/efs/tmp'))'''
-        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
-
-        rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
-        run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
+        #rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
+        #run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
 
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
@@ -563,11 +555,20 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    valor_node_thread = threading.Thread(target=efs.setup_valor_router)
-    valor_node_thread.start()
+    efs.setup_valor_router()
 
     setup_ubuntu_img_thread.join()
-    efs.setup_unity_img(excalibur.server_ip)
+
+    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip, '8GB.img'))
+    setup_8GB_unity_thread.start()
+
+    setup_4GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip, '4GB.img'))
+    setup_4GB_unity_thread.start()
+
+    setup_4GB_unity_thread.join()
+    setup_8GB_unity_thread.join()
 
 
 def parse_args():
