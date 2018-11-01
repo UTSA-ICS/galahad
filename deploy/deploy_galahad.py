@@ -91,9 +91,6 @@ class Stack():
                 'ParameterKey': 'NameSuffix',
                 'ParameterValue': self.suffix_value
             }, {
-                'ParameterKey': 'EnvType',
-                'ParameterValue': 'JHUAPL'
-            }, {
                 'ParameterKey': 'ImportStackName',
                 'ParameterValue': import_stack_name
             }])
