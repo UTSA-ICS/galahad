@@ -270,7 +270,79 @@ Resources:
       Tags:
       - Key: Name
         Value: "starlab-finals-fsr-private-eni-sg"
-  DeployServerSecGroup:
+  StarLabSTXIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 70.121.205.81/32
+      Description: StarLab - STX
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  StarLabSTXIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 70.121.205.81/32
+      Description: StarLab - STX
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  StarLabHSVIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 199.46.124.36/32
+      Description: StarLab - HSV
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  StarLabHSVIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 199.46.124.36/32
+      Description: StarLab - HSV
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  BBNIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 128.89.0.0/16
+      Description: Raytheon BBN
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  BBNIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 128.89.0.0/16
+      Description: Raytheon BBN
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  FarhanIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 45.31.214.87/32
+      Description: Farhan - Home
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  FarhanIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 45.31.214.87/32
+      Description: Farhan - Home
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  DeveloperSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: >-
@@ -325,7 +397,7 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-DeployServerSecGroup'
+              - '-DeveloperSecGroup'
       VpcId: !Ref VirtUELog4VPC
   DeployServer:
     Type: 'AWS::EC2::Instance'
@@ -340,7 +412,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           GroupSet:
-            - !Ref DeployServerSecGroup
+            - !Ref DeveloperSecGroup
             - !GetAtt VirtUELog4VPC.DefaultSecurityGroup
           SubnetId: !Ref VirtUELog4AdminSubnet
       Tags:
@@ -366,6 +438,11 @@ Outputs:
     Value: !Ref VirtUELog4AdminSubnet
     Export:
       Name: !Sub "${AWS::StackName}--ADMIN-SUBNETID"
+  DeveloperSecurityGroupId:
+    Description: "Security Group Id for Developer rules"
+    Value: !Ref DeveloperSecGroup
+    Export:
+      Name: !Sub "${AWS::StackName}--DEVELOPER-SEC-GROUP"
   StarlabFinalsUserSubnetId:
     Description: "virtue subnet to deploy user assets"
     Value: !Ref VirtUELog4UserSubnet
