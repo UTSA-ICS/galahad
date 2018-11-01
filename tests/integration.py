@@ -124,7 +124,7 @@ if (__name__ == '__main__'):
                     format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh(
                 'cd galahad/tests/integration && pytest {} {} --setup-show --html=integration-test-report.html '
-                '--self-contained-html --junit-xml=integration-test-report.xml {0}'.format(verbose_tag, profile_tag, args.run_test))
+                '--self-contained-html --junit-xml=integration-test-report.xml {}'.format(verbose_tag, profile_tag, args.run_test))
 
         if args.run_all_tests:
 
