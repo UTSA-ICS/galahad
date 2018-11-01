@@ -349,14 +349,6 @@ def parse_args():
         help=
         "The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument(
-        "--env_type",
-        type=str,
-        default='StarLab',
-        choices=['StarLab', 'JHUAPL'],
-        required=False,
-        help=
-        "The Environment Type specifying the Deployment to StarLab or JHUAPL")
-    parser.add_argument(
         "-b",
         "--branch_name",
         type=str,
