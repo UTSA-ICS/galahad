@@ -26,11 +26,6 @@ def parse_args():
         help='The specified Unit Test that will be run')
 
     parser.add_argument(
-        '--run_test',
-        type=str,
-        help='The Unit Test that will be run')
-
-    parser.add_argument(
         '--profile',
         action='store_true',
         required=False,
