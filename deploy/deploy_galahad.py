@@ -150,37 +150,40 @@ class Stack():
                     IpPermissions=sec_group.ip_permissions_egress)
 
     def terminate_non_stack_instances(self, stack_name):
-        excalibur = Excalibur(stack_name, None)
-        vpc_id = excalibur.vpc_id
+        # Find the VPC ID from the excalibur Instance
+        client = boto3.client('ec2')
+        server = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ExcaliburServer']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [stack_name]
+            }])
+
+        try:
+            vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
+        except:
+            logger.error("Unable to find VPC ID from instance Excalibur")
+            raise
 
         # Now find all instances in ec2 within the VPC but without the stack tags.
         ec2 = boto3.client('ec2')
 
         # Get ALL instances in the stack VPC
-        instances_in_vpc = []
         vms = ec2.describe_instances(Filters=[{'Name': 'vpc-id',
                                                'Values': [vpc_id]}])
-        for vm in vms['Reservations']:
-            instances_in_vpc.append(vm['Instances'][0]['InstanceId'])
-
-        # Get instances created by the stack
-        instances_in_stack = []
-        vms = ec2.describe_instances(Filters=[{'Name': 'tag:aws:cloudformation:stack-name',
-                                               'Values': [stack_name]}])
-        for vm in vms['Reservations']:
-            instances_in_stack.append(vm['Instances'][0]['InstanceId'])
-
-        # Figure out which instances are not created by the stack
         instances_not_in_stack = []
-        for instance in instances_in_vpc:
-            if instance not in instances_in_stack:
-                instances_not_in_stack.append(instance)
+        for vm in vms['Reservations']:
+            if 'aws:cloudformation:stack-name' not in str(vm['Instances'][0]['Tags']):
+                instances_not_in_stack.append(vm['Instances'][0]['InstanceId'])
 
         # Now Terminate these instances not created by the stack
         resource = boto3.resource('ec2')
         for instance in instances_not_in_stack:
             resource.Instance(instance).terminate()
-            print(instance)
+            logger.info('Terminating instance [{}] not created by the stack'.format(instance))
+
 
     def list_stacks(self):
         client = boto3.client('cloudformation')
