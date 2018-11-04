@@ -34,9 +34,41 @@ The Galahad deployment is driven by the `deploy.py` script, which will setup and
 
 Usage:
 ```
+usage: deploy.py [-h] -k PATH_TO_KEY -g GITHUB_REPO_KEY -n STACK_NAME -s
+                 STACK_SUFFIX [-b BRANCH_NAME] [--aws_config AWS_CONFIG]
+                 --aws_keys AWS_KEYS [--setup] [--setup_stack] [--list_stacks]
+                 [--delete_stack] --default_user_key DEFAULT_USER_KEY
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -k PATH_TO_KEY, --path_to_key PATH_TO_KEY
+                        The path to the public key used for the ec2 instances
+  -g GITHUB_REPO_KEY, --github_repo_key GITHUB_REPO_KEY
+                        The path to the key to be able to access github repos
+  -n STACK_NAME, --stack_name STACK_NAME
+                        The name of the cloudformation stack for the virtue
+                        environment
+  -s STACK_SUFFIX, --stack_suffix STACK_SUFFIX
+                        The suffix used by the cloudformation stack to append
+                        to resource names
+  -b BRANCH_NAME, --branch_name BRANCH_NAME
+                        The branch name to be used for galahad repo
+  --aws_config AWS_CONFIG
+                        AWS config to be used to communicate with AWS
+  --aws_keys AWS_KEYS   AWS keys to be used for AWS communication
+  --setup               setup the galahad/virtue test environment
+  --setup_stack         setup the galahad/virtue stack only
+  --list_stacks         List all the available stacks
+  --delete_stack        delete the specified stack
+  --default_user_key DEFAULT_USER_KEY
+                        Default private key for users to get (Will be replaced
+                        with generated keys)
+```
+Example:
+```
 python3 deploy.py 
-        -k ../../starlab-virtue-te.pem                 -  private key corresponding to public key provisioned in AWS
-        -g ../../github_key.private                    -  github access key required to access the repo
+        -k ../../starlab-virtue-te.pem                 - private key corresponding to public key provisioned in AWS
+        -g ../../github_key.private                    - github access key required to access the repo
         --aws_config "setup/aws_config"                - aws setup config
         --aws_keys ~/.aws/credentials                  - aws credentials – access key and access key ID
         --default_user_key ../../starlab-virtue-te.pem - can be same as private key corresponding to public key provisioned in AWS
@@ -54,6 +86,42 @@ The `deploy-galahad.py` script will perform the following tasks:
 
 Usage:
 ```
+usage: deploy_galahad.py [-h] -k PATH_TO_KEY -g GITHUB_REPO_KEY -n STACK_NAME
+                         -s STACK_SUFFIX [--import_stack IMPORT_STACK]
+                         [-b BRANCH_NAME] [--aws_config AWS_CONFIG] --aws_keys
+                         AWS_KEYS [--setup] [--setup_stack] [--list_stacks]
+                         [--delete_stack] --default_user_key DEFAULT_USER_KEY
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -k PATH_TO_KEY, --path_to_key PATH_TO_KEY
+                        The path to the public key used for the ec2 instances
+  -g GITHUB_REPO_KEY, --github_repo_key GITHUB_REPO_KEY
+                        The path to the key to be able to access github repos
+  -n STACK_NAME, --stack_name STACK_NAME
+                        The name of the cloudformation stack for the virtue
+                        environment
+  -s STACK_SUFFIX, --stack_suffix STACK_SUFFIX
+                        The suffix used by the cloudformation stack to append
+                        to resource names
+  --import_stack IMPORT_STACK
+                        The Name of the Stack containing resources that will
+                        be imported for use in this stack
+  -b BRANCH_NAME, --branch_name BRANCH_NAME
+                        The branch name to be used for excalibur repo
+  --aws_config AWS_CONFIG
+                        AWS config to be used to communicate with AWS
+  --aws_keys AWS_KEYS   AWS keys to be used for AWS communication
+  --setup               setup the galahad/virtue test environment
+  --setup_stack         setup the galahad/virtue stack only
+  --list_stacks         List all the available stacks
+  --delete_stack        delete the specified stack
+  --default_user_key DEFAULT_USER_KEY
+                        Default private key for users to get (Will be replaced
+                        with generated keys)
+```
+Example:
+```
 python3 deploy-galahad.py 
         -k ../../starlab-virtue-te.pem                 -  private key corresponding to public key provisioned in AWS
         -g ../../github_key.private                    -  github access key required to access the repo
@@ -63,6 +131,6 @@ python3 deploy-galahad.py
         -b JHUAPL_Deployment_rework                    - branch in github which will be used as the code base
         -n STARLAB-JHUAPL                              - name of new stack going to be deployed
         -s ST1                                         - tag name for aws resources to have as a identifier in their name
-        --import_stack                                 - name of CF stack that was deployed to AWS that has VPC and subnet resources
+        --import_stack STARLAB-JHUAPL-VPC              - name of CF stack that was deployed to AWS that has VPC and subnet resources
         --setup                                        - directive to setup
  ```
