@@ -50,11 +50,11 @@ class AWS:
     def get_instance_info():
         return get_instance_metadata(timeout=0.5, num_retries=2)
 
-    def get_public_ip(self):
+    def get_private_ip(self):
         info = self.get_instance_info()
 
         instance = self.ec2.Instance(info['instance-id'])
-        return instance.public_ip_address
+        return instance.private_ip_address
 
     def get_subnet_id(self):
         info = self.get_instance_info()
@@ -77,7 +77,7 @@ class AWS:
         try:
             virtue['state'] = \
                 self.aws_state_to_virtue_state[instance.state['Name']]
-            virtue['ipAddress'] = str(instance.public_ip_address)
+            virtue['ipAddress'] = str(instance.private_ip_address)
         except (botocore.exceptions.ClientError, AttributeError):
             virtue['state'] = 'NULL'
             virtue['ipAddress'] = 'NULL'
@@ -165,7 +165,7 @@ class AWS:
 
         instance.reload()
 
-        self.ipAddress = instance.public_ip_address
+        self.ipAddress = instance.private_ip_address
         self.state = instance.state['Name']
 
         return instance

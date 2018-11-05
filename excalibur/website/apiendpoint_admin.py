@@ -141,7 +141,7 @@ class EndPoint_Admin():
         self,
         role,
         use_ssh=True,
-        hard_code_path='images/unities/8GB.img'):
+        hard_code_path='images/unities/4GB.img'):
 
         # TODO: Assemble on a running VM
 

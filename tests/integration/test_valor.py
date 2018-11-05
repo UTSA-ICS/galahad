@@ -1,29 +1,32 @@
 #!/usr/bin/python
 
+import json
 import os
+import subprocess
 import sys
+import time
+
+import pytest
+import requests
+import rethinkdb
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
 sys.path.insert(0, base_excalibur_dir)
-import time
-import pytest
-import rethinkdb
 
 from website import valor
-from website import apiendpoint
-sys.path.insert(0, base_excalibur_dir + '/cli')
 from website.services.errorcodes import ErrorCodes
-from sso_login import sso_tool
 from website.valor import RethinkDbManager
 from website import ldap_tools
 from website.ldaplookup import LDAP
-import subprocess
-import requests
-import json
+
+sys.path.insert(0, base_excalibur_dir + '/cli')
+from sso_login import sso_tool
+
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
-import time
+
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 def get_rethinkdb_connection():
 
@@ -105,14 +108,12 @@ def virtue_launch():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../setup/aws_instance_info.json', 'r') as infile:
+    with open('../aws_instance_info.json', 'r') as infile:
         tmp = json.load(infile)
         settings['subnet'] = tmp['subnet_id']
         settings['sec_group'] = tmp['sec_group']
 
-    with open('../setup/excalibur_ip', 'r') as infile:
-        ip = infile.read().strip() + ':' + settings['port']
-
+    ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -120,7 +121,6 @@ def virtue_launch():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     redirect = settings['redirect'].format(ip)
-
 
     sso = sso_tool(ip)
     assert sso.login(settings['user'], settings['password'])
@@ -135,7 +135,6 @@ def virtue_launch():
 
     token = sso.get_oauth_token(client_id, code, redirect)
     assert 'access_token' in token
-
 
     session = requests.Session()
     session.headers = {
@@ -168,10 +167,10 @@ def virtue_launch():
         # 'Create' a Virtue
         subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
-                                'TEST_VIRTUE_LAUNCH.img')])
+                                'VALOR_TEST_VIRTUE_LAUNCH.img')])
 
         virtue = {
-            'id': 'TEST_VIRTUE_LAUNCH',
+            'id': 'VALOR_TEST_VIRTUE_LAUNCH',
             'username': 'jmitchell',
             'roleId': 'TBD',
             'applicationIds': [],
@@ -185,19 +184,19 @@ def virtue_launch():
 
         # virtue_launch() it
         response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
+                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['success'])
 
         real_virtue = inst.get_obj(
             'cid',
-            'TEST_VIRTUE_LAUNCH',
+            'VALOR_TEST_VIRTUE_LAUNCH',
             objectClass='OpenLDAPvirtue',
             throw_error=True)
         ldap_tools.parse_ldap(real_virtue)
 
         assert 'RUNNING' in real_virtue['state']
 
-        rethink_virtue = rethink_manager.get_virtue('TEST_VIRTUE_LAUNCH')
+        rethink_virtue = rethink_manager.get_virtue('VALOR_TEST_VIRTUE_LAUNCH')
 
         assert type(rethink_virtue) == dict
 
@@ -226,16 +225,16 @@ def virtue_launch():
         assert xl_list.count('\n') == 3
 
         response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'TEST_VIRTUE_LAUNCH'})
+                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
         assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyLaunched']['result'])
 
     except:
         raise
-        inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
+        inst.del_obj('cid', 'VALOR_TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
+        rethink_manager.remove_virtue('VALOR_TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
-                                'TEST_VIRTUE_LAUNCH.img'),
+                                'VALOR_TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
 
     return (rethink_virtue['virtue_id'], rethink_valor['address'])

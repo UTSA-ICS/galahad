@@ -1,12 +1,11 @@
+import datetime
 import json
 import os
-import datetime
 import subprocess
 import sys
 import time
 
 import requests
-import time
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -19,13 +18,14 @@ from website.valor import RethinkDbManager
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
+# For ssh_tool.py
+sys.path.insert(0, '..')
+from ssh_tool import ssh_tool
+
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
-# For common.py
-sys.path.insert(0, '..')
-from common import ssh_tool
-
-
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
 SLEEP_TIME = 10 # Time to sleep
 
@@ -48,17 +48,9 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    with open('../setup/aws_instance_info.json', 'r') as infile:
-        tmp = json.load(infile)
-        settings['subnet'] = tmp['subnet_id']
-        settings['sec_group'] = tmp['sec_group']
+    ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
-    with open('../setup/excalibur_ip', 'r') as infile:
-        ip = infile.read().strip() + ':' + settings['port']
-
-    aggregator_ip = None
-    with open('../setup/aggregator_ip', 'r') as infile:
-        aggregator_ip = infile.read().strip()
+    aggregator_ip = AGGREGATOR_HOSTNAME
 
     inst = LDAP( '', '' )
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
@@ -306,11 +298,11 @@ def test_virtue_launch():
         raise
     finally:
         inst.del_obj('cid', 'TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
         subprocess.check_call(['sudo', 'mv',
                                ('/mnt/efs/images/provisioned_virtues/'
                                 'TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/4GB.img'])
+        rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
 
 
 def test_virtue_stop():

@@ -3,4 +3,3 @@ pytest
 pytest-html
 pytest-profiling
 pytest-progress
-requests

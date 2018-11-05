@@ -120,4 +120,4 @@ if __name__ == "__main__":
 
     # super hacky but it works for now
     while True:
-        pass
+        time.sleep(3600)

@@ -146,15 +146,15 @@ class Valor:
 
         self.client = ssh_tool(
             'ubuntu',
-            self.aws_instance.public_ip_address,
+            self.aws_instance.private_ip_address,
             sshkey=os.environ['HOME'] +
                    '/galahad-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH'.format(
-                self.aws_instance.public_ip_address))
+                self.aws_instance.private_ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.public_ip_address))
+                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.private_ip_address))
 
 
     def setup(self):
@@ -265,7 +265,7 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        excalibur_ip = '{0}/32'.format(self.aws.get_public_ip())
+        excalibur_ip = '{0}/32'.format(self.aws.get_private_ip())
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',

@@ -1,20 +1,15 @@
-import shutil
-import boto3
-import traceback
-import base64
-from ldaplookup import LDAP
-import ldap_tools
-from aws import AWS
-import threading
-import copy
-import time
-import botocore
+import os
 import shlex
 import subprocess
-import os
-from common import ssh_tool
-from valor import ValorManager
+import threading
+import time
+import traceback
 
+import ldap_tools
+from aws import AWS
+from ldaplookup import LDAP
+
+from valor import ValorManager
 from assembler.assembler import Assembler
 
 # Keep X virtues waiting to be assigned to users. The time
@@ -208,6 +203,7 @@ class AssembleRoleThread(threading.Thread):
         assert ret == 0
 
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
+        key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
         try:
             subprocess.check_call(['sudo', 'rsync',
@@ -222,6 +218,7 @@ class AssembleRoleThread(threading.Thread):
                 valor = valor_manager.get_empty_valor()
                 virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
                     valor['address'],
+                    valor['id'],
                     self.role['id'],
                     virtue_path)
 
@@ -234,12 +231,13 @@ class AssembleRoleThread(threading.Thread):
                 print('docker_cmd: ' + docker_cmd)
 
                 # Run assembler
-                assembler = Assembler(work_dir='{0}/{1}'.format(
+                assembler = Assembler(work_dir='{0}/.{1}_assembly'.format(
                     os.environ['HOME'],
                     self.role['id']))
-                assembler.assemble_running_vm(self.role['applicationIds'],
-                                              docker_cmd,
-                                              virtue_ip)
+                #assembler.assemble_running_vm(self.role['applicationIds'],
+                #                              docker_cmd,
+                #                              key_path,
+                #                              virtue_ip)
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
@@ -261,4 +259,3 @@ class AssembleRoleThread(threading.Thread):
                                        throw_error=True)
         finally:
             valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
-            pass

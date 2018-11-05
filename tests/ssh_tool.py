@@ -1,5 +1,4 @@
 import subprocess
-import boto3
 import time
 
 
@@ -44,8 +43,13 @@ class ssh_tool():
                 ret = 0
             except subprocess.CalledProcessError as e:
                 ret = e.returncode
+                print e
+                print stdout
         else:
             ret = subprocess.call(call_list)
+
+        if ret != 0:
+            print stdout
 
         # By default, it is not ok to fail
         if (test):
@@ -119,35 +123,3 @@ class ssh_tool():
             assert ret == 0
 
         return ret
-
-def get_excalibur_server_ip(stack_name):
-    client = boto3.client('ec2')
-    server = client.describe_instances(
-        Filters=[{
-            'Name': 'tag:aws:cloudformation:logical-id',
-            'Values': ['ExcaliburServer']
-        }, {
-            'Name': 'tag:aws:cloudformation:stack-name',
-            'Values': [stack_name]
-        }, {
-            'Name': 'instance-state-name',
-            'Values': ['running']
-        }])
-    # Return public IP
-    return server['Reservations'][0]['Instances'][0]['PublicIpAddress']
-
-def get_aggregator_server_ip(stack_name):
-    client = boto3.client('ec2')
-    server = client.describe_instances(
-        Filters=[{
-            'Name': 'tag:aws:cloudformation:logical-id',
-            'Values': ['GalahadAggregator']
-        }, {
-            'Name': 'tag:aws:cloudformation:stack-name',
-            'Values': [stack_name]
-        }, {
-            'Name': 'instance-state-name',
-            'Values': ['running']
-        }])
-    # Return public IP
-    return server['Reservations'][0]['Instances'][0]['PublicIpAddress']

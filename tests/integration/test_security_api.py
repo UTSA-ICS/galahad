@@ -16,11 +16,14 @@ sys.path.insert(0, base_excalibur_dir)
 # For common.py
 sys.path.insert(0, '..')
 
-from common import ssh_tool
+from ssh_tool import ssh_tool
 from website.ldaplookup import LDAP
 
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
+
+EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
 def setup_module():
     global virtue_ssh
@@ -37,19 +40,14 @@ def setup_module():
     with open('test_config.json', 'r') as infile:
         settings = json.load(infile)
 
-    excalibur_ip = None
-    with open('../setup/excalibur_ip', 'r') as infile:
-        excalibur_ip = infile.read().strip() + ':' + settings['port']
+    excalibur_ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
 
-    aggregator_ip = None
-    with open('../setup/aggregator_ip', 'r') as infile:
-        aggregator_ip = infile.read().strip()
+    aggregator_ip = AGGREGATOR_HOSTNAME
 
     inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
-
 
     # Connect to Excalibur's REST interface
     redirect = settings['redirect'].format(excalibur_ip)
@@ -76,7 +74,6 @@ def setup_module():
 
     base_url = 'https://{0}/virtue'.format(excalibur_ip)
 
-
     virtue_ip = None
     virtue_id = None
     virtue_ssh = None
@@ -97,11 +94,11 @@ def __setup_virtue():
     global role_id
 
     # Read the Virtue IP and ID from a file (if they have been provided)
-    if os.path.isfile('../setup/virtue_ip') and os.path.isfile('../setup/virtue_id'):
+    if os.path.isfile('virtue_ip') and os.path.isfile('virtue_id'):
         new_virtue = False
-        with open('../setup/virtue_ip', 'r') as infile:
+        with open('virtue_ip', 'r') as infile:
             virtue_ip = infile.read().strip()
-        with open('../setup/virtue_id', 'r') as infile:
+        with open('virtue_id', 'r') as infile:
             virtue_id = infile.read().strip()
     # Otherwise, create a new Virtue
     else:
