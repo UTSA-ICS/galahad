@@ -213,8 +213,6 @@ class AssembleRoleThread(threading.Thread):
                                    '/mnt/efs/' + virtue_path])
 
             if (self.use_ssh):
-                # TODO: Assemble role
-
                 # Launch by adding a 'virtue' to RethinkDB
                 valor = valor_manager.get_empty_valor()
                 virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
@@ -259,4 +257,5 @@ class AssembleRoleThread(threading.Thread):
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
         finally:
-            valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
+            if valor_manager.rethinkdb_manager.get_virtue(self.role['id']):
+                valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
