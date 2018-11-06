@@ -106,7 +106,7 @@ def __setup_virtue():
         role = {
             'name': 'SecurityTestRole',
             'version': '1.0',
-            'applicationIds': [],
+            'applicationIds': ['firefox'],
             'startingResourceIds': [],
             'startingTransducerIds': []
         }
