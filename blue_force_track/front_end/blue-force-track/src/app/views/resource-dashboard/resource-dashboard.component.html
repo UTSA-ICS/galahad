@@ -1,4 +1,4 @@
-<p-table [value]="tableData" [columns]="cols" [resizableColumns]="true" dataKey="id">
+<p-table [value]="tableData" [columns]="cols" [resizableColumns]="true" dataKey="cid">
   <ng-template pTemplate="header">
     <tr>
       <th *ngFor="let col of cols" pResizableColumn>
@@ -6,7 +6,7 @@
       </th>
     </tr>
   </ng-template>
-  <ng-template pTemplate="body" let-rowData let-expanded="expanded" let-columns="columns">
+  <ng-template pTemplate="body" let-rowData let-columns="columns">
     <tr>
       <td *ngFor="let col of columns" class="ui-resizable-column">
         {{rowData[col.field]}}

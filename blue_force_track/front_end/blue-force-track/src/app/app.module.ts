@@ -1,6 +1,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule} from '@angular/common/http';
 
 // PrimeNG Imports
 import {MenuModule} from 'primeng/menu';
@@ -32,6 +33,7 @@ import { VirtueDashboardModule } from './views/virtue-dashboard/virtue-dashboard
     BrowserAnimationsModule,
     MenuModule,
     AppRoutes,
+    HttpClientModule,
     ValorsDashboardModule,
     ApplicationDashboardModule,
     ResourceDashboardModule,

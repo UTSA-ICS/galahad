@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import {DataService} from '../../services/data.service';
+import {Virtue} from '../../models/Virtue';
 
 @Component({
   selector: 'app-virtue-dashboard',
@@ -36,9 +38,9 @@ export class VirtueDashboardComponent implements OnInit {
     { field: 'cid', header: 'Id'}
   ];
 
-  tableData: any[];
+  tableData: Virtue[];
 
-  constructor() { }
+  constructor(private dataService: DataService) { }
 
   ngOnInit() {
     this.barData = [
@@ -56,25 +58,37 @@ export class VirtueDashboardComponent implements OnInit {
       },
       {
         name: 'Virtue_4',
-        value: 3
-      }
-    ]
-
-    this.tableData = [
-      {
-        dn: 'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
-        ou: 'virtue',
-        cusername: 'fpatwa',
-        cid: 'Virtue_SecurityTestRole_1539878119',
-        cipAddress: '10.91.0.1',
-        cstate: 'RUNNING',
-        croleId: 'SecurityTestRole1539876260',
-        cappIds: [],
-        cresIds: [],
-        ctransIds: [],
-        cauthRoleIds: ['SecurityTestRole1539876260', 'Role_2', 'Role_3', 'Role_4']
+        value: 31
       }
     ];
+
+    this.dataService.getVirtues().subscribe(
+      virtues => (
+        this.tableData = this.parseArray(virtues)));
   }
 
+
+  private parseArray(virtues: Virtue[]): Virtue[] {
+    for (let virtue: Virtue of virtues) {
+      try {
+        virtue.cappIds = JSON.parse(virtue.cappIds.replace(/\'/g, '\"'));
+      } catch (e) {
+        console.log(e);
+        virtue.cappIds = ['ERROR_PROCESSING_JSON'];
+      }
+      try {
+        virtue.cresIds = JSON.parse(virtue.cresIds.replace(/\'/g, '\"'));
+      } catch (e) {
+        console.log(e);
+        virtue.cresIds = ['ERROR_PROCESSING_JSON'];
+      }
+      try {
+        virtue.ctransIds = JSON.parse(virtue.ctransIds.replace(/\'/g, '\"'));
+      } catch (e) {
+        console.log(e);
+        virtue.ctransIds = ['ERROR_PROCESSING_JSON'];
+      }
+    }
+    return virtues;
+  }
 }

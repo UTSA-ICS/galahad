@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import {DataService} from '../../services/data.service';
 
 @Component({
   selector: 'app-resource-dashboard',
@@ -19,19 +20,24 @@ export class ResourceDashboardComponent implements OnInit {
 
   tableData: any[];
 
-  constructor() { }
+  constructor(private dataService: DataService) { }
 
   ngOnInit() {
-    this.tableData = [
-      {
-        dn: '"cid=fileshare1,cn=resources,ou=virtue,dc=canvas,dc=virtue,dc=com"',
-        ou: 'virtue',
-        cid: 'fileshare1',
-        ccredentials: 'token',
-        cunc: '//172.30.1.250/VirtueFileShare',
-        ctype: 'DRIVE'
-      }
-    ];
+    this.dataService.getResources().subscribe(
+      resources => (
+        this.tableData = resources
+      ));
+
+    // this.tableData = [
+    //   {
+    //     dn: '"cid=fileshare1,cn=resources,ou=virtue,dc=canvas,dc=virtue,dc=com"',
+    //     ou: 'virtue',
+    //     cid: 'fileshare1',
+    //     ccredentials: 'token',
+    //     cunc: '//172.30.1.250/VirtueFileShare',
+    //     ctype: 'DRIVE'
+    //   }
+    // ];
   }
 
 }

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import {DataService} from '../../services/data.service';
 
 @Component({
   selector: 'app-valors-dashboard',
@@ -49,7 +50,7 @@ export class ValorsDashboardComponent implements OnInit {
 
   // Table Config
   cols = [
-    { field: 'ip', header: 'IP' },
+    { field: 'address', header: 'IP' },
     { field: 'guestnet', header: 'Guest Network' },
     { field: 'host', header: 'Host' }
   ];
@@ -66,7 +67,7 @@ export class ValorsDashboardComponent implements OnInit {
   };
 
 
-  constructor() { }
+  constructor(private data: DataService) { }
 
   ngOnInit() {
     this.lineData = [
@@ -139,15 +140,18 @@ export class ValorsDashboardComponent implements OnInit {
       }
     ];
 
-    this.tableData = [
-      {
-        guestnet: '10.91.0.2',
-        ip: '123.456.789.100',
-        virtues: ['Virtue_SecurityTestRole_1539878119', 'Virtue_2', 'Virtue_3', 'Virtue_4'],
-        host: 'i-0a98b06ad8713543e',
-        id: '75be6c83-89d5-4733-927b-4919b9be69a1'
-      }
-    ];
+    this.data.getValors().subscribe(
+      valors => this.tableData = valors);
+
+    // this.tableData = [
+    //   {
+    //     guestnet: '10.91.0.2',
+    //     ip: '123.456.789.100',
+    //     virtues: ['Virtue_SecurityTestRole_1539878119', 'Virtue_2', 'Virtue_3', 'Virtue_4'],
+    //     host: 'i-0a98b06ad8713543e',
+    //     id: '75be6c83-89d5-4733-927b-4919b9be69a1'
+    //   }
+    // ];
 
     this.gaugeValue = 67;
     this.gaugePreviousValue = 85;

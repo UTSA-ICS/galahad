@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import {User} from '../../models/User';
+import {DataService} from '../../services/data.service';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -32,19 +34,25 @@ export class UserDashboardComponent implements OnInit {
     { field: 'ou', header: 'Organizational Unit' }
   ];
 
-  tableData: any[];
+  tableData: User[];
 
-  constructor() { }
+  constructor(private dataService: DataService) { }
 
   ngOnInit() {
-    this.tableData = [
-      {
-        dn: 'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
-        ou: 'virtue',
-        cauthRoleIds: ['SecurityTestRole1539876260', 'Role_2', 'Role_3', 'Role_4'],
-        cusername: 'fpatwa'
-      }
-    ];
+
+    this.dataService.getUsers().subscribe(
+      users => (
+         this.tableData = this.parseArrays(users)
+      ));
+
+    // this.tableData = [
+    //   {
+    //     dn: 'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
+    //     ou: 'virtue',
+    //     cauthRoleIds: ['SecurityTestRole1539876260', 'Role_2', 'Role_3', 'Role_4'],
+    //     cusername: 'fpatwa'
+    //   }
+    // ];
 
     this.barData = [
       {
@@ -54,4 +62,15 @@ export class UserDashboardComponent implements OnInit {
     ];
   }
 
+  private parseArrays(users: User[]): User[] {
+    for (let user: User of users) {
+      try {
+        user.cauthRoleIds = JSON.parse(user.cauthRoleIds.replace(/\'/g, '\"'));
+      } catch (e) {
+        console.log(e);
+        user.cauthRoleIds = ['ERROR_PROCESSING_JSON'];
+      }
+    }
+    return users;
+  }
 }
