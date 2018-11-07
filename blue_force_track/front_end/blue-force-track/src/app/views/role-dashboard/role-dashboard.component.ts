@@ -9,6 +9,24 @@ import {DataService} from '../../services/data.service';
 })
 export class RoleDashboardComponent implements OnInit {
 
+  // Bar chat config
+  barData: any[];
+  barView: any[] = [700, 400];
+
+  // options
+  barShowXAxis = true;
+  barShowYAxis = true;
+  barGradient = false;
+  barShowLegend = true;
+  barShowXAxisLabel = true;
+  barXAxisLabel = 'Virtue';
+  barShowYAxisLabel = true;
+  barYAxisLabel = 'Migrations Today';
+
+  barColorScheme = {
+    domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
+  };
+
   // Table Config
   cols = [
     { field: 'cid', header: 'Id'},
@@ -20,10 +38,15 @@ export class RoleDashboardComponent implements OnInit {
   ];
 
   tableData: Role[];
+  barData: any[];
 
   constructor(private dataService: DataService) { }
 
   ngOnInit() {
+    this.dataService.getVirtuesPerRole().subscribe(
+      response => this.barData = this.buildBarData(response)
+    );
+
     this.dataService.getRoles().subscribe(
       roles => (
         this.tableData = this.parseArrays(roles)));
@@ -41,6 +64,19 @@ export class RoleDashboardComponent implements OnInit {
     //     ctransIds: []
     //   }
     // ];
+  }
+
+  private buildBarData(response: any): any {
+    const data = [];
+    for (const key in response) {
+      if (response.hasOwnProperty(key)) {
+        const obj = {};
+        obj['name'] = key;
+        obj['value'] = response[key];
+        data.push(obj);
+      }
+    }
+    return data;
   }
 
   private parseArrays(roles: Role[]): Role[] {

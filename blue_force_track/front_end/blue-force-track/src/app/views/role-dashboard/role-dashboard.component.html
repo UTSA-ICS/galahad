@@ -1,3 +1,24 @@
+<tr>
+  <td width="290px" align="center">
+    <ngx-charts-bar-vertical
+      [view]="barView"
+      [scheme]="barColorScheme"
+      [results]="barData"
+      [gradient]="barGradient"
+      [xAxis]="barShowXAxis"
+      [yAxis]="barShowYAxis"
+      [legend]="barShowLegend"
+      [showXAxisLabel]="barShowXAxisLabel"
+      [showYAxisLabel]="barShowYAxisLabel"
+      [xAxisLabel]="barXAxisLabel"
+      [yAxisLabel]="barYAxisLabel"
+      (select)="onSelect($event)">
+    </ngx-charts-bar-vertical>
+  </td>
+  <td width="290px" align="center">
+
+  </td>
+</tr>
 <p-table [value]="tableData" [columns]="cols" [resizableColumns]="true" dataKey="cid">
   <ng-template pTemplate="header" let-columns>
     <tr>

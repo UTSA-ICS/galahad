@@ -125,20 +125,25 @@ export class ValorsDashboardComponent implements OnInit {
       }
     ];
 
-    this.barData = [
-      {
-        name: 'Valor_1',
-        value: 12
-      },
-      {
-        name: 'Valor_2',
-        value: 9
-      },
-      {
-        name: 'Valor_3',
-        value: 4
-      }
-    ];
+    this.data.getVirtuesPerValor().subscribe(
+      response => (
+        this.barData = this.buildBarData(response)
+      ));
+
+    // this.barData = [
+    //   {
+    //     name: 'Valor_1',
+    //     value: 12
+    //   },
+    //   {
+    //     name: 'Valor_2',
+    //     value: 9
+    //   },
+    //   {
+    //     name: 'Valor_3',
+    //     value: 4
+    //   }
+    // ];
 
     this.data.getValors().subscribe(
       valors => this.tableData = valors);
@@ -155,6 +160,19 @@ export class ValorsDashboardComponent implements OnInit {
 
     this.gaugeValue = 67;
     this.gaugePreviousValue = 85;
+  }
+
+  private buildBarData(response: any): any {
+    const data = [];
+    for (const key in response) {
+      if (response.hasOwnProperty(key)) {
+        const obj = {};
+        obj['name'] = key;
+        obj['value'] = response[key];
+        data.push(obj);
+      }
+    }
+    return data;
   }
 
   onSelect(event) {

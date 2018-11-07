@@ -43,30 +43,47 @@ export class VirtueDashboardComponent implements OnInit {
   constructor(private dataService: DataService) { }
 
   ngOnInit() {
-    this.barData = [
-      {
-        name: 'Virtue_1',
-        value: '4'
-      },
-      {
-        name: 'Virtue_2',
-        value: '6'
-      },
-      {
-        name: 'Virtue_3',
-        value: 0
-      },
-      {
-        name: 'Virtue_4',
-        value: 31
-      }
-    ];
+    this.dataService.getMigrationsPerVirtue().subscribe(
+      response => (
+        this.barData = this.buildBarData(response)
+      ));
+
+    // this.barData = [
+    //   {
+    //     name: 'Virtue_1',
+    //     value: '4'
+    //   },
+    //   {
+    //     name: 'Virtue_2',
+    //     value: '6'
+    //   },
+    //   {
+    //     name: 'Virtue_3',
+    //     value: 0
+    //   },
+    //   {
+    //     name: 'Virtue_4',
+    //     value: 31
+    //   }
+    // ];
 
     this.dataService.getVirtues().subscribe(
       virtues => (
         this.tableData = this.parseArray(virtues)));
   }
 
+  private buildBarData(response: any): any {
+    const data = [];
+    for (const key in response) {
+      if (response.hasOwnProperty(key)) {
+        const obj = {};
+        obj['name'] = key;
+        obj['value'] = response[key];
+        data.push(obj);
+      }
+    }
+    return data;
+  }
 
   private parseArray(virtues: Virtue[]): Virtue[] {
     for (let virtue: Virtue of virtues) {
