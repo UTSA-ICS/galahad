@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-import json
 import os
 import subprocess
 import sys
 import time
 
 import pytest
-import requests
 import rethinkdb
+
+import integration_common
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -16,17 +16,20 @@ base_excalibur_dir = os.path.dirname(
 sys.path.insert(0, base_excalibur_dir)
 
 from website import valor
-from website.services.errorcodes import ErrorCodes
 from website.valor import RethinkDbManager
-from website import ldap_tools
-from website.ldaplookup import LDAP
 
-sys.path.insert(0, base_excalibur_dir + '/cli')
-from sso_login import sso_tool
 
 key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
-EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
+
+def setup_module():
+
+    global virtue
+    global role
+
+    virtue = None
+    role = None
+
 
 def get_rethinkdb_connection():
 
@@ -92,125 +95,35 @@ def initialize_valor_api(request):
 
     yield
 
-'''
- This is a temp function due to poor maintainability
- TODO: NEED TO FIX
-'''
+
 def virtue_launch():
 
-    global settings
-    global inst
-    global session
-    global ip
-    global base_url
-    global test_valor_id
+    global virtue
+    global role
 
-    with open('test_config.json', 'r') as infile:
-        settings = json.load(infile)
+    # Create a new role
+    role = integration_common.create_new_role('ValorTestMigrateVirtueRole')
 
-    with open('../aws_instance_info.json', 'r') as infile:
-        tmp = json.load(infile)
-        settings['subnet'] = tmp['subnet_id']
-        settings['sec_group'] = tmp['sec_group']
-
-    ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
-
-    inst = LDAP( '', '' )
-    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
-    inst.get_ldap_connection()
-    inst.conn.simple_bind_s( dn, 'Test123!' )
-
-    redirect = settings['redirect'].format(ip)
-
-    sso = sso_tool(ip)
-    assert sso.login(settings['user'], settings['password'])
-
-    client_id = sso.get_app_client_id(settings['app_name'])
-    if (client_id == None):
-        client_id = sso.create_app(settings['app_name'], redirect)
-        assert client_id
-
-    code = sso.get_oauth_code(client_id, redirect)
-    assert code
-
-    token = sso.get_oauth_token(client_id, code, redirect)
-    assert 'access_token' in token
-
-    session = requests.Session()
-    session.headers = {
-        'Authorization': 'Bearer {0}'.format(token['access_token'])
-    }
-    session.verify = settings['verify']
-    base_url = 'https://{0}/virtue/user'.format(ip)
-
-    subprocess.call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
-                           '/mnt/efs/images/tests/4GB.img'])
-
-    response = session.get('https://{0}/virtue/admin/valor/create'.format(ip))
-
-    test_valor_id = response.json()['valor_id']
-
-    response = session.get('https://{0}/virtue/admin/valor/launch'.format(ip),
-                           params={'valor_id': test_valor_id})
-    assert (response.json() == {'valor_id': test_valor_id})
-  
-
-    ############################################333
-    response = session.get(base_url + '/virtue/launch')
-    assert response.json() == ErrorCodes.user['unspecifiedError']['result']
-
-    rethink_manager = RethinkDbManager()
+    virtue = integration_common.create_new_virtue('jmitchell', role['id'])
 
     try:
+        rethinkdb_manager = RethinkDbManager()
 
-        # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
-                               ('/mnt/efs/images/provisioned_virtues/'
-                                'VALOR_TEST_VIRTUE_LAUNCH.img')])
+        rethinkdb_virtue = rethinkdb_manager.get_virtue(virtue['id'])
 
-        virtue = {
-            'id': 'VALOR_TEST_VIRTUE_LAUNCH',
-            'username': 'jmitchell',
-            'roleId': 'TBD',
-            'applicationIds': [],
-            'resourceIds': [],
-            'transducerIds': [],
-            'state': 'STOPPED',
-            'ipAddress': 'NULL'
-        }
-        ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
-        inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
+        assert type(rethinkdb_virtue) == dict
 
-        # virtue_launch() it
-        response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
-        assert response.text == json.dumps(ErrorCodes.user['success'])
-
-        real_virtue = inst.get_obj(
-            'cid',
-            'VALOR_TEST_VIRTUE_LAUNCH',
-            objectClass='OpenLDAPvirtue',
-            throw_error=True)
-        ldap_tools.parse_ldap(real_virtue)
-
-        assert 'RUNNING' in real_virtue['state']
-
-        rethink_virtue = rethink_manager.get_virtue('VALOR_TEST_VIRTUE_LAUNCH')
-
-        assert type(rethink_virtue) == dict
-
-        rethink_valors = rethink_manager.list_valors()
-        rethink_valor = None
-        for valor in rethink_valors:
-            if (valor['address'] == rethink_virtue['address']):
-                rethink_valor = valor
+        rethinkdb_valors = rethinkdb_manager.list_valors()
+        rethinkdb_valor = None
+        for valor in rethinkdb_valors:
+            if (valor['address'] == rethinkdb_virtue['address']):
+                rethinkdb_valor = valor
                 break
 
-        assert rethink_valor != None
+        assert rethinkdb_valor != None
 
         sysctl_stat = subprocess.call(
-            ['ssh', '-i', key_path, 'ubuntu@' + rethink_virtue['address'],
+            ['ssh', '-i', key_path, 'ubuntu@' + rethinkdb_virtue['address'],
              '-o', 'StrictHostKeyChecking=no',
              'sudo systemctl status gaius'])
 
@@ -218,30 +131,21 @@ def virtue_launch():
         assert sysctl_stat == 0
 
         xl_list = subprocess.check_output(
-            ['ssh', '-i', key_path, 'ubuntu@' + rethink_virtue['address'],
+            ['ssh', '-i', key_path, 'ubuntu@' + rethinkdb_virtue['address'],
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
         assert xl_list.count('\n') == 3
-
-        response = session.get(base_url + '/virtue/launch',
-                               params={'virtueId': 'VALOR_TEST_VIRTUE_LAUNCH'})
-        assert response.text == json.dumps(ErrorCodes.user['virtueAlreadyLaunched']['result'])
-
     except:
         raise
-        inst.del_obj('cid', 'VALOR_TEST_VIRTUE_LAUNCH', objectClass='OpenLDAPvirtue')
-        rethink_manager.remove_virtue('VALOR_TEST_VIRTUE_LAUNCH')
-        subprocess.check_call(['sudo', 'mv',
-                               ('/mnt/efs/images/provisioned_virtues/'
-                                'VALOR_TEST_VIRTUE_LAUNCH.img'),
-                               '/mnt/efs/images/tests/4GB.img'])
 
-    return (rethink_virtue['virtue_id'], rethink_valor['address'])
-'''
-END of bad functions
-'''
+        # Cleanup the new virtue created
+        integration_common.cleanup_virtue('jmitchell', virtue['id'])
 
+        # Cleanup the new role created
+        integration_common.cleanup_role('jmitchell', role['id'])
+
+    return (rethinkdb_virtue['virtue_id'], rethinkdb_valor['address'])
 
 
 def is_virtue_running(ip_address):
@@ -349,3 +253,14 @@ class Test_ValorAPI:
         assert is_virtue_running(destination_valor_ip_address)
 
         self.valor_api.valor_destroy(destination_valor_id)
+
+
+def teardown_module():
+
+    if virtue:
+
+        # Cleanup the new virtue created
+        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+
+        # Cleanup the new role created
+        integration_common.cleanup_role('jmitchell', role['id'])

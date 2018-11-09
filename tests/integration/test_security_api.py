@@ -4,95 +4,44 @@ import os
 import sys
 import time
 
-import requests
-from integration_common import create_new_virtue
-
-# For excalibur methods (API, etc)
-file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(
-    os.path.dirname(file_path)) + '/../excalibur'
-sys.path.insert(0, base_excalibur_dir)
+import integration_common
 
 # For common.py
 sys.path.insert(0, '..')
 
 from ssh_tool import ssh_tool
-from website.ldaplookup import LDAP
-
-sys.path.insert(0, base_excalibur_dir + '/cli')
-from sso_login import sso_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
 def setup_module():
     global virtue_ssh
-    global aggregator_ssh
     global virtue_id
-    global virtue_ip
-    global role_id
+    global aggregator_ssh
 
     global session
-    global base_url
-    global inst
+    global security_url
 
-    settings = None
-    with open('test_config.json', 'r') as infile:
-        settings = json.load(infile)
+    session, admin_url, security_url, virtue_url = integration_common.create_session()
 
-    excalibur_ip = EXCALIBUR_HOSTNAME + ':' + settings['port']
-
-    aggregator_ip = AGGREGATOR_HOSTNAME
-
-    inst = LDAP('', '')
-    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
-    inst.get_ldap_connection()
-    inst.conn.simple_bind_s(dn, 'Test123!')
-
-    # Connect to Excalibur's REST interface
-    redirect = settings['redirect'].format(excalibur_ip)
-
-    sso = sso_tool(excalibur_ip)
-    assert sso.login(settings['user'], settings['password'])
-
-    client_id = sso.get_app_client_id(settings['app_name'])
-    if (client_id == None):
-        client_id = sso.create_app(settings['app_name'], redirect)
-        assert client_id
-
-    code = sso.get_oauth_code(client_id, redirect)
-    assert code
-
-    token = sso.get_oauth_token(client_id, code, redirect)
-    assert 'access_token' in token
-
-    session = requests.Session()
-    session.headers = {
-        'Authorization': 'Bearer {0}'.format(token['access_token'])
-    }
-    session.verify = settings['verify']
-
-    base_url = 'https://{0}/virtue'.format(excalibur_ip)
-
-    virtue_ip = None
     virtue_id = None
     virtue_ssh = None
 
-    aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
+    aggregator_ssh = ssh_tool('ubuntu', AGGREGATOR_HOSTNAME, sshkey='~/default-user-key.pem')
 
     with open('../../excalibur/cli/excalibur_config.json', 'r') as f:
         config = json.load(f)
-        session.get(base_url + '/security/api_config', params={'configuration': json.dumps(config)})
+        session.get(security_url + '/api_config', params={'configuration': json.dumps(config)})
 
 # This is a separate method that is NOT called from setup_module because pytest likes to run
 # setup_module when, for example, listing tests instead of running them.
 def __setup_virtue():
-    global virtue_ip
     global virtue_id
     global virtue_ssh
     global new_virtue
     global role_id
 
+    virtue_ip = None
     # Read the Virtue IP and ID from a file (if they have been provided)
     if os.path.isfile('virtue_ip') and os.path.isfile('virtue_id'):
         new_virtue = False
@@ -103,15 +52,8 @@ def __setup_virtue():
     # Otherwise, create a new Virtue
     else:
         new_virtue = True
-        role = {
-            'name': 'SecurityTestRole',
-            'version': '1.0',
-            'applicationIds': ['firefox'],
-            'startingResourceIds': [],
-            'startingTransducerIds': []
-        }
-
-        virtue = create_new_virtue(inst, role, 'jmitchell')
+        role = integration_common.create_new_role('SecurityTestRole')
+        virtue = integration_common.create_new_virtue('jmitchell', role['id'])
         virtue_ip = virtue['ipAddress']
         virtue_id = virtue['id']
         role_id = virtue['roleId']
@@ -163,7 +105,7 @@ def test_list_transducers():
     if virtue_ssh is None:
         __setup_virtue()
 
-    transducers = json.loads(session.get(base_url + '/security/transducer/list').text)
+    transducers = json.loads(session.get(security_url + '/transducer/list').text)
     assert len(transducers) > 1
 
 def __get_elasticsearch_index():
@@ -218,7 +160,7 @@ def test_sensor_disable():
         __setup_virtue()
 
     # Disable a sensor transducer
-    session.get(base_url + '/security/transducer/disable', params={
+    session.get(security_url + '/transducer/disable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id
     })
@@ -254,7 +196,7 @@ def test_sensor_enable():
         __setup_virtue()
 
     # Enable a sensor transducer
-    session.get(base_url + '/security/transducer/enable', params={
+    session.get(security_url + '/transducer/enable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id,
         'configuration': '{}'
@@ -293,7 +235,7 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('ps aux | grep yes | grep -v grep')
 
     # Kill the process via an actuator
-    session.get(base_url + '/security/transducer/enable', params={
+    session.get(security_url + '/transducer/enable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id,
         'configuration': '{"processes":["yes"]}'
@@ -306,7 +248,7 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('! ( ps aux | grep yes | grep -v grep)')
 
     # Disable the actuator
-    session.get(base_url + '/security/transducer/disable', params={
+    session.get(security_url + '/transducer/disable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id
     })
@@ -316,7 +258,7 @@ def test_actuator_net_block():
     assert virtue_ssh.ssh('wget 1.1.1.1 -T 20 -t 1') == 0
 
     # Block the server
-    session.get(base_url + '/security/transducer/enable', params={
+    session.get(security_url + '/transducer/enable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id,
         'configuration': '{"rules":["block_outgoing_dst_ipv4_1.1.1.1"]}'
@@ -329,7 +271,7 @@ def test_actuator_net_block():
     assert virtue_ssh.ssh('! (wget 1.1.1.1 -T 20 -t 1)') == 0
 
     # Unblock the server
-    session.get(base_url + '/security/transducer/disable', params={
+    session.get(security_url + '/transducer/disable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id
     })
@@ -338,23 +280,7 @@ def teardown_module():
     if virtue_id is not None:
         # Only delete a Virtue if it was created during these tests, not passed in manually
         if new_virtue:
-            ret = session.get(base_url + '/user/virtue/stop', params={'virtueId': virtue_id})
-            assert ret.json()['status'] == 'success'
-
-            ret = session.get(base_url + '/admin/virtue/destroy', params={'virtueId': virtue_id})
-            assert ret.json()['status'] == 'success'
-
-            inst.del_obj(
-                'cid', virtue_id, objectClass='OpenLDAPvirtue', throw_error=True) 
-
-            response = session.get(
-                base_url + '/admin/user/role/unauthorize',
-                params={
-                    'username': 'jmitchell',
-                    'roleId': role_id
-                })
-            assert response.json()['status'] == 'success'
-
-            inst.del_obj(
-                'cid', role_id, objectClass='OpenLDAProle', throw_error=True)
-
+            # Cleanup the new virtue created
+            integration_common.cleanup_virtue('jmitchell', virtue_id)
+            # Cleanup the new role created
+            integration_common.cleanup_role('jmitchell', role_id)
