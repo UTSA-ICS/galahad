@@ -26,6 +26,3 @@ sudo mkdir -p /mnt/efs/images/base_ubuntu
 sudo mkdir -p /mnt/efs/images/unities
 sudo mkdir -p /mnt/efs/images/non_provisioned_virtues
 sudo mkdir -p /mnt/efs/images/provisioned_virtues
-
-# Create directory to store the virtue configs
-sudo mkdir -p /mnt/efs/virtue_configs

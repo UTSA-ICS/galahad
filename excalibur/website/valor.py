@@ -70,25 +70,6 @@ class Valor:
         self.router_ip = None
 
 
-    def authorize_ssh_connections(self, ip):
-
-        security_group = self.ec2.SecurityGroup(
-            self.aws_instance.security_groups[0]['GroupId'])
-
-        #TODO: should the security group already be authorized for SSH?
-        try:
-            security_group.authorize_ingress(
-                CidrIp=ip,
-                FromPort=22,
-                IpProtocol='tcp',
-                ToPort=22 )
-
-        except botocore.exceptions.ClientError:
-            print(
-                'ClientError encountered while adding security group rule. '
-                + 'Rule may already exist.')
-
-
     def get_stack_name(self):
 
         resource = boto3.resource('ec2')
@@ -282,8 +263,6 @@ class ValorManager:
         instance = self.aws.instance_create(**valor_config)
 
         valor = Valor(instance.id)
-
-        valor.authorize_ssh_connections(excalibur_ip)
 
         valor.connect_with_ssh()
 
