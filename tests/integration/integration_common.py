@@ -42,7 +42,8 @@ def create_new_role(role_name, hard_code_path=None):
     else:
         new_role = json.loads(admin_api.role_create(role_data))
 
-    assert new_role not in ErrorCodes.admin.values()
+    if new_role in ErrorCodes.admin.values():
+        raise Exception('Error creating new role - {}'.format(new_role))
 
     print('New Role is {}'.format(new_role))
 
@@ -55,7 +56,8 @@ def create_new_role(role_name, hard_code_path=None):
         time.sleep(5)
         role = role_get(admin_api, new_role['id'])
         time_elapsed = time_elapsed + 5
-        assert (time_elapsed < TIMEOUT)
+        if (time_elapsed >= TIMEOUT):
+            raise Exception('Timed out waiting for role [{}] to be created'.format(role['name']))
 
     print('New Role <{0}> created in [{1}] seconds'.format(role, time_elapsed))
 
@@ -68,8 +70,9 @@ def create_new_virtue(user, role_id):
 
     role = role_get(admin_api, role_id)
 
-    # Check if the role ID exists
-    assert role
+    # Check if the role exists
+    if not role:
+        raise Exception('Failed to retrieve role [{0}] from the role ID [{1}]'.format(role, role_id))
 
     # user_role_authorize(). It's ok if the user is already authorized.
     admin_api.user_role_authorize(user, role['id'])
@@ -79,12 +82,14 @@ def create_new_virtue(user, role_id):
     for virtue in user_virtue_list:
         if (virtue['roleId'] == role['id']):
             user_api.virtue_stop(user, virtue['id'])  # It's ok if it's already stopped
-            assert json.loads(admin_api.virtue_destroy(virtue['id'])) == \
-                   ErrorCodes.admin['success']
+            res = json.loads(admin_api.virtue_destroy(virtue['id']))
+            if res != ErrorCodes.admin['success']:
+                raise Exception('Failed to destroy virtue [{0}] with error [{1}]'.format(virtue['id'], res))
 
     # virtue_create()
     new_virtue = json.loads(admin_api.virtue_create(user, role['id']))
-    assert set(new_virtue.keys()) == set(['id', 'ipAddress'])
+    if set(new_virtue.keys()) != set(['id', 'ipAddress']):
+        raise Exception('Error in return value for virtue_create [{}]'.format(set(new_virtue.keys())))
 
     print('New Virtue is {}'.format(new_virtue))
 
@@ -97,11 +102,13 @@ def create_new_virtue(user, role_id):
         time.sleep(5)
         virtue = virtue_get(admin_api, user, new_virtue['id'])
         time_elapsed = time_elapsed + 5
-        assert (time_elapsed < TIMEOUT)
+        if (time_elapsed >= TIMEOUT):
+            raise Exception('Timed out waiting for virtue [{}] to be created'.format(virtue['id']))
 
     print('New Virtue <{0}> created in [{1}] seconds'.format(virtue, time_elapsed))
 
-    assert virtue['state'] == 'STOPPED'
+    if virtue['state'] != 'STOPPED':
+        raise Exception('Virtue is not in stopped state [{}]'.format(virtue['state']))
 
     # virtue_launch
     user_api.virtue_launch(user, new_virtue['id'])
@@ -153,18 +160,23 @@ def create_session():
     redirect = settings['redirect'].format(excalibur_url)
 
     sso = sso_tool(excalibur_url)
-    assert sso.login(settings['user'], settings['password'])
+    res = sso.login(settings['user'], settings['password'])
+    if not res:
+        raise Exception('Failed to login [{}]'.format(res))
 
     client_id = sso.get_app_client_id(settings['app_name'])
     if (client_id == None):
         client_id = sso.create_app(settings['app_name'], redirect)
-        assert client_id
+        if not client_id:
+            raise Exception('Failed to create oauth app [{}]'.format(client_id))
 
     code = sso.get_oauth_code(client_id, redirect)
-    assert code
+    if not code:
+        raise Exception('Failed to get oauth code [{}]'.format(code))
 
     token = sso.get_oauth_token(client_id, code, redirect)
-    assert 'access_token' in token
+    if not 'access_token' in token:
+        raise Exception('Failed to get access token from oauth token [{}]'.format(token))
 
     session = requests.Session()
     session.headers = {
@@ -186,8 +198,9 @@ def cleanup_virtue(user, virtue_id):
 
     user_api.virtue_stop(user, virtue_id)
 
-    assert json.loads(admin_api.virtue_destroy(virtue_id)) == \
-           ErrorCodes.admin['success']
+    res = json.loads(admin_api.virtue_destroy(virtue_id))
+    if res != ErrorCodes.admin['success']:
+        raise Exception('Failed to destroy virtue [{0}] with error [{1}]'.format(virtue_id, res))
 
 
 def cleanup_role(user, role_id):
