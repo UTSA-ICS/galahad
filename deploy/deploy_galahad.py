@@ -29,11 +29,16 @@ AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 # aws public key name used for the instances
 key_name = 'starlab-virtue-te'
 
+# Directories for key storage
+GALAHAD_KEY_DIR = '~/galahad-keys'
+GALAHAD_CONFIG_DIR = '~/galahad-config'
+
 # Node addresses
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
+
 
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
@@ -408,14 +413,12 @@ class Excalibur():
 
         # Setup the Default key to be able to login to the virtues
         # This private key's corresponding public key will be used for the virtues
-        GALAHAD_KEY_DIR = '~/galahad-keys'
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
                     format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
         # Copy over various other keys required for virtues
-        GALAHAD_CONFIG_DIR = '~/galahad-config'
         _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
         _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
@@ -495,6 +498,12 @@ class EFS():
         # Execute the setup file on the instance
         _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
         run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
+
+
+    def setup_valor_keys(self):
+        # Generate private/public keypair for valor nodes to be able to access each other.
+        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \'\' -f valor-key')".format(GALAHAD_KEY_DIR)
+        run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
 
 
     def setup_ubuntu_img(self):
