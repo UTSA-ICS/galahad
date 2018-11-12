@@ -41,6 +41,9 @@ def __setup_virtue():
     global new_virtue
     global role_id
 
+    with open('mz.log', 'a') as f:
+        f.write("starting to set up virtue \n")
+
     virtue_ip = None
     # Read the Virtue IP and ID from a file (if they have been provided)
     if os.path.isfile('virtue_ip') and os.path.isfile('virtue_id'):
@@ -62,8 +65,15 @@ def __setup_virtue():
 
     virtue_ssh = ssh_tool('virtue', virtue_ip, sshkey='~/default-user-key.pem')
 
+    with open('mz.log', 'a') as f:
+        f.write(virtue_id + "\n" + virtue_ip + "\n")
+
     # Check that the virtue is ready and reachable via ssh
     assert virtue_ssh.check_access()
+
+    with open('mz.log', 'a') as f:
+        f.write("successfully checked virtue reachability\n")
+
 
 def test_merlin_running():
     if virtue_ssh is None:
@@ -74,7 +84,14 @@ def test_merlin_running():
     num_retries = 0
     max_retries = 5
     while num_retries < max_retries:
+        with open('mz.log', 'a') as f:
+            f.write("trying to connect to virtue...\n")
+
         ret = virtue_ssh.ssh('systemctl status merlin', test=False)
+
+        with open('mz.log', 'a') as f:
+            f.write("check if merlin is running: " + str(ret) + "\n")
+
         if ret == 0:
             break
         time.sleep(30)
@@ -277,6 +294,7 @@ def test_actuator_net_block():
     })
 
 def teardown_module():
+    """
     if virtue_id is not None:
         # Only delete a Virtue if it was created during these tests, not passed in manually
         if new_virtue:
@@ -284,3 +302,4 @@ def teardown_module():
             integration_common.cleanup_virtue('jmitchell', virtue_id)
             # Cleanup the new role created
             integration_common.cleanup_role('jmitchell', role_id)
+    """
