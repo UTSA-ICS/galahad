@@ -41,7 +41,7 @@ class Virtue():
 
     def migrateDomU(self, target_ip):
         try:
-            subprocess.check_call(['xl','migrate', self.virtue_id, target_ip])
+            subprocess.check_call(['xl', 'migrate', '-s ssh -o StrictHostKeyChecking=no', self.virtue_id, target_ip])
             logging.debug("Virtue migrated")
         except:
             logging.debug("Error: Virtue migration failed")
