@@ -137,13 +137,13 @@ def virtue_launch():
 
         assert xl_list.count('\n') == 3
     except:
-        raise
-
         # Cleanup the new virtue created
         integration_common.cleanup_virtue('jmitchell', virtue['id'])
 
         # Cleanup the new role created
         integration_common.cleanup_role('jmitchell', role['id'])
+
+        raise
 
     return (rethinkdb_virtue['virtue_id'], rethinkdb_valor['address'])
 

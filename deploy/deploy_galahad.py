@@ -30,6 +30,7 @@ AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 key_name = 'starlab-virtue-te'
 
 # Directories for key storage
+GALAHAD_KEY_DIR_NAME = 'galahad-keys'
 GALAHAD_KEY_DIR = '~/galahad-keys'
 GALAHAD_CONFIG_DIR = '~/galahad-config'
 
@@ -474,6 +475,7 @@ class EFS():
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
 
+
     def get_efs_id(self):
         cloudformation = boto3.resource('cloudformation')
         EFSStack = cloudformation.Stack(self.stack_name)
@@ -502,7 +504,7 @@ class EFS():
 
     def setup_valor_keys(self):
         # Generate private/public keypair for valor nodes to be able to access each other.
-        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \'\' -f valor-key')".format(GALAHAD_KEY_DIR)
+        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f valor-key')".format(GALAHAD_KEY_DIR_NAME)
         run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
 
 
@@ -564,6 +566,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
 
+    efs.setup_valor_keys()
     efs.setup_valor_router()
 
     setup_ubuntu_img_thread.join()
