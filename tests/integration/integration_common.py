@@ -22,7 +22,7 @@ from sso_login import sso_tool
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 # Time after which we will declare an error
-TIMEOUT = 480
+TIMEOUT = 900
 
 
 def create_new_role(role_name, hard_code_path=None):
@@ -57,7 +57,8 @@ def create_new_role(role_name, hard_code_path=None):
         role = role_get(admin_api, new_role['id'])
         time_elapsed = time_elapsed + 5
         if (time_elapsed >= TIMEOUT):
-            raise Exception('Timed out waiting for role [{}] to be created'.format(role['name']))
+            raise Exception(
+                'Timed out waiting for role [{}] to be created in [{}] seconds'.format(role['name'], time_elapsed))
 
     print('New Role <{0}> created in [{1}] seconds'.format(role, time_elapsed))
 
@@ -103,7 +104,8 @@ def create_new_virtue(user, role_id):
         virtue = virtue_get(admin_api, user, new_virtue['id'])
         time_elapsed = time_elapsed + 5
         if (time_elapsed >= TIMEOUT):
-            raise Exception('Timed out waiting for virtue [{}] to be created'.format(virtue['id']))
+            raise Exception('Timed out waiting for virtue [{}] to be created in [{}] seconds'.format(virtue['id'],
+                                                                                                     time_elapsed))
 
     print('New Virtue <{0}> created in [{1}] seconds'.format(virtue, time_elapsed))
 
