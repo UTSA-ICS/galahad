@@ -22,7 +22,7 @@ def setup_module():
     global session
     global security_url
 
-    session, admin_url, security_url, virtue_url = integration_common.create_session()
+    session, admin_url, security_url, user_url = integration_common.create_session()
 
     virtue_id = None
     virtue_ssh = None

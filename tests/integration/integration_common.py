@@ -188,9 +188,9 @@ def create_session():
 
     security_url = 'https://{0}/virtue/security'.format(excalibur_url)
 
-    virtue_url = 'https://{0}/virtue/user'.format(excalibur_url)
+    user_url = 'https://{0}/virtue/user'.format(excalibur_url)
 
-    return session, admin_url, security_url, virtue_url
+    return session, admin_url, security_url, user_url
 
 
 def cleanup_virtue(user, virtue_id):
