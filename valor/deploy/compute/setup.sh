@@ -116,5 +116,5 @@ systemctl restart xencommons\
 #
 # Configure ssh keys for valor nodes to be able to access each other
 #
-cp $GALAHAD_KEY_DIR/valor_key /root/.ssh/id_rsa
-cat $GALAHAD_KEY_DIR/valor_key.pub >> /root/.ssh/authorized_keys
+cp $GALAHAD_KEY_DIR/valor-key /root/.ssh/id_rsa
+cat $GALAHAD_KEY_DIR/valor-key.pub >> /root/.ssh/authorized_keys
