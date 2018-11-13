@@ -248,7 +248,7 @@ class Test_ValorAPI:
 
         self.valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
 
-        time.sleep(5) 
+        time.sleep(30) 
         assert not is_virtue_running(valor_ip_address) 
         assert is_virtue_running(destination_valor_ip_address)
 
