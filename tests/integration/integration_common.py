@@ -22,7 +22,7 @@ from sso_login import sso_tool
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
 # Time after which we will declare an error
-TIMEOUT = 900
+TIMEOUT = 1200
 
 
 def create_new_role(role_name, hard_code_path=None):
