@@ -385,12 +385,6 @@ class Excalibur():
         # Setup the config and keys for AWS communication
         self.setup_aws_access(aws_config, aws_keys)
 
-        # Update /etc/hosts to resolve DNS records not using service discovery
-        _cmd = "sudo('su - root -c \"echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts\"')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-        _cmd = "sudo('su - root -c \"echo 172.30.1.46 elasticsearch.galahad.com >> /etc/hosts\"')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-
         # Call the setup_excalibur.sh script for system and pip packages.
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_excalibur.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
@@ -508,7 +502,7 @@ class EFS():
         run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
 
 
-    def setup_ubuntu_img(self):
+    def setup_xen_pvm_builder(self):
         # scp workaround payload to node
         with Sultan.load() as s:
             s.scp(
@@ -522,13 +516,20 @@ class EFS():
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
                     format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
 
-        # Apply workarounds and create the ubuntu image
+        # Apply workarounds and setup the xen pvm builder server
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
-        # Delete xen tool instance
-        #client.terminate_instances(InstanceIds=[instance['InstanceId']])
+
+    def setup_ubuntu_img(self, image_name):
+        # Create the base ubuntu image
+        ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
     def setup_unity_img(self, constructor_ip, image_name):
 
@@ -553,12 +554,26 @@ class EFS():
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
           aws_keys, branch, user_key):
+
+    start_stack_time = time.time()
+
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
 
+    print('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+
+    start_setup_time = time.time()
+
     efs = EFS(stack_name, path_to_key)
-    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img)
-    setup_ubuntu_img_thread.start()
+    efs.setup_xen_pvm_builder()
+
+    setup_8GB_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+                                                   args=('8GB',))
+    setup_8GB_ubuntu_img_thread.start()
+
+    setup_4GB_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+                                                   args=('4GB',))
+    setup_4GB_ubuntu_img_thread.start()
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
@@ -569,19 +584,22 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
-    setup_ubuntu_img_thread.join()
-
-    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                              args=(excalibur.server_ip, '8GB.img'))
-    setup_8GB_unity_thread.start()
-
+    setup_4GB_ubuntu_img_thread.join()
     setup_4GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                              args=(excalibur.server_ip, '4GB.img'))
+                                              args=(excalibur.server_ip, '4GB.img',))
     setup_4GB_unity_thread.start()
+
+    setup_8GB_ubuntu_img_thread.join()
+    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip, '8GB.img',))
+    setup_8GB_unity_thread.start()
 
     setup_4GB_unity_thread.join()
     setup_8GB_unity_thread.join()
 
+    print('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
+
+    print('*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
 
 def parse_args():
     parser = argparse.ArgumentParser()
