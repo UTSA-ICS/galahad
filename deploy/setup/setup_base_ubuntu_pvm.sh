@@ -18,7 +18,7 @@ sudo mount -t nfs $EFS_URL:/ /mnt/efs
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo apt-get install -y xen-tools
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xen-tools
     DPKG_LOCK=$?
 done
 
