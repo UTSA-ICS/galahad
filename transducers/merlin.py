@@ -565,7 +565,7 @@ if __name__ == '__main__':
 	parser.add_argument('-i', '--heartbeat', help='Heartbeat interval (sec)', type=int, default=30)
 	parser.add_argument('-s', '--socket', help='Path to socket to filter', default='/var/run/receiver_to_filter')
 	parser.add_argument('-l', '--log', help='Path to log file', default='merlin.log')
-	parser.add_argument('-es', '--elasticsearch_host', help='Elasticsearch host', default='elasticsearch.galahad.com')
+	parser.add_argument('-es', '--elasticsearch_host', help='Elasticsearch host', default='aggregator.galahad.com')
 	parser.add_argument('-ec', '--elasticsearch_cert', help='Elasticsearch client cert', default='/var/private/ssl/kirk.crtfull.pem')
 	parser.add_argument('-ek', '--elasticsearch_key', help=' Elasticsearch client key', default='/var/private/ssl/kirk.key.pem')
 	parser.add_argument('-eu', '--elasticsearch_user', help='Elasticsearch username', default='admin')

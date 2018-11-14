@@ -7,6 +7,7 @@ import ssl
 
 from handlers import CMRESHandler
 
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
 app = None
 is_dev = bool(os.getenv('FLASK_DEBUG'))
@@ -29,7 +30,7 @@ else:
 
 @app.before_first_request
 def initialize_logger():
-    setup_logging('elasticsearch.galahad.com', '/var/private/ssl/elasticsearch_keys/kirk.crtfull.pem',
+    setup_logging(AGGREGATOR_HOSTNAME, '/var/private/ssl/elasticsearch_keys/kirk.crtfull.pem',
                   '/var/private/ssl/elasticsearch_keys/kirk.key.pem', 'admin', 'admin',
                   '/var/private/ssl/elasticsearch_keys/ca.pem')
 

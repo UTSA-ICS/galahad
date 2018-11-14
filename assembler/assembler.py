@@ -1,25 +1,28 @@
 # Copyright (c) 2018 by Star Lab Corp.
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-import os, sys, shutil
-import json, time
+import os
+import shutil
 import subprocess
-from urlparse import urlparse
-import boto3
+import time
 from collections import OrderedDict
 
+import boto3
+from stages.actuator import ActuatorStage
+from stages.apt import AptStage
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
-
 from stages.kernel import KernelStage
-from stages.shutdown import ShutdownStage
-from stages.user import UserStage
-from stages.apt import AptStage
-from stages.virtued import DockerVirtueStage
-from stages.transducer_install import TransducerStage
 from stages.merlin import MerlinStage
-from stages.actuator import ActuatorStage
 from stages.processkiller import ProcessKillerStage
+from stages.shutdown import ShutdownStage
+from stages.transducer_install import TransducerStage
+from stages.user import UserStage
+from stages.virtued import DockerVirtueStage
+from urlparse import urlparse
+
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
+RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 
 class Assembler(object):
 
@@ -29,9 +32,9 @@ class Assembler(object):
     NAME = ''
 
     def __init__(self,
-                 es_node='https://172.30.1.46:9200',
+                 es_node='https://{}:9200'.format(AGGREGATOR_HOSTNAME),
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.1.45',
+                 rethinkdb_host=RETHINKDB_HOSTNAME,
                  work_dir='tmp'):
         self.elastic_search_node = es_node
         self.elastic_search_host = urlparse(es_node).hostname
@@ -637,22 +640,6 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 500)
                     os.chmod(os.path.join(path, d), 0o700)
-
-            subprocess.check_call(['chroot', image_mount,
-                                   'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
-
-            with open(image_mount + '/etc/hosts', 'a') as hosts_file:
-                hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
-                hosts_file.write('172.30.1.46 elasticsearch.galahad.com\n')
-
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's/host:.*/host: elasticsearch.galahad.com/',
-                '/etc/syslog-ng/elasticsearch.yml'])
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!',
-                '/etc/syslog-ng/syslog-ng.conf'])
 
         except:
             os.remove(output_path)
