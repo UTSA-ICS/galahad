@@ -57,9 +57,9 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 	elasticLog.setLevel(logging.INFO)
 
 
-def error_wrapper(msg, error):
-	log.error(msg, error)
-	elasticLog.error(msg, error, extra={'virtue_id': virtue_id})
+def error_wrapper(msg, *args):
+	log.error(msg, *args)
+	elasticLog.error(msg, *args, extra={'virtue_id': virtue_id})
 
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
 def signal_handler(signal, frame):
@@ -141,7 +141,7 @@ def send_message_netlink(sock, array):
 
 		tosend = str(hdr) + str(message) + '\r\n'
 	except Exception as e:
-		error_wrapper('Error constructing netlink message: ' + str(e))
+		error_wrapper('Error constructing netlink message: %s', str(e))
 		return False
 
 	try:
@@ -261,7 +261,7 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 						password='virtue',
 						ssl={ 'ca_certs': ca_cert })
 		except r.ReqlDriverError as e:
-			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
+			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s' % (rethinkdb_host, str(e)))
 			sleep(30)
 
 	while not exit.is_set():
