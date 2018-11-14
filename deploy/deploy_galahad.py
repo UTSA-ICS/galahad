@@ -560,12 +560,14 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
 
-    print('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
 
     start_setup_time = time.time()
 
     efs = EFS(stack_name, path_to_key)
     efs.setup_xen_pvm_builder()
+
+    start_ubuntu_img_time = time.time()
 
     setup_8GB_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
                                                    args=('8GB',))
@@ -575,31 +577,54 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
                                                    args=('4GB',))
     setup_4GB_ubuntu_img_thread.start()
 
+    start_excalibur_time = time.time()
+
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format((time.time() - start_excalibur_time) / 60))
+
+    start_rethinkdb_time = time.time()
+
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
+
+    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
 
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
     setup_4GB_ubuntu_img_thread.join()
+
+    logger.info('\n*** Time taken for 4GB ubuntu img is [{}] ***\n'.format((time.time() - start_ubuntu_img_time) / 60))
+
     setup_4GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
                                               args=(excalibur.server_ip, '4GB.img',))
     setup_4GB_unity_thread.start()
 
+    start_4GB_unity_time = time.time()
+
     setup_8GB_ubuntu_img_thread.join()
+
+    logger.info('\n*** Time taken for 8GB ubuntu img is [{}] ***\n'.format((time.time() - start_ubuntu_img_time) / 60))
+
     setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
                                               args=(excalibur.server_ip, '8GB.img',))
     setup_8GB_unity_thread.start()
 
+    start_8GB_unity_time = time.time()
+
     setup_4GB_unity_thread.join()
+
+    logger.info('\n*** Time taken for 4GB unity is [{}] ***\n'.format((time.time() - start_4GB_unity_time) / 60))
+
     setup_8GB_unity_thread.join()
 
-    print('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
+    logger.info('\n*** Time taken for 8GB unity is [{}] ***\n'.format((time.time() - start_8GB_unity_time) / 60))
 
-    print('*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
+
+    logger.info('*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
 
 def parse_args():
     parser = argparse.ArgumentParser()
