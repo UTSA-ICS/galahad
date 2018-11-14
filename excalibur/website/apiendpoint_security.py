@@ -147,8 +147,11 @@ class EndPoint_Security:
             bool: True if the transducer was enabled, false otherwise
 
         '''
-        return self.__enable_disable(transducerId, virtueId, configuration,
+        ret = self.__enable_disable(transducerId, virtueId, configuration,
                                      True)
+        if type(ret) is bool and ret == True:
+            return self.__error('success')
+        return ret
 
     def transducer_disable(self, transducerId, virtueId):
         '''
@@ -161,7 +164,10 @@ class EndPoint_Security:
         Returns:
             bool: True if the transducer was enabled, false otherwise
         '''
-        return self.__enable_disable(transducerId, virtueId, None, False)
+        ret = self.__enable_disable(transducerId, virtueId, None, False)
+        if type(ret) is bool and ret == True:
+            return self.__error('success')
+        return ret
 
     def transducer_get_enabled(self, transducerId, virtueId):
         '''
@@ -187,7 +193,7 @@ class EndPoint_Security:
                 details='Failed to get info about transducer: ' + str(e))
 
         self.__verify_message(row)
-        return row['enabled']
+        return json.dumps( { 'enabled': row['enabled'] } )
 
     def transducer_get_configuration(self, transducerId, virtueId):
         '''
@@ -212,6 +218,7 @@ class EndPoint_Security:
                 details='Failed to get info about transducer: ' + str(e))
 
         self.__verify_message(row)
+        # By definition, the configuration is a JSON object
         return row['configuration']
 
     def transducer_list_enabled(self, virtueId):
@@ -242,7 +249,7 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get enabled transducers: ' + str(e))
 
-        return enabled_transducers
+        return json.dumps(enabled_transducers)
 
     def __connect_rethinkdb(self):
         # RethinkDB connection
