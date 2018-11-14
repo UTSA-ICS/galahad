@@ -29,7 +29,7 @@ class Virtue():
         cfg.write("on_poweroff='destroy'\n")
         cfg.write("on_reboot='restart'\n")
         cfg.write("on_crash='restart'\n")
-        cfg.write('cmdline = "unity-net={0} nameserver=1.1.1.1"'.format(unity_net64.decode()))
+        cfg.write('cmdline = "unity-net={0} nameserver=172.30.0.2"'.format(unity_net64.decode()))
         cfg.close()
 
     def createDomU(self):
