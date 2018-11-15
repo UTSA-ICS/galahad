@@ -8,17 +8,27 @@ mkdir $UBUNTU_MNT
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo apt-get install -y nfs-common
+    sudo apt update
     DPKG_LOCK=$?
 done
 
-sudo mkdir /mnt/efs
-sudo mount -t nfs $EFS_URL:/ /mnt/efs
-
+# Wait for /var/lib/dpkg/lock rather than fail
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xen-tools
+    sudo apt install -y nfs-common
+    DPKG_LOCK=$?
+done
+
+# Mount the AWS EFS mountpoint
+sudo mkdir /mnt/efs
+sudo mount -t nfs $EFS_URL:/ /mnt/efs
+
+# Wait for /var/lib/dpkg/lock rather than fail
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 5
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y xen-tools
     DPKG_LOCK=$?
 done
 
