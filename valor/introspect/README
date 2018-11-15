@@ -1,0 +1,149 @@
+Notes on the Introspection Monitor software
+-- Christopher Clark, November 2018
+
+#-------------------------------------------------------------------------------
+# Introspection monitor
+
+# to install:
+# sudo dpkg -i xen-upstream-4.8.2-16.04.deb
+# sudo dpkg -i libvmi_0.13-1.deb
+# sudo dpkg -i introspection-monitor_0.1-1.deb
+# sudo ldconfig
+
+The tool is located at: /usr/local/bin/introspection-monitor
+
+Before the tool can fully function, the file: /etc/libvmi.conf
+must be populated with configuration data about the VMs running on the system.
+
+The monitor is to be run as root, with one argument: the unix domain socket file to
+create and use for communication:
+
+  /usr/local/bin/introspection-monitor /tmp/control.socket
+
+To interact with the running monitor, connect via the socket:
+
+  sudo nc -U /tmp/control.socket
+
+and then issue a command:
+
+  quit
+
+which will acknowledge the command and terminate the daemon.
+
+Once /etc/libvmi.conf is populated, these commands are available:
+
+  process-list my-guest-vm-name
+
+=> lists all the running processes within the guest VM to syslog.
+
+  kernel-modules my-guest-vm-name
+
+=> list all the installed kernel modules within the guest VM to syslog.
+
+  less /var/log/syslog
+
+to see the results.
+
+#-------------------------------------------------------------------------------
+# Populating /etc/libvmi.conf
+
+Here is an example file, with data for just one guest VM
+(snip between the hash-dashed lines):
+
+#---
+my-guest-centos-7 {
+    ostype = "Linux";
+    sysmap = "/root/xen/centos7/System.map-3.10.0-862.14.4.el7.x86_64";
+    linux_name = 0x678;
+    linux_tasks = 0x430;
+    linux_mm = 0x468;
+    linux_pid = 0x4a4;
+    linux_pgd = 0x58;
+}
+#---
+
+This data enables the introspection tool to navigate the memory of the named
+guest VM's key kernel data structures.
+
+To capture the data needed to populate this file, a kernel module provided with
+the LibVMI source code is needed. When loaded within a guest VM, the module
+will dump the correct values to match the running kernel to the kernel log.
+
+The system map file that corresponds to the kernel is also needed, and the
+config file provides the filesystem path to the map file, as can be seen in the
+example above.
+
+# To build and run the offset capture kernel module, with the guest VM:
+
+git clone git://github.com/LibVMI/LibVMI
+cd LibVMI/tools/linux-offset-finder
+# see README in this directory
+make
+sudo insmod findoffsets.ko
+sudo less /var/log/syslog
+# -> capture the output found in the log
+sudo rmmod findoffsets
+
+#-------------------------------------------------------------------------------
+# Building the software 
+
+# LibVMI
+
+This monitor was developed with the LibVMI library, derived from XenAccess,
+obtained from:
+git://github.com/LibVMI/LibVMI
+
+The LibVMI library is distributed under the terms of the Lesser GNU Public
+License version 3.0.
+
+# To build this version of LibVMI from source in a Ubuntu 16.04 environment:
+
+#---
+git clone git://github.com/LibVMI/LibVMI
+cd LibVMI
+git checkout e2802239bf9d0876293c4fed308d0b1a1cf44641
+
+sudo apt install libtool libglib2.0-dev automake autoconf flex bison libjson-c-dev
+./autogen.sh
+./configure --disable-kvm
+make
+sudo make install
+sudo ldconfig
+#---
+
+# Introspection monitor
+
+The LibVMI must be installed prior to building this.
+A simple Makefile is provided to build thus:
+
+make
+
+# Basic deb packaging
+
+The debian control file used to generate a simple LibVMI deb package:
+#---
+Package: libvmi
+Version: 0.13-1
+Section: base
+Priority: optional
+Architecture: amd64
+Depends:
+Maintainer: Not Specified <none@none.com>
+Description: Virtual Machine Introspection Library
+ Library to support monitoring of running virtual machines.
+#---
+
+The debian control file used to generate the monitor deb package:
+#---
+Package: introspection-monitor
+Version: 0.1-1
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: libvmi (>= 0.13-1)
+Maintainer: Not Specified <none@none.com>
+Description: Daemon to act on introspection commands
+ Listens on a UNIX domain socket.
+ Output is logged to syslog.
+#---
+
