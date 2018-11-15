@@ -266,8 +266,9 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
+            # Disable merlin until the virtue-id is populated
             subprocess.check_call(['chroot', mount_path,
-                                   'systemctl', 'enable', 'merlin'])
+                                   'systemctl', 'disable', 'merlin'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -618,6 +619,10 @@ class Assembler(object):
 
             with open(image_mount + '/etc/virtue-id', 'w') as id_file:
                 id_file.write(virtue_id)
+
+            # Enable merlin since virtue-id is now available
+            subprocess.check_call(['chroot', image_mount,
+                                   'systemctl', 'enable', 'merlin'])
 
             if (not os.path.exists(image_mount + '/var/private/ssl')):
                 os.makedirs(image_mount + '/var/private/ssl')
