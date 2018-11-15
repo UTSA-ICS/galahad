@@ -41,18 +41,6 @@ done
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
-    apt --assume-yes install ./libvmi_0.13-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install ./introspection-monitor_0.1-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
     apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
     DPKG_LOCK=$?
 done
@@ -62,9 +50,6 @@ while (( $DPKG_LOCK -nz )); do
     apt --assume-yes install -f
     DPKG_LOCK=$?
 done
-
-# Update the system view of installed libraries
-ldconfig
 
 #
 # Set the IP Tables rules
