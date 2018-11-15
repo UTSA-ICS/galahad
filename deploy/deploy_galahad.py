@@ -531,6 +531,26 @@ class EFS():
         ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
+    def stop_xen_pvm_builder(self):
+        # TODO Call this method to stop the xenpvmbuilder instance
+        # TODO Another method will need to be added to start the instance
+        # TODO for calls to build a ubuntu + unity image.
+
+        client = boto3.client('ec2')
+
+        server = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name + '-VPC']
+            }])
+
+        instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
+
+        client.stop_instances(InstanceIds=[instance_id])
+
     def setup_unity_img(self, constructor_ip, image_name):
 
         pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
@@ -548,12 +568,9 @@ class EFS():
                                  ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
-        #rm_cmd = "sudo('rm -rf /mnt/efs/images/domains')"
-        #run_ssh_cmd(constructor_ip, self.ssh_key, rm_cmd)
-
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
-          aws_keys, branch, user_key):
+          aws_keys, branch, image_size, user_key):
 
     start_stack_time = time.time()
 
@@ -565,17 +582,18 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     start_setup_time = time.time()
 
     efs = EFS(stack_name, path_to_key)
+
+    start_xen_pvm_time = time.time()
+
     efs.setup_xen_pvm_builder()
+
+    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format((time.time() - start_xen_pvm_time) / 60))
 
     start_ubuntu_img_time = time.time()
 
-    setup_8GB_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                                   args=('8GB',))
-    setup_8GB_ubuntu_img_thread.start()
-
-    setup_4GB_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                                   args=('4GB',))
-    setup_4GB_ubuntu_img_thread.start()
+    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+                                               args=(image_size,))
+    setup_ubuntu_img_thread.start()
 
     start_excalibur_time = time.time()
 
@@ -591,36 +609,24 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
 
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
 
+    setup_ubuntu_img_thread.join()
+
+    logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size, (time.time() -
+                                                                                  start_ubuntu_img_time) / 60))
+
+    start_unity_time = time.time()
+
+    setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                          args=(excalibur.server_ip, image_size + '.img',))
+    setup_unity_thread.start()
+
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
-    setup_4GB_ubuntu_img_thread.join()
+    setup_unity_thread.join()
 
-    logger.info('\n*** Time taken for 4GB ubuntu img is [{}] ***\n'.format((time.time() - start_ubuntu_img_time) / 60))
-
-    setup_4GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                              args=(excalibur.server_ip, '4GB.img',))
-    setup_4GB_unity_thread.start()
-
-    start_4GB_unity_time = time.time()
-
-    setup_8GB_ubuntu_img_thread.join()
-
-    logger.info('\n*** Time taken for 8GB ubuntu img is [{}] ***\n'.format((time.time() - start_ubuntu_img_time) / 60))
-
-    setup_8GB_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                              args=(excalibur.server_ip, '8GB.img',))
-    setup_8GB_unity_thread.start()
-
-    start_8GB_unity_time = time.time()
-
-    setup_4GB_unity_thread.join()
-
-    logger.info('\n*** Time taken for 4GB unity is [{}] ***\n'.format((time.time() - start_4GB_unity_time) / 60))
-
-    setup_8GB_unity_thread.join()
-
-    logger.info('\n*** Time taken for 8GB unity is [{}] ***\n'.format((time.time() - start_8GB_unity_time) / 60))
+    logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size, (time.time() -
+                                                                                   start_unity_time) / 60))
 
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
 
@@ -694,6 +700,15 @@ def parse_args():
         "--delete_stack",
         action="store_true",
         help="delete the specified stack")
+    parser.add_argument(
+        "--image_size",
+        default="4GB",
+        choices=["4GB", "8GB", "16GB"],
+        help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
+    parser.add_argument(
+        "--build_image_only",
+        action="store_true",
+        help="Build the ubuntu and unity image only - Assume an existing stack")
 
     # Temporary:
     parser.add_argument(
@@ -729,7 +744,7 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.default_user_key)
+              args.aws_keys, args.branch_name, args.image_size, args.default_user_key)
 
     if args.setup_stack:
         stack = Stack()
@@ -740,6 +755,23 @@ def main():
 
     if args.delete_stack:
         Stack().delete_stack(args.stack_name)
+
+    if args.build_image_only:
+        # Build a base ubuntu and unity image only - Assume that the stack is already deployed.
+        efs = EFS(args.stack_name, args.path_to_key)
+
+        start_ubuntu_img_time = time.time()
+
+        efs.setup_ubuntu_img(args.image_size)
+
+        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(args.image_size,
+                                                                                (time.time()-start_ubuntu_img_time)/60))
+        start_unity_time = time.time()
+
+        efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
+
+        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(args.image_size,
+                                                                           (time.time()-start_unity_time)/60))
 
 
 if __name__ == '__main__':
