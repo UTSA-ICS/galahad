@@ -5,8 +5,8 @@ import base
 
 class SecurityCLI(base.BaseCLI):
 
-    def __init__(self, ip):
-        super().__init__(ip)
+    def __init__(self, ip, interactive=True):
+        super().__init__(ip, interactive)
 
         self.base_url = 'https://{0}:5002/virtue/security'.format(ip)
 

@@ -8,13 +8,14 @@ DEBUG = True
 
 class BaseCLI:
 
-    def __init__(self, ip):
+    def __init__(self, ip, interactive_login=True):
         self.ip = ip
         self.sso = sso_tool(ip + ':5002')
 
         self.session = None
 
-        print(self.login())
+        if interactive_login:
+            print(self.interactive_login())
 
         self.commands = {'help': self.help,
                          'exit': self.logout}
@@ -33,7 +34,7 @@ class BaseCLI:
     def help(self):
         return '\n'.join(sorted(self.commands.keys()))
 
-    def login(self):
+    def interactive_login(self):
         self.username = input('Email: ').strip()
         password = getpass.getpass('Password: ').strip()
 
@@ -42,6 +43,21 @@ class BaseCLI:
         if app_name == '':
             app_name = 'APP_1'
 
+        self.logout()
+
+        if (not self.sso.login(self.username, password)):
+            return 'Failed to login'
+
+        if (not self.get_token(app_name)):
+            return 'Failed to login'
+
+        return 'Successfully logged in'
+
+    def login(self, username, password, app_name="APP_1"):
+        self.username = username
+        if app_name == '':
+            app_name = 'APP_1'
+        
         self.logout()
 
         if (not self.sso.login(self.username, password)):

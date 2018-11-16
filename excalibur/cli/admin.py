@@ -52,8 +52,8 @@ requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected(
 '''
 class AdminCLI(base.BaseCLI):
 
-    def __init__(self, ip):
-        super().__init__(ip)
+    def __init__(self, ip, interactive=True):
+        super().__init__(ip, interactive)
 
         self.base_url = 'https://{0}:5002/virtue/admin'.format(ip)
 
@@ -413,8 +413,8 @@ class AdminCLI(base.BaseCLI):
 
 
 if (__name__ == '__main__'):
-
-    cli = AdminCLI(input('Excalibur address: ').strip())
+    excalibur_ip = input('Excalibur address: ').strip()
+    cli = AdminCLI(excalibur_ip)
 
     command = ''
 
