@@ -4,51 +4,13 @@
 
 from __future__ import unicode_literals
 from enum import Enum
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter, DynamicCompleter
 
-import admin
-import base
-import security
-import user
+from endpoint import Endpoint
 
-class ExcaliburCmd:
-    def __init__(self, ip=None):
-        self.base_ep = None
-        self.admin_ep = None
-        self.security_ep = None
-        self.user_ep = None
-        self.security_ep = None
-        self.ip = ip
-
-    def connect(self, ip=None):
-        if ip is not None:
-            self.ip = ip
-
-        if self.ip is None:
-            return False
-
-        self.admin_ep = admin.AdminCLI(self.ip, interactive=False)
-        self.user_ep = user.UserCLI(self.ip, interactive=False)
-        self.security_ep = security.SecurityCLI(self.ip, interactive=False)
-
-    def get_admin_words(self):
-        if self.admin_ep is None:
-            return []
-        else:
-            return self.admin_ep.commands.keys()
-
-    def get_user_words(self):
-        if self.user_ep is None:
-            return []
-        else:
-            return self.user_ep.commands.keys()
-
-    def get_security_words(self):
-        if self.security_ep is None:
-            return []
-        else:
-            return self.security_ep.commands.keys()
+import getpass
 
 class InterpreterMode(Enum):
     BASE = 1
@@ -56,23 +18,12 @@ class InterpreterMode(Enum):
     ADMIN = 3
     SECURITY = 4
 
-mode = InterpreterMode.BASE
-
-def prompt_msg():
-    if mode is InterpreterMode.BASE:
-        return '> '
-    elif mode is InterpreterMode.USER:
-        return '[USR]> '
-    elif mode is InterpreterMode.ADMIN:
-        return '[ADM]> '
-    elif mode is InterpreterMode.SECURITY:
-        return '[SEC]> '
-    else:
-        return '> '
-
 class MetaCompleter:
     def __init__(self):
         pass
+
+    def set_mode(self, _mode):
+        self.mode = _mode
 
     def set_base_completer(self, base_completer):
         self.base_completer = base_completer
@@ -87,66 +38,166 @@ class MetaCompleter:
         self.security_completer = completer
 
     def get_completer(self):
-        global mode
-        if mode is InterpreterMode.BASE:
+        if self.mode is InterpreterMode.BASE:
             return self.base_completer
-        elif mode is InterpreterMode.USER:
+        elif self.mode is InterpreterMode.USER:
             return self.user_completer
-        elif mode is InterpreterMode.ADMIN:
+        elif self.mode is InterpreterMode.ADMIN:
             return self.admin_completer
         else:
             return self.base_completer
 
-def main():
-    global mode 
+class ExcaliburCmd:
+    def __init__(self, ip=None):
+        self.base_ep = None
+        self.admin_ep = None
+        self.security_ep = None
+        self.user_ep = None
+        self.security_ep = None
+        self.ip = ip
 
-    session = PromptSession()
+        self.mode = InterpreterMode.BASE
+
+        # If you add a new endpoint, create a JSON file for it, then add it here
+        self.admin_ep = Endpoint.factory(Endpoint.EpType.ADMIN, self.ip)
+        self.user_ep = Endpoint.factory(Endpoint.EpType.USER, self.ip)
+        self.security_ep = Endpoint.factory(Endpoint.EpType.SECURITY, self.ip)
+
+        self.base_words = ['admin', 'user', 'security', 'login', 'exit']
+        base_completer = WordCompleter(words=self.base_words, ignore_case=True)
+        admin_completer = WordCompleter(words=self.admin_ep.commands.keys(), sentence=True)
+        user_completer = WordCompleter(words=self.user_ep.commands.keys(), sentence=True)
+        security_completer = WordCompleter(words=self.security_ep.commands.keys(), sentence=True)
+
+        self.meta_completer = MetaCompleter()
+        self.meta_completer.set_base_completer(base_completer)
+        self.meta_completer.set_admin_completer(admin_completer)
+        self.meta_completer.set_user_completer(user_completer)
+        self.meta_completer.set_security_completer(security_completer)
+        self.meta_completer.set_mode(InterpreterMode.BASE)
+
+    def get_mode(self):
+        return self.mode
+
+    def set_mode(self, _mode):
+        self.mode = _mode
+        self.meta_completer.set_mode(_mode)
+
+    def do_login(self):
+        self.username = input('Email: ').strip()
+        password = getpass.getpass('Password: ').strip()
+        # ABJ: Uncomment this when it matters what the app name is
+        #app_name = input('OAuth APP name (Default name \'APP_1\' Press Enter): ').strip()
+        #if app_name == '':
+        #    app_name = 'APP_1'
+        app_name = 'APP_1'
+
+        print('Logging in...')
+        for ep in [self.admin_ep, self.user_ep, self.security_ep]:
+            [res, msg] = ep.login(self.username, password, app_name)
+            if not res:
+                print('Error logging in to ' + str(ep) + ': ' + msg)
+                break
+        else:
+            print('Login complete')
+
+    def get_current_ep(self):
+        if self.mode is InterpreterMode.USER:
+            return self.user_ep
+        elif self.mode is InterpreterMode.ADMIN:
+            return self.admin_ep
+        elif self.mode is InterpreterMode.SECURITY:
+            return self.security_ep
+        else:
+            return self
+
+    def handle_command(self, text):
+        print('Unknown command: ' + text)
+
+    def handle_cmd(self, text):
+        if text == 'exit':
+            if self.mode is InterpreterMode.BASE:
+                raise EOFError
+            else:
+                self.set_mode(InterpreterMode.BASE)
+                return
+
+        # As a consequence of this, you have to bounce back through BASE
+        # to switch from admin to user modes
+        if self.mode is InterpreterMode.BASE:
+            if text == 'user':
+                print('Entering USER API mode...')
+                self.set_mode(InterpreterMode.USER)
+                return
+            elif text == 'admin':
+                print('Entering ADMIN API mode...')
+                self.set_mode(InterpreterMode.ADMIN)
+                return
+            elif text == 'security':
+                print('Entering SECURITY API mode...')
+                self.set_mode(InterpreterMode.SECURITY)
+                return
+
+        if text == 'help':
+            self.help()
+            return
+        elif text == 'login':
+            self.do_login()
+            return
+        else:
+            ret = self.get_current_ep().handle_command(text)
+            if ret is not None:
+                print('------------------')
+                print(ret)
+                print('------------------')
+
+    def prompt_msg(self):
+        '''Used by the PromptToolkit session to print the appropriate prompt message'''
+        if self.mode is InterpreterMode.BASE:
+            return '> '
+        elif self.mode is InterpreterMode.USER:
+            return '[USR]> '
+        elif self.mode is InterpreterMode.ADMIN:
+            return '[ADM]> '
+        elif self.mode is InterpreterMode.SECURITY:
+            return '[SEC]> '
+        else:
+            return '> '
+
+    def help(self):
+        mode_name = str(self.mode).split('.')[1]
+        print('')
+        print('The interpreter is currently in ' + mode_name + ' mode')
+        print('To get back to BASE mode, press CTRL-C or type "exit"')
+        print('')
+        print('In ' + mode_name + ' mode, the available commands are:')
+        if self.mode is InterpreterMode.BASE:
+            for word in self.base_words:
+                print('\t' + word)
+        else:
+            print(self.get_current_ep().help())
+
+def main():
     excalibur = ExcaliburCmd('127.0.0.1')
-    excalibur.connect()
 
     print('Welcome to Excalibur')
     print('Type "help" for more info, or type "exit" or press CTRL-D to exit')
 
-    words = ['admin', 'user', 'security', 'login', 'exit']
-    base_completer = WordCompleter(words=words, ignore_case=True)
-    admin_completer = WordCompleter(words=excalibur.get_admin_words(), sentence=True)
-    user_completer = WordCompleter(words=excalibur.get_user_words(), sentence=True)
-    security_completer = WordCompleter(words=excalibur.get_security_words(), sentence=True)
-
-    meta_completer = MetaCompleter()
-    meta_completer.set_base_completer(base_completer)
-    meta_completer.set_admin_completer(admin_completer)
-    meta_completer.set_user_completer(user_completer)
-    meta_completer.set_security_completer(security_completer)
-
-    current_mode = InterpreterMode.BASE
-
+    session = PromptSession()
     while True:
         try: 
-            text = session.prompt(prompt_msg, completer=DynamicCompleter(meta_completer.get_completer))
+            text = session.prompt(
+                excalibur.prompt_msg, 
+                completer=DynamicCompleter(excalibur.meta_completer.get_completer))
+            excalibur.handle_cmd(text)
         except KeyboardInterrupt:
-            continue
+            if excalibur.get_mode() is InterpreterMode.BASE:
+                break
+            else:
+                excalibur.set_mode(InterpreterMode.BASE)
         except EOFError:
             break
-        else:
-            if text == 'exit':
-                if mode is InterpreterMode.BASE:
-                    break
-                else:
-                    mode = InterpreterMode.BASE
-            
-            if mode is InterpreterMode.BASE:
-                if text == 'user':
-                    print('Entering USER API mode...')
-                    mode = InterpreterMode.USER
-                elif text == 'admin':
-                    print('Entering ADMIN API mode...')
-                    mode = InterpreterMode.ADMIN
-                elif text == 'security':
-                    print('Entering SECURITY API mode...')
-                    mode = InterpreterMode.SECURITY
-                    
-            print('You entered: ', text)
+        
     print('Goodbye!')
 
 if __name__=='__main__':

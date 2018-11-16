@@ -1,0 +1,76 @@
+{
+    "api_name": "user",
+    "base_url": "https://{0}:5002/virtue/user",
+    "commands": [
+        {
+            "command": "application get",
+            "help": "Get list of available applications",
+            "url": "/application/get",
+            "parameters": [
+                { "name": "Application ID", "url_name": "appId" }
+            ]
+        },
+        {
+            "command": "role get",
+            "help": "Get information about a role",
+            "url": "/role/get",
+            "parameters": [ 
+                { "name": "Role ID", "url_name": "roleId" }
+            ]
+        },
+        {
+            "command": "user role list",
+            "help": "List roles available to the given user",
+            "url": "/role/list",
+            "parameters": []
+        },
+        { 
+            "command": "user virtue list",
+            "help": "Lists the current Virtues for the given user",
+            "url": "/virtue/list",
+            "parameters": []
+        },
+        { 
+            "command": "virtue get",
+            "help": "Get information about a given Virtue",
+            "url": "/virtue/get",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        { 
+            "command": "virtue launch",
+            "help": "Launches a virtue for the curent user",
+            "url": "/virtue/launch",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        { 
+            "command": "virtue stop",
+            "help": "Stops a user's virtue",
+            "url": "/virtue/stop",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        { 
+            "command": "virtue application launch",
+            "help": "Launches an application in a running Virtue",
+            "url": "/virtue/application/launch",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" },
+                { "name": "Application ID", "url_name": "appId" }
+            ]
+        },
+        { 
+            "command": "virtue application stop",
+            "help": "Stops an applcation in a running Virtue",
+            "url": "/virtue/application/stop",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" },
+                { "name": "Application ID", "url_name": "appId" }
+            ]
+        }
+    ]        
+}

@@ -1,0 +1,214 @@
+{
+    "api_name": "admin",
+    "base_url": "https://{0}:5002/virtue/admin",
+    "commands": [
+        {
+            "command": "application list",
+            "help": "",
+            "url": "/application/list",
+            "parameters": [] 
+        },
+        {
+            "command": "resource get",
+            "help": "",
+            "url": "/resource/get",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" }
+            ] 
+        },
+        {
+            "command": "resource list",
+            "help": "",
+            "url": "/resource/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "resource attach",
+            "help": "",
+            "url": "/resource/attach",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        { 
+            "command": "resource detach",
+            "help": "",
+            "url": "/resource/detach",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        { 
+            "command": "role create",
+            "help": "",
+            "url": "/role/create",
+            "parameters": [
+                { "name": "Role (as JSON)", "url_name": "role" }
+            ] 
+        },
+        { 
+            "command": "role list",
+            "help": "",
+            "url": "/role/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "system export",
+            "help": "",
+            "url": "/system/export",
+            "parameters": [] 
+        },
+        { 
+            "command": "system import",
+            "help": "",
+            "url": "/system/import",
+            "parameters": [
+                { "name": "Import Data (as JSON)", "url_name": "data" }
+            ] 
+        },
+        { 
+            "command": "test import user",
+            "help": "",
+            "url": "/test/import/user",
+            "parameters": [
+                { "name": "Which user", "url_name": "which" }
+            ] 
+        },
+        { 
+            "command": "test import application",
+            "help": "",
+            "url": "/test/import/app",
+            "parameters": [
+                { "name": "Which application", "url_name": "which" }
+            ] 
+        },
+        { 
+            "command": "test import role",
+            "help": "",
+            "url": "/test/import/role",
+            "parameters": [
+                { "name": "Which application", "url_name": "which" }  
+            ] 
+        },
+        { 
+            "command": "user list",
+            "help": "",
+            "url": "/user/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "user get",
+            "help": "",
+            "url": "/user/get",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }
+            ] 
+        },
+        {   
+            "command": "user virtue list",
+            "help": "",
+            "url": "/user/virute/list",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }  
+            ] 
+        },
+        { 
+            "command": "user logout",
+            "help": "",
+            "url": "/user/logout",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }  
+            ] 
+        },
+        { 
+            "command": "user role authorize",
+            "help": "",
+            "url": "/user/role/authorize",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "user role unauthorize",
+            "help": "",
+            "url": "/user/role/unauthorize",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "virtue create",
+            "help": "",
+            "url": "/virtue/create",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "virtue destroy",
+            "help": "",
+            "url": "/virtue/destroy",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        { 
+            "command": "valor list",
+            "help": "",
+            "url": "/valor/list",
+            "parameters": [] 
+        }, 
+        { 
+            "command": "valor create",
+            "help": "",
+            "url": "/valor/create",
+            "parameters": [] 
+        },
+        { 
+            "command": "valor create pool",
+            "help": "",
+            "url": "/valor/create_pool",
+            "parameters": [
+                { "name": "Number of Valors", "url_name": "number_of_valors" }
+            ] 
+        },
+        { 
+            "command": "valor launch",
+            "help": "",
+            "url": "/valor/launch",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor stop",
+            "help": "",
+            "url": "/valor/stop",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor destroy",
+            "help": "",
+            "url": "/valor/destroy",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor migrate virtue",
+            "help": "",
+            "url": "/valor/migrate_virtue",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtue_id" },
+                { "name": "Destination Valor ID", "url_name": "destination_valor_id" }
+            ] 
+        }
+   ]
+}
