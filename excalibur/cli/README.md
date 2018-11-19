@@ -27,7 +27,7 @@ $ virtue [subcommands]
 For the Administrator API:
 
 ```
-$ virtue-adm [subcommands]
+$ virtue-admin [subcommands]
  ```
 
 For the Security API:
