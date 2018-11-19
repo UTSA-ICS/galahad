@@ -41,7 +41,8 @@ class Virtue():
 
     def createDomU(self):
         try:
-            out = subprocess.check_output(['xl','create',CFG_OUT + self.virtue_id + '.cfg'], stderr=subprocess.STDOUT, shell=True)
+            out = subprocess.check_output('xl create ' + CFG_OUT + self.virtue_id + '.cfg', stderr=subprocess.STDOUT,
+                                          shell=True)
             virtue_logger.debug("Virtue domU created")
             virtue_logger.debug(out)
         except subprocess.CalledProcessError as e:
@@ -51,8 +52,9 @@ class Virtue():
 
     def migrateDomU(self, target_ip):
         try:
-            out = subprocess.check_output(['xl', 'migrate', '-s ssh -o StrictHostKeyChecking=no', self.virtue_id,
-                                       target_ip], stderr=subprocess.STDOUT, shell=True)
+            out = subprocess.check_output(
+                'xl migrate -s ssh -o StrictHostKeyChecking=no ' + self.virtue_id + ' ' + target_ip,
+                stderr=subprocess.STDOUT, shell=True)
             virtue_logger.debug("Virtue migrated")
             virtue_logger.debug(out)
         except subprocess.CalledProcessError as e:
@@ -68,7 +70,7 @@ class Virtue():
 
         try:
             # Needs to be in separate try statement because virtue may exist when .cfg doesn't
-            out = subprocess.check_output(['xl','destroy', self.virtue_id], stderr=subprocess.STDOUT, shell=True)
+            out = subprocess.check_output('xl destroy ' + self.virtue_id, stderr=subprocess.STDOUT, shell=True)
             virtue_logger.debug(out)
         except subprocess.CalledProcessError as e:
             virtue_logger.debug("Error: Virtue destruction failed")
