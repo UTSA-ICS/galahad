@@ -1,17 +1,20 @@
-import rethinkdb as r
-import socket
-import datetime
-import time
-import threading
-import base64
 import logging
+import socket
+import threading
+import time
 
-from __init__ import RT_CONN, RT_DB, RT_IP, RT_PORT, RT_CERT
-from __init__ import RT_VALOR_TB, RT_COMM_TB, RT_ACK_TB, RT_ARC_TB
+import rethinkdb as r
+from __init__ import RT_DB, RT_IP, RT_PORT, RT_CERT
+from __init__ import RT_VALOR_TB, RT_COMM_TB
 from virtue_client import Virtue
 
-GAIUS_LOGFILE = "/var/log/gaius-rethink.log"
-logging.basicConfig(filename=GAIUS_LOGFILE, level=logging.DEBUG)
+RETHINKDB_LOGFILE = "/var/log/gaius-rethinkdb.log"
+rethinkdb_handler = logging.FileHandler(RETHINKDB_LOGFILE)
+
+rethinkdb_logger = logging.getLogger('rethinkdb_client')
+rethinkdb_logger.setLevel(logging.DEBUG)
+rethinkdb_logger.addHandler(rethinkdb_handler)
+
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
