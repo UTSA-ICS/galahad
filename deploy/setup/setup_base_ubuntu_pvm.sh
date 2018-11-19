@@ -8,7 +8,7 @@ mkdir $UBUNTU_MNT
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo apt update
+    sudo apt-get update
     DPKG_LOCK=$?
 done
 
@@ -16,7 +16,7 @@ done
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo apt install -y nfs-common
+    sudo apt-get install -y nfs-common
     DPKG_LOCK=$?
 done
 
@@ -28,7 +28,7 @@ sudo mount -t nfs $EFS_URL:/ /mnt/efs
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y xen-tools
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xen-tools
     DPKG_LOCK=$?
 done
 
