@@ -100,7 +100,7 @@ def test_application_calls():
 
     assert json.dumps(
         ErrorCodes.user['userNotAuthorized']) == ep.application_get(
-            'jmitchell', 'xterm')
+            'jmitchell', 'terminal')
 
     app = json.loads(ep.application_get('jmitchell', 'firefox'))
 
@@ -227,7 +227,7 @@ def test_virtue_calls():
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
             ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
-                                         'xterm', use_ssh=False))
+                                         'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
             ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
@@ -259,7 +259,7 @@ def test_virtue_calls():
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
             ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
-                                       'xterm', use_ssh=False))
+                                       'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
             ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
