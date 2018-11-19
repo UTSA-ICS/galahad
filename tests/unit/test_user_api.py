@@ -3,7 +3,6 @@
 import json
 import os
 import sys
-import time
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -12,9 +11,7 @@ sys.path.insert(0, base_excalibur_dir)
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.apiendpoint import EndPoint
-from website.apiendpoint_admin import EndPoint_Admin
 from website.services.errorcodes import ErrorCodes
-from website.aws import AWS
 
 
 def setup_module():
