@@ -11,6 +11,7 @@ from prompt_toolkit.completion import WordCompleter, DynamicCompleter
 from endpoint import Endpoint
 
 import getpass
+import sys
 
 class InterpreterMode(Enum):
     BASE = 1
@@ -178,9 +179,17 @@ class ExcaliburCmd:
             print(self.get_current_ep().help())
 
 def main():
-    excalibur = ExcaliburCmd('127.0.0.1')
+    server_address = '127.0.0.1'
+    if len(sys.argv) is 2:
+        server_address = sys.argv[1]
+    else:
+        print('WARNING - Using default Excalibur server address: {}'.format(server_address))
 
+    excalibur = ExcaliburCmd(server_address)
+
+    print('--------------------')
     print('Welcome to Excalibur')
+    print('--------------------')
     print('Type "help" for more info, or type "exit" or press CTRL-D to exit')
 
     session = PromptSession()
