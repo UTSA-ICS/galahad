@@ -62,7 +62,3 @@ if __name__ == '__main__':
     res = ep.handle_command(command, params)
     if res is not None:
         print(res)
-
-# Parse out the parameters and check to make sure you have them all
-
-# Call the correct method on the endpoint

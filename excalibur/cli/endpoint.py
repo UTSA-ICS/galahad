@@ -47,6 +47,10 @@ class Endpoint(object):
                          'exit': { "help": "Return to BASE mode or exit" } }
 
     def handle_command(self, command, _params=None):
+        if command == 'help':
+            print(self.help())
+            return None
+
         command_tokens = command.split()
         real_command = ' '.join(command_tokens)
         cmd = self.commands.get(real_command, None)
@@ -81,7 +85,7 @@ class Endpoint(object):
                     params[argument] = json.load(param_file)
 
         # Print out the request parameters
-        print(json.dumps(params, indent=4))
+        # print(json.dumps(params, indent=4))
 
         result = self.session.get(self.base_url + cmd['url'], params=params)
         data = result.json()
