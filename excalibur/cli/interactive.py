@@ -1,4 +1,4 @@
-#!/usr/bin/python3 
+#!/usr/bin/env python3 
 
 # https://python-prompt-toolkit.readthedocs.io/en/stable/pages/tutorials/repl.html
 

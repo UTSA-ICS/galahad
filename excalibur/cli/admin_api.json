@@ -65,7 +65,7 @@
             "help": "Import the Virtue system from an input JSON file",
             "url": "/system/import",
             "parameters": [
-                { "name": "Import Data (as JSON)", "url_name": "data" }
+                { "name": "Import Data (as JSON)", "url_name": "data", "is_file": true }
             ] 
         },
         { 

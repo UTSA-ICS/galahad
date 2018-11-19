@@ -46,7 +46,7 @@ class Endpoint(object):
         self.commands = {'help': { "help": "Get help" },
                          'exit': { "help": "Return to BASE mode or exit" } }
 
-    def handle_command(self, command):
+    def handle_command(self, command, _params=None):
         command_tokens = command.split()
         real_command = ' '.join(command_tokens)
         cmd = self.commands.get(real_command, None)
@@ -58,9 +58,30 @@ class Endpoint(object):
         if self.session is None:
             return 'Please log in before issuing any commands'
 
-        params = {}
+        # If the params dictionary is missing, then prompt the user
+        params = _params
+        if params is None:
+            params = {}
+            for param in cmd['parameters']:
+                params[param["url_name"]] = input(param['name'] + ": ")
+
+        # Check for missing parameters
+        missing_params = []
         for param in cmd['parameters']:
-            params[param["url_name"]] = input(param['name'] + ": ")
+            if not param['url_name'] in params:
+                missing_params.append(param['url_name'])
+        if len(missing_params) != 0:
+            return '{\n    "missing_parameters": [ %s ] \n}' % (', '.join(['"%s"' % s for s in missing_params]))
+
+        # Convert file parameters into their contents
+        for param in cmd['parameters']:
+            if 'is_file' in param:
+                argument = param['url_name']
+                with open(params[argument], 'r') as param_file:
+                    params[argument] = json.load(param_file)
+
+        # Print out the request parameters
+        print(json.dumps(params, indent=4))
 
         result = self.session.get(self.base_url + cmd['url'], params=params)
         data = result.json()

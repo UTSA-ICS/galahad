@@ -49,10 +49,17 @@ if __name__ == '__main__':
 
     # Use the provided token to authenticate to the API endpoint
     ep.set_token(token)
+    command_toks = []
+    params = {}
+    for tok in sys.argv[1:]:
+        if tok.startswith('--'):
+            subtok = tok.split('=')
+            params[subtok[0].lstrip('--')] = subtok[1]
+        else:
+            command_toks.append(tok)
     
-    command = ' '.join(sys.argv[1:])
-
-    res = ep.handle_command(command)
+    command = ' '.join(command_toks)
+    res = ep.handle_command(command, params)
     if res is not None:
         print(res)
 
