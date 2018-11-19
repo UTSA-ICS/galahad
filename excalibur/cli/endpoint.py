@@ -112,6 +112,15 @@ class Endpoint(object):
 
         return 'Logged out'
 
+    def set_token(self, token):
+        # If you use sso_login.py from a script, you can call set_token directly 
+        # without going through the login process
+        self.session = requests.Session()
+        self.session.headers = {
+            'Authorization': 'Bearer {0}'.format(token['access_token'])
+        }
+        self.session.verify = not DEBUG
+
     def get_token(self, app_name):
 
         redirect = 'https://{0}:5002/virtue/test'.format(self.ip)
@@ -133,12 +142,8 @@ class Endpoint(object):
             print('Could not retrieve token')
             return False
 
-        self.session = requests.Session()
-        self.session.headers = {
-            'Authorization': 'Bearer {0}'.format(token['access_token'])
-        }
-        self.session.verify = not DEBUG
-
+        self.set_token(token)
+        
         return True
 
 if __name__ == '__main__':
