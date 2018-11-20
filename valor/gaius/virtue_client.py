@@ -53,7 +53,7 @@ class Virtue():
     def migrateDomU(self, target_ip):
         try:
             out = subprocess.check_output(
-                'xl migrate -s ssh -o StrictHostKeyChecking=no ' + self.virtue_id + ' ' + target_ip,
+                'xl migrate -s "ssh -o StrictHostKeyChecking=no" ' + self.virtue_id + ' ' + target_ip,
                 stderr=subprocess.STDOUT, shell=True)
             virtue_logger.debug("Virtue migrated")
             virtue_logger.debug(out)

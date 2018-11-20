@@ -18,7 +18,7 @@ rethinkdb_logger.addHandler(rethinkdb_handler)
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
-        logging.debug("Starting Gaius Service to monitor rethinkDB for changes")
+        rethinkdb_logger.debug("Starting Gaius Service to monitor rethinkDB for changes")
 
         threading.Thread.__init__(self)
         self.feed = feed
@@ -35,10 +35,10 @@ class Changes(threading.Thread):
     def valor(self):
         for change in self.feed:
             if change["type"] == "add":
-                logging.debug("Valor changefeed, change type = add")
+                rethinkdb_logger.debug("Valor changefeed, change type = add")
                 self.add(change["new_val"])
             elif change["type"] == "remove":
-                logging.debug("Valor changefeed, change type = remove")
+                rethinkdb_logger.debug("Valor changefeed, change type = remove")
                 self.remove(change["old_val"])
 
     def getid(self, table, search):
@@ -89,13 +89,13 @@ class Changes(threading.Thread):
     def migration(self):
         for change in self.feed:
             if (change["type"] == "change") and change["new_val"]["enabled"]:
-                logging.debug("Migration changefeed, change =")
-                logging.debug("    change = {}".format(change))
+                rethinkdb_logger.debug("Migration changefeed, change =")
+                rethinkdb_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
 
 class Rethink():
     def __init__(self):
-        logging.debug("Starting to monitor changes in rethinkDB...")
+        rethinkdb_logger.debug("Starting to monitor changes in rethinkDB...")
 
         self.ip = socket.gethostbyname(socket.gethostname())
 
@@ -110,12 +110,12 @@ class Rethink():
         valor_thread = Changes("valor", valor_feed, valor_rt)
         valor_thread.daemon = True
         valor_thread.start()
-        logging.debug("Valor thread starting...")
+        rethinkdb_logger.debug("Valor thread starting...")
 
         migration_thread = Changes("migration", migration_feed, migration_rt)
         migration_thread.daemon = True
         migration_thread.start()
-        logging.debug("Migration thread starting...")
+        rethinkdb_logger.debug("Migration thread starting...")
 
 if __name__ == "__main__":
     rt = Rethink()
