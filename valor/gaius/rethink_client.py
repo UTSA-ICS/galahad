@@ -73,6 +73,7 @@ class Changes(threading.Thread):
         if change["function"] == "virtue":
             rethinkdb_client_logger.debug("Valor remove change = {}".format(change))
             virtue = Virtue(change)
+            r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).delete().run(self.rt)
             virtue.destroyDomU()
 
     def migrate(self, change):
