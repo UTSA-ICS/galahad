@@ -280,6 +280,52 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Aggregator'
+  GalahadAggregator2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-a4dc46db
+      InstanceType: t2.large
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.48
+          SubnetId:
+            "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for NFS mount
+          apt-get update
+          apt-get install -y nfs-common
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${VirtUEValorEFS}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
+
+          # Install docker
+          apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          apt-get update
+          apt-get install -y docker-ce
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Aggregator2'
+    DependsOn:
+      - VirtUEValorEFSTarget
   VirtUEValorEFS:
     Type: 'AWS::EFS::FileSystem'
     Properties:
