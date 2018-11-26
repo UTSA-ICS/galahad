@@ -159,6 +159,28 @@ Resources:
               - '-UserStandbySecGroup'
       VpcId:
         "Fn::ImportValue": !Sub "${ImportStackName}--VIRTUE-VPCID"
+  VirtUEValorEFS:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      FileSystemTags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorEFS'
+  VirtUEValorEFSTarget:
+    Type: 'AWS::EFS::MountTarget'
+    DependsOn:
+      - VirtUEValorEFS
+    Properties:
+      FileSystemId: !Ref VirtUEValorEFS
+      SecurityGroups:
+        - !Ref VirtUEAdminSecGroup
+      SubnetId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
   ExcaliburServer:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -204,6 +226,8 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Excalibur'
+    DependsOn:
+      - VirtUEValorEFSTarget
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -276,6 +300,8 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-RethinkDB'
+    DependsOn:
+      - VirtUEValorEFSTarget
   GalahadAggregator:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -356,28 +382,6 @@ Resources:
               - '-Aggregator2'
     DependsOn:
       - VirtUEValorEFSTarget
-  VirtUEValorEFS:
-    Type: 'AWS::EFS::FileSystem'
-    Properties:
-      FileSystemTags:
-        - Key: Project
-          Value: Virtue
-        - Key: Name
-          Value: !Join
-            - ''
-            - - VirtUE-
-              - !Ref NameSuffix
-              - '-ValorEFS'
-  VirtUEValorEFSTarget:
-    Type: 'AWS::EFS::MountTarget'
-    DependsOn:
-      - VirtUEValorEFS
-    Properties:
-      FileSystemId: !Ref VirtUEValorEFS
-      SecurityGroups:
-        - !Ref VirtUEAdminSecGroup
-      SubnetId:
-        "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
