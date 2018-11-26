@@ -77,6 +77,8 @@ class Changes(threading.Thread):
             virtue.destroyDomU()
 
     def migrate(self, change):
+        rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
+        rethinkdb_client_logger.debug("MIGRATION - table = {}".format(r.db(RT_DB).table(RT_VALOR_TB).run(self.rt)))
         virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
