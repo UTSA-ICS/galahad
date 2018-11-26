@@ -175,6 +175,26 @@ Resources:
           PrivateIpAddress: 172.30.1.44
           SubnetId:
             "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for AWS EFS mount helper
+          apt-get update
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
       Tags:
         - Key: Project
           Value: Virtue
@@ -370,6 +390,26 @@ Resources:
           SubnetId:
             "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
       SourceDestCheck: False
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for AWS EFS mount helper
+          apt-get update
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
       Tags:
         - Key: Project
           Value: Virtue
@@ -397,6 +437,29 @@ Resources:
           PrivateIpAddress: 172.30.1.47
           SubnetId:
             "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for AWS EFS mount helper
+          apt-get update
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
+
+          # Install Xen Tools required for creating the Xen Images
+          DEBIAN_FRONTEND=noninteractive apt-get install -y xen-tools
       Tags:
         - Key: Project
           Value: Virtue

@@ -433,7 +433,7 @@ class Excalibur():
         # Initialize the EFS class
         efs = EFS(self.stack_name, self.ssh_key)
         # Setup the EFS mount and populate Valor config files
-        _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh {}')".format(efs.efs_id)
+        _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
     def setup_aws_instance_info(self):
@@ -492,7 +492,7 @@ class EFS():
                     format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
 
         # Execute the setup file on the instance
-        _cmd = "bash('./{} {}')".format('setup_valor_router.sh', self.efs_id)
+        _cmd = "bash('./setup_valor_router.sh')"
         run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
 
 
@@ -522,7 +522,7 @@ class EFS():
                     format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
 
         # Apply workarounds and setup the xen pvm builder server
-        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh {0}')".format(self.efs_id)
+        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
 
