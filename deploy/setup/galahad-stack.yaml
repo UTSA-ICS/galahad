@@ -369,6 +369,10 @@ Resources:
           apt-get update
           apt-get install -y docker-ce
 
+          # Install docker compose
+          curl -L "https://github.com/docker/compose/releases/download/1.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose`
+
           # Clone the docker-virtue dir which has the aggregator setup files
           su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
       Tags:
@@ -414,6 +418,48 @@ Resources:
           # Mount the EFS file system
           echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
           mount -a
+
+          # Install System packages required for the Router
+          apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
+
+          # Install pip packages
+          pip install rethinkdb
+          pip install boto
+
+          #
+          # Create a openvswitch bridge - hello-br0
+          #
+          ovs-vsctl add-br hello-br0
+
+          GUESTNET_IP="10.91.0.254"
+          #
+          # Configure bridge hello-br0
+          #
+          echo "" >> /etc/network/interfaces
+          echo "#" >> /etc/network/interfaces
+          echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
+          echo "#" >> /etc/network/interfaces
+          echo "auto hello-br0" >> /etc/network/interfaces
+          echo "iface hello-br0 inet static" >> /etc/network/interfaces
+          echo "  address ${GUESTNET_IP}/24" >> /etc/network/interfaces
+
+          #
+          # Set the Network System Variables
+          #
+          sed -i 's/#net.ipv4.ip_forward/net.ipv4.ip_forward/' /etc/sysctl.conf
+          echo "#" >> /etc/sysctl.conf
+          echo "# Network variables for Valor Network" >> /etc/sysctl.conf
+          echo "net.ipv4.conf.all.rp_filter=0" >> /etc/sysctl.conf
+          echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
+
+          #
+          # Set the IP Tables rules
+          #
+          # Allow traffic destined for 10.91.0.0/16 network to be masqueraded using hello-br0 bridge.
+          iptables --table nat -A POSTROUTING -d 10.91.0.0/16 -o hello-br0 -j MASQUERADE
+          # Now save the iptables rules by installing the persistent package
+          DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
+
       Tags:
         - Key: Project
           Value: Virtue

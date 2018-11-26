@@ -8,29 +8,30 @@ ROUTER_IP="${2}"
 GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
 
 #
-# Disable cloud init networking which sets eth0 to default settings.
+# Create a openvswitch bridge - hello-br0
 #
-echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-rm -f /etc/network/interfaces.d/50-cloud-init.cfg
+ovs-vsctl add-br hello-br0
 
 #
-# Setup and configure bridge br0 with interface eth0
+# Configure bridge hello-br0
 #
 echo "" >> /etc/network/interfaces
 echo "#" >> /etc/network/interfaces
-echo "# Bridge br0 for eth0" >> /etc/network/interfaces
+echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
 echo "#" >> /etc/network/interfaces
-echo "auto br0" >> /etc/network/interfaces
-echo "iface br0 inet dhcp" >> /etc/network/interfaces
-echo "  bridge_ports br0 eth0" >> /etc/network/interfaces
-echo "  bridge_stp off" >> /etc/network/interfaces
-echo "  bridge_fd 0" >> /etc/network/interfaces
-echo "  bridge_maxwait 0" >> /etc/network/interfaces
+echo "auto hello-br0" >> /etc/network/interfaces
+echo "iface hello-br0 inet static" >> /etc/network/interfaces
+echo "  address ${GUESTNET_IP}/24" >> /etc/network/interfaces
 
 #
-# Call the base setup script
+# Set the Network System Variables
 #
-/bin/bash ../base_setup.sh "${GUESTNET_IP}"
+sed -i 's/#net.ipv4.ip_forward/net.ipv4.ip_forward/' /etc/sysctl.conf
+echo "#" >> /etc/sysctl.conf
+echo "# Network variables for Valor Network" >> /etc/sysctl.conf
+echo "net.ipv4.conf.all.rp_filter=0" >> /etc/sysctl.conf
+echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
+
 
 #
 # Install necessary System packages
@@ -39,12 +40,6 @@ DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
     apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
     DPKG_LOCK=$?
 done
 DPKG_LOCK=1

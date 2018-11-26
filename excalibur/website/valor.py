@@ -146,7 +146,7 @@ class Valor:
         ping 10.91.0.254 - should work
         '''
 
-        self.mount_efs()
+        #self.mount_efs()
 
         execute_setup_command = \
             'cd /mnt/efs/valor/deploy/compute && sudo /bin/bash setup.sh "{0}" "{1}"'.format(
@@ -246,7 +246,50 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        excalibur_ip = '{0}/32'.format(self.aws.get_private_ip())
+        # Use cloud init to install the base packages for the valor
+        user_data = ''' '#!/bin/bash -xe'
+                        '# Install Packages required for AWS EFS mount helper'
+                        'apt-get update'
+                        'apt-get -y install binutils'
+                        '# Install the AWS EFS mount helper'
+                        'git clone https://github.com/aws/efs-utils'
+                        'cd efs-utils/'
+                        './build-deb.sh'
+                        'apt-get -y install ./build/amazon-efs-utils*deb'
+                        '# Create the base mount directory'
+                        'mkdir -p /mnt/efs'
+                        '# Mount the EFS file system'
+                        'echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab'
+                        'mount -a'
+                        ''
+                        '# Install System packages'
+                        'apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils'
+                        'apt-get -y install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev'
+                        ''
+                        '# Install pip packages'
+                        'pip install rethinkdb'
+                        ''
+                        '#'
+                        '# Disable cloud init networking which sets eth0 to default settings.'
+                        '#'
+                        'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
+                        'rm -f /etc/network/interfaces.d/50-cloud-init.cfg'
+                        ''
+                        '#'
+                        '# Setup and configure bridge br0 with interface eth0'
+                        '#'
+                        'echo "" >> /etc/network/interfaces'
+                        'echo "#" >> /etc/network/interfaces'
+                        'echo "# Bridge br0 for eth0" >> /etc/network/interfaces'
+                        'echo "#" >> /etc/network/interfaces'
+                        'echo "auto br0" >> /etc/network/interfaces'
+                        'echo "iface br0 inet dhcp" >> /etc/network/interfaces'
+                        'echo "  bridge_ports br0 eth0" >> /etc/network/interfaces'
+                        'echo "  bridge_stp off" >> /etc/network/interfaces'
+                        'echo "  bridge_fd 0" >> /etc/network/interfaces'
+                        'echo "  bridge_maxwait 0" >> /etc/network/interfaces'
+                        ''
+                    '''
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
@@ -258,6 +301,7 @@ class ValorManager:
             'sec_group' : sec_group,
             'inst_profile_name' : '',
             'inst_profile_arn' : '',
+            'user_data': user_data,
         }
 
         instance = self.aws.instance_create(**valor_config)
