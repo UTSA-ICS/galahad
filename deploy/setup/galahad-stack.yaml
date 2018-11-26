@@ -299,15 +299,22 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
 
-          # Install Packages required for NFS mount
+          # Install Packages required for AWS EFS mount helper
           apt-get update
-          apt-get install -y nfs-common
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
 
           # Create the base mount directory
           mkdir -p /mnt/efs
 
           # Mount the EFS file system
-          mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${VirtUEValorEFS}.efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
 
           # Install docker
           apt-get install -y apt-transport-https ca-certificates curl software-properties-common
@@ -317,7 +324,7 @@ Resources:
           apt-get install -y docker-ce
 
           # Clone the docker-virtue dir which has the aggregator setup files
-          git clone https://github.com/starlab-io/docker-virtue.git
+          su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
       Tags:
         - Key: Project
           Value: Virtue
