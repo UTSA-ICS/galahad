@@ -108,6 +108,11 @@ cp config/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
 cp config/xl.conf /etc/xen/xl.conf
 systemctl restart xencommons
 
+# Configure introspection files
+cp config/libvmi/libvmi.conf /etc/libvmi.conf
+mkdir -p /usr/share/libvmi/kernel-data
+cp config/libvmi/kernel-data/System.map-4.13.0-46-generic /usr/share/libvmi/kernel-data/System.map-4.13.0-46-generic
+
 #
 # Configure tty
 #
