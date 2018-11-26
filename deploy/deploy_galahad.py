@@ -37,6 +37,7 @@ GALAHAD_CONFIG_DIR = '~/galahad-config'
 # Node addresses
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
 
@@ -223,19 +224,14 @@ class RethinkDB():
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
-        # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
-                              "rm('-f ~/.ssh/id_rsa.pub')")
-
         # Now add the github public key to avoid host key verification prompt
-        result3 = run_ssh_cmd(
+        result2 = run_ssh_cmd(
             self.ip_address, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
         result.append(result1.stdout)
         result.append(result2.stdout)
-        result.append(result3.stdout)
 
         return (result)
 
@@ -252,7 +248,7 @@ class RethinkDB():
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
-    def setup(self, branch, github_key, aws_config, aws_keys, user_key):
+    def setup(self, branch, github_key, user_key):
 
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
@@ -461,6 +457,67 @@ class Excalibur():
         return aws_instance_info
 
 
+class Aggregator():
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.ip_address = AGGREGATOR_HOSTNAME
+
+    def setup_keys(self, github_key, user_key):
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
+                    format(self.ssh_key, github_key, self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
+                    format(self.ssh_key, user_key, self.ip_address)).run()
+
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Now add the github public key to avoid host key verification prompt
+        result2 = run_ssh_cmd(
+            self.ip_address, self.ssh_key,
+            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
+
+        return (result)
+
+    def checkout_repo(self, repo, branch='master'):
+        # Cleanup any left over repos
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
+
+        if branch == 'master':
+            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+
+        else:
+            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+                repo, branch)
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
+
+    def setup(self, branch, github_key, user_key):
+
+        # Transfer the private key to the server to enable
+        # it to access github without being prompted for credentials
+        self.setup_keys(github_key, user_key)
+
+        logger.info(
+            'Now checking out relevant excalibur repos for {} branch'.format(
+                branch))
+        # Check out galahad-config repo required for the certs
+        self.checkout_repo('galahad-config')
+
+        _cmd1 = "cd('docker-virtue/elastic').and_().bash('./elastic_setup.sh')"
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
 class EFS():
 
     def __init__(self, stack_name, ssh_key):
@@ -596,6 +653,9 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     setup_ubuntu_img_thread.start()
 
     start_excalibur_time = time.time()
+
+    aggregator = Aggregator(stack_name, path_to_key)
+    aggregator.setup(branch, github_key, user_key)
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
