@@ -38,7 +38,6 @@ export class RoleDashboardComponent implements OnInit {
   ];
 
   tableData: Role[];
-  barData: any[];
 
   constructor(private dataService: DataService) { }
 
@@ -80,21 +79,24 @@ export class RoleDashboardComponent implements OnInit {
   }
 
   private parseArrays(roles: Role[]): Role[] {
-    for (let role of roles) {
+    for (const role of roles) {
       try {
-        role.cappIds = JSON.parse(role.cappIds.replace(/\'/g, '\"'));
+        const appIds = role.cappIds as any;
+        role.cappIds = JSON.parse((appIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         role.cappIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        role.cstartResIds = JSON.parse(role.cstartResIds.replace(/\'/g, '\"'));
+        const resIds = role.cstartResIds as any;
+        role.cstartResIds = JSON.parse((resIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         role.cstartResIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        role.cstartTransIds = JSON.parse(role.cstartTransIds.replace(/\'/g, '\"'));
+        const transIds = role.cstartTransIds as any;
+        role.cstartTransIds = JSON.parse((transIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         role.cstartTransIds = ['ERROR_PROCESSING_JSON'];
@@ -102,5 +104,5 @@ export class RoleDashboardComponent implements OnInit {
     }
     return roles;
   }
-)
+
 }

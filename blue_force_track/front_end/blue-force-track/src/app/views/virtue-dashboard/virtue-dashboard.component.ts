@@ -86,21 +86,24 @@ export class VirtueDashboardComponent implements OnInit {
   }
 
   private parseArray(virtues: Virtue[]): Virtue[] {
-    for (let virtue: Virtue of virtues) {
+    for (const virtue of virtues) {
       try {
-        virtue.cappIds = JSON.parse(virtue.cappIds.replace(/\'/g, '\"'));
+        const appIds = virtue.cappIds as any;
+        virtue.cappIds = JSON.parse((appIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         virtue.cappIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        virtue.cresIds = JSON.parse(virtue.cresIds.replace(/\'/g, '\"'));
+        const resIds = virtue.cresIds as any;
+        virtue.cresIds = JSON.parse((resIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         virtue.cresIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        virtue.ctransIds = JSON.parse(virtue.ctransIds.replace(/\'/g, '\"'));
+        const transIds = virtue.ctransIds as any;
+        virtue.ctransIds = JSON.parse((transIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         virtue.ctransIds = ['ERROR_PROCESSING_JSON'];
