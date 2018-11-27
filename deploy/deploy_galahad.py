@@ -72,6 +72,14 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
         return result
 
+def check_cloud_init_finished(host_server, path_to_key):
+    # Check if the file "/var/lib/cloud/instance/boot-finished" exists
+    # indicating that boot is complete and cloud init has finished running
+    _cmd = '''bash(('-c "while [ ! -f /var/lib/cloud/instance/boot-finished ];'
+                       'do echo \\\\\"Cloud init has not finished\\\\\";sleep 5;done;'
+                       'echo \\\\\"Cloud init has now finished\\\\\""'))'''
+    run_ssh_cmd(host_server, path_to_key, _cmd)
+
 
 class Stack():
 
@@ -250,6 +258,9 @@ class RethinkDB():
 
     def setup(self, branch, github_key, user_key):
 
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
+
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
         self.setup_keys(github_key, user_key)
@@ -363,6 +374,9 @@ class Excalibur():
                     format(self.ssh_key, aws_keys, self.server_ip)).run()
 
     def setup(self, branch, github_key, aws_config, aws_keys, user_key):
+
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(self.server_ip, self.ssh_key)
 
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
@@ -504,6 +518,9 @@ class Aggregator():
 
     def setup(self, branch, github_key, user_key):
 
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
+
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
         self.setup_keys(github_key, user_key)
@@ -560,6 +577,10 @@ class EFS():
 
 
     def setup_xen_pvm_builder(self):
+
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key)
+
         # scp workaround payload to node
         with Sultan.load() as s:
             s.scp(
