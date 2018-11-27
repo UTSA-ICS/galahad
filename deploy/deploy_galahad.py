@@ -686,7 +686,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     start_rethinkdb_time = time.time()
 
     rethinkdb = RethinkDB(stack_name, path_to_key)
-    rethinkdb.setup(branch, github_key, aws_config, aws_keys, user_key)
+    rethinkdb.setup(branch, github_key, user_key)
 
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
 
