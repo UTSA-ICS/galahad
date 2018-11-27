@@ -10,12 +10,15 @@ from __init__ import RT_CONN, RT_DB, RT_IP, RT_PORT, RT_CERT
 from __init__ import RT_VALOR_TB, RT_COMM_TB, RT_ACK_TB, RT_ARC_TB
 from virtue_client import Virtue
 
-GAIUS_LOGFILE = "/var/log/gaius-rethink.log"
-logging.basicConfig(filename=GAIUS_LOGFILE, level=logging.DEBUG)
+RETHINKDB_LOGFILE = "/var/log/gaius-rethink.log"
+rethinkdb_client_handler = logging.FileHandler(RETHINKDB_LOGFILE)
+rethinkdb_client_logger = logging.getLogger('rethinkdb')
+rethinkdb_client_logger.setLevel(logging.DEBUG)
+rethinkdb_client_logger.addHandler(rethinkdb_client_handler)
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
-        logging.debug("Starting Gaius Service to monitor rethinkDB for changes")
+        rethinkdb_client_logger.debug("Starting Gaius Service to monitor rethinkDB for changes")
 
         threading.Thread.__init__(self)
         self.feed = feed
@@ -32,10 +35,8 @@ class Changes(threading.Thread):
     def valor(self):
         for change in self.feed:
             if change["type"] == "add":
-                logging.debug("Valor changefeed, change type = add")
                 self.add(change["new_val"])
             elif change["type"] == "remove":
-                logging.debug("Valor changefeed, change type = remove")
                 self.remove(change["old_val"])
 
     def getid(self, table, search):
@@ -47,11 +48,18 @@ class Changes(threading.Thread):
             valor = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": self.ip}).run(self.rt).next()
 
             virtue = Virtue(change)
+            try:
+                r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).update({"enabled":"False"}).run(self.rt).next()
+                return
+            except Exception as e:
+                pass
+
+            rethinkdb_client_logger.debug("Continuing...")
             virtue.create_cfg(valor["guestnet"])
             virtue.createDomU()
             comm = {
                 "transducer_id": virtue.img_path,
-                "virtue_id": self.getid(RT_VALOR_TB, {"virtue_id": virtue.virtue_id}),
+                "virtue_id": virtue.virtue_id,
                 "valor_ip": self.ip,
                 "valor_dest": None,
                 "enabled": False,
@@ -63,11 +71,15 @@ class Changes(threading.Thread):
 
     def remove(self, change):
         if change["function"] == "virtue":
+            rethinkdb_client_logger.debug("Valor remove change = {}".format(change))
             virtue = Virtue(change)
+            r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).delete().run(self.rt)
             virtue.destroyDomU()
 
     def migrate(self, change):
-        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).run(self.rt).next()
+        rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
+        rethinkdb_client_logger.debug("MIGRATION - table = {}".format(r.db(RT_DB).table(RT_VALOR_TB).run(self.rt)))
+        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"]}).run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
         valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": change["valor_dest"]}).run(self.rt).next()
@@ -86,13 +98,13 @@ class Changes(threading.Thread):
     def migration(self):
         for change in self.feed:
             if (change["type"] == "change") and change["new_val"]["enabled"]:
-                logging.debug("Migration changefeed, change =")
-                logging.debug("    change = {}".format(change))
+                rethinkdb_client_logger.debug("Migration changefeed, change =")
+                rethinkdb_client_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
 
 class Rethink():
     def __init__(self):
-        logging.debug("Starting to monitor changes in rethinkDB...")
+        rethinkdb_client_logger.debug("Starting to monitor changes in rethinkDB...")
 
         self.ip = socket.gethostbyname(socket.gethostname())
 
@@ -107,12 +119,12 @@ class Rethink():
         valor_thread = Changes("valor", valor_feed, valor_rt)
         valor_thread.daemon = True
         valor_thread.start()
-        logging.debug("Valor thread starting...")
+        rethinkdb_client_logger.debug("Valor thread starting...")
 
         migration_thread = Changes("migration", migration_feed, migration_rt)
         migration_thread.daemon = True
         migration_thread.start()
-        logging.debug("Migration thread starting...")
+        rethinkdb_client_logger.debug("Migration thread starting...")
 
 if __name__ == "__main__":
     rt = Rethink()

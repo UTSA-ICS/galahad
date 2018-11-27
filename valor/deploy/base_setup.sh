@@ -4,23 +4,6 @@
 GUESTNET_IP="${1}"
 
 #
-# Install necessary System packages
-#
-apt-get update
-
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 5
-    apt --assume-yes install python-pip openvswitch-common openvswitch-switch bridge-utils
-    DPKG_LOCK=$?
-done
-
-#
-# Install rethinkdb python package
-#
-pip install rethinkdb
-
-#
 # Create a openvswitch bridge - hello-br0
 #
 ovs-vsctl add-br hello-br0

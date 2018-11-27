@@ -70,25 +70,6 @@ class Valor:
         self.router_ip = None
 
 
-    def authorize_ssh_connections(self, ip):
-
-        security_group = self.ec2.SecurityGroup(
-            self.aws_instance.security_groups[0]['GroupId'])
-
-        #TODO: should the security group already be authorized for SSH?
-        try:
-            security_group.authorize_ingress(
-                CidrIp=ip,
-                FromPort=22,
-                IpProtocol='tcp',
-                ToPort=22 )
-
-        except botocore.exceptions.ClientError:
-            print(
-                'ClientError encountered while adding security group rule. '
-                + 'Rule may already exist.')
-
-
     def get_stack_name(self):
 
         resource = boto3.resource('ec2')
@@ -117,7 +98,7 @@ class Valor:
 
         efs_name = '{}.efs.us-east-1.amazonaws.com'.format(file_system_id)
 
-        return efs_name
+        return file_system_id
 
 
     def mount_efs(self):
@@ -165,7 +146,12 @@ class Valor:
         ping 10.91.0.254 - should work
         '''
 
-        self.mount_efs()
+        #self.mount_efs()
+
+        check_if_cloud_init_finished = \
+            '''while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
+                   echo "Cloud init has not finished";sleep 5;done;
+               echo "Cloud init has now finished"'''
 
         execute_setup_command = \
             'cd /mnt/efs/valor/deploy/compute && sudo /bin/bash setup.sh "{0}" "{1}"'.format(
@@ -176,6 +162,10 @@ class Valor:
 
         shutdown_node_command = \
             'sudo shutdown -h now'
+
+        stdout = self.client.ssh(
+            check_if_cloud_init_finished, output=True)
+        print('[!] check_cloud_init : stdout : ' + stdout)
 
         stdout = self.client.ssh(
             execute_setup_command, output=True)
@@ -231,6 +221,33 @@ class ValorManager:
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
 
+    def get_stack_name(self):
+
+        resource = boto3.resource('ec2')
+
+        meta_data = get_instance_metadata(timeout=0.5, num_retries=2)
+
+        myinstance = resource.Instance(meta_data['instance-id'])
+
+        # Find the Stack name in the instance tags
+        for tag in myinstance.tags:
+            if 'aws:cloudformation:stack-name' in tag['Key']:
+                return tag['Value']
+
+
+    def get_efs_mount(self):
+
+        stack_name = self.get_stack_name()
+
+        cloudformation = boto3.resource('cloudformation')
+        efs_stack = cloudformation.Stack(stack_name)
+
+        for output in efs_stack.outputs:
+
+            if output['OutputKey'] == 'FileSystemID':
+                file_system_id = output['OutputValue']
+
+        return file_system_id
 
     def get_empty_valor(self):
 
@@ -265,7 +282,32 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        excalibur_ip = '{0}/32'.format(self.aws.get_private_ip())
+        # Use cloud init to install the base packages for the valor
+        user_data = '''#!/bin/bash -xe
+                       # Install Packages required for AWS EFS mount helper
+                       apt-get update
+                       apt-get -y install binutils
+
+                       # Install the AWS EFS mount helper
+                       git clone https://github.com/aws/efs-utils
+                       cd efs-utils/
+                       ./build-deb.sh
+                       apt-get -y install ./build/amazon-efs-utils*deb
+
+                       # Create the base mount directory
+                       mkdir -p /mnt/efs
+
+                       # Mount the EFS file system
+                       echo "{}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+                       mount -a
+
+                       # Install System packages
+                       apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
+                       apt-get -y install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
+
+                       # Install pip packages
+                       pip install rethinkdb
+                    '''.format(self.get_efs_mount())
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
@@ -277,13 +319,12 @@ class ValorManager:
             'sec_group' : sec_group,
             'inst_profile_name' : '',
             'inst_profile_arn' : '',
+            'user_data': user_data,
         }
 
         instance = self.aws.instance_create(**valor_config)
 
         valor = Valor(instance.id)
-
-        valor.authorize_ssh_connections(excalibur_ip)
 
         valor.connect_with_ssh()
 

@@ -211,7 +211,7 @@ def test_role_create():
     role = {
         'name': 'TestRole',
         'version': '1.0',
-        'applicationIds': [],
+        'applicationIds': ['firefox'],
         'startingResourceIds': [],
         'startingTransducerIds': []
     }

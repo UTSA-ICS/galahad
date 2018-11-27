@@ -4,6 +4,9 @@
 GUESTNET_IP="${1}"
 ROUTER_IP="${2}"
 
+# Directory for storage of Galahad keys
+GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
+
 #
 # Disable cloud init networking which sets eth0 to default settings.
 #
@@ -41,30 +44,9 @@ done
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
-    apt --assume-yes install ./libvmi_0.13-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install ./introspection-monitor_0.1-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
     apt --assume-yes install -f
     DPKG_LOCK=$?
 done
-
-# Update the system view of installed libraries
-ldconfig
 
 #
 # Set the IP Tables rules
@@ -131,9 +113,7 @@ systemctl restart xencommons\
 ' /etc/rc.local
 
 #
-# Configure ssh keys - TODO - configure dynamic keys
-# Currently these keys do not exist
+# Configure ssh keys for valor nodes to be able to access each other
 #
-#cp docs/id_rsa /root/.ssh/
-#cp docs/id_rsa.pub /root/.ssh/
-#cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+cp $GALAHAD_KEY_DIR/valor-key /root/.ssh/id_rsa
+cat $GALAHAD_KEY_DIR/valor-key.pub >> /root/.ssh/authorized_keys

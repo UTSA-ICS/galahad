@@ -2,8 +2,9 @@
 After=network.target
 
 [Service]
-Type=forking
 ExecStart=/etc/init.d/processkiller start
+ExecStop=/etc/init.d/processkiller stop
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
