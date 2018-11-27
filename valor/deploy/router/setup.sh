@@ -20,5 +20,4 @@ DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
 #
 # Add Router entry to rethinkDB
 #
-pip install boto
 python update_rethinkdb_with_router.py
