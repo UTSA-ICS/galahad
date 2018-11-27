@@ -356,7 +356,7 @@ Resources:
           su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
 
           # Download the docker images
-          ./docker-virtue/elastic/image_pull.sh
+          bash /home/ubuntu/docker-virtue/elastic/image_pull.sh
       Tags:
         - Key: Project
           Value: Virtue
