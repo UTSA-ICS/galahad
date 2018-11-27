@@ -350,7 +350,7 @@ Resources:
 
           # Install docker compose
           curl -L "https://github.com/docker/compose/releases/download/1.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose`
+          chmod +x /usr/local/bin/docker-compose
 
           # Clone the docker-virtue dir which has the aggregator setup files
           su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
