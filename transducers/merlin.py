@@ -170,8 +170,11 @@ def receive_message(sock):
 	return all_data
 
 def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
+	# Previously, rules were repopulated from the ACK table.  Now they are repopulated from the
+	# Command table, so that comands can be queued up by the system before Virtues are started.
+
 	# Get latest ruleset from the ACK table
-	rows = r.db('transducers').table('acks')\
+	rows = r.db('transducers').table('commands')\
 		.filter({ 'virtue_id': virtue_id })\
 		.run(heartbeat_conn)
 
@@ -219,6 +222,8 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 		if all_data is None:
 			error_wrapper('Failed to receive response from filter')
 			return
+		current_ruleset = json.loads(all_data)
+		process_update(virtue_id, heartbeat_conn, current_ruleset)
 	log.info('Successfully reminded filter of ruleset')
 
 def process_update(virtue_id, heartbeat_conn, current_ruleset):
