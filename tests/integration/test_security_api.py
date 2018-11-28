@@ -166,6 +166,50 @@ def test_list_transducers():
     transducers = json.loads(session.get(base_url + '/security/transducer/list').text)
     assert len(transducers) > 1
 
+def test_get():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(base_url + '/security/transducer/get', params={
+        'transducerId': 'path_mkdir'
+    }).text
+    transducer = json.loads(result)
+    assert 'cid' in transducer
+    assert transducer['cid'] == 'path_mkdir'
+
+def test_get_enabled():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(base_url + '/security/transducer/get_enabled', params={
+        'transducerId': 'path_mkdir',
+        'virtueId': virtue_id
+    }).text
+    transducer = json.loads(result)
+    assert 'enabled' in transducer
+    assert transducer['enabled'] == True
+
+def test_get_config():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(base_url + '/security/transducer/get_configuration', params={
+        'transducerId': 'path_mkdir',
+        'virtueId': virtue_id
+    }).text
+    config = json.loads(result)
+    assert len(config) == 0
+
+def test_list_enabled():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(base_url + '/security/transducer/list_enabled', params={
+        'virtueId': virtue_id
+    }).text
+    transducers = json.loads(result)
+    assert len(transducers) > 1
+
 def __get_elasticsearch_index():
     # A new index is created every day
     now = datetime.datetime.now()
