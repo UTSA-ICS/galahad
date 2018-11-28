@@ -649,7 +649,6 @@ class EFS():
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
           aws_keys, branch, image_size, user_key):
-
     start_stack_time = time.time()
 
     stack = Stack()
@@ -673,10 +672,14 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
                                                args=(image_size,))
     setup_ubuntu_img_thread.start()
 
-    start_excalibur_time = time.time()
+    start_aggregator_time = time.time()
 
     aggregator = Aggregator(stack_name, path_to_key)
-    aggregator.setup(branch, github_key, user_key)
+    aggregator_thread = threading.Thread(target=aggregator.setup,
+                                         args=(branch, github_key, user_key,))
+    aggregator_thread.start()
+
+    start_excalibur_time = time.time()
 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
@@ -690,10 +693,14 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
 
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
 
+    aggregator_thread.join()
+    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format((time.time() -
+                                                                              start_aggregator_time) / 60))
+
     setup_ubuntu_img_thread.join()
 
     logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                  start_ubuntu_img_time) / 60))
+                                                                                         start_ubuntu_img_time) / 60))
 
     start_unity_time = time.time()
 
@@ -707,11 +714,13 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     setup_unity_thread.join()
 
     logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                   start_unity_time) / 60))
+                                                                                    start_unity_time) / 60))
 
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
 
-    logger.info('*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info(
+        '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
