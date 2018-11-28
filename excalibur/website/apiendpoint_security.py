@@ -192,6 +192,10 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
 
+        # Transducers are enabled by default
+        if row is None:
+            return json.dumps( { 'enabled': True } )
+
         self.__verify_message(row)
         return json.dumps( { 'enabled': row['enabled'] } )
 
@@ -216,6 +220,10 @@ class EndPoint_Security:
             return self.__error(
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
+
+        # If there's no row, there's no set config
+        if row is None:
+            return json.dumps( None )
 
         self.__verify_message(row)
         # By definition, the configuration is a JSON object
