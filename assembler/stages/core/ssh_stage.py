@@ -17,13 +17,19 @@ class SSHStage(object):
         self._cloudinit_is_done = not check_cloudinit
 
     def _wait_for_host_is_up(self):
+        # Timeout after 5 min - Virtue is unreachable.
+        timeout = 360
+        elapsed_time = 0
         while not self._is_up:
+            if elapsed_time >= timeout:
+                raise Exception('Failed to connect to Virtue within {} seconds'.format(timeout))
             try:
                 self._exec_cmd('echo hi')
                 self._is_up = True
             except subprocess.CalledProcessError:
                 self._is_up = False
-                sleep(1)
+                sleep(5)
+                elapsed_time = elapsed_time + 5
 
     def _wait_for_cloudinit_is_done(self):
         self._cloudinit_is_done = not self._check_cloudinit
