@@ -1,4 +1,6 @@
 import sys
+import logging
+import inspect
 from flask import request, Response
 
 from flask import Blueprint, url_for
@@ -97,6 +99,33 @@ def get_user():
 
     return user
 
+def get_logger():
+    try:
+        logger = logging.getLogger('elasticLog')
+        return logger
+    except:
+        return None
+
+
+# func_name is included as a parameter because the logging framework will otherwise only report that
+# this method was the logging function, which isn't very useful.  We pass the inspect.currentFrame()
+# call instead of calling inspect.stack() here for performance reasons.
+def log_to_elasticsearch(msg, extra, ret, func_name):
+    extra['real_func_name'] = func_name
+    try:
+        response = json.loads(ret)
+        if (response['status'] == 'success'):
+            get_logger().info(msg, extra=extra)
+        else:
+            # Get result code
+            extra['errorCode'] = response.result[0]
+            # Get result message
+            extra['errorMessage'] = response.result[1]
+            get_logger().error(msg, extra=extra)
+    # Response can be a large number of possible objects, so if ignore if it's not of the form of an error code
+    except:
+        get_logger().info(msg, extra=extra)
+
 
 ################ User API ##################
 
@@ -111,6 +140,9 @@ def role_get():
         # Information about the indicated Role. Type: Role
         ep = get_endpoint()
         role = ep.role_get(get_user(), request.args['roleId'])
+        log_to_elasticsearch('Get role', extra={'user': get_user(), 'role_id': request.args['roleId']},
+                             ret=role, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -128,6 +160,7 @@ def user_role_list():
         # A set of Roles available to the given User. Type: set of Role
         ep = get_endpoint()
         roleList = ep.user_role_list(get_user())
+        log_to_elasticsearch('Get role list', extra={'user': get_user()}, ret=roleList, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -145,6 +178,8 @@ def user_virtue_list():
         # A set of Virtues for the given User. Type: set of Virtue.
         ep = get_endpoint()
         virtueList = ep.user_virtue_list(get_user())
+        log_to_elasticsearch('Get virtue list', extra={'user': get_user()}, ret=virtueList, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -162,6 +197,7 @@ def virtue_get():
         # Information about the indicated Virtue. Type: Virtue.
         ep = get_endpoint()
         virtueId = ep.virtue_get(get_user(), request.args['virtueId'])
+        log_to_elasticsearch('Get virtue', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=virtueId, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -179,6 +215,8 @@ def virtue_launch():
         # Information about the launched Virtue. Type: Virtue
         ep = get_endpoint()
         virtue = ep.virtue_launch(get_user(), request.args['virtueId'])
+        log_to_elasticsearch('Launch virtue', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=virtue, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -196,6 +234,8 @@ def virtue_stop():
         # Information about the stopped Virtue. Type: Virtue
         ep = get_endpoint()
         virtue = ep.virtue_stop(get_user(), request.args['virtueId'])
+        log_to_elasticsearch('Stop virtue', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=virtue, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -213,6 +253,7 @@ def application_get():
         # The Application with the given ID. Type: Application
         ep = get_endpoint()
         application = ep.application_get(get_user(), request.args['appId'])
+        log_to_elasticsearch('Get application', extra={'user': get_user(), 'app_id': request.args['appId']}, ret=application, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -235,6 +276,10 @@ def virtue_application_launch():
             get_user(),
             request.args['virtueId'],
             request.args['appId'])
+        log_to_elasticsearch('Launch virtue application', extra={'user': get_user(),
+                                                                 'virtue_id': request.args['virtueId'],
+                                                                 'app_id': request.args['appId']},
+                             ret=application, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -254,6 +299,11 @@ def virtue_application_stop():
             get_user(),
             request.args['virtueId'],
             request.args['appId'])
+        log_to_elasticsearch('Stop virtue application', extra={'user': get_user(), 'virtue_id':
+            request.args['virtueId'],
+                                                              'app_id': request.args['appId']},
+                             ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -285,6 +335,7 @@ def admin_application_list():
     try:
         ep = get_admin_endpoint()
         ret = ep.application_list()
+        log_to_elasticsearch('Get admin application list', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -302,6 +353,9 @@ def admin_resource_get():
         # Gets information about the indicated Resource.
         ep = get_admin_endpoint()
         ret = ep.resource_get(request.args['resourceId'])
+        log_to_elasticsearch('Get admin resource', extra={'user': get_user(), 'resource_id': request.args['resourceId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -319,6 +373,8 @@ def admin_resource_list():
         # Lists all Resources currently available in the system.
         ep = get_admin_endpoint()
         ret = ep.resource_list()
+        log_to_elasticsearch('Get admin resource list', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -339,6 +395,10 @@ def admin_resource_attach():
         ret = ep.resource_attach(
             request.args['resourceId'],
             request.args['virtueId'])
+        log_to_elasticsearch('Attach admin resource',
+                             extra={'user': get_user(), 'virtue_id': request.args['virtueId'],
+                                    'resource_id': request.args['resourceId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -359,6 +419,10 @@ def admin_resource_detach():
         ret = ep.resource_detach(
             request.args['resourceId'],
             request.args['virtueId'])
+        log_to_elasticsearch('Detach admin resource',
+                             extra={'user': get_user(), 'virtue_id': request.args['virtueId'],
+                                    'resource_uid': request.args['resourceId']},
+                             ret=ret, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -376,6 +440,9 @@ def admin_role_create():
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
         ret = ep.role_create(json.loads(request.args['role']))
+        log_to_elasticsearch('Create admin role',
+                             extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -393,6 +460,8 @@ def admin_role_list():
         # Lists all Roles currently available in the system.
         ep = get_admin_endpoint()
         ret = ep.role_list()
+        log_to_elasticsearch('Get admin role list', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -410,6 +479,8 @@ def admin_system_export():
         # Export the Virtue system to a file.
         ep = get_admin_endpoint()
         ret = ep.system_export()
+        log_to_elasticsearch('Export virtue to file', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -427,6 +498,8 @@ def admin_system_import():
         # Import the Virtue system from the input bytestream data.
         ep = get_admin_endpoint()
         ret = ep.system_import(request.args['data'])
+        log_to_elasticsearch('Import virtue from file', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -500,6 +573,8 @@ def admin_user_list():
         # Lists all Users currently present in the system.
         ep = get_admin_endpoint()
         ret = ep.user_list()
+        log_to_elasticsearch('Get user list', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -517,6 +592,7 @@ def admin_user_get():
         # Gets information about the indicated User.
         ep = get_admin_endpoint()
         ret = ep.user_get(request.args['username'])
+        log_to_elasticsearch('Admin get user', extra={'user': get_user(), 'requested_username': request.args['username']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -534,6 +610,8 @@ def admin_user_virtue_list():
         # Lists the current Virtue instantiations for the given User.
         ep = get_admin_endpoint()
         ret = ep.user_virtue_list(request.args['username'])
+        log_to_elasticsearch('Get virtue list for user', extra={'user': get_user(), 'requested_username': request.args['username']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -554,6 +632,11 @@ def admin_user_role_authorize():
         ret = ep.user_role_authorize(
             request.args['username'],
             request.args['roleId'])
+        log_to_elasticsearch('Authorize role for user',
+                             extra={'user': get_user(),
+                                    'requested_username': request.args['username'],
+                                    'role_id': request.args['roleId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -573,6 +656,12 @@ def admin_user_role_unauthorize():
         ret = ep.user_role_unauthorize(
             request.args['username'],
             request.args['roleId'])
+        log_to_elasticsearch('Deauthorize role for user',
+                             extra={'user': get_user(),
+                                    'requested_username': request.args['username'],
+                                    'role_id': request.args['roleId']},
+                             ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -590,6 +679,10 @@ def admin_virtue_create():
         # Information about the created Virtue. Type: Virtue
         ep = get_admin_endpoint()
         roleId = ep.virtue_create(request.args['username'], request.args['roleId'])
+        log_to_elasticsearch('Create virtue', extra={'user': get_user(), 'requested_username': request.args['username'],
+                                                            'role_id': request.args['roleId']},
+                             ret=roleId, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -607,6 +700,8 @@ def admin_virtue_destroy():
         # Destroys a Virtue. Releases all resources.
         ep = get_admin_endpoint()
         ret = ep.virtue_destroy(request.args['virtueId'])
+        log_to_elasticsearch('Destroy virtue', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -626,7 +721,7 @@ def security_api_config():
     try:
 
         ret = ep.set_api_config(json.loads(request.args['configuration']))
-
+        log_to_elasticsearch('Get security config', extra={'user': get_user(), 'configuration': request.args['configuration']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -646,7 +741,7 @@ def transducer_list():
     try:
 
         ret = ep.transducer_list()
-
+        log_to_elasticsearch('Get transducer list', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -669,7 +764,7 @@ def transducer_get():
     try:
 
         ret = ep.transducer_get(request.args['transducerId'])
-
+        log_to_elasticsearch('Get transducer', extra={'user': get_user(), 'transducer_id': request.args['transducerId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -695,7 +790,8 @@ def transducer_enable():
         ret = ep.transducer_enable(request.args['transducerId'],
                                    request.args['virtueId'],
                                    request.args['configuration'])
-
+        log_to_elasticsearch('Enable transducer', extra={'user': get_user(), 'transducer_id': request.args['transducerId'],
+                                                            'virtue_id': request.args['virtueId'], 'configuration': request.args['configuration']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -720,7 +816,8 @@ def transducer_disable():
 
         ret = ep.transducer_disable(request.args['transducerId'],
                                     request.args['virtueId'])
-
+        log_to_elasticsearch('Transducer disable', extra={'user': get_user(), 'transducer_id': request.args['transducerId'],
+                                                            'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -745,7 +842,8 @@ def transducer_get_enabled():
 
         ret = ep.transducer_get_enabled(request.args['transducerId'],
                                         request.args['virtueId'])
-
+        log_to_elasticsearch('Get enabled transducers', eextra={'user': get_user(), 'transducer_id': request.args['transducerId'],
+                                                            'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -770,7 +868,8 @@ def transducer_get_configuration():
 
         ret = ep.transducer_get_configuration(request.args['transducerId'],
                                               request.args['virtueId'])
-
+        log_to_elasticsearch('Get transducer configuration', extra={'user': get_user(), 'transducer_id': request.args['transducerId'],
+                                                            'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -792,7 +891,7 @@ def transducer_list_enabled():
 
     try:
         ret = ep.transducer_list_enabled(request.args['virtueId'])
-
+        log_to_elasticsearch('Get enabled transducers list', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
     except:
@@ -922,4 +1021,3 @@ def admin_valor_migrate_virtue():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(valor_id)
-

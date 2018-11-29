@@ -1,0 +1,5 @@
+-r ../../excalibur/requirements.txt
+pytest
+pytest-html
+pytest-profiling
+pytest-progress

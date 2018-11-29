@@ -37,9 +37,9 @@ Unity construction is done with `Assembler.construct_unity(build_options, clean=
 
 While creating the Assembler object, `__init__` takes four optional arguments:
 ```
-es_node # The Elastic Search Node for storing logs. Defaults to 'https://172.30.128.129:9200'
+es_node # The Elastic Search Node for storing logs. Defaults to 'https://aggregator.galahad.com:9200'
 syslog_server # The IP address for the Syslog Server. Defaults to '172.30.128.131'
-rethinkdb_host # The IP address for RethinkDB. Defaults to '172.30.128.130'
+rethinkdb_host # The IP address for RethinkDB. Defaults to 'rethinkdb.galahad.com'
 work_dir # The work directory
 ```
 
@@ -122,17 +122,19 @@ Once you have aws cli configured, run `./get_docker_login_command.sh` and follow
 
 ## Assemble a role
 
-Currently, the only way to assemble a role is to launch a Unity VM and call `Assembler.assemble_running_vm(containers, docker_login, ssh_host, ssh_port='22')`.
+Currently, the only way to assemble a role is to launch a Unity VM and call `Assembler.assemble_running_vm(containers, docker_login, key_path, ssh_host, ssh_port='22')`.
 
 `containers` is a list of the docker containers to setup.
 
 `docker_login` is the string printed by `get_docker_login_command.sh`.
 
+`key_path` is the path to the private key to ssh into the Unity with.
+
 `ssh_host` is the IP address of the running Unity.
 
 `ssh_port` is the port to use while ssh'ing into the Unity.
 
-This will ssh into the Unity with the key in `work_dir/id_rsa` and install all of the specified docker containers.
+This will ssh into the Unity with the key in `key_path` and install all of the specified docker containers.
 
 Here is an example:
 ```
@@ -140,8 +142,9 @@ from assembler.assembler import Assembler
 
 docker_login = 'docker login very_long_string'
 
-assembler = Assembler(work_dir='/path/to/key/dir')
+assembler = Assembler(work_dir='/path/to/work/dir')
 assembler.assemble_running_vm(['firefox', 'xterm'],
                               docker_login,
+                              '/path/to/key',
                               '10.30.30.118')
 ```

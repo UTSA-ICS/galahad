@@ -1,19 +1,15 @@
-import shutil
-import boto3
-import traceback
-import base64
-from ldaplookup import LDAP
-import ldap_tools
-from aws import AWS
-import threading
-import copy
-import time
-import botocore
+import os
 import shlex
 import subprocess
-import os
-from common import ssh_tool
+import threading
+import time
+import traceback
 
+import ldap_tools
+from aws import AWS
+from ldaplookup import LDAP
+
+from valor import ValorManager
 from assembler.assembler import Assembler
 
 # Keep X virtues waiting to be assigned to users. The time
@@ -207,6 +203,9 @@ class AssembleRoleThread(threading.Thread):
         assert ret == 0
 
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
+        key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+
+        valor_manager = ValorManager()
 
         try:
             subprocess.check_call(['sudo', 'rsync',
@@ -214,37 +213,30 @@ class AssembleRoleThread(threading.Thread):
                                    '/mnt/efs/' + virtue_path])
 
             if (self.use_ssh):
-                # TODO: Assemble role
-
                 # Launch by adding a 'virtue' to RethinkDB
-                #valor_manager = ValorManager()
-                #valor = ValorManager.get_empty_valor()
-                #valor_manager.rethinkdb_manager.add_virtue(
-                #    valor['address'],
-                #    self.role['id'],
-                #    'images/non_provisioned_virtues/' + self.role['id'])
+                valor = valor_manager.get_empty_valor()
+                virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
+                    valor['address'],
+                    valor['id'],
+                    self.role['id'],
+                    virtue_path)
 
-                #time.sleep(5)
+                time.sleep(5)
 
-                # Get IP to ssh
                 # Get Docker login command
-                ecr = boto3.client('ecr')
-                docker_auth_token = ecr.get_authorization_token()[
-                    'authorizationData'][0]
-                docker_cmd = 'docker login -u AWS -p {0} {1}'.format(
-                    base64.b64decode(
-                        docker_auth_token['authorizationToken']).split(':')[-1],
-                    docker_auth_token['proxyEndpoint'])
+                docker_cmd = subprocess.check_output(shlex.split(
+                    'aws ecr get-login --no-include-email --region us-east-2'))
 
                 print('docker_cmd: ' + docker_cmd)
 
                 # Run assembler
-                assembler = Assembler(work_dir='{0}/{1}'.format(
+                assembler = Assembler(work_dir='{0}/.{1}_assembly'.format(
                     os.environ['HOME'],
                     self.role['id']))
-                #assembler.assemble_running_vm(self.role['applicationIds'],
-                #                              docker_cmd,
-                #                              ssh_host)
+                assembler.assemble_running_vm(self.role['applicationIds'],
+                                              docker_cmd,
+                                              key_path,
+                                              virtue_ip)
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
@@ -265,5 +257,5 @@ class AssembleRoleThread(threading.Thread):
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
         finally:
-            #valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
-            pass
+            if valor_manager.rethinkdb_manager.get_virtue(self.role['id']):
+                valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])

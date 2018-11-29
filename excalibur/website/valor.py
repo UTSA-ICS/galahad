@@ -2,7 +2,6 @@ import os
 import time
 
 import boto3
-import botocore
 import rethinkdb
 from aws import AWS
 from boto.utils import get_instance_metadata
@@ -53,7 +52,9 @@ class ValorAPI:
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id):
-        return self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
+        return self.valor_manager.migrate_virtue(
+            virtue_id,
+            destination_valor_id)
 
 
 
@@ -68,91 +69,19 @@ class Valor:
         self.router_ip = None
 
 
-    def authorize_ssh_connections(self, ip):
-
-        security_group = self.ec2.SecurityGroup(
-            self.aws_instance.security_groups[0]['GroupId'])
-
-        #TODO: should the security group already be authorized for SSH?
-        try:
-            security_group.authorize_ingress(
-                CidrIp=ip,
-                FromPort=22,
-                IpProtocol='tcp',
-                ToPort=22 )
-
-        except botocore.exceptions.ClientError:
-            print(
-                'ClientError encountered while adding security group rule. '
-                + 'Rule may already exist.')
-
-
-    def get_stack_name(self):
-
-        resource = boto3.resource('ec2')
-
-        meta_data = get_instance_metadata(timeout=0.5, num_retries=2)
-
-        myinstance = resource.Instance(meta_data['instance-id'])
-
-        # Find the Stack name in the instance tags
-        for tag in myinstance.tags:
-            if 'aws:cloudformation:stack-name' in tag['Key']:
-                return tag['Value']
-
-
-    def get_efs_mount(self):
-
-        stack_name = self.get_stack_name()
-
-        cloudformation = boto3.resource('cloudformation')
-        efs_stack = cloudformation.Stack(stack_name)
-
-        for output in efs_stack.outputs:
-
-            if output['OutputKey'] == 'FileSystemID':
-                file_system_id = output['OutputValue']
-
-        efs_name = '{}.efs.us-east-1.amazonaws.com'.format(file_system_id)
-
-        return efs_name
-
-
-    def mount_efs(self):
-
-        efs_mount = self.get_efs_mount()
-
-        make_efs_mount_command = 'sudo mkdir -p /mnt/efs'
-
-        add_efs_mount_point_command = \
-            'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
-            '/etc/fstab"'.format(efs_mount)
-
-        mount_efs_command = 'sudo mount -a'
-
-        stdout = self.client.ssh(make_efs_mount_command, output=True)
-        print('[!] Valor.make_efs_dir : stdout : ' + stdout)
-
-        stdout = self.client.ssh(add_efs_mount_point_command, output=True)
-        print('[!] Valor.add_efs_mount : stdout : ' + stdout)
-
-        stdout = self.client.ssh(mount_efs_command, output=True)
-        print('[!] Valor.mount_efs : stdout : ' + stdout)
-
-
     def connect_with_ssh(self):
 
         self.client = ssh_tool(
             'ubuntu',
-            self.aws_instance.public_ip_address,
+            self.aws_instance.private_ip_address,
             sshkey=os.environ['HOME'] +
                    '/galahad-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH'.format(
-                self.aws_instance.public_ip_address))
+                self.aws_instance.private_ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.public_ip_address))
+                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.private_ip_address))
 
 
     def setup(self):
@@ -163,17 +92,26 @@ class Valor:
         ping 10.91.0.254 - should work
         '''
 
-        self.mount_efs()
+        #self.mount_efs()
+
+        check_if_cloud_init_finished = \
+            '''while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
+                   echo "Cloud init has not finished";sleep 5;done;
+               echo "Cloud init has now finished"'''
 
         execute_setup_command = \
             'cd /mnt/efs/valor/deploy/compute && sudo /bin/bash setup.sh "{0}" "{1}"'.format(
                 self.guestnet, self.router_ip)
 
         setup_gaius_command = \
-            'cd /mnt/efs/valor/gaius && sudo /bin/bash setup_gaius.sh'
+            'cd /mnt/efs/valor && sudo /bin/bash setup_gaius.sh'
 
         shutdown_node_command = \
             'sudo shutdown -h now'
+
+        stdout = self.client.ssh(
+            check_if_cloud_init_finished, output=True)
+        print('[!] check_cloud_init : stdout : ' + stdout)
 
         stdout = self.client.ssh(
             execute_setup_command, output=True)
@@ -229,6 +167,33 @@ class ValorManager:
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
 
+    def get_stack_name(self):
+
+        resource = boto3.resource('ec2')
+
+        meta_data = get_instance_metadata(timeout=0.5, num_retries=2)
+
+        myinstance = resource.Instance(meta_data['instance-id'])
+
+        # Find the Stack name in the instance tags
+        for tag in myinstance.tags:
+            if 'aws:cloudformation:stack-name' in tag['Key']:
+                return tag['Value']
+
+
+    def get_efs_mount(self):
+
+        stack_name = self.get_stack_name()
+
+        cloudformation = boto3.resource('cloudformation')
+        efs_stack = cloudformation.Stack(stack_name)
+
+        for output in efs_stack.outputs:
+
+            if output['OutputKey'] == 'FileSystemID':
+                file_system_id = output['OutputValue']
+
+        return file_system_id
 
     def get_empty_valor(self):
 
@@ -263,9 +228,33 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        excalibur_ip = '{0}/32'.format(self.aws.get_public_ip())
+        # Use cloud init to install the base packages for the valor
+        user_data = '''#!/bin/bash -xe
+                       # Install Packages required for AWS EFS mount helper
+                       apt-get update
+                       apt-get -y install binutils
 
-        valor = {
+                       # Install the AWS EFS mount helper
+                       git clone https://github.com/aws/efs-utils
+                       cd efs-utils/
+                       ./build-deb.sh
+                       apt-get -y install ./build/amazon-efs-utils*deb
+
+                       # Create the base mount directory
+                       mkdir -p /mnt/efs
+
+                       # Mount the EFS file system
+                       echo "{}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+                       mount -a
+
+                       # Install System packages
+                       apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
+
+                       # Install pip packages
+                       pip install rethinkdb
+                    '''.format(self.get_efs_mount())
+
+        valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
             'inst_type' : 't2.medium',
             'subnet_id' : subnet,
@@ -275,13 +264,12 @@ class ValorManager:
             'sec_group' : sec_group,
             'inst_profile_name' : '',
             'inst_profile_arn' : '',
+            'user_data': user_data,
         }
 
-        instance = self.aws.instance_create(**valor)
+        instance = self.aws.instance_create(**valor_config)
 
         valor = Valor(instance.id)
-
-        valor.authorize_ssh_connections(excalibur_ip)
 
         valor.connect_with_ssh()
 
@@ -347,13 +335,27 @@ class ValorManager:
 
         virtue = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'virtue',
-            'host' : virtue_id}).run()
+            'virtue_id' : virtue_id}).run().next()
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
-            'address' : virtue['address']}).run()
+            'address' : virtue['address']}).run().next()
 
-        current_valor_id = current_valor['host']
+
+        destination_valor = rethinkdb.db('transducers').table('galahad').filter({
+            'function' : 'valor',
+            'valor_id' : destination_valor_id}).run().next()
+
+        current_valor_ip_address = current_valor['address']
+        destination_valor_ip_address = destination_valor['address']
+
+        rethinkdb.db("transducers").table("commands") \
+            .filter({"valor_ip": current_valor_ip_address}) \
+            .update({"valor_dest": destination_valor_ip_address}).run()
+
+        rethinkdb.db("transducers").table("commands") \
+            .filter({"valor_ip": current_valor_ip_address}) \
+            .update({"enabled": True}).run()
 
 
 
@@ -379,7 +381,7 @@ class RethinkDbManager:
     def get_valor(self, valor_id):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'valor', 'host': valor_id}).run()
+            {'function': 'valor', 'valor_id': valor_id}).run()
 
         valor = list(response.items)
 
@@ -414,7 +416,7 @@ class RethinkDbManager:
         record = {
             'function': 'valor',
             'guestnet': self.get_free_guestnet(),
-            'host'    : valor.aws_instance.id,
+            'valor_id'    : valor.aws_instance.id,
             'address' : valor.aws_instance.private_ip_address
         }
 
@@ -429,7 +431,7 @@ class RethinkDbManager:
 
         matching_valors = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'valor',
-            'host': valor_id
+            'valor_id': valor_id
         }).run())
 
         rethinkdb.db('transducers').table('galahad').filter(
@@ -454,11 +456,11 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, virtue_id, efs_path):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_id
+            'virtue_id': virtue_id
         }).run())
 
         assert len(matching_virtues) == 0
@@ -466,11 +468,12 @@ class RethinkDbManager:
         guestnet = self.get_free_guestnet()
 
         record = {
-            'function': 'virtue',
-            'host'    : virtue_id,
-            'address' : valor_address,
-            'guestnet': guestnet,
-            'img_path': efs_path
+            'function'  : 'virtue',
+            'virtue_id' : virtue_id,
+            'valor_id'  : valor_id,
+            'address'   : valor_address,
+            'guestnet'  : guestnet,
+            'img_path'  : efs_path
         }
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
@@ -478,11 +481,11 @@ class RethinkDbManager:
         return guestnet
 
 
-    def get_virtue(self, virtue_hostname):
+    def get_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_hostname
+            'virtue_id': virtue_id
         }).run())
 
         if len(matching_virtues) != 1:
@@ -491,11 +494,11 @@ class RethinkDbManager:
         return matching_virtues[0]
 
 
-    def remove_virtue(self, virtue_hostname):
+    def remove_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'host': virtue_hostname
+            'virtue_id': virtue_id
         }).run())
 
         assert len(matching_virtues) == 1
@@ -503,9 +506,11 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
+
     def get_router(self):
 
-        router = rethinkdb.db('transducers').table('galahad').filter({'function': 'router' }).run()
+        router = rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'router' }).run()
 
         return router.next()
 
