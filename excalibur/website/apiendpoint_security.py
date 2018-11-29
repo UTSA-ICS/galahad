@@ -194,9 +194,6 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
 
-        with open('test.log', 'a') as f:
-            f.write('get_enabled: ' + transducerId + ' | ' + str(row) + '\n')
-
         # Transducers are enabled by default
         if row is None:
             return json.dumps( { 'enabled': True } )
@@ -476,5 +473,6 @@ class EndPoint_Security:
             key = 'unspecifiedError'
         e = deepcopy(ErrorCodes.security[key])
         if details is not None:
-            e['details'] = details
+            #e['details'] = details
+            e['result'].append(details)
         return json.dumps(e)

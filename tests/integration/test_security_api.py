@@ -165,8 +165,6 @@ def test_list_transducers():
         __setup_virtue()
 
     transducers = json.loads(session.get(base_url + '/security/transducer/list').text)
-    with open('test.log', 'a') as f:
-        f.write('list_transducers: ' + json.dumps(transducers) + '\n')
     assert len(transducers) > 1
 
 def test_get():
@@ -396,10 +394,10 @@ def teardown_module():
         # Only delete a Virtue if it was created during these tests, not passed in manually
         if new_virtue:
             ret = session.get(base_url + '/user/virtue/stop', params={'virtueId': virtue_id})
-            assert ret.json()['status'] == 'success'
+            assert ret.text == json.dumps(ErrorCodes.security['success'])
 
             ret = session.get(base_url + '/admin/virtue/destroy', params={'virtueId': virtue_id})
-            assert ret.json()['status'] == 'success'
+            assert ret.text == json.dumps(ErrorCodes.security['success'])
 
             inst.del_obj(
                 'cid', virtue_id, objectClass='OpenLDAPvirtue', throw_error=True) 
