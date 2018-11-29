@@ -188,8 +188,6 @@ class EndPoint_Security:
             row = r.db('transducers').table('acks')\
                 .get([virtueId, transducerId]).run(self.__class__.conn)
         except r.ReqlError as e:
-            with open('test.log', 'a') as f:
-                f.write('get_enabled: ' + transducerId + ' | error: ' + str(e) + '\n')
             return self.__error(
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
@@ -304,7 +302,7 @@ class EndPoint_Security:
 
         # Update the virtue's list of transducers
         new_t_list = self.transducer_list_enabled(virtueId)
-        if type(new_t_list) is not list and new_t_list['status'] == 'failed':
+        if type(new_t_list) is dict and new_t_list['status'] == 'failed':
             # Couldn't retrieve new list of transducers
             return self.__error(
                 'unspecifiedError',

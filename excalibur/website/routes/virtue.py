@@ -842,7 +842,7 @@ def transducer_get_enabled():
 
         ret = ep.transducer_get_enabled(request.args['transducerId'],
                                         request.args['virtueId'])
-        log_to_elasticsearch('Get enabled transducers', eextra={'user': get_user(), 'transducer_id': request.args['transducerId'],
+        log_to_elasticsearch('Get enabled transducers', extra={'user': get_user(), 'transducer_id': request.args['transducerId'],
                                                             'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
         return make_response(ret)
 
