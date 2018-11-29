@@ -8,6 +8,13 @@ mkdir $UBUNTU_MNT
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 5
+    sudo apt-get update
+    DPKG_LOCK=$?
+done
+
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 5
     sudo apt-get install -y nfs-common
     DPKG_LOCK=$?
 done
