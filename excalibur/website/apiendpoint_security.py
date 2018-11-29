@@ -188,9 +188,14 @@ class EndPoint_Security:
             row = r.db('transducers').table('acks')\
                 .get([virtueId, transducerId]).run(self.__class__.conn)
         except r.ReqlError as e:
+            with open('test.log', 'a') as f:
+                f.write('get_enabled: ' + transducerId + ' | error: ' + str(e) + '\n')
             return self.__error(
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
+
+        with open('test.log', 'a') as f:
+            f.write('get_enabled: ' + transducerId + ' | ' + str(row) + '\n')
 
         # Transducers are enabled by default
         if row is None:

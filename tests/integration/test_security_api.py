@@ -18,6 +18,7 @@ sys.path.insert(0, '..')
 
 from ssh_tool import ssh_tool
 from website.ldaplookup import LDAP
+from website.services.errorcodes import ErrorCodes
 
 sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
@@ -164,6 +165,8 @@ def test_list_transducers():
         __setup_virtue()
 
     transducers = json.loads(session.get(base_url + '/security/transducer/list').text)
+    with open('test.log', 'a') as f:
+        f.write('list_transducers: ' + json.dumps(transducers) + '\n')
     assert len(transducers) > 1
 
 def test_get():
@@ -233,8 +236,7 @@ def test_sensor_disable():
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to receive and enfore the rule
     time.sleep(15)
@@ -272,8 +274,7 @@ def test_sensor_enable():
         'virtueId': virtue_id,
         'configuration': '{}'
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to receive and enfore the rule
     time.sleep(15)
@@ -311,6 +312,7 @@ def test_get_enabled():
         'virtueId': virtue_id
     }).text
     transducer = json.loads(result)
+    assert type(transducer) is dict
     assert 'enabled' in transducer
     assert transducer['enabled'] == True
 
@@ -349,8 +351,7 @@ def test_actuator_kill_proc():
         'virtueId': virtue_id,
         'configuration': '{"processes":["yes"]}'
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to propagate the rule
     time.sleep(15)
@@ -363,8 +364,7 @@ def test_actuator_kill_proc():
         'transducerId': 'kill_proc',
         'virtueId': virtue_id
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
 def test_actuator_net_block():
     # Try contacting a server - let's pick 1.1.1.1 (the public DNS resolver) because its IP is easy
@@ -376,8 +376,7 @@ def test_actuator_net_block():
         'virtueId': virtue_id,
         'configuration': '{"rules":["block_outgoing_dst_ipv4_1.1.1.1"]}'
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to propagate the rule
     time.sleep(15)
@@ -390,8 +389,7 @@ def test_actuator_net_block():
         'transducerId': 'block_net',
         'virtueId': virtue_id
     })
-    resp_json = json.loads(response.text)
-    assert resp_json['status'] == 'success'
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
 def teardown_module():
     if virtue_id is not None:
