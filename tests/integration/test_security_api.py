@@ -9,11 +9,7 @@ import integration_common
 # For common.py
 sys.path.insert(0, '..')
 
-from ssh_tool import ssh_tool
-from website.ldaplookup import LDAP
 from website.services.errorcodes import ErrorCodes
-
-sys.path.insert(0, base_excalibur_dir + '/cli')
 from sso_login import sso_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
