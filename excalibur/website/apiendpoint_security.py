@@ -21,7 +21,7 @@ class EndPoint_Security:
     def __init__(self, user, password):
         self.inst = LDAP(user, password)
 
-        self.inst.bind_ldap()
+        self.inst.bind_ad()
 
         if not hasattr(self.__class__, 'conn'):
             self.__class__.conn = None

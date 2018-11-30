@@ -23,7 +23,7 @@ class EndPoint_Admin():
     def __init__(self, user, password):
 
         self.inst = LDAP(user, password)
-        self.inst.bind_ldap()
+        self.inst.bind_ad()
         self.valor_api = ValorAPI()
 
 
