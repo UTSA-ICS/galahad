@@ -43,7 +43,7 @@ class LDAP():
         return True
 
     def bind_ad(self):
-        self.get_ldap_connection()
+        self.get_ad_connection()
         dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (
             self.email.split("@")[0])
         try:
