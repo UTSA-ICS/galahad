@@ -7,7 +7,7 @@ AD_DATABASE_URI = "ldap://ad.galahad.com"
 LDAP_PROTOCOL_VERSION = 3
 LDAP_QUERY_DN = "dc=canvas,dc=virtue,dc=com"
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
-AD_QUERY_DN = "ou=virtue,dc=virtue,dc=com"
+AD_QUERY_DN = "ou=galahad,dc=virtue,dc=gov"
 
 
 class LDAP():
@@ -44,8 +44,10 @@ class LDAP():
 
     def bind_ad(self):
         self.get_ad_connection()
+        dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (
+            self.email.split("@")[0])
         try:
-            self.conn.simple_bind_s(self.email, self.password)
+            self.conn.simple_bind_s(dn, self.password)
         except:
             return False
         return True
