@@ -620,10 +620,13 @@ class Assembler(object):
             with open(image_mount + '/etc/virtue-id', 'w') as id_file:
                 id_file.write(virtue_id)
 
+            with open(image_mount + '/etc/virtue-id-env', 'w') as id_file:
+                id_file.write("VIRTUE_ID=" + str(virtue_id))
+
             # Enable merlin since virtue-id is now available
             subprocess.check_call(['chroot', image_mount,
                                    'systemctl', 'enable', 'merlin'])
-
+    
             if (not os.path.exists(image_mount + '/var/private/ssl')):
                 os.makedirs(image_mount + '/var/private/ssl')
 
