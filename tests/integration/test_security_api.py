@@ -113,7 +113,7 @@ def test_get():
     if virtue_ssh is None:
         __setup_virtue()
 
-    result = session.get(base_url + '/security/transducer/get', params={
+    result = session.get(security_url + '/transducer/get', params={
         'transducerId': 'path_mkdir'
     }).text
     transducer = json.loads(result)
@@ -247,7 +247,7 @@ def test_get_enabled():
     if virtue_ssh is None:
         __setup_virtue()
 
-    result = session.get(base_url + '/security/transducer/get_enabled', params={
+    result = session.get(security_url + '/transducer/get_enabled', params={
         'transducerId': 'path_mkdir',
         'virtueId': virtue_id
     }).text
@@ -260,7 +260,7 @@ def test_get_config():
     if virtue_ssh is None:
         __setup_virtue()
 
-    result = session.get(base_url + '/security/transducer/get_configuration', params={
+    result = session.get(security_url + '/transducer/get_configuration', params={
         'transducerId': 'path_mkdir',
         'virtueId': virtue_id
     }).text
@@ -271,7 +271,7 @@ def test_list_enabled():
     if virtue_ssh is None:
         __setup_virtue()
 
-    result = session.get(base_url + '/security/transducer/list_enabled', params={
+    result = session.get(security_url + '/transducer/list_enabled', params={
         'virtueId': virtue_id
     }).text
     transducers = json.loads(result)
