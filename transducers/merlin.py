@@ -180,6 +180,9 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 
 	ruleset = {}
 	for row in rows:
+		if 'type' in row and str(row['type']) == 'MIGRATION':
+			continue
+
 		# Check keys and retrieve values
 		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
 			'enabled', 'timestamp', 'signature']
@@ -489,6 +492,9 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 		.changes().run(conn):
 
 		row = change['new_val']
+
+		if 'type' in row and str(row['type']) == 'MIGRATION':
+			continue
 
 		# Check keys and retrieve values
 		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
