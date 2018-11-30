@@ -11,6 +11,13 @@ sys.path.insert(0, '..')
 
 from ssh_tool import ssh_tool
 
+file_path = os.path.realpath(__file__)
+base_excalibur_dir = os.path.dirname(
+    os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
+sys.path.insert(0, base_excalibur_dir)
+
+from website.services.errorcodes import ErrorCodes
+
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
