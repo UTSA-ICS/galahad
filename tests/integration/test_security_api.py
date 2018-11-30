@@ -6,11 +6,10 @@ import time
 
 import integration_common
 
-# For common.py
+# For ssh_tool
 sys.path.insert(0, '..')
 
-from website.services.errorcodes import ErrorCodes
-from sso_login import sso_tool
+from ssh_tool import ssh_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
