@@ -283,7 +283,8 @@ def test_list_enabled():
     }).text
     transducers = json.loads(result)
     assert type(transducers) is list
-    assert len(transducers) == 1
+    assert len(transducers) >= 1
+    assert type(transducers[0]) is not int
 
 def test_actuator_kill_proc():
     # Start a long-running process
