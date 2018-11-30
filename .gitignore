@@ -31,3 +31,6 @@ transducers/listener/opt/heartbeatlistener/listener.py
 gaius/gaius/rethinkdb_data
 valor/gaius/bak
 valor/gaius/dev
+
+# Editor directories and files
+.idea

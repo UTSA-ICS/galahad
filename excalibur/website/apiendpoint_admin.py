@@ -164,6 +164,9 @@ class EndPoint_Admin():
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
+            if not role['applicationIds']:
+                return json.dumps(ErrorCodes.admin['NoApplicationId'])
+
             for a in role['applicationIds']:
                 app_test = self.inst.get_obj(
                     'cid',

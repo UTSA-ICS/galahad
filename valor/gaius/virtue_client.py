@@ -1,10 +1,17 @@
-import os, subprocess
-import logging
 import base64
+import logging
+import os
+import subprocess
+
 from __init__ import CFG_OUT
 
-GAIUS_LOGFILE = "/var/log/gaius-virtue.log"
-logging.basicConfig(filename=GAIUS_LOGFILE, level=logging.DEBUG)
+VIRTUE_LOGFILE = "/var/log/gaius-virtue.log"
+virtue_handler = logging.FileHandler(VIRTUE_LOGFILE)
+
+virtue_logger = logging.getLogger('virtue_client')
+virtue_logger.setLevel(logging.DEBUG)
+virtue_logger.addHandler(virtue_handler)
+
 
 class Virtue():
     def __init__(self, v_dict):
@@ -18,7 +25,7 @@ class Virtue():
                      'ip route add default via {1} dev eth0').format(self.guestnet, valor_guestnet)
         unity_net64 = base64.b64encode(unity_net.encode())
 
-        logging.debug("Writing config file to {}.cfg".format(CFG_OUT + self.virtue_id))
+        virtue_logger.debug("Writing config file to {}.cfg".format(CFG_OUT + self.virtue_id))
         cfg = open(CFG_OUT + self.virtue_id + ".cfg", "w+")
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
         cfg.write("vcpus=1\n")
@@ -29,31 +36,43 @@ class Virtue():
         cfg.write("on_poweroff='destroy'\n")
         cfg.write("on_reboot='restart'\n")
         cfg.write("on_crash='restart'\n")
-        cfg.write('cmdline = "unity-net={0} nameserver=1.1.1.1"'.format(unity_net64.decode()))
+        cfg.write('cmdline = "unity-net={0} nameserver=172.30.0.2"'.format(unity_net64.decode()))
         cfg.close()
 
     def createDomU(self):
         try:
-            subprocess.check_call(['xl','create',CFG_OUT + self.virtue_id + '.cfg'])
-            logging.debug("Virtue domU created")
-        except:
-            logging.debug("Error: Virtue creation failed")
+            out = subprocess.check_output('xl create ' + CFG_OUT + self.virtue_id + '.cfg', stderr=subprocess.STDOUT,
+                                          shell=True)
+            virtue_logger.debug("Virtue domU created")
+            virtue_logger.debug(out)
+        except subprocess.CalledProcessError as e:
+            virtue_logger.debug("Error: Virtue creation failed")
+            virtue_logger.debug("The command issued was: [{}]".format(e.cmd))
+            virtue_logger.debug("The error output is: [{}]".format(e.output))
 
     def migrateDomU(self, target_ip):
         try:
-            subprocess.check_call(['xl','migrate', self.virtue_id, target_ip])
-            logging.debug("Virtue migrated")
-        except:
-            logging.debug("Error: Virtue migration failed")
+            out = subprocess.check_output(
+                'xl migrate -s "ssh -o StrictHostKeyChecking=no" ' + self.virtue_id + ' ' + target_ip,
+                stderr=subprocess.STDOUT, shell=True)
+            virtue_logger.debug("Virtue migrated")
+            virtue_logger.debug(out)
+        except subprocess.CalledProcessError as e:
+            virtue_logger.debug("Error: Virtue migration failed")
+            virtue_logger.debug("The command issued was: [{}]".format(e.cmd))
+            virtue_logger.debug("The error output is: [{}]".format(e.output))
 
     def destroyDomU(self):
         try:
             os.remove(CFG_OUT + self.virtue_id + ".cfg")
         except:
-            logging.debug("Error: {} not found".format(CFG_OUT + self.virtue_id + ".cfg"))
+            virtue_logger.debug("Error: {} not found".format(CFG_OUT + self.virtue_id + ".cfg"))
 
         try:
             # Needs to be in separate try statement because virtue may exist when .cfg doesn't
-            subprocess.check_call(['xl','destroy', self.virtue_id])
-        except:
-            logging.debug("Error: Virtue destruction failed")
+            out = subprocess.check_output('xl destroy ' + self.virtue_id, stderr=subprocess.STDOUT, shell=True)
+            virtue_logger.debug(out)
+        except subprocess.CalledProcessError as e:
+            virtue_logger.debug("Error: Virtue destruction failed")
+            virtue_logger.debug("The command issued was: [{}]".format(e.cmd))
+            virtue_logger.debug("The error output is: [{}]".format(e.output))
