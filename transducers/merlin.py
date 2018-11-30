@@ -197,15 +197,15 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 		# Validate message's signature
 		printable_msg = deepcopy(row)
 		del printable_msg['signature']
-		new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
-		if new_signature == signature:
-			log.info('Retrieved valid ACK: %s', \
+		if verify_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, signature, excalibur_key):
+			log.info('Reminded of valid command message: %s', \
 				json.dumps(printable_msg, indent=2))
 			ruleset[transducer_id] = enabled
 		else:
-			error_wrapper('Retrieved invalid ACK: %s', \
+			error_wrapper('Unable to validate signature of command message: %s', \
 				json.dumps(printable_msg, indent=2))
 			continue
+
 
 	if len(ruleset) > 0:
 		# Inform filter of changes through unix domain socket
