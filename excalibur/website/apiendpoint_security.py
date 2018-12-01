@@ -29,7 +29,7 @@ class EndPoint_Security:
     # Not officially part of the API but necessary to set up paths correctly
     def set_api_config(self, config):
         # Default values
-        self.__class__.rethinkdb_host = 'rethinkdb.galahad.lab'
+        self.__class__.rethinkdb_host = 'rethinkdb.galahad.com'
         self.__class__.ca_cert = 'rethinkdb_cert.pem'
         self.__class__.excalibur_key_file = 'excalibur_key.pem'
         self.__class__.virtue_key_dir = '.'
