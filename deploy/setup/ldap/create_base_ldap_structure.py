@@ -181,10 +181,10 @@ if (__name__ == '__main__'):
     add_subtree('virtues', 210)
 
     add_application('firefox', 'Firefox', '1.0', 'LINUX', port=6768)
-    add_application('xterm', 'XTerm', '1.0', 'LINUX', port=6766)
+    add_application('terminal', 'XTerm', '1.0', 'LINUX', port=6766)
     add_application('thunderbird', 'Thunderbird', '1.0', 'LINUX', port=6765)
 
-    add_resource('fileshare1', 'DRIVE', '//172.30.1.250/VirtueFileShare',
+    add_resource('fileshare1', 'DRIVE', '//ad.galahad.com/VirtueFileShare',
                  'token')
 
     add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')

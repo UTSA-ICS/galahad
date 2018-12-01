@@ -3,7 +3,6 @@
 import json
 import os
 import sys
-import time
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
@@ -12,9 +11,7 @@ sys.path.insert(0, base_excalibur_dir)
 from website import ldap_tools
 from website.ldaplookup import LDAP
 from website.apiendpoint import EndPoint
-from website.apiendpoint_admin import EndPoint_Admin
 from website.services.errorcodes import ErrorCodes
-from website.aws import AWS
 
 
 def setup_module():
@@ -100,7 +97,7 @@ def test_application_calls():
 
     assert json.dumps(
         ErrorCodes.user['userNotAuthorized']) == ep.application_get(
-            'jmitchell', 'xterm')
+            'jmitchell', 'terminal')
 
     app = json.loads(ep.application_get('jmitchell', 'firefox'))
 
@@ -227,7 +224,7 @@ def test_virtue_calls():
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
             ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
-                                         'xterm', use_ssh=False))
+                                         'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
             ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
@@ -259,7 +256,7 @@ def test_virtue_calls():
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
             ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
-                                       'xterm', use_ssh=False))
+                                       'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
             ep.virtue_application_stop('jmitchell', 'usertestvirtue0',

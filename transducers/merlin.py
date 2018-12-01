@@ -57,9 +57,9 @@ def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
 	elasticLog.setLevel(logging.INFO)
 
 
-def error_wrapper(msg, error):
-	log.error(msg, error)
-	elasticLog.error(msg, error, extra={'virtue_id': virtue_id})
+def error_wrapper(msg, *args):
+	log.error(msg, *args)
+	elasticLog.error(msg, *args, extra={'virtue_id': virtue_id})
 
 # Signal handler to be able to Ctrl-C even if we're in the heartbeat
 def signal_handler(signal, frame):
@@ -141,7 +141,7 @@ def send_message_netlink(sock, array):
 
 		tosend = str(hdr) + str(message) + '\r\n'
 	except Exception as e:
-		error_wrapper('Error constructing netlink message: ' + str(e))
+		error_wrapper('Error constructing netlink message: %s', str(e))
 		return False
 
 	try:
@@ -170,13 +170,19 @@ def receive_message(sock):
 	return all_data
 
 def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
+	# Previously, rules were repopulated from the ACK table.  Now they are repopulated from the
+	# Command table, so that comands can be queued up by the system before Virtues are started.
+
 	# Get latest ruleset from the ACK table
-	rows = r.db('transducers').table('acks')\
+	rows = r.db('transducers').table('commands')\
 		.filter({ 'virtue_id': virtue_id })\
 		.run(heartbeat_conn)
 
 	ruleset = {}
 	for row in rows:
+		if 'type' in row and str(row['type']) == 'MIGRATION':
+			continue
+
 		# Check keys and retrieve values
 		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
 			'enabled', 'timestamp', 'signature']
@@ -194,15 +200,15 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 		# Validate message's signature
 		printable_msg = deepcopy(row)
 		del printable_msg['signature']
-		new_signature = sign_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, virtue_key)
-		if new_signature == signature:
-			log.info('Retrieved valid ACK: %s', \
+		if verify_message(virtue_id, transducer_id, transducer_type, config, enabled, timestamp, signature, excalibur_key):
+			log.info('Reminded of valid command message: %s', \
 				json.dumps(printable_msg, indent=2))
 			ruleset[transducer_id] = enabled
 		else:
-			error_wrapper('Retrieved invalid ACK: %s', \
+			error_wrapper('Unable to validate signature of command message: %s', \
 				json.dumps(printable_msg, indent=2))
 			continue
+
 
 	if len(ruleset) > 0:
 		# Inform filter of changes through unix domain socket
@@ -219,6 +225,8 @@ def repopulate_ruleset(virtue_id, heartbeat_conn, socket_to_filter, virtue_key):
 		if all_data is None:
 			error_wrapper('Failed to receive response from filter')
 			return
+		current_ruleset = json.loads(all_data)
+		process_update(virtue_id, heartbeat_conn, current_ruleset)
 	log.info('Successfully reminded filter of ruleset')
 
 def process_update(virtue_id, heartbeat_conn, current_ruleset):
@@ -261,7 +269,7 @@ def heartbeat(virtue_id, rethinkdb_host, ca_cert, interval_len, virtue_key, path
 						password='virtue',
 						ssl={ 'ca_certs': ca_cert })
 		except r.ReqlDriverError as e:
-			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s', rethinkdb_host, str(e))
+			error_wrapper('Failed to connect to RethinkDB at host: %s; error: %s' % (rethinkdb_host, str(e)))
 			sleep(30)
 
 	while not exit.is_set():
@@ -485,6 +493,9 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host, so
 
 		row = change['new_val']
 
+		if 'type' in row and str(row['type']) == 'MIGRATION':
+			continue
+
 		# Check keys and retrieve values
 		required_keys = ['virtue_id', 'transducer_id', 'type', 'configuration', 
                         'enabled', 'timestamp', 'signature']
@@ -565,7 +576,7 @@ if __name__ == '__main__':
 	parser.add_argument('-i', '--heartbeat', help='Heartbeat interval (sec)', type=int, default=30)
 	parser.add_argument('-s', '--socket', help='Path to socket to filter', default='/var/run/receiver_to_filter')
 	parser.add_argument('-l', '--log', help='Path to log file', default='merlin.log')
-	parser.add_argument('-es', '--elasticsearch_host', help='Elasticsearch host', default='elasticsearch.galahad.com')
+	parser.add_argument('-es', '--elasticsearch_host', help='Elasticsearch host', default='aggregator.galahad.com')
 	parser.add_argument('-ec', '--elasticsearch_cert', help='Elasticsearch client cert', default='/var/private/ssl/kirk.crtfull.pem')
 	parser.add_argument('-ek', '--elasticsearch_key', help=' Elasticsearch client key', default='/var/private/ssl/kirk.key.pem')
 	parser.add_argument('-eu', '--elasticsearch_user', help='Elasticsearch username', default='admin')

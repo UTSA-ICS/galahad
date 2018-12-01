@@ -283,10 +283,10 @@ class DeployServer():
                     format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
         # Deploy the Pre-requisites
-        _cmd = "sudo('apt update')"
+        _cmd = "sudo('apt-get update')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-        _cmd = "sudo('apt install -y python-minimal python-pip python3-dev python3-pip')"
+        _cmd = "sudo('apt-get install -y python-minimal python-pip python3-dev python3-pip')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         _cmd = "sudo('pip install boto3')"

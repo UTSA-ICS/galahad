@@ -108,6 +108,7 @@ class AWS:
                         sec_group,
                         inst_profile_name,
                         inst_profile_arn,
+                        user_data='',
                         block=True):
         """Create a new AWS instance - a virtue
         This will create a AWS instance based on a
@@ -134,8 +135,8 @@ class AWS:
             }],
             IamInstanceProfile={
                 'Name': inst_profile_name,
-                #'Arn': inst_profile_arn
             },
+            UserData=user_data,
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',

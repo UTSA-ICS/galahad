@@ -205,16 +205,15 @@ class AssembleRoleThread(threading.Thread):
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
         key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
+        valor_manager = ValorManager()
+
         try:
             subprocess.check_call(['sudo', 'rsync',
                                    '/mnt/efs/' + self.base_img_path,
                                    '/mnt/efs/' + virtue_path])
 
             if (self.use_ssh):
-                # TODO: Assemble role
-
                 # Launch by adding a 'virtue' to RethinkDB
-                valor_manager = ValorManager()
                 valor = valor_manager.get_empty_valor()
                 virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
                     valor['address'],
@@ -234,10 +233,10 @@ class AssembleRoleThread(threading.Thread):
                 assembler = Assembler(work_dir='{0}/.{1}_assembly'.format(
                     os.environ['HOME'],
                     self.role['id']))
-                #assembler.assemble_running_vm(self.role['applicationIds'],
-                #                              docker_cmd,
-                #                              key_path,
-                #                              virtue_ip)
+                assembler.assemble_running_vm(self.role['applicationIds'],
+                                              docker_cmd,
+                                              key_path,
+                                              virtue_ip)
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')
@@ -258,4 +257,5 @@ class AssembleRoleThread(threading.Thread):
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
         finally:
-            valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
+            if valor_manager.rethinkdb_manager.get_virtue(self.role['id']):
+                valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])

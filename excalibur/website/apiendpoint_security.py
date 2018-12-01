@@ -29,7 +29,7 @@ class EndPoint_Security:
     # Not officially part of the API but necessary to set up paths correctly
     def set_api_config(self, config):
         # Default values
-        self.__class__.rethinkdb_host = 'rethinkdb.galahad.lab'
+        self.__class__.rethinkdb_host = 'rethinkdb.galahad.com'
         self.__class__.ca_cert = 'rethinkdb_cert.pem'
         self.__class__.excalibur_key_file = 'excalibur_key.pem'
         self.__class__.virtue_key_dir = '.'
@@ -147,8 +147,11 @@ class EndPoint_Security:
             bool: True if the transducer was enabled, false otherwise
 
         '''
-        return self.__enable_disable(transducerId, virtueId, configuration,
+        ret = self.__enable_disable(transducerId, virtueId, configuration,
                                      True)
+        if type(ret) is bool and ret == True:
+            return self.__error('success')
+        return ret
 
     def transducer_disable(self, transducerId, virtueId):
         '''
@@ -161,7 +164,10 @@ class EndPoint_Security:
         Returns:
             bool: True if the transducer was enabled, false otherwise
         '''
-        return self.__enable_disable(transducerId, virtueId, None, False)
+        ret = self.__enable_disable(transducerId, virtueId, None, False)
+        if type(ret) is bool and ret == True:
+            return self.__error('success')
+        return ret
 
     def transducer_get_enabled(self, transducerId, virtueId):
         '''
@@ -186,8 +192,12 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
 
+        # Transducers are enabled by default
+        if row is None:
+            return json.dumps( { 'enabled': True } )
+
         self.__verify_message(row)
-        return row['enabled']
+        return json.dumps( { 'enabled': row['enabled'] } )
 
     def transducer_get_configuration(self, transducerId, virtueId):
         '''
@@ -211,7 +221,12 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get info about transducer: ' + str(e))
 
+        # If there's no row, there's no set config
+        if row is None:
+            return json.dumps( None )
+
         self.__verify_message(row)
+        # By definition, the configuration is a JSON object
         return row['configuration']
 
     def transducer_list_enabled(self, virtueId):
@@ -242,7 +257,7 @@ class EndPoint_Security:
                 'unspecifiedError',
                 details='Failed to get enabled transducers: ' + str(e))
 
-        return enabled_transducers
+        return json.dumps(enabled_transducers)
 
     def __connect_rethinkdb(self):
         # RethinkDB connection
@@ -287,7 +302,7 @@ class EndPoint_Security:
 
         # Update the virtue's list of transducers
         new_t_list = self.transducer_list_enabled(virtueId)
-        if type(new_t_list) is not list and new_t_list['status'] == 'failed':
+        if type(new_t_list) is dict and new_t_list['status'] == 'failed':
             # Couldn't retrieve new list of transducers
             return self.__error(
                 'unspecifiedError',
@@ -456,5 +471,6 @@ class EndPoint_Security:
             key = 'unspecifiedError'
         e = deepcopy(ErrorCodes.security[key])
         if details is not None:
-            e['details'] = details
+            #e['details'] = details
+            e['result'].append(details)
         return json.dumps(e)

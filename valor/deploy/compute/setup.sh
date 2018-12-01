@@ -4,6 +4,9 @@
 GUESTNET_IP="${1}"
 ROUTER_IP="${2}"
 
+# Directory for storage of Galahad keys
+GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
+
 #
 # Disable cloud init networking which sets eth0 to default settings.
 #
@@ -111,9 +114,7 @@ systemctl restart xencommons\
 ' /etc/rc.local
 
 #
-# Configure ssh keys - TODO - configure dynamic keys
-# Currently these keys do not exist
+# Configure ssh keys for valor nodes to be able to access each other
 #
-#cp docs/id_rsa /root/.ssh/
-#cp docs/id_rsa.pub /root/.ssh/
-#cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+cp $GALAHAD_KEY_DIR/valor-key /root/.ssh/id_rsa
+cat $GALAHAD_KEY_DIR/valor-key.pub >> /root/.ssh/authorized_keys
