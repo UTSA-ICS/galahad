@@ -162,16 +162,47 @@ class sso_tool():
 
 if (__name__ == '__main__'):
 
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(description='Log in to Excalibur and save the user token')    
+    parser.add_argument('-u', '--user', required=True, help='Username to log in with')
+    parser.add_argument('-p', '--password', help='Password to use. If not specified, will prompt.')
+    parser.add_argument('-o', '--outfile', default='usertoken.json', help='File to write access token to (default is usertoken.json)')
+    parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use (default is APP_1)')
+    parser.add_argument('server', help='Server address')
+
+    args = parser.parse_args()
+
+    if args.password is None:
+        import getpass
+        password = getpass.getpass('User password: ').strip()
+        args.password = password
+
     print('Retrieving token')
 
-    sso = sso_tool('35.172.121.143:5002')
-    sso.login('jmitchell@virtue.com', 'Test123!')
+    sso = sso_tool(args.server)
+    if not sso.login(args.user, args.password):
+        print('ERROR: Could not log in')
+        sys.exit(1)
 
-    redirect = 'https://35.172.121.143:5002/virtue/test'
+    redirect = 'https://{}/virtue/test'.format(args.server)
 
-    client_id = sso.get_app_client_id('TEST_APP')
+    client_id = sso.get_app_client_id(args.appid)
+    if (client_id == None):
+        client_id = sso.create_app(args.appid, redirect)
+        assert client_id
+    
     code = sso.get_oauth_code(client_id, redirect)
-    token = sso.get_oauth_token(client_id, code, redirect)
+    if (code == None):
+        print('Could not retrieve access code')
+        sys.exit(1)
 
-    with open('token_data.json', 'w') as outfile:
-        json.dump(token, outfile)
+    token = sso.get_oauth_token(client_id, code, redirect)
+    if (token == None):
+        print('Could not retrieve token')
+        sys.exit(1)
+
+    with open(args.outfile, 'w') as outfile:
+        json.dump(token, outfile, indent=4)
+        outfile.write('\n')
