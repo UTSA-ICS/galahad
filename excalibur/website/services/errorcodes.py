@@ -272,6 +272,10 @@ class ErrorCodes():
                 'This Role cannot be created because it violates a unique constraint.'
             ]
         },
+        'NoApplicationId': {
+            'status': 'failed',
+            'result': [15, 'No Application Id specified in the role, One or more Application Ids are required.']
+        },
         'storageError': {
             'status': 'failed',
             'result': [10, 'There was an error trying to store the object.']

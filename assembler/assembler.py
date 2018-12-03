@@ -1,25 +1,28 @@
 # Copyright (c) 2018 by Star Lab Corp.
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-import os, sys, shutil
-import json, time
+import os
+import shutil
 import subprocess
-from urlparse import urlparse
-import boto3
+import time
 from collections import OrderedDict
 
+import boto3
+from stages.actuator import ActuatorStage
+from stages.apt import AptStage
 from stages.core.ci_stage import CIStage
 from stages.core.ssh_stage import SSHStage
-
 from stages.kernel import KernelStage
-from stages.shutdown import ShutdownStage
-from stages.user import UserStage
-from stages.apt import AptStage
-from stages.virtued import DockerVirtueStage
-from stages.transducer_install import TransducerStage
 from stages.merlin import MerlinStage
-from stages.actuator import ActuatorStage
 from stages.processkiller import ProcessKillerStage
+from stages.shutdown import ShutdownStage
+from stages.transducer_install import TransducerStage
+from stages.user import UserStage
+from stages.virtued import DockerVirtueStage
+from urlparse import urlparse
+
+AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
+RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 
 class Assembler(object):
 
@@ -29,9 +32,9 @@ class Assembler(object):
     NAME = ''
 
     def __init__(self,
-                 es_node='https://172.30.1.46:9200',
+                 es_node='https://{}:9200'.format(AGGREGATOR_HOSTNAME),
                  syslog_server='172.30.128.131',
-                 rethinkdb_host='172.30.1.45',
+                 rethinkdb_host=RETHINKDB_HOSTNAME,
                  work_dir='tmp'):
         self.elastic_search_node = es_node
         self.elastic_search_host = urlparse(es_node).hostname
@@ -138,7 +141,7 @@ class Assembler(object):
                 vmname,
                 build_options['aws_disk_size'])
             print("New instance id: %s" % (instance.id))
-            ssh_host = instance.public_ip_address
+            ssh_host = instance.private_ip_address
             print("New instance ip: %s" % (ssh_host))
             ssh_port = '22'
         print("Waiting for VM to start...")
@@ -217,7 +220,8 @@ class Assembler(object):
                             'software-properties-common',
                             'openssh-server',
                             'auditd',
-                            'dkms'])
+                            'dkms',
+                            'psmisc'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
@@ -262,8 +266,9 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
+            # Disable merlin until the virtue-id is populated
             subprocess.check_call(['chroot', mount_path,
-                                   'systemctl', 'enable', 'merlin'])
+                                   'systemctl', 'disable', 'merlin'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -456,9 +461,6 @@ class Assembler(object):
         stage_dict[UserStage.NAME] = UserStage(WORK_DIR)
         stage_dict[AptStage.NAME] = AptStage(WORK_DIR)
 
-        if not os.path.exists(WORK_DIR):
-            os.makedirs(WORK_DIR)
-
         for stage in stage_dict:
             if isinstance(stage_dict[stage], CIStage):
                 self.run_stage(stage_dict, stage)
@@ -574,14 +576,26 @@ class Assembler(object):
 
         return return_data
 
-    def assemble_running_vm(self, containers, docker_login,
-                            ssh_host, ssh_port='22'):
+    def assemble_running_vm(self, containers, docker_login, key_path,
+                            ssh_host, ssh_port = '22', clean=True):
+
+        if os.path.exists(self.work_dir) and os.listdir(self.work_dir) != []:
+            print("Cleaning working directory...")
+            shutil.rmtree(self.work_dir)
+
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
+
+        shutil.copy(key_path, self.work_dir + '/id_rsa')
 
         docker_stage = DockerVirtueStage(docker_login, containers, ssh_host,
                                          str(ssh_port), self.work_dir,
                                          check_cloudinit=False)
 
         docker_stage.run()
+
+        if clean:
+            shutil.rmtree(self.work_dir)
 
 
     def provision_virtue(self,
@@ -606,6 +620,13 @@ class Assembler(object):
             with open(image_mount + '/etc/virtue-id', 'w') as id_file:
                 id_file.write(virtue_id)
 
+            with open(image_mount + '/etc/virtue-id-env', 'w') as id_file:
+                id_file.write("VIRTUE_ID=" + str(virtue_id))
+
+            # Enable merlin since virtue-id is now available
+            subprocess.check_call(['chroot', image_mount,
+                                   'systemctl', 'enable', 'merlin'])
+    
             if (not os.path.exists(image_mount + '/var/private/ssl')):
                 os.makedirs(image_mount + '/var/private/ssl')
 
@@ -627,22 +648,6 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 500)
                     os.chmod(os.path.join(path, d), 0o700)
-
-            subprocess.check_call(['chroot', image_mount,
-                                   'sed', '-i', '/.*rethinkdb.*/d', '/etc/hosts'])
-
-            with open(image_mount + '/etc/hosts', 'a') as hosts_file:
-                hosts_file.write('172.30.1.45 rethinkdb.galahad.com\n')
-                hosts_file.write('172.30.1.46 elasticsearch.galahad.com\n')
-
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's/host:.*/host: elasticsearch.galahad.com/',
-                '/etc/syslog-ng/elasticsearch.yml'])
-            subprocess.check_call([
-                'chroot', image_mount, 'sed', '-i',
-                's!cluster-url.*!cluster-url\("https\:\/\/elasticsearch.galahad.com:9200"\)!',
-                '/etc/syslog-ng/syslog-ng.conf'])
 
         except:
             os.remove(output_path)

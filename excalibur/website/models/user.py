@@ -38,7 +38,8 @@ class User(Base):
         print('WAT    : query_name')
         self.conn = LDAP(self.email, password)
         if self.conn.bind_ad():
-            r = self.conn.query_ad('userPrincipalName', self.email)
+            cn = self.email.split("@")[0]
+            r = self.conn.query_ad('sAMAccountName', cn)
         else:
             print('WAT    : query_name bind error')
         self.name = r['cn'][0]

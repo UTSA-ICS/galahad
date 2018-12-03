@@ -141,7 +141,7 @@ class EndPoint_Admin():
         self,
         role,
         use_ssh=True,
-        hard_code_path='images/unities/8GB.img'):
+        hard_code_path='images/unities/4GB.img'):
 
         # TODO: Assemble on a running VM
 
@@ -163,6 +163,9 @@ class EndPoint_Admin():
                     or type(role['startingResourceIds']) != list
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if not role['applicationIds']:
+                return json.dumps(ErrorCodes.admin['NoApplicationId'])
 
             for a in role['applicationIds']:
                 app_test = self.inst.get_obj(

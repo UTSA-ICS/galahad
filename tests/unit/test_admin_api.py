@@ -163,6 +163,7 @@ def test_role_calls():
     }
 
     bad_role_1 = {
+        'id': 'NotRelevant',
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird'],
         'startingResourceIds': ['fileshare1'],
@@ -205,6 +206,15 @@ def test_role_calls():
         'startingTransducerIds': ['DoesNotExist']
     }
 
+    bad_role_6 = {
+        'id': 'NotRelevant',
+        'name': 'browsing',
+        'version': '1.0',
+        'applicationIds': [],
+        'startingResourceIds': ['fileshare1'],
+        'startingTransducerIds': ['DoesNotExist']
+    }
+
     assert json.dumps(ErrorCodes.admin['invalidFormat']) == ep.role_create(
         bad_role_1, use_ssh=False)
     assert json.dumps(ErrorCodes.admin['invalidFormat']) == ep.role_create(
@@ -220,6 +230,10 @@ def test_role_calls():
     assert json.dumps(
         ErrorCodes.admin['invalidTransducerId']) == ep.role_create(
             bad_role_5, use_ssh=False)
+
+    assert json.dumps(
+        ErrorCodes.admin['NoApplicationId']) == ep.role_create(
+            bad_role_6, use_ssh=False)
 
     result_role_json = ep.role_create(good_role, use_ssh=False)
 

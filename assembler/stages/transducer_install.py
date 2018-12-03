@@ -56,7 +56,6 @@ apt update && apt install syslog-ng-core=3.14.1-3 curl git -y
         systemctl enable syslog-ng
         systemctl restart syslog-ng
 
-        echo 172.30.1.45 rethinkdb.galahad.com >> /etc/hosts
         rm runme.sh
         '''
 
