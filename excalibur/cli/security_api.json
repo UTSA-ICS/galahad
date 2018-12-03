@@ -1,6 +1,6 @@
 {
-    "api_name": "user",
-    "base_url": "https://{0}:5002/virtue/user",
+    "api_name": "security",
+    "base_url": "https://{0}:5002/virtue/security",
     "commands": [ 
         {
             "command" : "security api config",
