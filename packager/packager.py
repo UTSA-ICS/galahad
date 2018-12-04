@@ -367,7 +367,7 @@ class Packager():
                     '{0}/import_app_config'.format(admin_url),
                     params={
                         'username': username,
-                        'roleId': role['id'],
+                        'roleId': import_role['id'],
                         'applicationId': app_id,
                         'zipData': zip_data
                     })
@@ -408,7 +408,7 @@ class Packager():
             '{0}/user/virtue/launch'.format(self.base_url),
             params={'virtueId': virtue['id']})
 
-        print(response.json())
+        self.is_error(response.json())
 
         running_transducer_ids = self.session.get(
             '{0}/transducer/list_enabled'.format(security_url),
@@ -441,6 +441,7 @@ class Packager():
     def is_error(response):
 
         if (type(response) == list
+            and len(response) > 1
             and type(response[0]) == int
             and type(response[1]) == str):
 
@@ -538,11 +539,6 @@ class Packager():
         best_fit_role = None
         for role in roles:
 
-            if (best_fit_role):
-                print(best_fit_role['id'])
-            else:
-                print('None')
-
             role['appNames'] = []
             for app_id in role['applicationIds']:
                 role['appNames'].append(app_id_to_name[app_id])
@@ -582,8 +578,6 @@ class Packager():
 
         if (best_fit_role != None):
             del best_fit_role['appNames']
-
-        print('Matching role: {0}'.format(best_fit_role['id']))
 
         return best_fit_role
 
