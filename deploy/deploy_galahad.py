@@ -403,6 +403,10 @@ class Excalibur():
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
+        # Call the setup_bft.sh script for Blue Force Tracker installation and config.
+        _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+
         self.setup_aws_instance_info()
 
         # Setup the transducer heartbeat Listener and Start it
@@ -445,6 +449,10 @@ class Excalibur():
         # Setup the EFS mount and populate Valor config files
         _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
+
+        # Start the Blue Force Tracker
+        _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd8)
 
     def setup_aws_instance_info(self):
         aws_instance_info = {}

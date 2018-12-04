@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const express = require('express');
 const app = express();
 
@@ -102,7 +104,7 @@ var syslog_index = function() {
     if (month < 10) {
         month = '0' + month;
     }
-    var day = d.getDay();
+    var day = d.getDate();
     if (day < 10) {
         day = '0' + day;
     }
