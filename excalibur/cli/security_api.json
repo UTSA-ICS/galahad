@@ -6,7 +6,9 @@
             "command" : "security api config",
             "help": "Load a config file configuration",
             "url": "/api_config",
-            "parameters": []
+            "parameters": [
+                 { "name": "Configuration File", "url_name": "configuration", "is_file": true }
+            ]
         },
         {
             "command" : "transducer list",
