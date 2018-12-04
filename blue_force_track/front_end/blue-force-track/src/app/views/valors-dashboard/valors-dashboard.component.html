@@ -1,7 +1,7 @@
 <h1 class="h2">Valors Dashboard</h1>
 <tr>
   <td width="290px" align="center">
-    <ngx-charts-line-chart
+    <!--ngx-charts-line-chart
       [view]="lineView"
       [scheme]="lineColorScheme"
       [results]="lineData"
@@ -15,7 +15,7 @@
       [yAxisLabel]="lineYAxisLabel"
       [autoScale]="autoScale"
       (select)="onSelect($event)">
-    </ngx-charts-line-chart>
+    </ngx-charts-line-chart-->
   </td>
   <td width="290px" align="center">
     <ngx-charts-bar-vertical
@@ -34,13 +34,13 @@
     </ngx-charts-bar-vertical>
   </td>
 </tr>
-<ngx-charts-linear-gauge
+<!--ngx-charts-linear-gauge
   [view]="gaugeView"
   [scheme]="gaugeColorScheme"
   [value]="gaugeValue"
   [previousValue]="gaugePreviousValue"
   [units]="gaugeUnits">
-</ngx-charts-linear-gauge>
+</ngx-charts-linear-gauge-->
 
 
 <p-table [value]="tableData" [columns]="cols" dataKey="id">

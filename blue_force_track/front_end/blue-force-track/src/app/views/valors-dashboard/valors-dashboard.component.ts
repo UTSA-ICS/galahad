@@ -128,35 +128,12 @@ export class ValorsDashboardComponent implements OnInit {
     this.data.getVirtuesPerValor().subscribe(
       response => (
         this.barData = this.buildBarData(response)
-      ));
-
-    // this.barData = [
-    //   {
-    //     name: 'Valor_1',
-    //     value: 12
-    //   },
-    //   {
-    //     name: 'Valor_2',
-    //     value: 9
-    //   },
-    //   {
-    //     name: 'Valor_3',
-    //     value: 4
-    //   }
-    // ];
+      )
+    );
 
     this.data.getValors().subscribe(
-      valors => this.tableData = valors);
-
-    // this.tableData = [
-    //   {
-    //     guestnet: '10.91.0.2',
-    //     ip: '123.456.789.100',
-    //     virtues: ['Virtue_SecurityTestRole_1539878119', 'Virtue_2', 'Virtue_3', 'Virtue_4'],
-    //     host: 'i-0a98b06ad8713543e',
-    //     id: '75be6c83-89d5-4733-927b-4919b9be69a1'
-    //   }
-    // ];
+      valors => this.tableData = valors
+    );
 
     this.gaugeValue = 67;
     this.gaugePreviousValue = 85;

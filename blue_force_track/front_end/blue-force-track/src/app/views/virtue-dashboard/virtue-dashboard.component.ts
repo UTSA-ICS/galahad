@@ -9,6 +9,26 @@ import {Virtue} from '../../models/Virtue';
 })
 export class VirtueDashboardComponent implements OnInit {
 
+  // Line Graph Config
+  lineData: any[];
+  lineView: any[] = [700, 400];
+
+  // options
+  lineShowXAxis = true;
+  lineShowYAxis = true;
+  lineGradient = false;
+  lineShowLegend = true;
+  lineShowXAxisLabel = true;
+  lineXAxisLabel = 'Time';
+  lineShowYAxisLabel = true;
+  lineYAxisLabel = '# Events in Time Range';
+
+  lineColorScheme = {
+    domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
+  };
+
+  // line, area
+  autoScale = true;
   // Bar chat config
   barData: any[];
   barView: any[] = [700, 400];
@@ -29,13 +49,11 @@ export class VirtueDashboardComponent implements OnInit {
 
   // Table Config
   cols = [
-    { field: 'dn', header: 'Domain Name' },
-    { field: 'cusername', header: 'Username' },
-    { field: 'ou', header: 'Organizational Unit' },
+    { field: 'cid', header: 'Id'},
     { field: 'cipAddress', header: 'IP Address' },
     { field: 'cstate', header: 'State' },
-    { field: 'croleId', header: 'Role ID' },
-    { field: 'cid', header: 'Id'}
+    { field: 'cusername', header: 'Username' },
+    { field: 'croleId', header: 'Role ID' }
   ];
 
   tableData: Virtue[];
@@ -48,28 +66,27 @@ export class VirtueDashboardComponent implements OnInit {
         this.barData = this.buildBarData(response)
       ));
 
-    // this.barData = [
-    //   {
-    //     name: 'Virtue_1',
-    //     value: '4'
-    //   },
-    //   {
-    //     name: 'Virtue_2',
-    //     value: '6'
-    //   },
-    //   {
-    //     name: 'Virtue_3',
-    //     value: 0
-    //   },
-    //   {
-    //     name: 'Virtue_4',
-    //     value: 31
-    //   }
-    // ];
+    this.updateLineGraph(null);
 
     this.dataService.getVirtues().subscribe(
       virtues => (
         this.tableData = this.parseArray(virtues)));
+  }
+
+  updateLineGraph(virtue: string): any {
+    if (virtue) {
+      this.dataService.getMessagesPerType(virtue, "day").subscribe(
+        response => (
+          this.lineData = this.buildLineData(response)
+        )
+      );
+    } else {
+      this.dataService.getMessagesPerVirtue("day").subscribe(
+        response => (
+          this.lineData = this.buildLineData(response)
+        )
+      );
+    }
   }
 
   private buildBarData(response: any): any {
@@ -82,6 +99,36 @@ export class VirtueDashboardComponent implements OnInit {
         data.push(obj);
       }
     }
+    return data;
+  }
+
+  private buildLineData(response: any): any {
+    const data = [];
+    // TODO
+
+/*
+
+    this.lineData = [
+      {
+        name: "Valor 1",
+        series: [
+          {
+            "name": "20 Oct",
+            "value": 21
+          },
+          {
+            "name": "21 Oct",
+            "value": 27
+          },
+          {
+            name: '22 Oct',
+            value: 19
+          }
+        ]
+      },
+
+*/
+
     return data;
   }
 

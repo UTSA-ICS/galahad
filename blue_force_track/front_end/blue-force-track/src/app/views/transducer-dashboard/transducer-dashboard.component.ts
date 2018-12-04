@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import {DataService} from '../../services/data.service';
 
 @Component({
   selector: 'app-transducer-dashboard',
@@ -9,31 +10,23 @@ export class TransducerDashboardComponent implements OnInit {
 
   // Table Config
   cols = [
-    { field: 'dn', header: 'Domain Name' },
-    { field: 'name', header: 'Username' },
-    { field: 'ou', header: 'Organizational Unit' },
-    { field: 'cstartEnabled', header: 'Organizational Unit' },
-    { field: 'ctype', header: 'Organizational Unit' },
-    { field: 'cid', header: 'Id' }
+    { field: 'name', header: 'Name' },
+    { field: 'cid', header: 'ID' },
+    { field: 'ctype', header: 'Type' },
+    { field: 'cstartEnabled', header: 'Start as Enabled' },
+    { field: 'cstartConfig', header: 'Starting Config' },
+    { field: 'creqAccess', header: 'Resource Access' }
   ];
 
   tableData: any[];
 
-  constructor() { }
+  constructor(private dataService: DataService) { }
 
   ngOnInit() {
-    this.tableData = [
-      {
-        dn: 'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
-        ou: 'virtue',
-        cid: 'path_mkdir',
-        name: 'Directory Creation',
-        cstartEnabled: 'RUNNING',
-        ctype: 'SecurityTestRole1539876260',
-        crecAccess: [],
-        cstartConfig: '{}'
-      }
-    ];
+    this.dataService.getTransducers().subscribe(
+      transducers => (
+        this.tableData = transducers
+      ));
   }
 
 }

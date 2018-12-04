@@ -29,7 +29,6 @@ export class UserDashboardComponent implements OnInit {
 
   // Table Config
   cols = [
-    { field: 'dn', header: 'Domain Name' },
     { field: 'cusername', header: 'Username' },
     { field: 'ou', header: 'Organizational Unit' }
   ];
@@ -40,19 +39,15 @@ export class UserDashboardComponent implements OnInit {
 
   ngOnInit() {
 
+    this.dataService.getVirtuesPerRole().subscribe(
+      response => (
+        this.barData = this.buildBarData(response)
+      ));
+
     this.dataService.getUsers().subscribe(
       users => (
          this.tableData = this.parseArrays(users)
       ));
-
-    // this.tableData = [
-    //   {
-    //     dn: 'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
-    //     ou: 'virtue',
-    //     cauthRoleIds: ['SecurityTestRole1539876260', 'Role_2', 'Role_3', 'Role_4'],
-    //     cusername: 'fpatwa'
-    //   }
-    // ];
 
     this.barData = [
       {
@@ -60,6 +55,19 @@ export class UserDashboardComponent implements OnInit {
         value: 4
       }
     ];
+  }
+
+  private buildBarData(response: any): any {
+    const data = [];
+    for (const key in response) {
+      if (response.hasOwnProperty(key)) {
+        const obj = {};
+        obj['name'] = key;
+        obj['value'] = response[key];
+        data.push(obj);
+      }
+    }
+    return data;
   }
 
   private parseArrays(users: User[]): User[] {

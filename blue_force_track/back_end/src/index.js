@@ -6,6 +6,9 @@ const fs = require('fs');
 
 const AWS = require('aws-sdk');
 
+//app.use(express.static(path.join(__dirname, 'front_end')))
+app.use(express.static('front_end'))
+
 // Connect to OpenLDAP (http://ldapjs.org/client.html)
 var ldap = require('ldapjs');
 var ldapClient = ldap.createClient({
@@ -19,14 +22,14 @@ ldapClient.bind('cn=jmitchell,ou=People,dc=canvas,dc=virtue,dc=com', 'Test123!',
 // Connect to Elasticsearch
 var elasticsearch = require('elasticsearch');
 
-// TODO: figure out why using the cert doesn't work
+// TODO: Connect with certs
 var esClient = new elasticsearch.Client({
-    hosts: ['https://elasticsearch.galahad.com:9200'],
+    hosts: ['https://aggregator.galahad.com:9200'],
     httpAuth: 'admin:admin',
     ssl:{
-        ca: fs.readFileSync('/galahad-config/elasticsearch_keys/ca.pem'),
-        //cert: fs.readFileSync('/galahad-config/elasticsearch_keys/kirk.crtfull.pem'),
-        //key: fs.readFileSync('/galahad-config/elasticsearch_keys/kirk.key.pem'),
+        ca: fs.readFileSync('/home/ubuntu/galahad-config/elasticsearch_keys/ca.pem'),
+        //cert: fs.readFileSync('galahad-config/elasticsearch_keys/kirk.crtfull.pem'),
+        //key: fs.readFileSync('galahad-config/elasticsearch_keys/kirk.key.pem'),
         rejectUnauthorized: true
     },
     apiVersion: '5.3'
@@ -42,9 +45,9 @@ r.connect({
     host: 'rethinkdb.galahad.com', 
     port: 28015, 
     //user: 'excalibur', 
-    //password: fs.readFileSync('/galahad-config/excalibur_private_key.pem'),
+    //password: fs.readFileSync('/home/ubuntu/galahad-config/excalibur_private_key.pem'),
     //user: 'admin', password: 'admin',
-    ssl:  { ca: fs.readFileSync('/galahad-config/rethinkdb_keys/rethinkdb_cert.pem') }
+    ssl:  { ca: fs.readFileSync('/home/ubuntu/galahad-config/rethinkdb_keys/rethinkdb_cert.pem') }
 }, function(err, conn) {
     if (err) throw err;
     rdbConn = conn;
@@ -66,7 +69,7 @@ app.get('/elasticsearch', (req, res) => {
     res.send('es')
 });
 
-// TODO: testing cloudwatch, doesn't work yet
+// TODO: Cloudwatch test - doesn't work yet
 /*
 myConfig = new AWS.Config();
 myConfig.update({region: 'us-east-1'});
@@ -109,7 +112,7 @@ var syslog_index = function() {
 app.get('/number_messages', (req, res) => {
     esClient.count({ index: syslog_index }, function(error, result) {
         if (error) {
-            console.error('elasticsearch cluster is down! ' + error);
+            console.error('ElasticSearch error: ' + error);
         } else {
             res.send(result);
         }
@@ -124,7 +127,7 @@ app.get('/all_messages', (req, res) => {
         }
     }, function(error, result) {
         if (error) {
-            console.error('elasticsearch cluster is down! ' + error);
+            console.error('ElasticSearch error: ' + error);
         } else {
             res.send(result);
         }
@@ -171,7 +174,7 @@ app.get('/messages_per_virtue/:timerange', (req, res) => {
         }
     }, function(error, result) {
         if (error) {
-            console.error('elasticsearch cluster is down! ' + error);
+            console.error('ElasticSearch error: ' + error);
         } else {
             res.send(result);
         }
@@ -225,7 +228,7 @@ app.get('/messages_per_virtue_per_type/:timerange', (req, res) => {
         }
     }, function(error, result) {
         if (error) {
-            console.error('elasticsearch cluster is down! ' + error);
+            console.error('ElasticSearch error: ' + error);
         } else {
             res.send(result);
         }
@@ -269,7 +272,7 @@ app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
         }
     }, function(error, result) {
         if (error) {
-            console.error('elasticsearch cluster is down! ' + error);
+            console.error('ElasticSearch error: ' + error);
         } else {
             res.send(result);
         }
@@ -279,31 +282,31 @@ app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
 app.get('/virtues_per_valor', (req, res) => {
     query_rethinkdb('galahad', function(results_g) {
         //res.send(results);
-        valors = [];
+        valors = {};
         virtues = {};
         for (var i = 0; i < results_g.length; i++) {
-            if (results_g[i]['function'] === 'valor') {
-                results_g[i]['virtues'] = [];
-                valors.push(results_g[i]);
-            } else if (results_g[i]['function'] === 'virtue') {
-                virtues[results_g[i]['id']] = results_g[i];
+            element = results_g[i]
+            if (element['function'] === 'valor') {
+                element['virtues'] = [];
+                valors[element['id']] = element;
+            } else if (element['function'] === 'virtue') {
+                virtues[element['virtue_id']] = element;
             }
         }
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
-                if ('history' in results_c[i]) {
-                    valor_id = results_c[i]['history'][0]['valor'];
-                    for (var j = 0; j <  valors.length; j++) {
-                        if (valors[j]['id'] === valor_id) {
-                            valors[j]['virtues'].push(virtues[results_c[i]['virtue_id']]['host']);
-                        }
+                element = results_c[i];
+                if ('history' in element) {
+                    valor_id = element['history'][0]['valor'];
+                    if (valor_id in valors) {
+                        valors[valor_id]['virtues'].push(element['virtue_id']);
                     }
                 }
             }
             num_virtues_per_valor = {}
-            for (var i = 0; i < valors.length; i++) {
-                valor_id = valors[i]['address'];
-                num_virtues_per_valor[valor_id] = valors[i]['virtues'].length;
+            for (valor_id in valors) {
+                valor = valors[valor_id];
+                num_virtues_per_valor[valor['address']] = valor['virtues'].length;
             }
             res.send(num_virtues_per_valor);
         });
@@ -357,28 +360,28 @@ app.get('/valors', (req, res) => {
 
 function valors_to_virtues(callback) {
     query_rethinkdb('galahad', function(results_g) {
-        valors = [];
+        valors = {};
         virtues = {};
         for (var i = 0; i < results_g.length; i++) {
-            if (results_g[i]['function'] === 'valor') {
-                results_g[i]['virtues'] = [];
-                valors.push(results_g[i]);
-            } else if (results_g[i]['function'] === 'virtue') {
-                virtues[results_g[i]['id']] = results_g[i];
+            element = results_g[i]
+            if (element['function'] === 'valor') {
+                element['virtues'] = [];
+                valors[element['id']] = element;
+            } else if (element['function'] === 'virtue') {
+                virtues[element['virtue_id']] = element;
             }
         }
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
-                if ('history' in results_c[i]) {
-                    valor_id = results_c[i]['history'][0]['valor'];
-                    for (var j = 0; j <  valors.length; j++) {
-                        if (valors[j]['id'] === valor_id) {
-                            valors[j]['virtues'].push(virtues[results_c[i]['virtue_id']]['host']);
-                        }
+                element = results_c[i];
+                if ('history' in element) {
+                    valor_id = element['history'][0]['valor'];
+                    if (valor_id in valors) {
+                        valors[valor_id]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
                     }
                 }
             }
-            callback(valors);
+            callback(Object.values(valors));
         });
     });
 }

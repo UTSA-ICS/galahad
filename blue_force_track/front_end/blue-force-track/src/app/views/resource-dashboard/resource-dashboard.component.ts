@@ -10,12 +10,10 @@ export class ResourceDashboardComponent implements OnInit {
 
   // Table Config
   cols = [
-    { field: 'dn', header: 'Domain Name' },
-    { field: 'ou', header: 'Organizational Unit' },
-    { field: 'ccredentials', header: 'Credentials' },
-    { field: 'cunc', header: 'Path' },
+    { field: 'cid', header: 'Id'},
     { field: 'ctype', header: 'Type' },
-    { field: 'cid', header: 'Id'}
+    { field: 'cunc', header: 'Path' },
+    { field: 'ccredentials', header: 'Credentials' }
   ];
 
   tableData: any[];
@@ -27,17 +25,6 @@ export class ResourceDashboardComponent implements OnInit {
       resources => (
         this.tableData = resources
       ));
-
-    // this.tableData = [
-    //   {
-    //     dn: '"cid=fileshare1,cn=resources,ou=virtue,dc=canvas,dc=virtue,dc=com"',
-    //     ou: 'virtue',
-    //     cid: 'fileshare1',
-    //     ccredentials: 'token',
-    //     cunc: '//172.30.1.250/VirtueFileShare',
-    //     ctype: 'DRIVE'
-    //   }
-    // ];
   }
 
 }
