@@ -709,6 +709,65 @@ def admin_virtue_destroy():
     return make_response(ret)
 
 
+@bp.route('/admin/galahad/get/id', methods=['GET'])
+@require_oauth()
+def admin_galahad_get_id():
+
+    ret = ''
+
+    try:
+        # Outputs this Galahad system's ID
+        ep = get_admin_endpoint()
+        ret = ep.galahad_get_id()
+        log_to_elasticsearch('Get Galahad ID', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error: " + sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/export_app_config', methods=['GET'])
+@require_oauth()
+def admin_application_export_config():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.export_app_config(request.args['username'],
+                                   request.args['roleId'],
+                                   request.args['applicationId'])
+        log_to_elasticsearch('Export app config', extra={'user': get_user(), 'username': request.args['username'], 'roleId': request.args['roleId'], 'applicationId': request.args['applicationId']}, ret=json.dumps(ErrorCodes.admin['success']), func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/import_app_config', methods=['GET'])
+@require_oauth()
+def admin_application_import_config():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.import_app_config(request.args['username'],
+                                   request.args['roleId'],
+                                   request.args['applicationId'],
+                                   request.args['zipData'])
+        log_to_elasticsearch('Import app config', extra={'user': get_user(), 'username': request.args['username'], 'roleId': request.args['roleId'], 'applicationId': request.args['applicationId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 ################ Security API ##################
 
 

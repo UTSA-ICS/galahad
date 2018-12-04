@@ -1,9 +1,13 @@
+import os
+import shutil
 import json
 import random
 import time
 import copy
 import traceback
 import subprocess
+import base64
+from zipfile import ZipFile
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -606,3 +610,79 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def galahad_get_id(self):
+
+        try:
+
+            instance_data = AWS.get_instance_info()
+            return json.dumps(instance_data['instance-id'])
+
+        except Exception as e:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
+    def export_app_config(self, username, roleId, applicationId):
+
+        # TODO: Return proper error codes in certain failure scenarios
+        #     like bad username, roleId, or appId
+        try:
+
+            target_config_path = '{0}/config/{1}/{2}'.format(
+                os.environ['HOME'],
+                username,
+                roleId)
+
+            if (not os.path.isdir(target_config_path)):
+                return json.dumps([201, "Config doesn't exist"])
+
+            zip_filename = str(time.time())
+
+            # Need to create a temporary zip file on disk to re-read.
+            shutil.make_archive('/tmp/' + zip_filename,
+                                'zip',
+                                target_config_path,
+                                applicationId)
+
+            with open('/tmp/{0}.zip'.format(zip_filename), 'r') as f:
+                zip_data = base64.b64encode(f.read())
+
+            os.remove('/tmp/{0}.zip'.format(zip_filename))
+
+            return json.dumps(zip_data)
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
+    def import_app_config(self, username, roleId, applicationId, zip_data):
+
+        leave_unmentioned_files = True
+
+        # TODO: Return proper error codes in certain failure scenarios
+        #     like bad username, roleId, or appId
+        try:
+
+            zip_filename = str(time.time())
+
+            with open('/tmp/' + zip_filename, 'wb') as f:
+                f.write(base64.b64decode(zip_data))
+
+            with ZipFile('/tmp/' + zip_filename) as zip_file:
+
+                if (not os.path.commonprefix(zip_file.namelist()).startswith(applicationId)):
+                    return json.dumps([200, 'Bad zip file'])
+
+                zip_file.extractall(os.environ['HOME'] + '/config/{0}/{1}'.format(username, roleId))
+
+            os.remove('/tmp/{0}'.format(zip_filename))
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
