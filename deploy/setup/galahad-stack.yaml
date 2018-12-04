@@ -290,6 +290,8 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Canvas'
+    DependsOn:
+      - VirtUEValorEFSTarget
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
