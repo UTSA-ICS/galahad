@@ -437,6 +437,12 @@ class Packager():
                         'configuration': json.dumps(t['config'])}).json()
             self.is_error(response)
 
+        response = self.session.get(
+            '{0}/user/virtue/stop'.format(self.base_url),
+            params={'virtueId': virtue['id']})
+
+        self.is_error(response.json())
+
     @staticmethod
     def is_error(response):
 
