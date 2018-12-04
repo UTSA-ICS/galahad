@@ -151,20 +151,9 @@ class Assembler(object):
 
     def construct_img(self, build_options, work_dir, payload_dir):
 
-        #assert 'img_size' in build_options.keys()
         assert 'base_img' in build_options.keys()
 
         # Create image
-        img_name = 'Unity' + str(int(time.time()))
-        #subprocess.check_call(['xen-create-image',
-        #                       '--hostname=' + img_name,
-        #                       '--dhcp',
-        #                       '--dir=' + work_dir,
-        #                       '--dist=xenial',
-        #                       '--vcpus=1',
-        #                       '--memory=1024MB',
-        #                       '--genpass=0',
-        #                       '--size={0}GB'.format(build_options['img_size'])])
         shutil.copy(build_options['base_img'],
                     work_dir + '/disk.img')
 
@@ -227,9 +216,12 @@ class Assembler(object):
             # Install all .deb packages with dpkg --root
             merlin_file_path = os.path.join(real_HOME, 'galahad',
                                             'transducers')
+            processkiller_file_path = os.path.join(real_HOME, 'galahad',
+                                            'transducers')
             kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
             merlin_files = ['merlin.deb']
+            processkiller_files = ['processkiller.deb']
             kernel_files = [
                 'linux-headers-4.13.0-46_4.13.0-46.51+unity1_all.deb',
                 'linux-headers-4.13.0-46-generic_4.13.0-46.51+unity1_amd64.deb',
@@ -239,6 +231,9 @@ class Assembler(object):
             files = []
             for f in merlin_files:
                 f = os.path.join(merlin_file_path, f)
+                files.append(f)
+            for f in processkiller_files:
+                f = os.path.join(processkiller_file_path, f)
                 files.append(f)
             for f in kernel_files:
                 f = os.path.join(kernel_file_path, f)
@@ -269,6 +264,10 @@ class Assembler(object):
             # Disable merlin until the virtue-id is populated
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'disable', 'merlin'])
+
+            # Enable processkiller
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'processkiller'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -324,13 +323,17 @@ class Assembler(object):
             shutil.copy(ssh_key_path,
                         mount_path + '/home/merlin/.ssh/authorized_keys')
 
+            # Copy the certs required for connection to elasticsearch
+            # These certs will be used by syslog-ng service
+            # Copy the certs from galahad-keys dir.
+            shutil.copy(os.path.join(real_HOME,'galahad-keys') + '/kirk-keystore.jks',
+                        mount_path + '/home/virtue')
+            shutil.copy(os.path.join(real_HOME,'galahad-keys') + '/truststore.jks',
+                        mount_path + '/home/virtue')
+
             # Install Transducers
             # Copy payload/* to mount_path + '/home/virtue'
             shutil.copy(payload_dir + '/transducer-module.tar.gz',
-                        mount_path + '/home/virtue')
-            shutil.copy(payload_dir + '/kirk-keystore.jks',
-                        mount_path + '/home/virtue')
-            shutil.copy(payload_dir + '/truststore.jks',
                         mount_path + '/home/virtue')
             shutil.copy(payload_dir + '/sshd_config',
                         mount_path + '/home/virtue')
@@ -364,13 +367,9 @@ class Assembler(object):
             # Install Actuators
             actuator_file_path = os.path.join(payload_dir, 'actuators')
             actuator_files = ['netblock_actuator.deb']
-            processkiller_files = ['processkiller.deb']
             files = []
             for f in actuator_files:
                 f = os.path.join(actuator_file_path, f)
-                files.append(f)
-            for f in processkiller_files:
-                f = os.path.join(payload_dir, f)
                 files.append(f)
 
             dpkg_cmd = ['dpkg', '-i', '--force-all', '--root=' + mount_path]
@@ -395,8 +394,6 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
-            subprocess.check_call(['chroot', mount_path,
-                                   'systemctl', 'enable', 'processkiller'])
 
             # Install the unity-net service for Valor networking
             shutil.copy(payload_dir + '/unity-net.service',
