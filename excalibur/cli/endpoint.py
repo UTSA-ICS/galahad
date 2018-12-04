@@ -82,7 +82,7 @@ class Endpoint(object):
             if 'is_file' in param:
                 argument = param['url_name']
                 with open(params[argument], 'r') as param_file:
-                    params[argument] = json.load(param_file)
+                    params[argument] = param_file.read()
 
         # Print out the request parameters
         # print(json.dumps(params, indent=4))
