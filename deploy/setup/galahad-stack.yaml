@@ -255,7 +255,7 @@ Resources:
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-001116e564201bcb4
+      ImageId: ami-0e445010152f0abc4
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -356,7 +356,7 @@ Resources:
           su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
 
           # Download the docker images
-          ./docker-virtue/elastic/image_pull.sh
+          bash /home/ubuntu/docker-virtue/elastic/image_pull.sh
       Tags:
         - Key: Project
           Value: Virtue

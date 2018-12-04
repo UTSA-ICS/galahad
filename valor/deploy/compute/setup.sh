@@ -44,6 +44,12 @@ done
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
+    apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
+    DPKG_LOCK=$?
+done
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 1
     apt --assume-yes install -f
     DPKG_LOCK=$?
 done

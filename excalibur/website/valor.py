@@ -2,7 +2,6 @@ import os
 import time
 
 import boto3
-import botocore
 import rethinkdb
 from aws import AWS
 from boto.utils import get_instance_metadata
@@ -68,59 +67,6 @@ class Valor:
         self.client = None
         self.guestnet = None
         self.router_ip = None
-
-
-    def get_stack_name(self):
-
-        resource = boto3.resource('ec2')
-
-        meta_data = get_instance_metadata(timeout=0.5, num_retries=2)
-
-        myinstance = resource.Instance(meta_data['instance-id'])
-
-        # Find the Stack name in the instance tags
-        for tag in myinstance.tags:
-            if 'aws:cloudformation:stack-name' in tag['Key']:
-                return tag['Value']
-
-
-    def get_efs_mount(self):
-
-        stack_name = self.get_stack_name()
-
-        cloudformation = boto3.resource('cloudformation')
-        efs_stack = cloudformation.Stack(stack_name)
-
-        for output in efs_stack.outputs:
-
-            if output['OutputKey'] == 'FileSystemID':
-                file_system_id = output['OutputValue']
-
-        efs_name = '{}.efs.us-east-1.amazonaws.com'.format(file_system_id)
-
-        return file_system_id
-
-
-    def mount_efs(self):
-
-        efs_mount = self.get_efs_mount()
-
-        make_efs_mount_command = 'sudo mkdir -p /mnt/efs'
-
-        add_efs_mount_point_command = \
-            'sudo su - root -c "echo \\"{}:/ /mnt/efs nfs defaults 0 0\\" >> ' \
-            '/etc/fstab"'.format(efs_mount)
-
-        mount_efs_command = 'sudo mount -a'
-
-        stdout = self.client.ssh(make_efs_mount_command, output=True)
-        print('[!] Valor.make_efs_dir : stdout : ' + stdout)
-
-        stdout = self.client.ssh(add_efs_mount_point_command, output=True)
-        print('[!] Valor.add_efs_mount : stdout : ' + stdout)
-
-        stdout = self.client.ssh(mount_efs_command, output=True)
-        print('[!] Valor.mount_efs : stdout : ' + stdout)
 
 
     def connect_with_ssh(self):
@@ -303,7 +249,6 @@ class ValorManager:
 
                        # Install System packages
                        apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
-                       apt-get -y install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
 
                        # Install pip packages
                        pip install rethinkdb

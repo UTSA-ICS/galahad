@@ -6,10 +6,17 @@ import time
 
 import integration_common
 
-# For common.py
+# For ssh_tool
 sys.path.insert(0, '..')
 
 from ssh_tool import ssh_tool
+
+file_path = os.path.realpath(__file__)
+base_excalibur_dir = os.path.dirname(
+    os.path.dirname(os.path.dirname(file_path))) + '/excalibur'
+sys.path.insert(0, base_excalibur_dir)
+
+from website.services.errorcodes import ErrorCodes
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
@@ -109,6 +116,17 @@ def test_list_transducers():
     transducers = json.loads(session.get(security_url + '/transducer/list').text)
     assert len(transducers) > 1
 
+def test_get():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(security_url + '/transducer/get', params={
+        'transducerId': 'path_mkdir'
+    }).text
+    transducer = json.loads(result)
+    assert 'id' in transducer
+    assert transducer['id'] == 'path_mkdir'
+
 def __get_elasticsearch_index():
     # A new index is created every day
     now = datetime.datetime.now()
@@ -161,10 +179,11 @@ def test_sensor_disable():
         __setup_virtue()
 
     # Disable a sensor transducer
-    session.get(security_url + '/transducer/disable', params={
+    response = session.get(security_url + '/transducer/disable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to receive and enfore the rule
     time.sleep(15)
@@ -197,11 +216,12 @@ def test_sensor_enable():
         __setup_virtue()
 
     # Enable a sensor transducer
-    session.get(security_url + '/transducer/enable', params={
+    response = session.get(security_url + '/transducer/enable', params={
         'transducerId': 'path_mkdir', 
         'virtueId': virtue_id,
         'configuration': '{}'
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to receive and enfore the rule
     time.sleep(15)
@@ -228,6 +248,44 @@ def test_sensor_enable():
     # Cleanup
     virtue_ssh.ssh('rm -r ' + dirname)
 
+# Make sure the get_enabled and get_config tests come after sensor_enable and sensor_disable or else
+# the results won't match.
+def test_get_enabled():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(security_url + '/transducer/get_enabled', params={
+        'transducerId': 'path_mkdir',
+        'virtueId': virtue_id
+    }).text
+    transducer = json.loads(result)
+    assert type(transducer) is dict
+    assert 'enabled' in transducer
+    assert transducer['enabled'] == True
+
+def test_get_config():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(security_url + '/transducer/get_configuration', params={
+        'transducerId': 'path_mkdir',
+        'virtueId': virtue_id
+    }).text
+    config = json.loads(result)
+    assert len(config) == 0
+
+def test_list_enabled():
+    if virtue_ssh is None:
+        __setup_virtue()
+
+    result = session.get(security_url + '/transducer/list_enabled', params={
+        'virtueId': virtue_id
+    }).text
+    transducers = json.loads(result)
+    assert type(transducers) is list
+    assert len(transducers) >= 1
+    assert type(transducers[0]) is not int
+
 def test_actuator_kill_proc():
     # Start a long-running process
     virtue_ssh.ssh('nohup yes &> /dev/null &')
@@ -236,11 +294,12 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('ps aux | grep yes | grep -v grep')
 
     # Kill the process via an actuator
-    session.get(security_url + '/transducer/enable', params={
+    response = session.get(security_url + '/transducer/enable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id,
         'configuration': '{"processes":["yes"]}'
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to propagate the rule
     time.sleep(15)
@@ -249,21 +308,23 @@ def test_actuator_kill_proc():
     virtue_ssh.ssh('! ( ps aux | grep yes | grep -v grep)')
 
     # Disable the actuator
-    session.get(security_url + '/transducer/disable', params={
+    response = session.get(security_url + '/transducer/disable', params={
         'transducerId': 'kill_proc',
         'virtueId': virtue_id
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
 def test_actuator_net_block():
     # Try contacting a server - let's pick 1.1.1.1 (the public DNS resolver) because its IP is easy
     assert virtue_ssh.ssh('wget 1.1.1.1 -T 20 -t 1') == 0
 
     # Block the server
-    session.get(security_url + '/transducer/enable', params={
+    response = session.get(security_url + '/transducer/enable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id,
         'configuration': '{"rules":["block_outgoing_dst_ipv4_1.1.1.1"]}'
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
     # Just in case, give it a few seconds to propagate the rule
     time.sleep(15)
@@ -272,10 +333,11 @@ def test_actuator_net_block():
     assert virtue_ssh.ssh('! (wget 1.1.1.1 -T 20 -t 1)') == 0
 
     # Unblock the server
-    session.get(security_url + '/transducer/disable', params={
+    response = session.get(security_url + '/transducer/disable', params={
         'transducerId': 'block_net',
         'virtueId': virtue_id
     })
+    assert response.text == json.dumps(ErrorCodes.security['success'])
 
 
 def teardown_module():
