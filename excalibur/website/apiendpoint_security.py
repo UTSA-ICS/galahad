@@ -26,13 +26,16 @@ class EndPoint_Security:
         if not hasattr(self.__class__, 'conn'):
             self.__class__.conn = None
 
+        # Set default paths - these are valid for a default excalibur setup
+        self.set_api_config({})
+
     # Not officially part of the API but necessary to set up paths correctly
     def set_api_config(self, config):
         # Default values
         self.__class__.rethinkdb_host = 'rethinkdb.galahad.com'
-        self.__class__.ca_cert = 'rethinkdb_cert.pem'
-        self.__class__.excalibur_key_file = 'excalibur_key.pem'
-        self.__class__.virtue_key_dir = '.'
+        self.__class__.ca_cert = '/var/private/ssl/rethinkdb_cert.pem'
+        self.__class__.excalibur_key_file = '/var/private/ssl/excalibur_private_key.pem'
+        self.__class__.virtue_key_dir = '/var/private/ssl'
         self.__class__.wait_for_ack = 30  # seconds
 
 
@@ -293,28 +296,31 @@ class EndPoint_Security:
         virtue = self.inst.get_obj('cid', virtueId, 'openLDAPvirtue', True)
         if virtue is None or virtue == ():
             return self.__error('invalidVirtueId')
+        ldap_tools.parse_ldap(virtue)
+        virtue_running = (virtue['state'] == 'RUNNING')
 
         # Change the ruleset
         ret = self.__change_ruleset(
-            virtueId, transducerId, transducerType, isEnable, config=configuration)
+            virtueId, transducerId, transducerType, isEnable, virtue_running, config=configuration)
         if ret != True:
             return ret
 
-        # Update the virtue's list of transducers
-        new_t_list = self.transducer_list_enabled(virtueId)
-        if type(new_t_list) is dict and new_t_list['status'] == 'failed':
-            # Couldn't retrieve new list of transducers
-            return self.__error(
-                'unspecifiedError',
-                details='Unable to update virtue\'s list of transducers')
-            
-        virtue['ctransIds'] = str(new_t_list)
-        ret = self.inst.modify_obj('cid', virtueId, virtue, 'OpenLDAPvirtue',
-                                   True)
-        if ret != 0:
-            return self.__error(
-                'unspecifiedError',
-                details='Unable to update virtue\'s list of transducers')
+        if virtue_running:
+            # Update the virtue's list of transducers
+            new_t_list = self.transducer_list_enabled(virtueId)
+            if type(new_t_list) is dict and new_t_list['status'] == 'failed':
+                # Couldn't retrieve new list of transducers
+                return self.__error(
+                    'unspecifiedError',
+                    details='Unable to update virtue\'s list of transducers')
+ 
+            virtue['ctransIds'] = str(new_t_list)
+            ret = self.inst.modify_obj('cid', virtueId, virtue, 'OpenLDAPvirtue',
+                                       True)
+            if ret != 0:
+                return self.__error(
+                    'unspecifiedError',
+                    details='Unable to update virtue\'s list of transducers')
 
         return True
 
@@ -379,7 +385,7 @@ class EndPoint_Security:
                 'Unable to validate signature of ACK message: ' + \
                 json.dumps(printable_msg, indent=2))
 
-    def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, config=None):
+    def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, virtue_running, config=None):
         if self.__class__.conn is None:
             ret = self.__connect_rethinkdb()
             # Return if error
@@ -420,6 +426,10 @@ class EndPoint_Security:
             return self.__error(
                 'unspecifiedError',
                 details='Failed to insert into commands table: ' + str(e))
+
+        # If the virtue isn't running yet, don't bother waiting for an ACK
+        if not virtue_running:
+            return True
 
         # Wait for ACK from the virtue that the ruleset has been changed
         #try:

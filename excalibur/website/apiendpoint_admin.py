@@ -8,6 +8,7 @@ import subprocess
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
+from apiendpoint_security import EndPoint_Security
 from controller import CreateVirtueThread, AssembleRoleThread
 from . import ldap_tools
 from aws import AWS
@@ -386,7 +387,7 @@ class EndPoint_Admin():
             user = None
             role = None
             resources = []
-            transducers = []
+            transducers = {}
             virtue_dict = {}
 
             user = self.inst.get_obj('cusername', username, 'OpenLDAPuser')
@@ -431,7 +432,7 @@ class EndPoint_Admin():
                     continue
                 ldap_tools.parse_ldap(transducer)
 
-                transducers.append(transducer)
+                transducers[tid] = transducer
 
             virtue_id = 'Virtue_{0}_{1}'.format(role['name'], int(time.time()))
 
@@ -453,6 +454,24 @@ class EndPoint_Admin():
                 }
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                 self.inst.add_obj(ldap_virtue, 'virtues', 'cid')
+
+            # Wait for the Virtue to get added to LDAP - so far I've seen it only take 2 loops
+            virtue = None
+            loop_count = 0
+            while (virtue is None or virtue == ()) and loop_count < 30:
+                virtue = self.inst.get_obj('cid', virtue_id, 'openLDAPvirtue', True)
+                time.sleep(1)
+                loop_count += 1
+
+            # Enable/disable sensors as specified by the role
+            eps = EndPoint_Security(self.inst.email, self.inst.password)
+            all_transducers = json.loads(eps.transducer_list())
+            for transducer in all_transducers:
+                if transducer['id'] in transducers:
+                    config = transducer['startingConfiguration']
+                    ret = eps.transducer_enable(transducer['id'], virtue_id, config)
+                else:
+                    ret = eps.transducer_disable(transducer['id'], virtue_id)
 
             # Return the whole thing
             # return json.dumps( virtue )
