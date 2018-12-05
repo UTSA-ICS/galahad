@@ -107,7 +107,7 @@ class Valor:
             'cd /mnt/efs/valor && sudo /bin/bash setup_gaius.sh'
 
         setup_syslog_ng_command = \
-            'cd /mnt/efs/valor/syslog-ng/ && sudo /bin/bash setup_syslog_ng.sh'
+            'cd /mnt/efs/valor/ && sudo /bin/bash setup_syslog_ng.sh'
 
         shutdown_node_command = \
             'sudo shutdown -h now'

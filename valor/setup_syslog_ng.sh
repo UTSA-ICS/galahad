@@ -14,13 +14,12 @@ echo /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server >> /etc/ld.so.conf.d
 ldconfig
 
 # Install pre-build module (taken from make install step of the transducer script)
-tar xzf transducer-module.tar.gz
+tar xzf /mnt/efs/valor/syslog-ng/transducer-module.tar.gz
 cd transducer-module
 mkdir -p /usr/lib/syslog-ng/3.14
 /bin/bash ./libtool   --mode=install /usr/bin/install -c   modules/transducer-controller/libtransducer-controller.la '/usr/lib/syslog-ng/3.14'
 cd ..
 rm -rf transducer-module/
-rm transducer-module.tar.gz
 
 # Install elasticsearch searchguard dependencies
 curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.3.tar.gz
@@ -34,12 +33,12 @@ rm -rf elasticsearch-5.6.3/
 rm elasticsearch-5.6.3.tar.gz
 
 # write config files and keystores
-mv syslog-ng/syslog-ng.conf /etc/syslog-ng/
-mv syslog-ng/elasticsearch.yml /etc/syslog-ng/
-mv syslog-ng/kirk-keystore.jks /etc/syslog-ng/
-mv syslog-ng/truststore.jks /etc/syslog-ng/
+cp syslog-ng/syslog-ng.conf /etc/syslog-ng/
+cp syslog-ng/elasticsearch.yml /etc/syslog-ng/
+cp syslog-ng/kirk-keystore.jks /etc/syslog-ng/
+cp syslog-ng/truststore.jks /etc/syslog-ng/
 chmod 644 syslog-ng/syslog-ng.service
-mv syslog-ng/syslog-ng.service /lib/systemd/system/
+cp syslog-ng/syslog-ng.service /lib/systemd/system/
 systemctl daemon-reload
 systemctl enable syslog-ng
 #systemctl restart syslog-ng
