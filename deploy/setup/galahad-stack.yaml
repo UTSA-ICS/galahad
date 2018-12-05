@@ -231,7 +231,7 @@ Resources:
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
+      ImageId: ami-0f9cf087c1f27d9b1
       InstanceType: t2.small
       KeyName: !Ref KeyName
       BlockDeviceMappings:
