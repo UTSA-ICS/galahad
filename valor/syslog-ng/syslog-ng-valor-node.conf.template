@@ -6,9 +6,7 @@
 source s_local { systemd-journal(); internal(); };
 
 destination d_file {
-    file("/var/log/syslog-ng-msg"
-        template(add_virtue_id)
-    );
+    file("/var/log/syslog-ng-msg");
 };
 
 destination d_elastic {
