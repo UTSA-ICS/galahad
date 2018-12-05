@@ -267,6 +267,9 @@ Resources:
           # Install the desktop
           apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity nautilus gnome-terminal
 
+          # Install needed library for nwjs
+          apt-get install -y libxss1
+
           # Install VNC server
           apt-get install -y vnc4server
 
@@ -611,6 +614,23 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - XenPVMBuilder
+  CanvasInstanceDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'canvas.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt CanvasInstance.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - CanvasInstance
 Outputs:
   MountTargetID:
     Description: Mount target ID
