@@ -22,4 +22,3 @@ chmod +x index.js
 # Set up systemctl to run app
 sudo cp /home/ubuntu/galahad/blue_force_track/bft.service /etc/systemd/system/
 sudo systemctl enable bft
-sudo systemctl start bft
