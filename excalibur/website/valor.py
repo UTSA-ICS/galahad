@@ -368,7 +368,8 @@ class ValorManager:
 
     def setup_syslog_config(self):
         # Todo:  Make this configurable
-        conf_dir = '/home/virtue/galahad/valor/syslog-ng/'
+        conf_dir = '/home/ubuntu/galahad/valor/syslog-ng/'
+        mount_dir = '/mnt/efs/valor/syslog-ng/'
         aggregator_node = 'https://aggregator.galahad.com:9200'
         aggregator_host = "aggregator.galahad.com"
         syslog_ng_server = "172.30.128.131"
@@ -378,13 +379,13 @@ class ValorManager:
         with open(conf_dir + '/syslog-ng-valor-node.conf.template',
                   'r') as t:
             syslog_ng_config = t.read()
-            with open(conf_dir + '/syslog-ng.conf', 'w') as f:
+            with open(mount_dir + '/syslog-ng.conf', 'w') as f:
                 f.write(syslog_ng_config % (aggregator_node,
                                             syslog_ng_server))
         # Create elasticsearch.yml from ELASTIC_YML
         with open(conf_dir + '/elasticsearch.yml.template', 'r') as t:
             elastic_yml = t.read()
-            with open(conf_dir + '/elasticsearch.yml',
+            with open(mount_dir + '/elasticsearch.yml',
                       'w') as f:
                 f.write(elastic_yml % (aggregator_host))
 
