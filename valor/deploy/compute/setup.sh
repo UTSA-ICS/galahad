@@ -33,6 +33,12 @@ echo "  bridge_maxwait 0" >> /etc/network/interfaces
 /bin/bash ../base_setup.sh "${GUESTNET_IP}"
 
 #
+# Create User Groups for Syslog-Ng unix socket
+#
+addgroup camelot
+adduser root camelot
+
+#
 # Install necessary System packages
 #
 DPKG_LOCK=1

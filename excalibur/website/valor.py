@@ -106,6 +106,9 @@ class Valor:
         setup_gaius_command = \
             'cd /mnt/efs/valor && sudo /bin/bash setup_gaius.sh'
 
+        setup_syslog_ng_command = \
+            'cd /mnt/efs/valor/ && sudo /bin/bash setup_syslog_ng.sh'
+
         shutdown_node_command = \
             'sudo shutdown -h now'
 
@@ -120,6 +123,10 @@ class Valor:
         stdout = self.client.ssh(
             setup_gaius_command, output=True)
         print('[!] setup_gaius : stdout : ' + stdout)
+
+        stdout = self.client.ssh(
+            setup_syslog_ng_command, output=True)
+        print('[!] setup_syslog_ng : stdout : ' + stdout)
 
         try:
             stdout = self.client.ssh(
@@ -166,6 +173,8 @@ class ValorManager:
         self.aws = AWS()
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
+        self.setup_syslog_config()
+
 
     def get_stack_name(self):
 
@@ -357,6 +366,28 @@ class ValorManager:
             .filter({"valor_ip": current_valor_ip_address}) \
             .update({"enabled": True}).run()
 
+    def setup_syslog_config(self):
+        # Todo:  Make this configurable
+        conf_dir = '/home/ubuntu/galahad/valor/syslog-ng/'
+        mount_dir = '/mnt/efs/valor/syslog-ng/'
+        aggregator_node = 'https://aggregator.galahad.com:9200'
+        aggregator_host = "aggregator.galahad.com"
+        syslog_ng_server = "172.30.128.131"
+
+        # Create syslog-ng.conf from
+        #   payload/syslog-ng-virtue-node.conf.template
+        with open(conf_dir + '/syslog-ng-valor-node.conf.template',
+                  'r') as t:
+            syslog_ng_config = t.read()
+            with open(mount_dir + '/syslog-ng.conf', 'w') as f:
+                f.write(syslog_ng_config % (aggregator_node,
+                                            syslog_ng_server))
+        # Create elasticsearch.yml from ELASTIC_YML
+        with open(conf_dir + '/elasticsearch.yml.template', 'r') as t:
+            elastic_yml = t.read()
+            with open(mount_dir + '/elasticsearch.yml',
+                      'w') as f:
+                f.write(elastic_yml % (aggregator_host))
 
 
 
