@@ -265,7 +265,8 @@ Resources:
           mount -a
 
           # Install the desktop
-          apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity nautilus gnome-terminal
+          apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity gnome-terminal
+          apt-get install -y nautilus
 
           # Install needed library for nwjs
           apt-get install -y npm libxss1
