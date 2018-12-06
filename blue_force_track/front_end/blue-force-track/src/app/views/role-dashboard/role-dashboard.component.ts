@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import {Role} from '../../models/Role';
 import {DataService} from '../../services/data.service';
+import { interval } from 'rxjs/index';
 
 @Component({
   selector: 'app-role-dashboard',
   templateUrl: './role-dashboard.component.html',
   styleUrls: ['./role-dashboard.component.css']
 })
-export class RoleDashboardComponent implements OnInit {
+export class RoleDashboardComponent implements OnInit, OnDestroy {
 
   // Bar chat config
   barData: any[];
@@ -37,7 +38,11 @@ export class RoleDashboardComponent implements OnInit {
 
   tableData: Role[];
 
-  constructor(private dataService: DataService) { }
+  private alive: boolean;
+
+  constructor(private dataService: DataService) {
+    this.alive = true;
+  }
 
   ngOnInit() {
     this.dataService.getVirtuesPerRole().subscribe(
@@ -47,6 +52,20 @@ export class RoleDashboardComponent implements OnInit {
     this.dataService.getRoles().subscribe(
       roles => (
         this.tableData = this.parseArrays(roles)));
+
+    // Refresh every 10 seconds
+    const secondsCounter = interval(10000);
+    secondsCounter.subscribe(n =>
+      this.dataService.getVirtuesPerRole().subscribe(
+        response => this.barData = this.buildBarData(response)
+      )
+    );
+    secondsCounter.subscribe(n =>
+      this.dataService.getRoles().subscribe(
+        roles => (
+          this.tableData = this.parseArrays(roles)))
+    );
+
   }
 
   private buildBarData(response: any): any {
@@ -87,6 +106,10 @@ export class RoleDashboardComponent implements OnInit {
       }
     }
     return roles;
+  }
+
+  ngOnDestroy() {
+    this.alive = false;
   }
 
 }

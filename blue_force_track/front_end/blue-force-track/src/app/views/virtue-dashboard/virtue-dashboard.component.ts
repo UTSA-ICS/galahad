@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {DataService} from '../../services/data.service';
 import {Virtue} from '../../models/Virtue';
+import { interval } from 'rxjs/index';
 
 @Component({
   selector: 'app-virtue-dashboard',
   templateUrl: './virtue-dashboard.component.html',
   styleUrls: ['./virtue-dashboard.component.css']
 })
-export class VirtueDashboardComponent implements OnInit {
+export class VirtueDashboardComponent implements OnInit, OnDestroy {
 
   // Line Graph Config
   lineData: any[];
@@ -58,7 +59,12 @@ export class VirtueDashboardComponent implements OnInit {
 
   tableData: Virtue[];
 
-  constructor(private dataService: DataService) { }
+  private alive: boolean;
+  private selectedVirtue: string;
+
+  constructor(private dataService: DataService) {
+    this.alive = true;
+  }
 
   ngOnInit() {
     this.dataService.getMigrationsPerVirtue().subscribe(
@@ -66,24 +72,49 @@ export class VirtueDashboardComponent implements OnInit {
         this.barData = this.buildBarData(response)
       ));
 
-    this.updateLineGraph(null);
+    this.selectedVirtue = null;
+    this.updateLineGraph(this.selectedVirtue);
 
     this.dataService.getVirtues().subscribe(
       virtues => (
-        this.tableData = this.parseArray(virtues)));
+        this.tableData = this.parseArray(virtues))
+    );
+
+    // Refresh every 10 seconds
+    const secondsCounter = interval(10000);
+    secondsCounter.subscribe(n =>
+      this.dataService.getMigrationsPerVirtue().subscribe(
+        response => (
+          this.barData = this.buildBarData(response)
+        ))
+    );
+    secondsCounter.subscribe(n => 
+      this.updateLineGraph(this.selectedVirtue)
+    );
+    secondsCounter.subscribe(n =>
+      this.dataService.getVirtues()
+        .subscribe(virtues => (
+          this.tableData = this.parseArray(virtues)
+      ))
+    );
+  }
+
+  ngOnDestroy() {
+    this.alive = false;
   }
 
   updateLineGraph(virtue: string): any {
+    this.selectedVirtue = virtue;
     if (virtue) {
       this.dataService.getMessagesPerType(virtue, "day").subscribe(
         response => (
-          this.lineData = this.buildLineData(response)
+          this.lineData = this.buildLineData(response, 'group_by_type')
         )
       );
     } else {
       this.dataService.getMessagesPerVirtue("day").subscribe(
         response => (
-          this.lineData = this.buildLineData(response)
+          this.lineData = this.buildLineData(response, 'group_by_virtue')
         )
       );
     }
@@ -102,32 +133,25 @@ export class VirtueDashboardComponent implements OnInit {
     return data;
   }
 
-  private buildLineData(response: any): any {
-    const data = [];
-    // TODO
-
-/*
-
-    this.lineData = [
-      {
-        name: "Valor 1",
-        series: [
-          {
-            "name": "20 Oct",
-            "value": 21
-          },
-          {
-            "name": "21 Oct",
-            "value": 27
-          },
-          {
-            name: '22 Oct',
-            value: 19
-          }
-        ]
-      },
-
-*/
+  private buildLineData(response: any, group_name: string): any {
+    var data = [];
+    var top_level_buckets = response['aggregations'][group_name]['buckets'];
+    for (var i = 0; i < top_level_buckets.length; i++) {
+      var bucket = top_level_buckets[i];
+      const obj = {};
+      obj['name'] = bucket['key'];
+      const series = [];
+      var time_buckets = bucket['group_by_time']['buckets'];
+      for (var j = 0; j < time_buckets.length; j++) {
+        var time_bucket = time_buckets[j]
+        const timeObj = {};
+        timeObj['name'] = time_bucket['key_as_string'];
+        timeObj['value'] = time_bucket['doc_count'];
+        series.push(timeObj);
+      }
+      obj['series'] = series;
+      data.push(obj);
+    }
 
     return data;
   }

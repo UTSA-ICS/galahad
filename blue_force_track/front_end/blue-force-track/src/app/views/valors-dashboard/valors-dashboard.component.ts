@@ -1,12 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {DataService} from '../../services/data.service';
+import { interval } from 'rxjs/index';
 
 @Component({
   selector: 'app-valors-dashboard',
   templateUrl: './valors-dashboard.component.html',
   styleUrls: ['./valors-dashboard.component.css']
 })
-export class ValorsDashboardComponent implements OnInit {
+export class ValorsDashboardComponent implements OnInit, OnDestroy {
 
   // Line Graph Config
   lineData: any[];
@@ -66,73 +67,40 @@ export class ValorsDashboardComponent implements OnInit {
     domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
   };
 
+  private alive: boolean;
 
-  constructor(private data: DataService) { }
+  constructor(private dataService: DataService) {
+    this.alive = true;
+  }
 
   ngOnInit() {
     this.lineData = [
-      {
-        name: "Valor 1",
-        series: [
-          {
-            "name": "20 Oct",
-            "value": 21
-          },
-          {
-            "name": "21 Oct",
-            "value": 27
-          },
-          {
-            name: '22 Oct',
-            value: 19
-          }
-        ]
-      },
-      {
-        "name": "Valor 2",
-        "series": [
-          {
-            "name": "20 Oct",
-            "value": 12
-          },
-          {
-            "name": "21 Oct",
-            "value": 7
-          },
-          {
-            name: '22 Oct',
-            value: 17
-          }
-        ]
-      },
-
-      {
-        "name": "Valor 3",
-        "series": [
-          {
-            "name": "20 Oct",
-            "value": 6
-          },
-          {
-            "name": "21 Oct",
-            "value": 9
-          },
-          {
-            name: '22 Oct',
-            value: 4
-          }
-        ]
-      }
     ];
 
-    this.data.getVirtuesPerValor().subscribe(
+    this.dataService.getVirtuesPerValor().subscribe(
       response => (
         this.barData = this.buildBarData(response)
       )
     );
 
-    this.data.getValors().subscribe(
+    // Refresh every 10 seconds
+    const secondsCounter = interval(10000);
+    secondsCounter.subscribe(n =>
+      this.dataService.getVirtuesPerValor().subscribe(
+        response => (
+          this.barData = this.buildBarData(response)
+        )
+      )
+    );
+
+    this.dataService.getValors().subscribe(
       valors => this.tableData = valors
+    );
+
+    secondsCounter.subscribe(n =>
+      this.dataService.getValors().subscribe(
+        valors => this.tableData = valors
+      )
     );
 
     this.gaugeValue = 67;
@@ -156,4 +124,7 @@ export class ValorsDashboardComponent implements OnInit {
     console.log(event);
   }
 
+  ngOnDestroy() {
+    this.alive = false;
+  }
 }
