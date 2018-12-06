@@ -20,9 +20,9 @@ export class RoleDashboardComponent implements OnInit, OnDestroy {
   barGradient = false;
   barShowLegend = true;
   barShowXAxisLabel = true;
-  barXAxisLabel = 'Virtue';
+  barXAxisLabel = 'Role';
   barShowYAxisLabel = true;
-  barYAxisLabel = 'Migrations Today';
+  barYAxisLabel = '# Virtues';
 
   barColorScheme = {
     domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
