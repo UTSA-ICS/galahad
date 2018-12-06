@@ -268,10 +268,13 @@ Resources:
           apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity nautilus gnome-terminal
 
           # Install needed library for nwjs
-          apt-get install -y libxss1
+          apt-get install -y npm libxss1
 
           # Install VNC server
           apt-get install -y vnc4server
+
+          # Add DNS for canvas.com for canvas to work
+          echo "127.0.0.1 canvas.com" >> /etc/hosts
 
           # Configure the VNC server
           su - ubuntu -c "mkdir .vnc"
