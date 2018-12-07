@@ -73,7 +73,8 @@ export class UserDashboardComponent implements OnInit {
   private parseArrays(users: User[]): User[] {
     for (const user of users) {
       try {
-        const roleIds = user.cauthRoleIds as any;
+        let roleIds = user.cauthRoleIds as any;
+        roleIds = (roleIds as string).replace(/u\'/g, '\'');
         user.cauthRoleIds = JSON.parse((roleIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);

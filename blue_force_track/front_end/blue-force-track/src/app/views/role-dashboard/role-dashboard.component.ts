@@ -84,21 +84,24 @@ export class RoleDashboardComponent implements OnInit, OnDestroy {
   private parseArrays(roles: Role[]): Role[] {
     for (const role of roles) {
       try {
-        const appIds = role.cappIds as any;
+        let appIds = role.cappIds as any;
+        appIds = (appIds as string).replace(/u\'/g, '\'');
         role.cappIds = JSON.parse((appIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         role.cappIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        const resIds = role.cstartResIds as any;
+        let resIds = role.cstartResIds as any;
+        resIds = (resIds as string).replace(/u\'/g, '\'');
         role.cstartResIds = JSON.parse((resIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         role.cstartResIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        const transIds = role.cstartTransIds as any;
+        let transIds = role.cstartTransIds as any;
+        transIds = (transIds as string).replace(/u\'/g, '\'');
         role.cstartTransIds = JSON.parse((transIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
