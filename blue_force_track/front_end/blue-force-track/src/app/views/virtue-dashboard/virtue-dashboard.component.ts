@@ -88,7 +88,7 @@ export class VirtueDashboardComponent implements OnInit, OnDestroy {
           this.barData = this.buildBarData(response)
         ))
     );
-    secondsCounter.subscribe(n => 
+    secondsCounter.subscribe(n =>
       this.updateLineGraph(this.selectedVirtue)
     );
     secondsCounter.subscribe(n =>
@@ -106,13 +106,13 @@ export class VirtueDashboardComponent implements OnInit, OnDestroy {
   updateLineGraph(virtue: string): any {
     this.selectedVirtue = virtue;
     if (virtue) {
-      this.dataService.getMessagesPerType(virtue, "day").subscribe(
+      this.dataService.getMessagesPerType(virtue, "hour").subscribe(
         response => (
           this.lineData = this.buildLineData(response, 'group_by_type')
         )
       );
     } else {
-      this.dataService.getMessagesPerVirtue("day").subscribe(
+      this.dataService.getMessagesPerVirtue("hour").subscribe(
         response => (
           this.lineData = this.buildLineData(response, 'group_by_virtue')
         )
@@ -159,21 +159,24 @@ export class VirtueDashboardComponent implements OnInit, OnDestroy {
   private parseArray(virtues: Virtue[]): Virtue[] {
     for (const virtue of virtues) {
       try {
-        const appIds = virtue.cappIds as any;
+        let appIds = virtue.cappIds as any;
+        appIds = (appIds as string).replace(/u\'/g, '\'');
         virtue.cappIds = JSON.parse((appIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         virtue.cappIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        const resIds = virtue.cresIds as any;
+        let resIds = virtue.cresIds as any;
+        resIds = (resIds as string).replace(/u\'/g, '\'');
         virtue.cresIds = JSON.parse((resIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
         virtue.cresIds = ['ERROR_PROCESSING_JSON'];
       }
       try {
-        const transIds = virtue.ctransIds as any;
+        let transIds = virtue.ctransIds as any;
+        transIds = (transIds as string).replace(/u\'/g, '\'');
         virtue.ctransIds = JSON.parse((transIds as string).replace(/\'/g, '\"'));
       } catch (e) {
         console.log(e);
@@ -181,5 +184,15 @@ export class VirtueDashboardComponent implements OnInit, OnDestroy {
       }
     }
     return virtues;
+  }
+
+  onRowSelect(event) {
+    console.log(event);
+    this.updateLineGraph(event.data.cid);
+  }
+
+  onRowUnselect(event) {
+    console.log(event);
+    this.updateLineGraph(null);
   }
 }

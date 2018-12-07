@@ -31,7 +31,7 @@
     </ngx-charts-line-chart>
   </td>
 </tr>
-<p-table [value]="tableData" [columns]="cols" [resizableColumns]="true" dataKey="id">
+<p-table [value]="tableData" [columns]="cols" selectionMode="single" [resizableColumns]="true" dataKey="id" (onRowSelect)="onRowSelect($event)" (onRowUnselect)="onRowUnselect($event)">
   <ng-template pTemplate="header">
     <tr>
       <th style="width: 3em"></th>
@@ -41,7 +41,7 @@
     </tr>
   </ng-template>
   <ng-template pTemplate="body" let-rowData let-expanded="expanded" let-columns="columns">
-    <tr>
+    <tr [pSelectableRow]="rowData">
       <td>
         <a href="#" [pRowToggler]="rowData">
           <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
