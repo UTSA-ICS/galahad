@@ -183,6 +183,14 @@ if (__name__ == '__main__'):
     add_application('firefox', 'Firefox', '1.0', 'LINUX', port=6768)
     add_application('terminal', 'XTerm', '1.0', 'LINUX', port=6766)
     add_application('thunderbird', 'Thunderbird', '1.0', 'LINUX', port=6765)
+    add_application('gedit', 'Editor', '1.0', 'LINUX', port=6767)
+    add_application('chrome', 'Chrome', '1.0', 'LINUX', port=6764)
+    add_application('powershell', 'PowerShell', '1.0', 'LINUX', port=6761)
+    add_application('wincmd', 'Windows Command Line', '1.0', 'WINDOWS', port=662)
+    add_application('skype', 'Skype', '1.0', 'LINUX', port=6763)
+    add_application('office-word', 'Microsoft Office Word', '1.0', 'WINDOWS', port=6769)
+    add_application('office-outlook', 'Microsoft Office Outlook', '1.0', 'WINDOWS', port=6771)
+    add_application('putty', 'PuTTY', '1.0', 'WINDOWS', port=6770)
 
     add_resource('fileshare1', 'DRIVE', '//ad.galahad.com/VirtueFileShare',
                  'token')
