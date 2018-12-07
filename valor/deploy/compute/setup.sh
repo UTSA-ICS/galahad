@@ -56,7 +56,7 @@ done
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
-    apt --assume-yes install ./introspection-monitor_0.1-1.deb
+    apt --assume-yes install ./introspection-monitor_0.2-1.deb
     DPKG_LOCK=$?
 done
 DPKG_LOCK=1
