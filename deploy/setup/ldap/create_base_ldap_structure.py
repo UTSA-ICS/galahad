@@ -186,7 +186,7 @@ if (__name__ == '__main__'):
     add_application('gedit', 'Editor', '1.0', 'LINUX', port=6767)
     add_application('chrome', 'Chrome', '1.0', 'LINUX', port=6764)
     add_application('powershell', 'PowerShell', '1.0', 'LINUX', port=6761)
-    add_application('wincmd', 'Windows Command Line', '1.0', 'WINDOWS', port=662)
+    add_application('wincmd', 'Windows Command Line', '1.0', 'WINDOWS', port=6762)
     add_application('skype', 'Skype', '1.0', 'LINUX', port=6763)
     add_application('office-word', 'Microsoft Office Word', '1.0', 'WINDOWS', port=6769)
     add_application('office-outlook', 'Microsoft Office Outlook', '1.0', 'WINDOWS', port=6771)
