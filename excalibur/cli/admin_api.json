@@ -109,7 +109,7 @@
         {   
             "command": "user virtue list",
             "help": "Lists the current Virtue instances for a given User",
-            "url": "/user/virute/list",
+            "url": "/user/virtue/list",
             "parameters": [
                 { "name": "Username", "url_name": "username" }  
             ] 
