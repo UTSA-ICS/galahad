@@ -314,9 +314,9 @@ class EndPoint_Security:
                     'unspecifiedError',
                     details='Unable to update virtue\'s list of transducers')
  
-            virtue['ctransIds'] = str(new_t_list)
-            ret = self.inst.modify_obj('cid', virtueId, virtue, 'OpenLDAPvirtue',
-                                       True)
+            virtue['transducerIds'] = new_t_list
+            ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                'OpenLDAPvirtue', True)
             if ret != 0:
                 return self.__error(
                     'unspecifiedError',
