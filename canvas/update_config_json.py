@@ -25,7 +25,7 @@ if (__name__ == '__main__'):
         print('ERROR: Could not log in')
         sys.exit(1)
 
-    redirect = 'https://{}/virtue/test'.format(args.server)
+    redirect = 'https://{}/virtue/test\nhttp://canvas.com:3000/connect/excalibur/callback'.format(args.server)
 
     client_id = sso.get_app_client_id(args.appid)
     if (client_id == None):
