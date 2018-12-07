@@ -23,10 +23,12 @@ import { RoleDashboardModule } from './views/role-dashboard/role-dashboard.modul
 import { TransducerDashboardModule } from './views/transducer-dashboard/transducer-dashboard.module';
 import { UserDashboardModule } from './views/user-dashboard/user-dashboard.module';
 import { VirtueDashboardModule } from './views/virtue-dashboard/virtue-dashboard.module';
+import { ReadmeComponent } from './views/readme/readme.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    ReadmeComponent
   ],
   imports: [
     BrowserModule,

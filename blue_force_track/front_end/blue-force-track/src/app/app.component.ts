@@ -20,7 +20,8 @@ export class AppComponent implements OnInit {
       { label: 'Users', routerLink: '/views/user-dashboard' },
       { label: 'Transducers', routerLink: '/views/transducer-dashboard' },
       { label: 'Applications', routerLink: '/views/application-dashboard' },
-      { label: 'Resources', routerLink: '/views/resource-dashboard' }
+      { label: 'Resources', routerLink: '/views/resource-dashboard' },
+      { label: 'Help', routerLink: '/views/readme' }
     ];
   }
 }
