@@ -271,6 +271,12 @@ Resources:
           # Install needed library for nwjs
           apt-get install -y npm libxss1
 
+          # Packages for pip3 and firefox
+          apt-get install -y firefox python3-pip
+
+          # Python module for CLI
+          pip3 install prompt_toolkit
+
           # Install VNC server
           apt-get install -y vnc4server
 
