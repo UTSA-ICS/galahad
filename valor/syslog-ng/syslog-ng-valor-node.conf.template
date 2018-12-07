@@ -12,7 +12,7 @@ destination d_file {
 destination d_elastic {
     elasticsearch2(
         client-lib-dir("/etc/syslog-ng/jars/")
-        index("syslog-${YEAR}.${MONTH}.${DAY}")
+        index("valor-${YEAR}.${MONTH}.${DAY}")
         type("syslog")
         time-zone("UTC")
         client-mode("https")
@@ -24,7 +24,7 @@ destination d_elastic {
         java_truststore_password("changeit")
         http_auth_type("clientcert")
         resource("/etc/syslog-ng/elasticsearch.yml")
-        template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE --pair VirtueID=$(env VIRTUE_ID) @timestamp=${ISODATE} @virtue_ip=${HOST})")
+        template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE --pair ValorID=$(env VALOR_ID) @timestamp=${ISODATE} @valor_ip=${HOST})")
     );
 };
 
@@ -39,22 +39,19 @@ parser message_parser {
     kv-parser(value-separator(":"));
 };
 
-parser transducer_controller {
-    transducer_controller(
-            socket("/var/run/receiver_to_filter")
+parser introspection_parser {
+    csv-parser(
+        columns("VirtueID", "pid", "process")
+        delimiters(" ")
+        quote-pairs('[]')
     );
-};
-
-filter remove_self_reports {
-    not (match("syslog-ng" value("ProcName")) or
-    match("syslog-ng" value("ParentName")));
 };
 
 log {
     source(s_local);
     parser(message_parser);
-    parser(transducer_controller);
-    filter(remove_self_reports);
+    parser(introspection_parser);
+    filter { match("VMmonitor" value("PROGRAM")) };
     destination(d_file);
     destination(d_elastic);
     destination(d_network);
