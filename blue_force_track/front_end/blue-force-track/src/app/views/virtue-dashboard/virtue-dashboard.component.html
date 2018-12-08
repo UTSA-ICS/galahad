@@ -31,7 +31,7 @@
     </ngx-charts-line-chart>
   </td>
 </tr>
-<p-table [value]="tableData" [columns]="cols" selectionMode="single" [resizableColumns]="true" dataKey="id" (onRowSelect)="onRowSelect($event)" (onRowUnselect)="onRowUnselect($event)">
+<p-table [value]="tableData" [columns]="cols" selectionMode="single" [(selection)]="selectedVirtueObject" [resizableColumns]="true" dataKey="cid" (onRowSelect)="onRowSelect($event)" (onRowUnselect)="onRowUnselect($event)">
   <ng-template pTemplate="header">
     <tr>
       <th style="width: 3em"></th>

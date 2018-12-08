@@ -54,17 +54,18 @@ export class RoleDashboardComponent implements OnInit, OnDestroy {
         this.tableData = this.parseArrays(roles)));
 
     // Refresh every 10 seconds
-    const secondsCounter = interval(10000);
-    secondsCounter.subscribe(n =>
-      this.dataService.getVirtuesPerRole().subscribe(
-        response => this.barData = this.buildBarData(response)
-      )
-    );
-    secondsCounter.subscribe(n =>
-      this.dataService.getRoles().subscribe(
-        roles => (
-          this.tableData = this.parseArrays(roles)))
-    );
+    // const secondsCounter = interval(10000);
+    // secondsCounter.subscribe(n =>
+    //   this.dataService.getVirtuesPerRole().subscribe(
+    //     response => this.barData = this.buildBarData(response)
+    //   )
+    // );
+    // const secondsCounter2 = interval(10000);
+    // secondsCounter2.subscribe(n =>
+    //   this.dataService.getRoles().subscribe(
+    //     roles => (
+    //       this.tableData = this.parseArrays(roles)))
+    // );
 
   }
 
