@@ -9,6 +9,7 @@ import logging
 from __init__ import RT_CONN, RT_DB, RT_IP, RT_PORT, RT_CERT
 from __init__ import RT_VALOR_TB, RT_COMM_TB, RT_ACK_TB, RT_ARC_TB
 from virtue_client import Virtue
+from introspect_client import Introspect
 
 RETHINKDB_LOGFILE = "/var/log/gaius-rethink.log"
 rethinkdb_client_handler = logging.FileHandler(RETHINKDB_LOGFILE)
@@ -125,6 +126,35 @@ class Rethink():
         migration_thread.daemon = True
         migration_thread.start()
         rethinkdb_client_logger.debug("Migration thread starting...")
+
+        introspection_thread = Introspect()
+        introspection_thread.start()
+        introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.ip, "type": "INTROSPECTION"}).changes(include_types=True).run(introspection_rt)
+        for change in introspection_feed:
+            rethinkdb_client_logger.debug(change)
+            if change["type"] == "add":
+                introspection_thread.set_virtue_id(change["new_val"]["virtue_id"])
+                introspection_thread.set_interval(change["new_val"]["interval"])
+                introspection_thread.set_comms(change["new_val"]["comms"])
+            elif change["type"] == "change":
+                if change["old_val"]["virtue_id"] is not change["new_val"]["virtue_id"]:
+                    introspection_thread.set_virtue_id(change["new_val"]["virtue_id"])
+                    rethinkdb_client_logger.debug("changed = virtue_id")
+                if change["old_val"]["interval"] is not change["new_val"]["interval"]:
+                    introspection_thread.set_interval(change["new_val"]["interval"])
+                    rethinkdb_client_logger.debug("changed = interval")
+                if change["old_val"]["comms"] is not change["new_val"]["comms"]:
+                    introspection_thread.set_comms(change["new_val"]["comms"])
+                    rethinkdb_client_logger.debug("changed = comms")
+                if change["old_val"]["enabled"] == False and change["new_val"]["enabled"] == True:
+                    introspection_thread.event.set()
+                    rethinkdb_client_logger.debug("introspection_thread.event.set()")
+                elif change["old_val"]["enabled"] == True and change["new_val"]["enabled"] == False:
+                    introspection_thread.event.clear()
+                    rethinkdb_client_logger.debug("introspection_thread.event.clear()")
+            elif change["type"] == "remove":
+                introspection_thread.clear()
 
 if __name__ == "__main__":
     rt = Rethink()
