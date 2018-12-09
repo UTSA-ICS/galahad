@@ -277,6 +277,9 @@ Resources:
           # Python module for CLI
           pip3 install prompt_toolkit
 
+          # Python modules for updating Unity Image
+          pip3 install sultan boto3
+
           # Install VNC server
           apt-get install -y vnc4server
 
