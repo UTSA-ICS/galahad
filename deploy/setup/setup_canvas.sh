@@ -7,6 +7,16 @@ CANVAS_DIR="galahad/canvas"
 GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
 
 #
+# Setup Routes to be able to get to the guestnet network for access to virtues
+#
+sudo su - root -c "echo \"  #\"                                                                        >> /etc/network/interfaces.d/50-cloud-init.cfg"
+sudo su - root -c "echo \"  # Routes to be able to reach the virtue guestnet subnet (virtue network)\" >> /etc/network/interfaces.d/50-cloud-init.cfg"
+sudo su - root -c "echo \"  #\"                                                                        >> /etc/network/interfaces.d/50-cloud-init.cfg"
+sudo su - root -c "echo \"  post-up route add -net 10.91.0.0/16 gw 172.30.1.53\"                       >> /etc/network/interfaces.d/50-cloud-init.cfg"
+# Added the routes temporarily so to take affect without a reboot
+sudo route add -net 10.91.0.0/16 gw 172.30.1.53 dev eth0
+
+#
 # Copy over the private key to use to login to the virtue
 #
 cp $GALAHAD_KEY_DIR/default-virtue-key.pem $HOME/$CANVAS_DIR/key.pem
