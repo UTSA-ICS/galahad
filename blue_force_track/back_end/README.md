@@ -2,40 +2,32 @@
 
 ## Setup
 
-Check out this directory to Excalibur or the Aggregator.
+This will get installed by default onto a stack.
 
-Run `./setup.sh`
+You can also run this separately in a docker container.  To do that, check out this directory to Excalibur or another machine on the stack.  Run `./setup.sh`
 
 You may need to add the "add-host" arguments to the `docker run` call if the DNS entries aren't passed into the docker container (see commented out lines in setup.sh).
 
 ## Running
 
-The setup script will start the docker container as well.
+If the system was installed via the default stack creation process, the BFT will already be running.  It can be controlled with `systemctl`, e.g.: `sudo systemctl start bft`.
 
-TODO: Add docker-compose.yml file
+If running manually with `./setup.sh`, the setup script will start the docker container as well.
 
-If you are developing, it may be easier to simply run a `node` container and volume in the src and galahad-config directories separately, so that your code changes are saved to your host.
+If you are developing and using docker, it may be easier to simply run a `node` container and volume in the src and galahad-config directories separately, so that your code changes are saved to your host.
 
 ## Interacting
-
-### Checking connectivity
-
-Run from your host:
-
-```
-curl -X GET localhost:3000
-```
-
-This should return "Hello World!"
 
 ### Access in a browser
 
 On your local machine, run:
 
 ```
-ssh -i ~/.ssh/starlab-virtue-te.pem -L 3000:127.0.0.1:3000 -N ubuntu@[IP of Aggregator / host where docker is running]
+ssh -i ~/.ssh/starlab-virtue-te.pem -L 3000:127.0.0.1:3000 -N ubuntu@[IP of Excalibur / host where node is running]
 
 ```
+You can then access the BFT by going to `localhost:3000` in your local machine's browser.
+
 
 ### Functionality
 
