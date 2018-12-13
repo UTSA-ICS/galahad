@@ -94,29 +94,6 @@ function connectRethinkDB(callback) {
     });
 }
 
-// TODO: Cloudwatch test - doesn't work yet
-/*
-myConfig = new AWS.Config();
-myConfig.update({region: 'us-east-1'});
-var credentials = new AWS.SharedIniFileCredentials({profile: 'm'});
-myConfig.credentials = credentials;
-
-app.get('/cloudwatch', (req, res) => {
-    console.log('hi');
-    var cloudwatch = new AWS.CloudWatch({'credentials': credentials, 'region': 'us-east-1'});
-    var params = {
-        MetricWidget: 'CPUUtilization',
-        //Namespace: 'AWS/EC2'
-    }
-    cloudwatch.getMetricWidgetImage(params, function (err, data) {
-        if (err) console.log(err, err.stack);
-        else console.log(data);
-    });
-    res.send('hi');
-});
-*/
-
-
 // ==========================================================
 
 // Figure out the ES index (once)
@@ -164,6 +141,8 @@ app.get('/all_messages', (req, res) => {
     });
 });
 
+// Gets the number of events (messages), grouped by time bucket, grouped by Virtue ID
+// 'timerange' can be "hour" or "day"
 app.get('/messages_per_virtue/:timerange', (req, res) => {
     var range = 'h';
     var interval = 'minute';
@@ -213,6 +192,8 @@ app.get('/messages_per_virtue/:timerange', (req, res) => {
     });
 });
 
+// Gets the number of events, grouped by time bucket, grouped by type of event, grouped by Virtue ID
+// 'timerange' can be "hour" or "day"
 app.get('/messages_per_virtue_per_type/:timerange', (req, res) => {
     var range = 'h';
     var interval = 'minute';
@@ -269,6 +250,9 @@ app.get('/messages_per_virtue_per_type/:timerange', (req, res) => {
     });
 });
 
+// Gets the number of events, grouped by time bucket, grouped by type of event.  Events filtered
+// by user-specified Virtue ID
+// 'timerange' can be "hour" or "day"
 app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
     var range = 'h';
     var interval = 'minute';
@@ -315,16 +299,16 @@ app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
     });
 });
 
+// Number of Virtues currently on each Valor
 app.get('/virtues_per_valor', (req, res) => {
     query_rethinkdb('galahad', function(results_g) {
-        //res.send(results);
         valors = {};
         virtues = {};
         for (var i = 0; i < results_g.length; i++) {
             element = results_g[i]
             if (element['function'] === 'valor') {
                 element['virtues'] = [];
-                valors[element['id']] = element;
+                valors[element['address']] = element;
             } else if (element['function'] === 'virtue') {
                 virtues[element['virtue_id']] = element;
             }
@@ -332,10 +316,10 @@ app.get('/virtues_per_valor', (req, res) => {
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
                 element = results_c[i];
-                if ('history' in element) {
-                    valor_id = element['history'][0]['valor'];
-                    if (valor_id in valors) {
-                        valors[valor_id]['virtues'].push(element['virtue_id']);
+                if ('valor_ip' in element) {
+                    valor_ip = element['valor_ip'];
+                    if (valor_ip in valors) {
+                        valors[valor_ip]['virtues'].push(element['virtue_id']);
                     }
                 }
             }
@@ -349,6 +333,7 @@ app.get('/virtues_per_valor', (req, res) => {
     });
 });
 
+// Number of times each Virtue has migrated
 app.get('/migrations_per_virtue', (req, res) => {
     query_rethinkdb('commands', function(results_c) {
         migrations_per_virtue_id = {}
@@ -365,6 +350,7 @@ app.get('/migrations_per_virtue', (req, res) => {
     });
 });
 
+// Number of Virtues (in any state) for each role (if 0, role not included in result)
 app.get('/virtues_per_role', (req, res) => {
     query_ldap('virtue', function(results) {
         virtues_per_role = {}
@@ -393,7 +379,7 @@ function valors_to_virtues(callback) {
             element = results_g[i]
             if (element['function'] === 'valor') {
                 element['virtues'] = [];
-                valors[element['id']] = element;
+                valors[element['address']] = element;
             } else if (element['function'] === 'virtue') {
                 virtues[element['virtue_id']] = element;
             }
@@ -401,10 +387,10 @@ function valors_to_virtues(callback) {
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
                 element = results_c[i];
-                if ('history' in element) {
-                    valor_id = element['history'][0]['valor'];
-                    if (valor_id in valors) {
-                        valors[valor_id]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
+                if ('valor_ip' in element) {
+                    valor_ip = element['varlor_ip'];
+                    if (valor_ip in valors) {
+                        valors[valor_ip]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
                     }
                 }
             }
