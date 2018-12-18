@@ -160,6 +160,16 @@ class CreateVirtueThread(threading.Thread):
                                    '-e', excalibur_key,
                                    '-r', rdb_cert])
 
+            # Enable/disable sensors as specified by the role
+            eps = EndPoint_Security(self.inst.email, self.inst.password)
+            all_transducers = json.loads(eps.transducer_list())
+            for transducer in all_transducers:
+                if transducer['id'] in transducers:
+                    config = transducer['startingConfiguration']
+                    ret = eps.transducer_enable(transducer['id'], virtue_id, config)
+                else:
+                    ret = eps.transducer_disable(transducer['id'], virtue_id)
+
             virtue['state'] = 'STOPPED'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
             assert self.inst.modify_obj('cid', virtue['id'], ldap_virtue) == 0
