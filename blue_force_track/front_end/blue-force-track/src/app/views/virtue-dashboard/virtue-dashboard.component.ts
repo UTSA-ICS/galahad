@@ -61,7 +61,7 @@ export class VirtueDashboardComponent implements OnInit, OnDestroy {
 
   private alive: boolean;
   private selectedVirtue: string;
-  private selectedVirtueObject: Virtue;
+   selectedVirtueObject: Virtue;
 
   constructor(private dataService: DataService) {
     this.alive = true;
