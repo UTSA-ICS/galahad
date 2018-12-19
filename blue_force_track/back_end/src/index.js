@@ -145,7 +145,7 @@ app.get('/all_messages', (req, res) => {
 // 'timerange' can be "hour" or "day"
 app.get('/messages_per_virtue/:timerange', (req, res) => {
     var range = 'h';
-    var interval = 'minute';
+    var interval = '6m';
     if (req.params.timerange === 'hour') {
         range = 'h';
         interval = '6m';
@@ -196,7 +196,7 @@ app.get('/messages_per_virtue/:timerange', (req, res) => {
 // 'timerange' can be "hour" or "day"
 app.get('/messages_per_virtue_per_type/:timerange', (req, res) => {
     var range = 'h';
-    var interval = 'minute';
+    var interval = '6m';
     if (req.params.timerange === 'hour') {
         range = 'h';
         interval = '6m';
@@ -255,7 +255,7 @@ app.get('/messages_per_virtue_per_type/:timerange', (req, res) => {
 // 'timerange' can be "hour" or "day"
 app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
     var range = 'h';
-    var interval = 'minute';
+    var interval = '6m';
     if (req.params.timerange === 'hour') {
         range = 'h';
         interval = '6m';
@@ -302,10 +302,10 @@ app.get('/messages_per_type/:virtueid/:timerange', (req, res) => {
 // Number of Virtues currently on each Valor
 app.get('/virtues_per_valor', (req, res) => {
     query_rethinkdb('galahad', function(results_g) {
-        valors = {};
-        virtues = {};
+        var valors = {};
+        var virtues = {};
         for (var i = 0; i < results_g.length; i++) {
-            element = results_g[i]
+            var element = results_g[i]
             if (element['function'] === 'valor') {
                 element['virtues'] = [];
                 valors[element['address']] = element;
@@ -315,17 +315,17 @@ app.get('/virtues_per_valor', (req, res) => {
         }
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
-                element = results_c[i];
+                var element = results_c[i];
                 if ('valor_ip' in element) {
-                    valor_ip = element['valor_ip'];
+                    var valor_ip = element['valor_ip'];
                     if (valor_ip in valors) {
                         valors[valor_ip]['virtues'].push(element['virtue_id']);
                     }
                 }
             }
-            num_virtues_per_valor = {}
+            var num_virtues_per_valor = {}
             for (valor_id in valors) {
-                valor = valors[valor_id];
+                var valor = valors[valor_id];
                 num_virtues_per_valor[valor['address']] = valor['virtues'].length;
             }
             res.send(num_virtues_per_valor);
@@ -336,7 +336,7 @@ app.get('/virtues_per_valor', (req, res) => {
 // Number of times each Virtue has migrated
 app.get('/migrations_per_virtue', (req, res) => {
     query_rethinkdb('commands', function(results_c) {
-        migrations_per_virtue_id = {}
+        var migrations_per_virtue_id = {}
         for (var i = 0; i < results_c.length; i++) {
             if (results_c[i]['type'] === 'MIGRATION') {
                 if ('history' in results_c[i]) {
@@ -353,7 +353,7 @@ app.get('/migrations_per_virtue', (req, res) => {
 // Number of Virtues (in any state) for each role (if 0, role not included in result)
 app.get('/virtues_per_role', (req, res) => {
     query_ldap('virtue', function(results) {
-        virtues_per_role = {}
+        var virtues_per_role = {}
         for (var i = 0; i < results.length; i++) {
             role = results[i]['croleId'];
             if ( !(role in virtues_per_role) ) {
@@ -373,10 +373,10 @@ app.get('/valors', (req, res) => {
 
 function valors_to_virtues(callback) {
     query_rethinkdb('galahad', function(results_g) {
-        valors = {};
-        virtues = {};
+        var valors = {};
+        var virtues = {};
         for (var i = 0; i < results_g.length; i++) {
-            element = results_g[i]
+            var element = results_g[i]
             if (element['function'] === 'valor') {
                 element['virtues'] = [];
                 valors[element['address']] = element;
@@ -386,9 +386,9 @@ function valors_to_virtues(callback) {
         }
         query_rethinkdb('commands', function(results_c) {
             for (var i = 0; i < results_c.length; i++) {
-                element = results_c[i];
+                var element = results_c[i];
                 if ('valor_ip' in element) {
-                    valor_ip = element['varlor_ip'];
+                    var valor_ip = element['varlor_ip'];
                     if (valor_ip in valors) {
                         valors[valor_ip]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
                     }
@@ -452,7 +452,7 @@ function query_ldap(type, send_fn) {
         ldapClient.search('dc=canvas,dc=virtue,dc=com', opts, function(err, ldapr) {
             assert.ifError(err);
 
-            results = [];
+            var results = [];
 
             ldapr.on('error', function(err) {
                 send_fn('Error: ' + err.message);
