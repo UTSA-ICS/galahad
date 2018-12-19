@@ -1,3 +1,4 @@
+import json
 import os
 import shlex
 import subprocess
@@ -11,6 +12,7 @@ from ldaplookup import LDAP
 
 from valor import ValorManager
 from assembler.assembler import Assembler
+from apiendpoint_security import EndPoint_Security
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -161,14 +163,22 @@ class CreateVirtueThread(threading.Thread):
                                    '-r', rdb_cert])
 
             # Enable/disable sensors as specified by the role
+            transducers = {}
+            for tid in role['startingTransducerIds']:
+                transducer = self.inst.get_obj('cid', tid, 'OpenLDAPtransducer', True)
+                if (transducer == ()):
+                    continue
+                ldap_tools.parse_ldap(transducer)
+                transducers[tid] = transducer
+
             eps = EndPoint_Security(self.inst.email, self.inst.password)
             all_transducers = json.loads(eps.transducer_list())
             for transducer in all_transducers:
                 if transducer['id'] in transducers:
                     config = transducer['startingConfiguration']
-                    ret = eps.transducer_enable(transducer['id'], virtue_id, config)
+                    ret = eps.transducer_enable(transducer['id'], self.virtue_id, config)
                 else:
-                    ret = eps.transducer_disable(transducer['id'], virtue_id)
+                    ret = eps.transducer_disable(transducer['id'], self.virtue_id)
 
             virtue['state'] = 'STOPPED'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
