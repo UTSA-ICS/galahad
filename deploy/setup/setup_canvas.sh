@@ -1,5 +1,14 @@
 #!/bin/bash
 
+#
+#     *** IMPORTANT NOTE ***
+# Please ensure that any setup related commands that do not require
+# information from github repo or mounted file system should be issued
+# in cloud-init for the server specified in the Cloud Formation YAML file
+#     galahad/deploy/setup/galahad-stack.yaml
+# This specially applies to installation of system packages using apt and pip.
+
+
 # Base directory for Canvas related files
 CANVAS_DIR="galahad/canvas"
 
