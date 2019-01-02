@@ -3,7 +3,7 @@
  * Copyright (c) Star Lab Corp. 2018.
  * All rights reserved.
  *
- * Author: Christopher Clark, Oct-Nov 2018
+ * Author: Christopher Clark, Oct-Dec 2018
  */
 
 #include <stdio.h>
@@ -23,13 +23,268 @@
 #include <sys/un.h>
 
 #include <libvmi/libvmi.h>
+#include <openssl/sha.h>
 
 #define dprintf printf
+#define PAGE_SIZE 1 << 12
 
 /* max length of pending connections: */
 #define LISTEN_MAX_BACKLOG  8
 
 #define MONITOR_LOG_IDENT   "VMmonitor"
+
+/*
+ *-----------------------------------------------------------------------------
+ * (approximate) Linux kernel data structures
+ */
+
+struct list_head {
+        struct list_head *next, *prev;
+};
+
+struct security_hook_list {
+    struct list_head        list;
+    struct list_head        *head;
+
+    /*union security_list_options hook;*/
+    int (*hook)(struct list_head *bar);
+
+    char                *lsm;
+    int             lsm_index;
+};
+
+#define CONFIG_SECURITY_PATH
+#define CONFIG_SECURITY_NETWORK
+#undef CONFIG_SECURITY_INFINIBAND
+#undef CONFIG_SECURITY_NETWORK_XFRM
+#undef CONFIG_KEYS
+#undef CONFIG_AUDIT
+
+struct security_hook_heads {
+    struct list_head binder_set_context_mgr;
+    struct list_head binder_transaction;
+    struct list_head binder_transfer_binder;
+    struct list_head binder_transfer_file;
+    struct list_head ptrace_access_check;
+    struct list_head ptrace_traceme;
+    struct list_head capget;
+    struct list_head capset;
+    struct list_head capable;
+    struct list_head quotactl;
+    struct list_head quota_on;
+    struct list_head syslog;
+    struct list_head settime;
+    struct list_head vm_enough_memory;
+    struct list_head bprm_set_creds;
+    struct list_head bprm_check_security;
+    struct list_head bprm_secureexec;
+    struct list_head bprm_committing_creds;
+    struct list_head bprm_committed_creds;
+    struct list_head sb_alloc_security;
+    struct list_head sb_free_security;
+    struct list_head sb_copy_data;
+    struct list_head sb_remount;
+    struct list_head sb_kern_mount;
+    struct list_head sb_show_options;
+    struct list_head sb_statfs;
+    struct list_head sb_mount;
+    struct list_head sb_umount;
+    struct list_head sb_pivotroot;
+    struct list_head sb_set_mnt_opts;
+    struct list_head sb_clone_mnt_opts;
+    struct list_head sb_parse_opts_str;
+    struct list_head dentry_init_security;
+    struct list_head dentry_create_files_as;
+#ifdef CONFIG_SECURITY_PATH
+    struct list_head path_unlink;
+    struct list_head path_mkdir;
+    struct list_head path_rmdir;
+    struct list_head path_mknod;
+    struct list_head path_truncate;
+    struct list_head path_symlink;
+    struct list_head path_link;
+    struct list_head path_rename;
+    struct list_head path_chmod;
+    struct list_head path_chown;
+    struct list_head path_chroot;
+#endif
+    struct list_head inode_alloc_security;
+    struct list_head inode_free_security;
+    struct list_head inode_init_security;
+    struct list_head inode_create;
+    struct list_head inode_link;
+    struct list_head inode_unlink;
+    struct list_head inode_symlink;
+    struct list_head inode_mkdir;
+    struct list_head inode_rmdir;
+    struct list_head inode_mknod;
+    struct list_head inode_rename;
+    struct list_head inode_readlink;
+    struct list_head inode_follow_link;
+    struct list_head inode_permission;
+    struct list_head inode_setattr;
+    struct list_head inode_getattr;
+    struct list_head inode_setxattr;
+    struct list_head inode_post_setxattr;
+    struct list_head inode_getxattr;
+    struct list_head inode_listxattr;
+    struct list_head inode_removexattr;
+    struct list_head inode_need_killpriv;
+    struct list_head inode_killpriv;
+    struct list_head inode_getsecurity;
+    struct list_head inode_setsecurity;
+    struct list_head inode_listsecurity;
+    struct list_head inode_getsecid;
+    struct list_head inode_copy_up;
+    struct list_head inode_copy_up_xattr;
+    struct list_head file_permission;
+    struct list_head file_alloc_security;
+    struct list_head file_free_security;
+    struct list_head file_ioctl;
+    struct list_head mmap_addr;
+    struct list_head mmap_file;
+    struct list_head file_mprotect;
+    struct list_head file_lock;
+    struct list_head file_fcntl;
+    struct list_head file_set_fowner;
+    struct list_head file_send_sigiotask;
+    struct list_head file_receive;
+    struct list_head file_open;
+    struct list_head task_create;
+    struct list_head task_alloc;
+    struct list_head task_free;
+    struct list_head cred_alloc_blank;
+    struct list_head cred_free;
+    struct list_head cred_prepare;
+    struct list_head cred_transfer;
+    struct list_head kernel_act_as;
+    struct list_head kernel_create_files_as;
+    struct list_head kernel_read_file;
+    struct list_head kernel_post_read_file;
+    struct list_head kernel_module_request;
+    struct list_head task_fix_setuid;
+    struct list_head task_setpgid;
+    struct list_head task_getpgid;
+    struct list_head task_getsid;
+    struct list_head task_getsecid;
+    struct list_head task_setnice;
+    struct list_head task_setioprio;
+    struct list_head task_getioprio;
+    struct list_head task_prlimit;
+    struct list_head task_setrlimit;
+    struct list_head task_setscheduler;
+    struct list_head task_getscheduler;
+    struct list_head task_movememory;
+    struct list_head task_kill;
+    struct list_head task_prctl;
+    struct list_head task_to_inode;
+    struct list_head ipc_permission;
+    struct list_head ipc_getsecid;
+    struct list_head msg_msg_alloc_security;
+    struct list_head msg_msg_free_security;
+    struct list_head msg_queue_alloc_security;
+    struct list_head msg_queue_free_security;
+    struct list_head msg_queue_associate;
+    struct list_head msg_queue_msgctl;
+    struct list_head msg_queue_msgsnd;
+    struct list_head msg_queue_msgrcv;
+    struct list_head shm_alloc_security;
+    struct list_head shm_free_security;
+    struct list_head shm_associate;
+    struct list_head shm_shmctl;
+    struct list_head shm_shmat;
+    struct list_head sem_alloc_security;
+    struct list_head sem_free_security;
+    struct list_head sem_associate;
+    struct list_head sem_semctl;
+    struct list_head sem_semop;
+    struct list_head netlink_send;
+    struct list_head d_instantiate;
+    struct list_head getprocattr;
+    struct list_head setprocattr;
+    struct list_head ismaclabel;
+    struct list_head secid_to_secctx;
+    struct list_head secctx_to_secid;
+    struct list_head release_secctx;
+    struct list_head inode_invalidate_secctx;
+    struct list_head inode_notifysecctx;
+    struct list_head inode_setsecctx;
+    struct list_head inode_getsecctx;
+#ifdef CONFIG_SECURITY_NETWORK
+    struct list_head unix_stream_connect;
+    struct list_head unix_may_send;
+    struct list_head socket_create;
+    struct list_head socket_post_create;
+    struct list_head socket_bind;
+    struct list_head socket_connect;
+    struct list_head socket_listen;
+    struct list_head socket_accept;
+    struct list_head socket_sendmsg;
+    struct list_head socket_recvmsg;
+    struct list_head socket_getsockname;
+    struct list_head socket_getpeername;
+    struct list_head socket_getsockopt;
+    struct list_head socket_setsockopt;
+    struct list_head socket_shutdown;
+    struct list_head socket_sock_rcv_skb;
+    struct list_head socket_getpeersec_stream;
+    struct list_head socket_getpeersec_dgram;
+    struct list_head sk_alloc_security;
+    struct list_head sk_free_security;
+    struct list_head sk_clone_security;
+    struct list_head sk_getsecid;
+    struct list_head sock_graft;
+    struct list_head inet_conn_request;
+    struct list_head inet_csk_clone;
+    struct list_head inet_conn_established;
+    struct list_head secmark_relabel_packet;
+    struct list_head secmark_refcount_inc;
+    struct list_head secmark_refcount_dec;
+    struct list_head req_classify_flow;
+    struct list_head tun_dev_alloc_security;
+    struct list_head tun_dev_free_security;
+    struct list_head tun_dev_create;
+    struct list_head tun_dev_attach_queue;
+    struct list_head tun_dev_attach;
+    struct list_head tun_dev_open;
+#endif  /* CONFIG_SECURITY_NETWORK */
+#ifdef CONFIG_SECURITY_INFINIBAND
+    struct list_head ib_pkey_access;
+    struct list_head ib_endport_manage_subnet;
+    struct list_head ib_alloc_security;
+    struct list_head ib_free_security;
+#endif  /* CONFIG_SECURITY_INFINIBAND */
+#ifdef CONFIG_SECURITY_NETWORK_XFRM
+    struct list_head xfrm_policy_alloc_security;
+    struct list_head xfrm_policy_clone_security;
+    struct list_head xfrm_policy_free_security;
+    struct list_head xfrm_policy_delete_security;
+    struct list_head xfrm_state_alloc;
+    struct list_head xfrm_state_alloc_acquire;
+    struct list_head xfrm_state_free_security;
+    struct list_head xfrm_state_delete_security;
+    struct list_head xfrm_policy_lookup;
+    struct list_head xfrm_state_pol_flow_match;
+    struct list_head xfrm_decode_session;
+#endif  /* CONFIG_SECURITY_NETWORK_XFRM */
+#ifdef CONFIG_KEYS
+    struct list_head key_alloc;
+    struct list_head key_free;
+    struct list_head key_permission;
+    struct list_head key_getsecurity;
+#endif  /* CONFIG_KEYS */
+#ifdef CONFIG_AUDIT
+    struct list_head audit_rule_init;
+    struct list_head audit_rule_known;
+    struct list_head audit_rule_match;
+    struct list_head audit_rule_free;
+#endif /* CONFIG_AUDIT */
+} __randomize_layout;
+
+/*
+--------------------------------------------------------------------------------
+*/
+
 
 int
 list_processes(vmi_instance_t vmi, const char *target_vm_name)
@@ -143,8 +398,269 @@ list_kernel_modules(vmi_instance_t vmi, const char *target_vm_name)
     return 0;
 }
 
+int
+validate_hook_heads(vmi_instance_t vmi, const char *vm_name,
+                    const char *hook_name, unsigned char *memory,
+                    addr_t *p_list_head)
+{
+    bool found_hook = false;
+    addr_t expected_hook;
+    int rc;
+	size_t bytes_read;
+	int loop_counter;
+
+    rc = vmi_translate_ksym2v(vmi, hook_name, &expected_hook);
+    if ( VMI_FAILURE == rc )
+    {
+        syslog(LOG_ERR,
+               "%s ERROR failed to get addr for %s.\n",
+               vm_name, hook_name);
+        goto out;
+    }
+
+    /* There are 206 defined hooks at the time of writing -- again, this
+     * fits within a single page of memory.
+     */
+    rc = vmi_read_ksym(vmi, "security_hook_heads", PAGE_SIZE, memory, NULL);
+    if ( VMI_FAILURE == rc ) {
+        syslog(LOG_ERR, "%s ERROR failed to read security_hook_heads memory.\n",
+               vm_name);
+        goto out;
+    }
+    /* vmi_print_hex(memory, PAGE_SIZE); */
+
+    /* scan these lists looking for the virtue hooks as installed */
+    loop_counter = 0;
+    {
+        struct security_hook_list *s_h_l;
+        addr_t list_head = *p_list_head;
+        addr_t cur_list_entry = list_head;
+
+        while ( 1 )
+        {
+            rc = vmi_read_va(vmi, cur_list_entry, 0,
+                             sizeof(struct security_hook_list),
+                             memory, &bytes_read);
+            if ( VMI_FAILURE == rc )
+            {
+                syslog(LOG_ERR, "%s ERROR failed to read %s list.\n",
+                       vm_name, hook_name);
+                goto out;
+            }
+            s_h_l = (struct security_hook_list *)memory;
+
+            if ( (addr_t)(s_h_l->hook) == expected_hook )
+            {
+                syslog(LOG_INFO, "%s OK %s active at: %lx", vm_name, hook_name,
+                    (unsigned long)s_h_l->hook);
+                found_hook = true;
+                break;
+            }
+
+            cur_list_entry = (addr_t)(s_h_l->list.next);
+
+            if ( list_head == cur_list_entry )
+                break;
+
+#define MAX_LOOP_THRESHOLD 100
+            if ( ++loop_counter > MAX_LOOP_THRESHOLD )
+            {
+                syslog(LOG_CRIT, "%s THREAT insane security hook list.\n",
+                       vm_name);
+                goto out;
+            }
+        }
+    }
+
+    if ( !found_hook )
+        syslog(LOG_CRIT, "%s THREAT missing LSM security hook.\n", vm_name);
+
+ out:
+    return found_hook ? 0 : -1;
+}
+
+int
+validate_hook(vmi_instance_t vmi, const char *vm_name,
+              struct security_hook_list *sec_hook_list,
+              unsigned int sec_hook_index,
+              const char *hook_name)
+{
+    status_t rc;
+    addr_t expected_hook;
+    int ret = -1;
+
+    rc = vmi_translate_ksym2v(vmi, hook_name, &expected_hook);
+    if ( VMI_FAILURE == rc )
+    {
+        syslog(LOG_ERR,
+               "%s ERROR failed to get addr for %s.\n",
+               vm_name, hook_name);
+        goto out;
+    }
+    syslog(LOG_INFO, "%s OK %s present at: %lx", vm_name, hook_name, expected_hook);
+
+    if ( (addr_t)(sec_hook_list[sec_hook_index].hook) != expected_hook )
+    {
+        /* BAD */
+        syslog(LOG_CRIT, "%s THREAT %s is COMPROMIZED. (%lx != expected %lx)\n",
+               vm_name, hook_name,
+               (addr_t)(sec_hook_list[sec_hook_index].hook),
+               expected_hook);
+        goto out;
+    }
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+void
+generate_page_hash(unsigned char *memory, char *out_digest)
+{
+    size_t index;
+    unsigned char digest[SHA256_DIGEST_LENGTH];
+
+    SHA256_CTX ctx;
+    SHA256_Init(&ctx);
+
+    SHA256_Update(&ctx, memory, PAGE_SIZE);
+
+    SHA256_Final(digest, &ctx);
+
+    for ( index = 0; index < SHA256_DIGEST_LENGTH; ++index )
+        sprintf(out_digest + (2 * index), "%02x", digest[index]);
+}
+
+int
+validate_hook_code(vmi_instance_t vmi, const char *vm_name,
+                   const char *hook_name, unsigned char *memory)
+{
+    status_t rc;
+    addr_t hook;
+    int ret = -1;
+    char human_readable_digest[SHA256_DIGEST_LENGTH * 2];
+
+    rc = vmi_translate_ksym2v(vmi, hook_name, &hook);
+    if ( VMI_FAILURE == rc )
+    {
+        syslog(LOG_ERR,
+               "%s ERROR failed to get addr for %s.\n",
+               vm_name, hook_name);
+        goto out;
+    }
+
+    /*
+     * It would be possible to extract the exact size of the code that
+     * implements the hook from the System.map file since it is sorted
+     * by address, and differencing adjacent lines should give a viable result.
+     * An inspection determined that the current implementations are all
+     * less than PAGE_SIZE, so hashing that fixed size works for what we need.
+     */
+    rc = vmi_read_ksym(vmi, hook_name, PAGE_SIZE, memory, NULL);
+    if ( VMI_FAILURE == rc )
+    {
+        syslog(LOG_CRIT, "%s ERROR failed to read %s hook code memory.\n",
+               vm_name, hook_name);
+        goto out;
+    }
+
+    generate_page_hash(memory, human_readable_digest);
+    syslog(LOG_INFO, "%s Digest of %s hook code: %s.\n",
+           vm_name, hook_name, human_readable_digest);
+
+    ret = 0;
+
+ out:
+    return ret;
+}
+
+int
+inspect_virtue_lsm(vmi_instance_t vmi, const char *vm_name)
+{
+    int ret = -1;
+    status_t rc;
+	unsigned char *memory;
+    struct security_hook_list *sec_hook_list;
+
+    syslog(LOG_INFO, "%s --- start virtue LSM inspection", vm_name);
+
+    /* 1. Does the virtue_hooks array contain the expected elements? */
+
+    /* We only have six hooks: will easily fit within a single page */
+    memory = malloc(PAGE_SIZE);
+
+    rc = vmi_read_ksym(vmi, "virtue_hooks", PAGE_SIZE, memory, NULL);
+    if ( VMI_FAILURE == rc ) {
+        syslog(LOG_CRIT, "%s THREAT failed to read virtue_hooks memory.\n",
+               vm_name);
+        goto out;
+    }
+    /* vmi_print_hex(memory, PAGE_SIZE); */
+
+    /* Validate the Virtue hook table */
+    sec_hook_list = (struct security_hook_list*)memory;
+
+    rc += validate_hook(vmi, vm_name, sec_hook_list, 0, "virtue_task_create") +
+         validate_hook(vmi, vm_name, sec_hook_list, 1, "virtue_path_mkdir") +
+         validate_hook(vmi, vm_name, sec_hook_list, 2, "virtue_socket_bind") +
+         validate_hook(vmi, vm_name, sec_hook_list, 3, "virtue_socket_connect") +
+         validate_hook(vmi, vm_name, sec_hook_list, 4, "virtue_inode_create") +
+         validate_hook(vmi, vm_name, sec_hook_list, 5, "virtue_bprm_set_creds");
+
+    /* 2. Are the virtue hooks installed in the security hooks? */
+
+    syslog(LOG_INFO, "%s Validating hook heads table", vm_name);
+
+    rc += validate_hook_heads(vmi, vm_name, "virtue_task_create", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->task_create.next)))
+       +
+         validate_hook_heads(vmi, vm_name, "virtue_path_mkdir", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->path_mkdir.next)))
+       +
+         validate_hook_heads(vmi, vm_name, "virtue_socket_bind", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->socket_bind.next)))
+       +
+         validate_hook_heads(vmi, vm_name, "virtue_socket_connect", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->socket_connect.next)))
+       +
+         validate_hook_heads(vmi, vm_name, "virtue_inode_create", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->inode_create.next)))
+       +
+         validate_hook_heads(vmi, vm_name, "virtue_bprm_set_creds", memory,
+        (addr_t *)(&(((struct security_hook_heads*)memory)->bprm_set_creds.next)));
+
+    if ( rc == 0 )
+    {
+        syslog(LOG_INFO, "%s --- LSM inspection, hooks present: PASS", vm_name);
+        ret = 0;
+    }
+
+    syslog(LOG_INFO, "%s --- Producing hook code digests", vm_name);
+
+    /* 3. Checksum the code that implements the hooks. */
+    rc += validate_hook_code(vmi, vm_name, "virtue_task_create", memory)
+        +
+          validate_hook_code(vmi, vm_name, "virtue_path_mkdir", memory)
+        +
+          validate_hook_code(vmi, vm_name, "virtue_socket_bind", memory)
+        +
+          validate_hook_code(vmi, vm_name, "virtue_socket_connect", memory)
+        +
+          validate_hook_code(vmi, vm_name, "virtue_inode_create", memory)
+        +
+          validate_hook_code(vmi, vm_name, "virtue_bprm_set_creds", memory);
+
+ out:
+	if ( memory )
+		free(memory);
+
+    syslog(LOG_INFO, "%s --- end of virtue LSM inspection", vm_name);
+    return ret;
+}
+
 #define MONITOR_OP_LIST_PROCESSES       1
 #define MONITOR_OP_LIST_KERNEL_MODULES  2
+#define MONITOR_OP_INSPECT_VIRTUE_LSM   3
 
 int monitor_action(char *target_vm_name, unsigned int op)
 {
@@ -184,6 +700,9 @@ int monitor_action(char *target_vm_name, unsigned int op)
                 break;
             case MONITOR_OP_LIST_KERNEL_MODULES :
                 rc = list_kernel_modules(vmi, target_vm_name);
+                break;
+            case MONITOR_OP_INSPECT_VIRTUE_LSM :
+                rc = inspect_virtue_lsm(vmi, target_vm_name);
                 break;
             default:
                 syslog(LOG_ERR, "Unknown VMI operation");
@@ -293,6 +812,13 @@ int process_command(const char *command, unsigned int len)
         prep_command_buf(buf, sizeof(buf), command, 14);
         syslog(LOG_INFO, "Retrieving kernel module list for VM: %s", buf);
         rc = monitor_action(buf, MONITOR_OP_LIST_KERNEL_MODULES)
+             ? COMMAND_ERROR : COMMAND_OK;
+    }
+    else if ( (len > 19) && strncmp(command, "inspect-virtue-lsm ", 19) == 0 )
+    {
+        prep_command_buf(buf, sizeof(buf), command, 18);
+        syslog(LOG_INFO, "Inspecting Virtue LSM for VM: %s", buf);
+        rc = monitor_action(buf, MONITOR_OP_INSPECT_VIRTUE_LSM)
              ? COMMAND_ERROR : COMMAND_OK;
     }
     else if ( (len > 9) && strncmp(command, "schedule ", 9) == 0 )
