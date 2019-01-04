@@ -106,15 +106,21 @@ class Changes(threading.Thread):
 class Rethink():
     def __init__(self):
         rethinkdb_client_logger.debug("Starting to monitor changes in rethinkDB...")
+        self.valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        self.migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
 
         self.ip = socket.gethostbyname(socket.gethostname())
+        self.valor_id = r.db(RT_DB).table(RT_VALOR_TB).filter({"function":"valor", "address": self.ip}).run(
+            self.valor_rt).next()["valor_id"]
 
     def changes(self):
 
-        valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        #valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        valor_rt = self.valor_rt
         valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue", "address": self.ip}).changes(include_types=True).run(valor_rt)
 
-        migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        #migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        migration_rt = self.migration_rt
         migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_ip": self.ip, "type": "MIGRATION"}).changes(include_types=True).run(migration_rt)
 
         valor_thread = Changes("valor", valor_feed, valor_rt)
@@ -130,7 +136,7 @@ class Rethink():
         introspection_thread = Introspect()
         introspection_thread.start()
         introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
-        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.ip, "type": "INTROSPECTION"}).changes(include_types=True).run(introspection_rt)
+        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.valor_id, "type": "INTROSPECTION"}).changes(include_types=True).run(introspection_rt)
         for change in introspection_feed:
             rethinkdb_client_logger.debug(change)
             if change["type"] == "add":

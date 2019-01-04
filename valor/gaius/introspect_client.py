@@ -72,6 +72,14 @@ class Introspect(threading.Thread):
         except subprocess.CalledProcessError as e:
             intro_logger.debug("kernel-modules {}: {}".format(self.virtue_id, e))
 
+    def inspect_virtue_lsm(self):
+        try:
+            out = subprocess.check_output("echo \"inspect-virtue-lsm {}\" | nc -U /tmp/control.socket"\
+                .format(self.virtue_id), stderr=subprocess.STDOUT, shell=True)
+            intro_logger.debug("inspect-virtue-lsm {}: {}".format(self.virtue_id, out))
+        except subprocess.CalledProcessError as e:
+            intro_logger.debug("inspect-virtue-lsm {}: {}".format(self.virtue_id, e))
+
 
 if __name__ == "__main__":
     i = Introspect()
