@@ -5,16 +5,29 @@
 ###
 
 import rethinkdb as r
+import json
 
 # Change path to ca cert as necessary
-conn = r.connect(user='virtue', password='virtue', ssl={'ca_certs': 'rethinkdb_cert.pem'})
+conn = r.connect(host='rethinkdb.galahad.com',
+    #user='virtue',
+    #password='virtue',
+    ssl={'ca_certs': 'galahad-config/rethinkdb_keys/rethinkdb_cert.pem'})
 
 print 'COMMANDS:'
 for x in r.db('transducers').table('commands').run(conn):
-   print x['virtue_id'], x['transducer_id'], x['enabled'], x['timestamp']
+    if 'signature' in x:
+        del x['signature']
+    print json.dumps(x, indent=2)
 
 print ''
 print 'ACKS:'
 for x in r.db('transducers').table('acks').run(conn):
-   print x['virtue_id'], x['transducer_id'], x['enabled'], x['timestamp']
+    if 'signature' in x:
+        del x['signature']
+    print json.dumps(x, indent=2)
+
+print ''
+print 'GALAHAD:'
+for x in r.db('transducers').table('galahad').run(conn):
+    print json.dumps(x, indent=2)
 

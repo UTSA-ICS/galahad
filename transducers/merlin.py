@@ -356,7 +356,7 @@ def do_actuator(transducer_id, config_str, enabled):
 			error_wrapper('Failed to send command over netlink socket')
 			return False
 
-		return True
+		return success
 
 	elif transducer_id == 'block_net':
 		chardev = "/dev/netblockchar"

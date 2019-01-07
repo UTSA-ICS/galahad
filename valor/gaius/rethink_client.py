@@ -50,7 +50,7 @@ class Changes(threading.Thread):
 
             virtue = Virtue(change)
             try:
-                r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).update({"enabled":"False"}).run(self.rt).next()
+                r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id, "type": "MIGRATION"}).update({"enabled":"False"}).run(self.rt).next()
                 return
             except Exception as e:
                 pass

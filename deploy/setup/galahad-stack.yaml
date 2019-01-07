@@ -231,8 +231,8 @@ Resources:
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0abd33cde76960d90
-      InstanceType: t2.small
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
@@ -243,6 +243,60 @@ Resources:
           PrivateIpAddress: 172.30.1.50
           SubnetId:
             "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for AWS EFS mount helper
+          apt-get update
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
+
+          # Install the desktop
+          apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity gnome-terminal
+          apt-get install -y nautilus
+
+          # Install needed library for nwjs
+          apt-get install -y npm libxss1
+
+          # Packages for pip3 and firefox
+          apt-get install -y firefox python3-pip
+
+          # Python module for CLI
+          pip3 install prompt_toolkit
+
+          # Python modules for updating Unity Image
+          pip3 install sultan boto3
+
+          # Install VNC server
+          apt-get install -y vnc4server
+
+          # Add DNS for canvas.com for canvas to work
+          echo "127.0.0.1 canvas.com" >> /etc/hosts
+
+          # Configure the VNC server
+          su - ubuntu -c "mkdir .vnc"
+          su - ubuntu -c "(echo canvas4U;echo canvas4U) | vncpasswd"
+          su - ubuntu -c "vncserver"
+          su - ubuntu -c "vncserver -kill :1"
+          su - ubuntu -c "echo -e \"\ngnome-panel &\ngnome-settings-daemon &\nmetacity &\nnautilus &\" >> .vnc/xstartup"
+          su - ubuntu -c "vncserver -geometry 1600x1200"
+
+          # Download the NWJS Package and untar it
+          su - ubuntu -c "wget https://dl.nwjs.io/v0.34.5/nwjs-sdk-v0.34.5-linux-x64.tar.gz"
+          su - ubuntu -c "tar -xzf nwjs-sdk-v0.34.5-linux-x64.tar.gz"
       Tags:
         - Key: Project
           Value: Virtue
@@ -252,6 +306,8 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Canvas'
+    DependsOn:
+      - VirtUEValorEFSTarget
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -572,6 +628,23 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - XenPVMBuilder
+  CanvasInstanceDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'canvas.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt CanvasInstance.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - CanvasInstance
 Outputs:
   MountTargetID:
     Description: Mount target ID
