@@ -5,12 +5,14 @@ import subprocess
 import threading
 import time
 import traceback
+import re
 
 import ldap_tools
 from aws import AWS
 from ldaplookup import LDAP
 
 from valor import ValorManager
+from valor import RethinkDbManager
 from assembler.assembler import Assembler
 from apiendpoint_security import EndPoint_Security
 
@@ -18,10 +20,19 @@ from apiendpoint_security import EndPoint_Security
 # overhead of creating them dynamically would be too long.
 BACKUP_VIRTUE_COUNT = 2
 
+NUM_STANDBY_ROLES = 3
+
+NUM_STANDBY_VIRTUES = 2
+
 # Time between AWS polls in seconds
 POLL_TIME = 300
 
 thread_list = []
+
+# PATH of unity and role image files
+UNITY_PATH = '/mnt/efs/images/unities/'
+ROLE_PATH = '/mnt/efs/images/non_provisioned_virtues/'
+VIRTUE_PATH = '/mnt/efs/images/provisioned_virtues/'
 
 
 class BackgroundThread(threading.Thread):
@@ -97,6 +108,66 @@ class CreateVirtueThread(threading.Thread):
         self.username = user
         self.virtue_id = virtue_id
 
+    def create_virtue_image_file(self):
+        virtue_num = self.get_standby_virtue_image_files()
+
+        if virtue_num:
+            subprocess.check_call(['sudo', 'mv',
+                                   VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(virtue_num[0]) + '.img',
+                                   VIRTUE_PATH + self.virtue_id + '.img'])
+        # If there are no standby roles
+        else:
+            subprocess.check_call(['sudo', 'rsync',
+                                   ROLE_PATH + self.role_id + '.img',
+                                   VIRTUE_PATH + self.virtue_id + '.img'])
+
+        self.create_standby_virtues()
+
+    def get_standby_virtue_image_files(self):
+        # All files in the role directory
+        virtue_files =  os.listdir(VIRTUE_PATH)
+
+        # Store the role image file count suffix
+        virtue_num = []
+
+        # Check number of standby role image files
+        num_standby_virtue_img_files = sum(self.role_id + '_STANDBY_VIRTUE' in file for file in virtue_files)
+
+        if num_standby_virtue_img_files:
+            # Figure out the count suffix for the standby files.
+            for file in virtue_files:
+                if (self.role_id + '_STANDBY_VIRTUE' in file):
+                    virtue_num.append(int(re.sub(self.role_id + '_STANDBY_VIRTUE_|.img', '', file)))
+            virtue_num.sort()
+
+        return virtue_num
+
+    def create_standby_virtues(self):
+        virtue_num = self.get_standby_virtue_image_files()
+
+        if virtue_num:
+            virtue_count = virtue_num[len(virtue_num)-1] + 1
+        else:
+            virtue_count = 1
+
+        # Create Standby role image files so they do not have to be created
+        # when a role create is called
+        if len(virtue_num) <= NUM_STANDBY_VIRTUES:
+            # Create the standby roles
+            for i in range(NUM_STANDBY_VIRTUES - len(virtue_num)):
+
+                standby_virtues_thread = threading.Thread(target=self.create_standby_virtue_image_files,
+                                                          args=(virtue_count, i, ))
+                standby_virtues_thread.start()
+
+        return virtue_count
+
+    def create_standby_virtue_image_files(self, virtue_count, index):
+        print VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(virtue_count+index)
+        subprocess.check_call(['sudo', 'rsync',
+                               ROLE_PATH + self.role_id + '.img',
+                               VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(virtue_count+index) + '.img'])
+
     def run(self):
 
         # Local Dir for storing of keys, this will be replaced when key management is implemented
@@ -151,6 +222,8 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
+            self.create_virtue_image_file()
+
             subprocess.check_call(['sudo', 'python',
                                    os.environ['HOME'] + '/galahad/excalibur/' + \
                                    'call_provisioner.py',
@@ -196,7 +269,7 @@ class CreateVirtueThread(threading.Thread):
 class AssembleRoleThread(threading.Thread):
 
     def __init__(self, ldap_user, ldap_password, role,
-                 base_img_path,
+                 base_img_name,
                  use_ssh=True):
         super(AssembleRoleThread, self).__init__()
 
@@ -210,8 +283,68 @@ class AssembleRoleThread(threading.Thread):
 
         self.role = role
 
-        self.base_img_path = base_img_path
+        self.base_img_name = base_img_name
         self.use_ssh = use_ssh
+
+    def create_role_image_file(self):
+        role_num = self.get_standby_role_image_files()
+
+        if role_num:
+            subprocess.check_call(['sudo', 'mv',
+                                   ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(role_num[0]) + '.img',
+                                   ROLE_PATH + self.role['id'] + '.img'])
+        # If there are no standby roles
+        else:
+            subprocess.check_call(['sudo', 'rsync',
+                                   UNITY_PATH + self.base_img_name + '.img',
+                                   ROLE_PATH + self.role['id'] + '.img'])
+
+        self.create_standby_roles()
+
+    def get_standby_role_image_files(self):
+        # All files in the role directory
+        role_files =  os.listdir(ROLE_PATH)
+
+        # Store the role image file count suffix
+        role_num = []
+
+        # Check number of standby role image files
+        num_standby_role_img_files = sum(self.base_img_name + '_STANDBY_ROLE' in file for file in role_files)
+
+        if num_standby_role_img_files:
+            # Figure out the count suffix for the standby files.
+            for file in role_files:
+                if (self.base_img_name + '_STANDBY_ROLE' in file):
+                    role_num.append(int(re.sub(self.base_img_name + '_STANDBY_ROLE_|.img', '', file)))
+            role_num.sort()
+
+        return role_num
+
+    def create_standby_roles(self):
+        role_num = self.get_standby_role_image_files()
+
+        if role_num:
+            role_count = role_num[len(role_num)-1] + 1
+        else:
+            role_count = 1
+
+        # Create Standby role image files so they do not have to be created
+        # when a role create is called
+        if len(role_num) <= NUM_STANDBY_ROLES:
+            # Create the standby roles
+            for i in range(NUM_STANDBY_ROLES - len(role_num)):
+
+                standby_roles_thread = threading.Thread(target=self.create_standby_role_image_files,
+                                                        args=(role_count, i, ))
+                standby_roles_thread.start()
+
+        return role_count
+
+    def create_standby_role_image_files(self, role_count, index):
+        print ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(role_count+index)
+        subprocess.check_call(['sudo', 'rsync',
+                               UNITY_PATH + self.base_img_name + '.img',
+                               ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(role_count+index) + '.img'])
 
     def run(self):
 
@@ -223,14 +356,13 @@ class AssembleRoleThread(threading.Thread):
         assert ret == 0
 
         virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
+        base_img_path = 'images/unities/' + self.base_img_name + '.img'
         key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
         valor_manager = ValorManager()
 
         try:
-            subprocess.check_call(['sudo', 'rsync',
-                                   '/mnt/efs/' + self.base_img_path,
-                                   '/mnt/efs/' + virtue_path])
+            self.create_role_image_file()
 
             if (self.use_ssh):
                 # Launch by adding a 'virtue' to RethinkDB
@@ -277,5 +409,5 @@ class AssembleRoleThread(threading.Thread):
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
         finally:
-            if valor_manager.rethinkdb_manager.get_virtue(self.role['id']):
-                valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
+            if RethinkDbManager().get_virtue(self.role['id']):
+                RethinkDbManager().remove_virtue(self.role['id'])

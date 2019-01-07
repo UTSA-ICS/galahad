@@ -1,19 +1,15 @@
-import json
-import random
-import time
 import copy
-import traceback
+import json
 import subprocess
+import time
+import traceback
 
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
-from . import ldap_tools
-from aws import AWS
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
 from valor import ValorAPI
-
-from assembler.assembler import Assembler
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
@@ -141,7 +137,7 @@ class EndPoint_Admin():
         self,
         role,
         use_ssh=True,
-        hard_code_path='images/unities/4GB.img'):
+        unity_img_name='4GB'):
 
         # TODO: Assemble on a running VM
 
@@ -198,7 +194,7 @@ class EndPoint_Admin():
             try:
                 # Call a controller thread to create and assemble the new image
                 thr = AssembleRoleThread(self.inst.email, self.inst.password,
-                                         new_role, hard_code_path,
+                                         new_role, unity_img_name,
                                          use_ssh=use_ssh)
             except AssertionError:
                 return json.dumps(ErrorCodes.admin['storageError'])
