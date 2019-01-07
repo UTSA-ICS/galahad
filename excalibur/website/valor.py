@@ -1,12 +1,15 @@
 import os
+import threading
 import time
 
 import boto3
 import rethinkdb
-from aws import AWS
 from boto.utils import get_instance_metadata
+
+from aws import AWS
 from ssh_tool import ssh_tool
 
+NUM_STANDBY_VALORS = 3
 
 class ValorAPI:
 
@@ -195,35 +198,64 @@ class ValorManager:
 
         return file_system_id
 
+    def get_empty_valors(self, valors, virtues):
+        empty_valors = []
+        for valor in valors:
+            if valor['valor_id'] not in str(virtues):
+                empty_valors.append(valor)
+
+        return empty_valors
+
+    def create_standby_valors(self, num_valors):
+        # Create standby valors
+        aws = AWS()
+
+        valor_ids = self.create_valor_pool(num_valors,
+                                           aws.get_subnet_id(),
+                                           aws.get_sec_group().id)
+        for valor_id in valor_ids:
+            self.launch_valor(valor_id)
+
     def get_empty_valor(self):
+        """Get and return an available valor node.
+        If less than the standby number of valors exist then
+        create more valors
+        """
 
         valors = self.rethinkdb_manager.list_valors()
         virtues = self.rethinkdb_manager.list_virtues()
 
-        for valor in valors:
+        empty_valors = self.get_empty_valors(valors, virtues)
 
-            valor_is_empty = True
-
-            for virtue in virtues:
-
-                if valor['address'] == virtue['address']:
-                    valor_is_empty = False
-                    break
-
-            if valor_is_empty:
-                # return this empty valor
-                return valor
-
-        # If no empty valors are found then create a valor
         aws = AWS()
 
-        valor_id = self.create_valor(
-            aws.get_subnet_id(),
-            aws.get_sec_group().id)
+        # Check if the number of empty valors is less than NUM_STANDBY_VALORS
+        # If so then create additional valors
+        if len(empty_valors) < NUM_STANDBY_VALORS:
+            # Number of standby valors to create
+            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors)
 
-        self.launch_valor(valor_id)
+            if not empty_valors:
+                valor_ids = self.create_valor_pool(1, aws.get_subnet_id(), aws.get_sec_group().id)
 
-        return self.rethinkdb_manager.get_valor(valor_id)
+                create_standby_valors_thread = threading.Thread(target=self.create_valor_pool,
+                                                                args=(NUM_VALORS_TO_CREATE, aws.get_subnet_id(),
+                                                                      aws.get_sec_group().id,))
+                create_standby_valors_thread.start()
+
+                return self.rethinkdb_manager.get_valor(valor_ids[0])
+
+            create_standby_valors_thread = threading.Thread(target=self.create_valor_pool,
+                                                            args=(NUM_VALORS_TO_CREATE, aws.get_subnet_id(),
+                                                                  aws.get_sec_group().id,))
+            create_standby_valors_thread.start()
+
+        elif len(empty_valors) > NUM_STANDBY_VALORS:
+            # Number of Empty Valors is more than the required number of standby Valors
+            # So do nothing
+            pass
+
+        return empty_valors[0]
 
 
     def create_valor(self, subnet, sec_group):
@@ -313,6 +345,9 @@ class ValorManager:
 
             valor_id = self.create_valor(subnet, sec_group)
             valor_ids.append(valor_id)
+
+        for valor_id in valor_ids:
+            self.launch_valor(valor_id)
 
         return valor_ids
 
