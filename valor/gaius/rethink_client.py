@@ -160,7 +160,7 @@ class Rethink():
                     introspection_thread.event.clear()
                     rethinkdb_client_logger.debug("introspection_thread.event.clear()")
             elif change["type"] == "remove":
-                introspection_thread.clear()
+                introspection_thread.event.clear()
 
 if __name__ == "__main__":
     rt = Rethink()
