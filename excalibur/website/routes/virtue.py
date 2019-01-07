@@ -1,26 +1,20 @@
-import sys
-import logging
 import inspect
+import json
+import logging
+import sys
+
+from authlib.flask.oauth2 import current_token
+from flask import Blueprint
 from flask import request, Response
 
-from flask import Blueprint, url_for
-from flask import abort, redirect, render_template
-from authlib.flask.oauth2 import current_token
-from ..auth import require_login
-from ..models import OAuth2Client, User
-from ..forms.client import (Client2Form, OAuth2ClientWrapper)
-from ..ldaplookup import LDAP
 from ..apiendpoint import EndPoint
 from ..apiendpoint_admin import EndPoint_Admin
 from ..apiendpoint_security import EndPoint_Security
-from ..services.oauth2 import require_oauth
+from ..auth import require_login
+from ..ldaplookup import LDAP
+from ..models import User
 from ..services.errorcodes import ErrorCodes
-import json
-import time
-
 from ..services.oauth2 import require_oauth
-from ..services.errorcodes import ErrorCodes
-from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
