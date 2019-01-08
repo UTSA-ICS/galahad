@@ -166,6 +166,8 @@ class ValorManager:
     def __init__(self):
 
         self.aws = AWS()
+        self.rethinkdb_manager = RethinkDbManager()
+        self.router_manager = RouterManager()
 
     def get_stack_name(self):
 
@@ -212,9 +214,8 @@ class ValorManager:
         create more standby valors
         """
 
-        rethinkdb_manager = RethinkDbManager()
-        valors = rethinkdb_manager.list_valors()
-        virtues = rethinkdb_manager.list_virtues()
+        valors = self.rethinkdb_manager.list_valors()
+        virtues = self.rethinkdb_manager.list_virtues()
 
         empty_valors = self.get_empty_valors(valors, virtues)
 
@@ -310,8 +311,16 @@ class ValorManager:
 
         valor.connect_with_ssh()
 
+        # Not using self.rethinkdb_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.rethinkdb_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
         RethinkDbManager().add_valor(valor)
 
+        # Not using self.router_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.router_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
         RouterManager().add_valor(valor)
 
         valor.setup()
@@ -321,6 +330,10 @@ class ValorManager:
         instance.wait_until_stopped()
         instance.reload()
 
+        # Not using self.rethinkdb_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.rethinkdb_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
         RethinkDbManager().set_valor(valor.aws_instance.id, 'state', 'STOPPED')
 
         return instance.id
@@ -337,7 +350,7 @@ class ValorManager:
 
         valor.connect_with_ssh()
 
-        RethinkDbManager().set_valor(valor_id, 'state', 'RUNNING')
+        self.rethinkdb_manager.set_valor(valor_id, 'state', 'RUNNING')
 
         return instance.id
 
@@ -345,7 +358,7 @@ class ValorManager:
     def verify_valor_running(self, valor_id):
 
         # Check the valor state and verify that it is 'RUNNING'
-        valor_state = RethinkDbManager().get_valor(valor_id)['state']
+        valor_state = self.rethinkdb_manager.get_valor(valor_id)['state']
 
         while valor_state != 'RUNNING':
             if valor_state == 'STOPPED':
@@ -353,7 +366,7 @@ class ValorManager:
                 break
             elif valor_state == 'CREATING':
                 time.sleep(30)
-                valor_state = RethinkDbManager().get_valor(valor_id)['state']
+                valor_state = self.rethinkdb_manager.get_valor(valor_id)['state']
             else:
                 Exception('Unexpected Error condition encountered while getting a valor')
 
@@ -387,7 +400,7 @@ class ValorManager:
 
         self.aws.instance_destroy(valor_id, block=False)
 
-        RethinkDbManager().remove_valor(valor_id)
+        self.rethinkdb_manager.remove_valor(valor_id)
 
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
