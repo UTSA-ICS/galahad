@@ -137,12 +137,17 @@ class CreateVirtueThread(threading.Thread):
             # Figure out the count suffix for the standby files.
             for file in virtue_files:
                 if (self.role_id + '_STANDBY_VIRTUE' in file):
-                    virtue_num.append(int(re.sub(self.role_id + '_STANDBY_VIRTUE_|.img', '', file)))
+                    virtue_num.append(int(re.sub(r'^\.??' +
+                                               self.role_id +
+                                               '_STANDBY_VIRTUE_' +
+                                               '|\.??img\.??.*', '',
+                                               file)))
             virtue_num.sort()
 
         return virtue_num
 
     def create_standby_virtues(self):
+
         virtue_num = self.get_standby_virtue_image_files()
 
         if virtue_num:
@@ -315,7 +320,11 @@ class AssembleRoleThread(threading.Thread):
             # Figure out the count suffix for the standby files.
             for file in role_files:
                 if (self.base_img_name + '_STANDBY_ROLE' in file):
-                    role_num.append(int(re.sub(self.base_img_name + '_STANDBY_ROLE_|.img', '', file)))
+                    role_num.append(int(re.sub(r'^\.??' +
+                                               self.base_img_name +
+                                               '_STANDBY_ROLE_' +
+                                               '|\.??img\.??.*', '',
+                                               file)))
             role_num.sort()
 
         return role_num
@@ -409,5 +418,5 @@ class AssembleRoleThread(threading.Thread):
                                        objectClass='OpenLDAProle',
                                        throw_error=True)
         finally:
-            if RethinkDbManager().get_virtue(self.role['id']):
-                RethinkDbManager().remove_virtue(self.role['id'])
+            if valor_manager.rethinkdb_manager.get_virtue(self.role['id']):
+                valor_manager.rethinkdb_manager.remove_virtue(self.role['id'])
