@@ -60,7 +60,6 @@ class ValorAPI:
             destination_valor_id)
 
 
-
 class Valor:
 
     def __init__(self, valor_id):
@@ -228,11 +227,14 @@ class ValorManager:
             if not empty_valors:
                 valor_ids = self.create_valor_pool(1, aws.get_subnet_id(), aws.get_sec_group().id)
 
-                create_standby_valors_thread = threading.Thread(target=self.create_valor_pool,
-                                                                args=(NUM_STANDBY_VALORS,
-                                                                      aws.get_subnet_id(),
-                                                                      aws.get_sec_group().id,))
-                create_standby_valors_thread.start()
+                for i in range(NUM_STANDBY_VALORS):
+                    create_standby_valors_thread = threading.Thread(target=self.create_valor,
+                                                                    args=(aws.get_subnet_id(),
+                                                                          aws.get_sec_group().id,))
+                    create_standby_valors_thread.start()
+
+                # Check the valor state and verify that it is 'RUNNING'
+                self.verify_valor_running(valor_ids[0])
 
                 return rethinkdb_manager.get_valor(valor_ids[0])
 
@@ -240,17 +242,24 @@ class ValorManager:
             # as 1 will be used when it will be returned by this method.
             NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - (len(empty_valors) - 1)
 
-            create_standby_valors_thread = threading.Thread(target=self.create_valor_pool,
-                                                            args=(NUM_VALORS_TO_CREATE,
-                                                                  aws.get_subnet_id(),
-                                                                  aws.get_sec_group().id,))
-            create_standby_valors_thread.start()
+            for i in range(NUM_VALORS_TO_CREATE):
+                create_standby_valors_thread = threading.Thread(target=self.create_valor,
+                                                                args=(aws.get_subnet_id(),
+                                                                      aws.get_sec_group().id,))
+                create_standby_valors_thread.start()
+
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(empty_valors[0]['valor_id'])
 
             return empty_valors[0]
 
         elif len(empty_valors) > NUM_STANDBY_VALORS:
             # Number of Empty Valors is more than the required number of standby Valors
             # so do nothing
+
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(empty_valors[0]['valor_id'])
+
             return empty_valors[0]
 
 
@@ -312,6 +321,8 @@ class ValorManager:
         instance.wait_until_stopped()
         instance.reload()
 
+        RethinkDbManager().set_valor(valor.aws_instance.id, 'state', 'STOPPED')
+
         return instance.id
 
 
@@ -326,8 +337,25 @@ class ValorManager:
 
         valor.connect_with_ssh()
 
+        RethinkDbManager().set_valor(valor_id, 'state', 'RUNNING')
+
         return instance.id
 
+
+    def verify_valor_running(self, valor_id):
+
+        # Check the valor state and verify that it is 'RUNNING'
+        valor_state = RethinkDbManager().get_valor(valor_id)['state']
+
+        while valor_state != 'RUNNING':
+            if valor_state == 'STOPPED':
+                self.launch_valor(valor_id)
+                break
+            elif valor_state == 'CREATING':
+                time.sleep(30)
+                valor_state = RethinkDbManager().get_valor(valor_id)['state']
+            else:
+                Exception('Unexpected Error condition encountered while getting a valor')
 
     def create_valor_pool(
         self,
@@ -418,6 +446,15 @@ class RethinkDbManager:
         # corresponding to the specified valor_id
         return valor[0]
 
+    def set_valor(self, valor_id, key, value):
+
+        valor_query = rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'valor', 'valor_id': valor_id})
+
+        valor_query.update({key: value}).run()
+
+        return self.get_valor(valor_id)
+
     def list_valors(self):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
@@ -445,8 +482,9 @@ class RethinkDbManager:
         record = {
             'function': 'valor',
             'guestnet': self.get_free_guestnet(),
-            'valor_id'    : valor.aws_instance.id,
-            'address' : valor.aws_instance.private_ip_address
+            'valor_id': valor.aws_instance.id,
+            'address' : valor.aws_instance.private_ip_address,
+            'state'   : 'CREATING'
         }
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
