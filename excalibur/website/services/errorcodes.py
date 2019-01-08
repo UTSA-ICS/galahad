@@ -216,10 +216,6 @@ class ErrorCodes():
             'status': 'failed',
             'result': [10, 'The given ID is invalid.']
         },
-        'invalidResourceId': {
-            'status': 'failed',
-            'result': [10, 'The given Resource ID is invalid.']
-        },
         'invalidRoleId': {
             'status': 'failed',
             'result': [11, 'The given Role ID is invalid.']
@@ -304,6 +300,15 @@ class ErrorCodes():
                 13,
                 'The indicated user is logged in and currently using a Virtue with the '
                 + 'indicated Role. Force their logout and try again.'
+            ]
+        },
+        'roleDestroyError': {
+            'status':
+                'failed',
+            'result': [
+                100,
+                'There was an unanticipated error destroying the indicated Role.'
+                + 'Check user messages and server logs for more information.'
             ]
         },
         'cantAttach': {
