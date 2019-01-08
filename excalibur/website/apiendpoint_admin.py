@@ -206,6 +206,33 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
+    # Destroy the specified role
+    def role_destroy(self, roleId, use_nfs=True):
+
+        try:
+            role = self.inst.get_obj('cid', roleId, 'OpenLDAProle', True)
+            if (role == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(role)
+
+            try:
+                self.inst.del_obj('cid', roleId, throw_error=True)
+                if (use_nfs):
+                    subprocess.check_call(
+                        ['sudo', 'rm',
+                         '/mnt/efs/images/non_provisioned_virtues/' +
+                         role['id'] + '.img'])
+            except:
+                print('Error while deleting {0}:\n{1}'.format(
+                    role['id'], traceback.format_exc()))
+                return json.dumps(ErrorCodes.admin['roleDestroyError'])
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
     def role_list(self):
 
         try:

@@ -48,6 +48,14 @@
                 { "name": "Role (as JSON)", "url_name": "role", "is_file": true }
             ] 
         },
+        {
+            "command": "valor destroy",
+            "help": "Stop and remove a Valor",
+            "url": "/valor/destroy",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ]
+        },
         { 
             "command": "role list",
             "help": "List available roles",
