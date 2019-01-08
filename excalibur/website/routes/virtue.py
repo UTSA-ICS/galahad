@@ -443,6 +443,25 @@ def admin_role_create():
 
     return make_response(ret)
 
+@bp.route('/admin/role/destroy', methods=['GET'])
+@require_oauth()
+def admin_role_destroy():
+
+    ret = ''
+
+    try:
+        # Destroys a role. Releases all resources.
+        ep = get_admin_endpoint()
+        ret = ep.role_destroy(request.args['roleId'])
+        log_to_elasticsearch('Destroy role', extra={'user': get_user(), 'role_id': request.args['roleId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
 
 @bp.route('/admin/role/list', methods=['GET'])
 @require_oauth()
