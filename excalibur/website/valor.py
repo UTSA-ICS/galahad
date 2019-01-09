@@ -553,6 +553,11 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
+    
+    def destroy_virtue(self, virtue_id):
+        rethinkdb.db('transducers').table('commands').filter(
+            {'virtue_id', virtue_id}).delete().run()
+
 
     def get_router(self):
 

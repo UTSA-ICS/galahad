@@ -11,7 +11,7 @@ from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
 from . import ldap_tools
 from aws import AWS
-from valor import ValorAPI
+from valor import ValorAPI, RethinkDbManager
 
 from assembler.assembler import Assembler
 
@@ -25,6 +25,7 @@ class EndPoint_Admin():
         self.inst = LDAP(user, password)
         self.inst.bind_ldap()
         self.valor_api = ValorAPI()
+	self.rdb_manager = RethinkDbManager()
 
 
     def application_list(self):
@@ -482,6 +483,8 @@ class EndPoint_Admin():
                 print('Error while deleting {0}:\n{1}'.format(
                     virtue['id'], traceback.format_exc()))
                 return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+            self.rdb_manager.destroy_virtue(virtue['id'])
 
             return json.dumps(ErrorCodes.admin['success'])
 
