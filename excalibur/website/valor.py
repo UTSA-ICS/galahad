@@ -519,6 +519,7 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
             'transducer_id': 'migration'}).update(trans_migration).run()
 
+	trans_introspection['valor_id'] = valor_id
         trans_introspection['interval'] = 10
         trans_introspection['comms'] = []
         rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
