@@ -506,8 +506,23 @@ class RethinkDbManager:
             'guestnet'  : guestnet,
             'img_path'  : efs_path
         }
-
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
+
+        trans_migration = rethinkdb.db('transducers').table('commands')\
+            .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
+        trans_introspection = rethinkdb.db('transducers').table('commands')\
+            .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
+
+        trans_migration['valor_ip'] = valor_address
+        trans_migration['valor_dest'] = None
+        trans_migration['history'] = None
+        rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+            'transducer_id': 'migration'}).update(trans_migration).run()
+
+        trans_introspection['interval'] = 10
+        trans_introspection['comms'] = []
+        rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+            'transducer_id': 'introspection'}).update(trans_introspection).run()
 
         return guestnet
 
