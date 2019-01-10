@@ -516,7 +516,7 @@ class RethinkDbManager:
 
             trans_migration['valor_ip'] = valor_address
             trans_migration['valor_dest'] = None
-            trans_migration['history'] = None
+            trans_migration['history'] = []
             rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
                 'transducer_id': 'migration'}).update(trans_migration).run()
 

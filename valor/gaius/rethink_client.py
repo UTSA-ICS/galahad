@@ -79,25 +79,29 @@ class Changes(threading.Thread):
         transducer_id = change["transducer_id"]
         valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", 
             "address": change["valor_dest"]}).run(self.rt).next()
-        history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue_id}).run(self.rt).next()["history"]
+        history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue_id,
+            "transducer_id": "migration"}).run(self.rt).next()["history"]
         history.append({"valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})})
 
         ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id, "virtue_id": virtue_id})\
-            .update({"enabled": False}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id, "virtue_id": virtue_id})\
-            .update({"valor_ip": change["valor_dest"]}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id, "virtue_id": virtue_id})\
-            .update({"history": history}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id, "virtue_id": virtue_id})\
-            .update({"valor_dest": None}).run(self.rt)
+        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id,
+            "virtue_id": virtue_id})
+        record = comm_tb_filter.run(self.rt).next()
+        record["enabled"] = False
+        record["history"] = history
+        record["valor_dest"] = None
+        record["valor_ip"] = change["valor_dest"]
+        comm_tb_filter.update(record).run(self.rt)
 
         ### Updates Virtue object with new Valor IP
-        r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).update({"address": change["valor_dest"]}).run(self.rt)
+        valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"],
+            "function": "virtue"})
+        valor_tb_filter.update({"address": change["valor_dest"]}).run(self.rt)
+        valor_tb_filter.update({"valor_id": valor_dest["valor_id"]}).run(self.rt)
 
     def migration(self):
         for change in self.feed:
-            if (change["type"] == "change") and change["new_val"]["enabled"]:
+            if (change["type"] == "change") and change["new_val"]["enabled"] == True:
                 rethinkdb_client_logger.debug("Migration changefeed, change =")
                 rethinkdb_client_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
@@ -121,7 +125,7 @@ class Rethink():
 
         #migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         migration_rt = self.migration_rt
-        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.valor_id, 
+        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_ip": self.ip, 
             "transducer_id": "migration"}).changes(include_types=True).run(migration_rt)
 
         valor_thread = Changes("valor", valor_feed, valor_rt)
