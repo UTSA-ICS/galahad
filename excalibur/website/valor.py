@@ -487,7 +487,7 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
@@ -508,22 +508,23 @@ class RethinkDbManager:
         }
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
 
-        trans_migration = rethinkdb.db('transducers').table('commands')\
-            .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
-        trans_introspection = rethinkdb.db('transducers').table('commands')\
-            .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
+        if not role_create:
+            trans_migration = rethinkdb.db('transducers').table('commands')\
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
+            trans_introspection = rethinkdb.db('transducers').table('commands')\
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
 
-        trans_migration['valor_ip'] = valor_address
-        trans_migration['valor_dest'] = None
-        trans_migration['history'] = None
-        rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
-            'transducer_id': 'migration'}).update(trans_migration).run()
+            trans_migration['valor_ip'] = valor_address
+            trans_migration['valor_dest'] = None
+            trans_migration['history'] = None
+            rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+                'transducer_id': 'migration'}).update(trans_migration).run()
 
-	trans_introspection['valor_id'] = valor_id
-        trans_introspection['interval'] = 10
-        trans_introspection['comms'] = []
-        rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
-            'transducer_id': 'introspection'}).update(trans_introspection).run()
+            trans_introspection['valor_id'] = valor_id
+            trans_introspection['interval'] = 10
+            trans_introspection['comms'] = []
+            rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+                'transducer_id': 'introspection'}).update(trans_introspection).run()
 
         return guestnet
 
