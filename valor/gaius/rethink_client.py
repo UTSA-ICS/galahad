@@ -137,7 +137,8 @@ class Rethink():
         introspection_thread = Introspect()
         introspection_thread.start()
         introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
-        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.valor_id, "type": "INTROSPECTION"}).changes(include_types=True).run(introspection_rt)
+        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.valor_id, 
+            "transducer_id": "introspection"}).changes(include_types=True).run(introspection_rt)
         for change in introspection_feed:
             rethinkdb_client_logger.debug(change)
             if change["type"] == "add":

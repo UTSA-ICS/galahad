@@ -541,7 +541,7 @@ class RethinkDbManager:
 
         return matching_virtues[0]
 
-
+    # Run on virtue stop and virtue destroy
     def remove_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
@@ -554,11 +554,27 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
-    
+    # Run on only virtue destroy
     def destroy_virtue(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter(
             {'virtue_id', virtue_id}).delete().run()
 
+
+    def introspect_virtue_start(self, virtue_id, interval, modules):
+        rethink_filter = rethinkdb.db('transducers').table('commands').filter({
+            'transducer_id': 'introspection', 'virtue_id': virtue_id})
+        record = rethink_filter.run().next()
+        
+        if interval is not None: record['interval'] = int(interval)
+        if modules is not None: record['comms'] = modules.split(',')
+        rethink_filter.update(record).run()
+        rethink_filter.update({'enabled': True}).run()
+
+
+    def introspect_virtue_stop(self, virtue_id):
+        rethinkdb.db('transducers').table('commands').filter({
+            'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run()
+        
 
     def get_router(self):
 
