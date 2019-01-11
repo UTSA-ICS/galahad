@@ -342,7 +342,7 @@ Resources:
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-   UTSAIngressRule1:
+  UTSAIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
