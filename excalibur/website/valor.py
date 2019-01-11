@@ -520,18 +520,25 @@ class RethinkDbManager:
 
     def get_free_guestnet(self):
 
-        guestnet = '10.91.0.{0}'
+        lock = threading.Lock()
 
-        for test_number in range(1, 256):
-            results = rethinkdb.db('transducers').table('galahad').filter({
-                'guestnet': guestnet.format(test_number)
-            }).run()
-            if len(list(results)) == 0:
-                guestnet = guestnet.format(test_number)
-                break
+        lock.acquire()
 
-        # If this fails, then there was no available guestnet
-        assert '{0}' not in guestnet
+        try:
+            guestnet = '10.91.0.{0}'
+
+            for test_number in range(1, 256):
+                results = rethinkdb.db('transducers').table('galahad').filter({
+                    'guestnet': guestnet.format(test_number)
+                }).run()
+                if len(list(results)) == 0:
+                    guestnet = guestnet.format(test_number)
+                    break
+
+            # If this fails, then there was no available guestnet
+            assert '{0}' not in guestnet
+        finally:
+            lock.release()
 
         return guestnet
 
