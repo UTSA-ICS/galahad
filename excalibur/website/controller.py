@@ -168,7 +168,8 @@ class CreateVirtueThread(threading.Thread):
         return virtue_count
 
     def create_standby_virtue_image_files(self, virtue_count, index):
-        print VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(virtue_count+index)
+        print(VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(
+            virtue_count+index))
         subprocess.check_call(['sudo', 'rsync',
                                ROLE_PATH + self.role_id + '.img',
                                VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(virtue_count+index) + '.img'])
@@ -350,7 +351,8 @@ class AssembleRoleThread(threading.Thread):
         return role_count
 
     def create_standby_role_image_files(self, role_count, index):
-        print ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(role_count+index)
+        print(ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(
+            role_count+index))
         subprocess.check_call(['sudo', 'rsync',
                                UNITY_PATH + self.base_img_name + '.img',
                                ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(role_count+index) + '.img'])
