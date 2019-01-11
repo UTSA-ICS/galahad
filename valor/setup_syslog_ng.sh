@@ -42,3 +42,4 @@ cp syslog-ng/syslog-ng.service /lib/systemd/system/
 systemctl daemon-reload
 systemctl enable syslog-ng
 #systemctl restart syslog-ng
+
