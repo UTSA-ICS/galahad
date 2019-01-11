@@ -237,7 +237,7 @@ class ValorManager:
                 # Check the valor state and verify that it is 'RUNNING'
                 self.verify_valor_running(valor_ids[0])
 
-                return rethinkdb_manager.get_valor(valor_ids[0])
+                return self.rethinkdb_manager.get_valor(valor_ids[0])
 
             # Number of standby valors to create: 1 less than the number of available valors
             # as 1 will be used when it will be returned by this method.
