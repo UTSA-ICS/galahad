@@ -393,6 +393,8 @@ class ValorManager:
 
         instance = self.aws.instance_stop(valor_id)
 
+        self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
+
         return instance.id
 
 
