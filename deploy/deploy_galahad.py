@@ -22,15 +22,6 @@ from pprint import pformat
 import boto3
 from sultan.api import Sultan, SSHConfig
 
-file_path = os.path.realpath(__file__)
-base_excalibur_dir = os.path.dirname(
-    (os.path.dirname(file_path))) + '/excalibur'
-sys.path.insert(0, base_excalibur_dir)
-
-from website.valor import ValorManager
-from website.controller import AssembleRoleThread
-from website.ldaplookup import LDAP
-
 # File names
 STACK_TEMPLATE = 'setup/galahad-stack.yaml'
 AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
