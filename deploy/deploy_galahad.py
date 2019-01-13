@@ -662,14 +662,14 @@ class StandbyPools:
 
     def initialize_valor_standby_pool(self):
 
-        _cmd = "cd('galahad/deploy/setup').and_().bash(" \
-               "'./create_standby_pools.py --valors')"
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --valors')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def initialize_role_image_file_standby_pool(self, unity_image_size):
 
-        _cmd = "cd('galahad/deploy/setup').and_().bash(" \
-               "'./create_standby_pools.py --role_image_files " \
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --role_image_files " \
                "unity_image_size {}')".format(unity_image_size)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
