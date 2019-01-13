@@ -655,7 +655,9 @@ class EFS:
                                  ' -b /mnt/efs/images/base_ubuntu/{0}'
                                  ' -p /tmp/{1}_unity_key.pub'
                                  ' -o /mnt/efs/images/unities/{0}'
-                                 ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
+                                 ' -w /mnt/efs/{1}_tmp'))'''.format(
+            image_name,
+            image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
 
@@ -665,26 +667,20 @@ class StandbyPools:
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
+        self.server_ip = EXCALIBUR_HOSTNAME
 
     def initialize_valor_standby_pool(self):
 
-        valor_manager = ValorManager()
-
-        valor_manager.get_empty_valor()
+        _cmd = "cd('galahad/deploy/setup').and_().bash(" \
+               "'./create_standby_pools.py --valors')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def initialize_role_image_file_standby_pool(self, unity_image_size):
 
-        inst = LDAP('', '')
-        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
-        inst.get_ldap_connection()
-        inst.conn.simple_bind_s(dn, 'Test123!')
-
-        # Call a controller thread to create and assemble the new image
-        new_role = {}
-        role = AssembleRoleThread(inst.email, inst.password,
-                                 new_role, unity_image_size,
-                                 use_ssh=True)
-        role.create_standby_roles()
+        _cmd = "cd('galahad/deploy/setup').and_().bash(" \
+               "'./create_standby_pools.py --role_image_files " \
+               "unity_image_size {}')".format(unity_image_size)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
