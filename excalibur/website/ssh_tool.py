@@ -90,10 +90,10 @@ class ssh_tool():
 
     def check_access(self):
         # Check if the machine is accessible:
-        for i in range(10):
+        for i in range(20):
             out = self.ssh('uname -a', test=False)
             if out == 255:
-                time.sleep(30)
+                time.sleep(10)
             else:
                 print('Successfully connected to {}'.format(self.ip))
                 return True
