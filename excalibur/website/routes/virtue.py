@@ -435,7 +435,7 @@ def admin_role_create():
         ep = get_admin_endpoint()
         ret = ep.role_create(
             json.loads(request.args['role']),
-            hard_code_path='images/unities/{}.img'.format(request.args['unitySize']))
+            unity_img_name='images/unities/{}.img'.format(request.args['unitySize']))
         log_to_elasticsearch('Create admin role',
                              extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)
