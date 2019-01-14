@@ -288,6 +288,15 @@ Resources:
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  StarLabSTXIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 70.121.205.81/32
+      Description: StarLab - STX
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   StarLabHSVIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
@@ -304,6 +313,15 @@ Resources:
       Description: StarLab - HSV
       FromPort: '5002'
       ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  StarLabHSVIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 199.46.124.36/32
+      Description: StarLab - HSV
+      FromPort: '5901'
+      ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   BBNIngressRule1:
@@ -324,6 +342,15 @@ Resources:
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  BBNIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 128.89.0.0/16
+      Description: Raytheon BBN
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   FarhanIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
@@ -342,6 +369,15 @@ Resources:
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  FarhanIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 45.31.214.87/32
+      Description: Farhan - Home
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   UTSAIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
@@ -358,6 +394,15 @@ Resources:
       Description: UTSA
       FromPort: '5002'
       ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.247/32
+      Description: UTSA
+      FromPort: '5901'
+      ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   DeveloperSecGroup:

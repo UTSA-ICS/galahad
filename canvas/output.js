@@ -428,7 +428,8 @@ function getExcaliburIpAddress() {
 
     console.log("entry: getExcaliburIpAddress()");
 
-    excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
+    //excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
+    excaliburIpAddress = 'excalibur.galahad.com'
 
     if (!isValidIpv4Address(excaliburIpAddress)) {
         return false;

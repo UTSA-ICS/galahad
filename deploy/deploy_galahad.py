@@ -40,6 +40,7 @@ RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
+CANVAS_HOSTNAME = 'canvas.galahad.com'
 
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
@@ -652,6 +653,71 @@ class EFS:
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
 
+class Canvas():
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.ip_address = CANVAS_HOSTNAME
+
+    def setup_keys(self, github_key, user_key):
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
+                    format(self.ssh_key, github_key, self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
+                    format(self.ssh_key, user_key, self.ip_address)).run()
+
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Now add the github public key to avoid host key verification prompt
+        result2 = run_ssh_cmd(
+            self.ip_address, self.ssh_key,
+            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
+
+        return (result)
+
+    def checkout_repo(self, repo, branch='master'):
+        # Cleanup any left over repos
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
+
+        if branch == 'master':
+            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+
+        else:
+            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+                repo, branch)
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
+
+    def setup(self, branch, github_key, user_key):
+
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
+
+        # Transfer the private key to the server to enable
+        # it to access github without being prompted for credentials
+        self.setup_keys(github_key, user_key)
+
+        logger.info(
+            'Now checking out relevant galahad repos for {} branch'.format(
+                branch))
+        # Check out galahad-config repo required for the certs
+        self.checkout_repo('galahad', branch)
+
+        _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_canvas.sh')"
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+
 class StandbyPools:
 
     def __init__(self, stack_name, ssh_key):
@@ -712,6 +778,11 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
     logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format((time.time() - start_excalibur_time) / 60))
+
+    canvas = Canvas(stack_name, path_to_key)
+    canvas_thread = threading.Thread(target=canvas.setup,
+                                     args=(branch, github_key, user_key,))
+    canvas_thread.start()
 
     start_rethinkdb_time = time.time()
 
