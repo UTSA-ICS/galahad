@@ -670,7 +670,7 @@ class StandbyPools:
 
         _cmd = "cd('galahad/deploy/setup').and_().python(" \
                "'create_standby_pools.py --role_image_files " \
-               "==unity_image_size {}')".format(unity_image_size)
+               "--unity_image_size {}')".format(unity_image_size)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
