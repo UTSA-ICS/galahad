@@ -7,6 +7,7 @@ import copy
 import traceback
 import subprocess
 import base64
+import requests
 from zipfile import ZipFile
 
 from ldaplookup import LDAP
@@ -625,64 +626,45 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
 
-    def export_app_config(self, username, roleId, applicationId):
+    def application_add(self, application):
 
-        # TODO: Return proper error codes in certain failure scenarios
-        #     like bad username, roleId, or appId
         try:
 
-            target_config_path = '{0}/config/{1}/{2}'.format(
-                os.environ['HOME'],
-                username,
-                roleId)
+            if (set(application.keys()) != set(['id', 'name', 'version', 'os'])
+                and set(application.keys()) != set(
+                    ['id', 'name', 'version', 'os', 'port'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
 
-            if (not os.path.isdir(target_config_path)):
-                return json.dumps([201, "Config doesn't exist"])
+            if (self.inst.get_obj('cid', application['id'], throw_error=True) != ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
 
-            zip_filename = str(time.time())
+            ecr_auth_json = subprocess.check_output([
+                'aws', 'ecr', 'get-authorization-token',
+                '--output', 'json',
+                '--region', 'us-east-2'])
 
-            # Need to create a temporary zip file on disk to re-read.
-            shutil.make_archive('/tmp/' + zip_filename,
-                                'zip',
-                                target_config_path,
-                                applicationId)
+            ecr_auth = json.loads(ecr_auth_json.decode())
 
-            with open('/tmp/{0}.zip'.format(zip_filename), 'r') as f:
-                zip_data = base64.b64encode(f.read())
+            docker_registry = ecr_auth['authorizationData'][0]['proxyEndpoint']
+            docker_token = ecr_auth['authorizationData'][0]['authorizationToken']
 
-            os.remove('/tmp/{0}.zip'.format(zip_filename))
+            # Since the user is only adding the app, not creating it, make sure
+            # the image is already in the docker repo.
+            response = requests.get(
+                '{0}/v2/starlab-virtue/tags/list'.format(docker_registry),
+                headers={'Authorization': 'Basic ' + docker_token})
 
-            return json.dumps(zip_data)
+            if ('virtue-' + application['id'] not in response.json()['tags']):
+                return json.dumps(ErrorCodes.admin['imageNotFound'])
 
-        except:
-            print('Error:\n{0}'.format(traceback.format_exc()))
-            return json.dumps(ErrorCodes.admin['unspecifiedError'])
-
-
-    def import_app_config(self, username, roleId, applicationId, zip_data):
-
-        leave_unmentioned_files = True
-
-        # TODO: Return proper error codes in certain failure scenarios
-        #     like bad username, roleId, or appId
-        try:
-
-            zip_filename = str(time.time())
-
-            with open('/tmp/' + zip_filename, 'wb') as f:
-                f.write(base64.b64decode(zip_data))
-
-            with ZipFile('/tmp/' + zip_filename) as zip_file:
-
-                if (not os.path.commonprefix(zip_file.namelist()).startswith(applicationId)):
-                    return json.dumps([200, 'Bad zip file'])
-
-                zip_file.extractall(os.environ['HOME'] + '/config/{0}/{1}'.format(username, roleId))
-
-            os.remove('/tmp/{0}'.format(zip_filename))
+            ldap_app = ldap_tools.to_ldap(application, 'OpenLDAPapplication')
+            ret = self.inst.add_obj(ldap_app, 'virtues', 'cid')
+            assert ret == 0
 
             return json.dumps(ErrorCodes.admin['success'])
 
-        except:
+        except Exception as e:
+
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
