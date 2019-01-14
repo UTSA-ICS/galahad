@@ -670,7 +670,7 @@ class StandbyPools:
 
         _cmd = "cd('galahad/deploy/setup').and_().python(" \
                "'create_standby_pools.py --role_image_files " \
-               "unity_image_size {}')".format(unity_image_size)
+               "==unity_image_size {}')".format(unity_image_size)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
@@ -754,7 +754,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     start_standby_role_pools_time = time.time()
     standby_role_pools_thread = threading.Thread(
         target=standby_pools.initialize_role_image_file_standby_pool,
-        args=(image_size),)
+        args=(image_size,))
     standby_role_pools_thread.start()
     standby_role_pools_thread.join()
     logger.info(
