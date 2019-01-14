@@ -6,23 +6,22 @@ import shutil
 import time
 import json
 import subprocess
+import shlex
 import argparse
 import requests
 import copy
 import getpass
 import base64
 import itertools
+from urllib.parse import urlparse
 from enum import Enum
 from zipfile import ZipFile
 
 from sso_login import sso_tool
-from firefox_full_plugin import FirefoxPlugin
 
 DEFAULT_EXCALIBUR_PORT = 5002
 DEFAULT_APP_NAME = 'APP_1'
 OAUTH_REDIRECT = 'https://{0}/virtue/test'
-
-# TODO: Remove calls to user API (Currently, virtue launch is the only one)
 
 class Packager():
 
@@ -37,411 +36,6 @@ class Packager():
         self.session.verify = False
 
         self.base_url = 'https://{0}/virtue'.format(ip)
-
-    def export_virtue(self, virtue_id, plugins, output_path):
-
-        admin_url = 'https://{0}/virtue/admin'.format(self.excalibur_ip)
-        security_url = 'https://{0}/virtue/security'.format(self.excalibur_ip)
-
-        # get admin's notes
-        admin_notes = input('Notes (Optional): ')
-
-        timestamp = int(time.time())
-
-        galahad_id = self.session.get(
-            '{0}/galahad/get/id'.format(admin_url)).json()
-
-        virtue = self.get_virtue(virtue_id)
-
-        role = self.get_role(virtue['roleId'])
-
-        apps = self.session.get('{0}/application/list'.format(admin_url)).json()
-
-        role_apps = []
-        for app in apps:
-            if app['id'] in role['applicationIds']:
-                role_apps.append(app)
-
-        enabled_transducer_ids = self.session.get(
-            '{0}/transducer/list_enabled'.format(security_url),
-            params={'virtueId': virtue['id']}).json()
-
-        if (self.is_error(enabled_transducer_ids)):
-            return
-
-        enabled_transducers = []
-        for transducer_id in enabled_transducer_ids:
-
-            t = self.session.get(
-                '{0}/transducer/get'.format(security_url),
-                params={'transducerId': transducer_id}).json()
-
-            if (not self.is_error(t)):
-                enabled_transducers.append(t)
-
-        transducer_data = []
-        for transducer in enabled_transducers:
-
-            config = self.session.get(
-                '{0}/transducer/get_configuration'.format(security_url),
-                params={'transducerId': transducer['id'],
-                        'virtueId': virtue_id}).json()
-
-            self.is_error(config)
-
-            transducer['config'] = config
-            transducer_data.append({'id': transducer['id'],
-                                    'config': config})
-
-        work_dir = '/tmp/.{0}_export'.format(virtue_id)
-        config_dir = work_dir + '/app_configs'
-        tmp_pkg_path = work_dir + '/zippity.zip'
-        os.makedirs(work_dir, exist_ok=True)
-        os.makedirs(config_dir, exist_ok=True)
-        os.makedirs(work_dir + '/tmp', exist_ok=True)
-
-        try:
-            os.remove(tmp_pkg_path)
-        except:
-            pass
-
-        plugin_data = {}
-        downloaded_configs = []
-        for plugin in plugins:
-
-            for app_id in plugin.get_required_app_configs(role_apps):
-                if (app_id not in downloaded_configs):
-
-                    self.retrieve_config(
-                        virtue['username'],
-                        virtue['roleId'],
-                        app_id,
-                        config_dir,
-                        work_dir + '/tmp')
-
-                    downloaded_configs.append(app_id)
-
-            with FileInterface(tmp_pkg_path,
-                               config_dir,
-                               plugin.id,
-                               virtue_id,
-                               downloaded_configs,
-                               mode=FileInterface.Mode.EXPORT) as file_interface:
-                plugin_object = plugin(file_interface)
-                plugin_data[plugin.id] = plugin_object.export_virtue(
-                    virtue_id,
-                    role_apps)
-
-        package_json = {
-            'notes': admin_notes,
-            'galahadId': galahad_id,
-            'timeCreated': timestamp,
-            'virtueId': virtue_id,
-            'role': {
-                'name': role['name'],
-                'version': role['version'],
-                'applicationNames': [app['name'] for app in role_apps],
-            },
-            'transducerData': transducer_data,
-            'securityProfile': None,
-            'user': {
-                'username': virtue['username']
-            },
-            'plugins': plugin_data
-        }
-
-        print()
-        print(package_json)
-
-        with ZipFile(tmp_pkg_path, 'a') as package:
-            with package.open(virtue['id'] + '/metadata.json', 'w') as f:
-                f.write(json.dumps(package_json).encode())
-
-        # We're done gathering data. Sign it and send it off!
-
-        # TODO: Sign zip file
-
-        shutil.copy(tmp_pkg_path, output_path)
-
-    @staticmethod
-    def interrogate_package(package_path, plugins):
-
-        # TODO: Check package signature
-
-        # Pretty-print JSON contents
-        metadata = Packager.get_metadata_from_package(package_path)
-        print('Package Metadata:')
-        print(json.dumps(metadata, indent=4, sort_keys=True))
-
-        print()
-
-        # Tree the package files
-        with ZipFile(package_path, 'r') as zip_file:
-            namelist = zip_file.namelist()
-
-        print('Package file structure:')
-        for line in namelist:
-
-            # Don't include the ending / when checking
-            if (line[0:-1].count('/') < 3):
-                print(line)
-
-        for plugin in plugins:
-
-            print()
-
-            if (plugin.id not in metadata['plugins'].keys()):
-                continue
-
-            print('Plugin:')
-            print('  ID: ' + plugin.id)
-            print('  Name: ' + plugin.name)
-            print('  Version: ' + plugin.version_str)
-            print('  Description: ' + plugin.description)
-            print('Plugin Output:')
-
-            with FileInterface(package_path,
-                               '/dev/null',
-                               plugin.id,
-                               metadata['virtueId'],
-                               None) as file_interface:
-                p = plugin(file_interface)
-                p.interrogate_package(metadata['plugins'][plugin.id])
-
-    def import_virtue(self, package_path, username, plugins, role_id=None):
-
-        # TODO: Check package signature
-
-        metadata = self.get_metadata_from_package(package_path)
-
-        admin_url = 'https://{0}/virtue/admin'.format(self.excalibur_ip)
-        security_url = 'https://{0}/virtue/security'.format(self.excalibur_ip)
-
-        print('Package Notes: {0}'.format(metadata['notes']))
-
-        users = self.session.get('{0}/user/list'.format(admin_url)).json()
-        assert username in [user['username'] for user in users]
-
-        apps = self.session.get('{0}/application/list'.format(admin_url)).json()
-        
-        roles = self.session.get('{0}/role/list'.format(admin_url)).json()
-
-        matching_role = None
-        if (role_id != None):
-            for role in roles:
-                if (role['id'] == role_id):
-                    matching_role = role
-
-        else:
-            matching_role = self.find_matching_role(roles, metadata['role'])
-
-        new_apps = []
-        for app_name in metadata['role']['applicationNames']:
-
-            new_apps.append(None)
-            for app in apps:
-                if (app['name'] == app_name
-                    and app not in new_apps
-                    and (new_apps[-1] == None
-                         or app['version'] > new_apps[-1]['version'])):
-                    new_apps[-1] = app
-
-            if (new_apps[-1] == None):
-                new_apps.remove(None)
-
-        new_role = {
-            'name': metadata['role']['name'],
-            'version': metadata['role']['version'],
-            'applicationIds': [app['id'] for app in new_apps],
-            'startingResourceIds': [],
-            'startingTransducerIds': [t['id'] for t in metadata['transducerData']]
-        }
-
-        create_role = False
-        import_role = None
-        if (matching_role == None):
-
-            create_role = ask_yes_or_no(
-                ('No matching role found.\n{0}\n'
-                 'Create a new role with the above'
-                 ' configuration?').format(json.dumps(
-                     new_role, indent=4, sort_keys=True)),
-                default=False)
-        else:
-
-            ans = ask_yes_or_no(
-                ('Found role:\n{0}\nWould you like to import'
-                 ' with this existing role?').format(json.dumps(
-                     matching_role, indent=4, sort_keys=True)))
-            if (ans):
-                import_role = matching_role
-            else:
-                matching_role = None
-                create_role = ask_yes_or_no(
-                    ('{0}\nCreate new role with the above'
-                     ' configuration?').format(json.dumps(
-                         new_role, indent=4,
-                         sort_keys=True)),
-                    default=False)
-
-        spinner = itertools.cycle(['|', '/', '-', '\\'])
-
-        if (create_role == False and matching_role == None):
-            return
-        elif (create_role == True):
-
-            role = self.session.get('{0}/role/create'.format(admin_url),
-                                    params={'role': json.dumps(new_role)}).json()
-
-            if (self.is_error(role)):
-                return
-
-            print('New Role ID: {0}'.format(role['id']))
-
-            role['state'] = 'CREATING'
-
-            sys.stdout.write('\n\t ')
-            sys.stdout.flush()
-            while (role['state'] == 'CREATING'):
-
-                time.sleep(1)
-
-                role = self.get_role(role['id'])
-
-                sys.stdout.write('\b' + next(spinner))
-                sys.stdout.flush()
-
-            print()
-            print()
-
-            if (role['state'] != 'CREATED'):
-                print("role['state'] = " + role['state'])
-
-            import_role = new_role
-            import_role['id'] = role['id']
-
-        self.session.get('{0}/user/role/authorize'.format(admin_url),
-                         params={'username': username,
-                                 'roleId': import_role['id']})
-
-        work_dir = '/tmp/.{0}_import'.format(metadata['virtueId'])
-        config_dir = work_dir + '/config'
-        os.makedirs(config_dir, exist_ok=True)
-        os.makedirs(work_dir + '/tmp', exist_ok=True)
-
-        for f in os.listdir(config_dir):
-            shutil.rmtree(os.path.join(config_dir, f))
-
-        for plugin in plugins:
-
-            if (plugin.id not in metadata['plugins'].keys()):
-                continue
-
-            with FileInterface(package_path,
-                               config_dir,
-                               plugin.id,
-                               metadata['virtueId'],
-                               [app['id'] for app in apps],
-                               mode=FileInterface.Mode.IMPORT) as file_interface:
-                p = plugin(file_interface)
-
-                p.import_virtue(
-                    "virtue['id']",
-                    metadata['plugins'][plugin.id],
-                    apps)
-
-        for app_id in [app['id'] for app in apps]:
-
-            if (os.path.isdir(os.path.join(config_dir, app_id))):
-
-                # There's config data for this app. Send it to Excalibur.
-                shutil.make_archive(work_dir + '/tmp/' + app_id,
-                                    'zip',
-                                    config_dir,
-                                    app_id)
-
-                with open('{0}/tmp/{1}.zip'.format(work_dir, app_id), 'rb') as z:
-                    zip_data = base64.b64encode(z.read())
-
-                response = self.session.get(
-                    '{0}/import_app_config'.format(admin_url),
-                    params={
-                        'username': username,
-                        'roleId': import_role['id'],
-                        'applicationId': app_id,
-                        'zipData': zip_data
-                    })
-                if (response.status_code != 200):
-                    print(response.text)
-
-        virtue = self.session.get(
-            '{0}/virtue/create'.format(admin_url),
-            params={'username': username,
-                    'roleId': import_role['id']}).json()
-
-        if (self.is_error(virtue)):
-            return
-
-        print('New Virtue ID: ' + virtue['id'])
-
-        virtue['state'] = 'CREATING'
-
-        sys.stdout.write('\n\t ')
-        sys.stdout.flush()
-        while (virtue['state'] == 'CREATING'):
-
-            time.sleep(1)
-
-            virtue = self.get_virtue(virtue['id'], username)
-
-            sys.stdout.write('\b' + next(spinner))
-            sys.stdout.flush()
-
-        print()
-        print()
-
-        if (virtue['state'] != 'STOPPED'):
-            print("virtue['state'] = " + virtue['state'])
-            return
-
-        response = self.session.get(
-            '{0}/user/virtue/launch'.format(self.base_url),
-            params={'virtueId': virtue['id']})
-
-        self.is_error(response.json())
-
-        running_transducer_ids = self.session.get(
-            '{0}/transducer/list_enabled'.format(security_url),
-            params={'virtueId': virtue['id']}).json()
-
-        if (self.is_error(running_transducer_ids)):
-            return
-
-        for transducer_id in running_transducer_ids:
-
-            response = self.session.get(
-                '{0}/transducer/disable'.format(security_url),
-                params={'transducerId': transducer_id,
-                        'virtueId': virtue['id']}).json()
-            self.is_error(response)
-
-        all_transducers = self.session.get('{0}/transducer/list'.format(
-            security_url))
-
-        for t in metadata['transducerData']:
-
-            response = self.session.get(
-                '{0}/transducer/enable'.format(security_url),
-                params={'transducerId': t['id'],
-                        'virtueId': virtue['id'],
-                        'configuration': json.dumps(t['config'])}).json()
-            self.is_error(response)
-
-        response = self.session.get(
-            '{0}/user/virtue/stop'.format(self.base_url),
-            params={'virtueId': virtue['id']})
-
-        self.is_error(response.json())
 
     @staticmethod
     def is_error(response):
@@ -501,40 +95,79 @@ class Packager():
 
             return json.loads(json_txt)
 
-    def retrieve_config(self, user, roleId, app_id, config_dir, zip_dir):
+    def retrieve_app_container(self, app_id, app_dir):
 
-        print('Getting config for {0}'.format(app_id))
-        data = self.session.get(
-            '{0}/admin/export_app_config'.format(self.base_url),
-            params={'username': user,
-                    'roleId': roleId,
-                    'applicationId': app_id})
+        ecr_auth_json = subprocess.check_output([
+            'aws', 'ecr', 'get-authorization-token',
+            '--output', 'json',
+            '--region', 'us-east-2'])
 
-        with open('{0}/{1}.zip'.format(zip_dir,
-                                       app_id), 'wb') as f:
-            f.write(base64.b64decode(data.json()))
+        ecr_auth_data = json.loads(ecr_auth_json.decode())
 
-        with ZipFile('{0}/{1}.zip'.format(zip_dir, app_id)) as zip_file:
+        docker_registry = ecr_auth_data['authorizationData'][0]['proxyEndpoint']
+        docker_token = ecr_auth_data['authorizationData'][0]['authorizationToken']
 
-            commonpath = os.path.commonpath(zip_file.namelist())
-            assert (commonpath == app_id or commonpath.startswith(app_id + '/'))
+        tmp_env = copy.copy(os.environ)
+        tmp_env['TOKEN'] = docker_token
 
-            if (os.path.exists(config_dir + '/' + app_id)):
-                shutil.rmtree(config_dir + '/' + app_id)
-            
-            zip_file.extractall(config_dir)
+        repo = '{0}/starlab-virtue'.format(urlparse(docker_registry).hostname)
 
-    def find_matching_role(self, search_roles, role_data):
+        subprocess.check_call(['./remote_save_docker_container.sh',
+                               docker_registry, app_dir,
+                               'starlab-virtue:virtue-{0}'.format(app_id)],
+                              env=tmp_env)
+
+    def add_application(self, app, path, docker_repo):
+
+        # docker load
+        subprocess.check_call("tar -cC '{0}' . | sudo docker load".format(path),
+                              shell=True)
+
+        # Get docker image based on which line wasn't there before
+        docker_ls = subprocess.check_output(['sudo', 'docker', 'image', 'ls'])
+        docker_ls = docker_ls.decode().split('\n')
+        for line in docker_ls:
+
+            columns = line.split()
+
+            if (columns[0] == 'starlab-virtue'
+                and columns[1] == 'virtue-' + app['original_id']):
+                orig_image_data = (columns[0], columns[1])
+                break
+
+        new_image_data = (docker_repo, 'virtue-' + app['id'])
+
+        subprocess.check_call(['sudo', 'docker', 'tag',
+                               ':'.join(orig_image_data),
+                               ':'.join(new_image_data)])
+
+        subprocess.check_call(['sudo', 'docker', 'image', 'push',
+                               ':'.join(new_image_data)])
+
+        app_param = copy.deepcopy(app)
+        del app_param['original_id']
+        response = self.session.get(
+            '{0}/admin/application/add'.format(self.base_url),
+            params={'application': json.dumps(app_param)})
+
+        print(response.text)
+        if (self.is_error(response.json())):
+            raise Exception('Call to application add failed.')
+
+        subprocess.check_call(['sudo', 'docker', 'image', 'rm',
+                               ':'.join(orig_image_data)])
+        subprocess.check_call(['sudo', 'docker', 'image', 'rm',
+                               ':'.join(new_image_data)])
+
+        print()
+
+    def find_best_match_role(self, search_roles, role_data):
 
         roles = copy.deepcopy(search_roles)
         target_role = copy.deepcopy(role_data)
 
         target_role['name'] = target_role['name'].lower()
         target_role['version'] = target_role['version'].lower()
-
-        for i in range(len(target_role['applicationNames'])):
-            target_role['applicationNames'][i] = \
-                target_role['applicationNames'][i].lower()
 
         apps = self.session.get(self.base_url + '/admin/application/list').json()
 
@@ -545,12 +178,9 @@ class Packager():
         best_fit_role = None
         for role in roles:
 
-            role['appNames'] = []
-            for app_id in role['applicationIds']:
-                role['appNames'].append(app_id_to_name[app_id])
-
-            matching_apps = set(target_role['applicationNames']) == set(
-                role['appNames'])
+            matching_apps = set(
+                [a['id'] for a in target_role['applications']]) == set(
+                    role['applicationIds'])
             matching_names = role['name'].lower() == target_role['name']
             matching_versions = role['version'].lower() == target_role['version']
 
@@ -561,8 +191,8 @@ class Packager():
                 continue
             elif (best_fit_role != None
                   and best_fit_role['name'].lower() == target_role['name']
-                  and set(best_fit_role['appNames']) == set(
-                      target_role['applicationNames'])):
+                  and set(best_fit_role['applicationIds']) == set([
+                      a['id'] for a in target_role['applications']])):
                 continue
 
             if (matching_names):
@@ -577,18 +207,313 @@ class Packager():
             if (matching_apps):
                 if (best_fit_role == None):
                     best_fit_role = role
-                elif (set(best_fit_role['appNames']) == set(
-                        target_role['applicationNames'])
+                elif (set(best_fit_role['applicationIds']) == set([
+                        a['id'] for a in target_role['applications']])
                       and best_fit_role['name'].lower() != target_role['name']):
                     best_fit_role = role
 
-        if (best_fit_role != None):
-            del best_fit_role['appNames']
-
         return best_fit_role
 
-    def discover_plugins(self, directory):
-        pass
+    def export_role(self, virtue_id, output_path):
+
+        admin_url = 'https://{0}/virtue/admin'.format(self.excalibur_ip)
+        security_url = 'https://{0}/virtue/security'.format(self.excalibur_ip)
+
+        # get admin's notes
+        admin_notes = input('Notes (Optional): ')
+
+        timestamp = int(time.time())
+
+        galahad_id = self.session.get(
+            '{0}/galahad/get/id'.format(admin_url)).json()
+
+        virtue = self.get_virtue(virtue_id)
+
+        role = self.get_role(virtue['roleId'])
+
+        apps = self.session.get('{0}/application/list'.format(admin_url)).json()
+
+        role_apps = []
+        for app in apps:
+            if app['id'] in role['applicationIds']:
+                role_apps.append(app)
+
+        enabled_transducer_ids = self.session.get(
+            '{0}/transducer/list_enabled'.format(security_url),
+            params={'virtueId': virtue['id']}).json()
+
+        if (self.is_error(enabled_transducer_ids)):
+            return
+
+        enabled_transducers = []
+        for transducer_id in enabled_transducer_ids:
+
+            t = self.session.get(
+                '{0}/transducer/get'.format(security_url),
+                params={'transducerId': transducer_id}).json()
+
+            if (not self.is_error(t)):
+                enabled_transducers.append(t)
+
+        transducer_data = []
+        for transducer in enabled_transducers:
+
+            config = self.session.get(
+                '{0}/transducer/get_configuration'.format(security_url),
+                params={'transducerId': transducer['id'],
+                        'virtueId': virtue_id}).json()
+
+            self.is_error(config)
+
+            transducer['config'] = config
+            transducer_data.append({'id': transducer['id'],
+                                    'config': config})
+
+        work_dir = '/tmp/.{0}_export'.format(virtue_id)
+        app_dir = work_dir + '/apps'
+        tmp_pkg_path = work_dir + '/zippity.zip'
+        os.makedirs(work_dir, exist_ok=True)
+        os.makedirs(app_dir, exist_ok=True)
+        os.makedirs(work_dir + '/tmp', exist_ok=True)
+
+        try:
+            os.remove(tmp_pkg_path)
+        except:
+            pass
+
+        for f in os.listdir(app_dir):
+            subprocess.check_call(['rm', '-rf', os.path.join(app_dir, f)])
+
+        for app in role_apps:
+            self.retrieve_app_container(app['id'], app_dir + '/' + app['id'])
+
+        with ZipFile(tmp_pkg_path, 'a') as package:
+
+            for path, dirs, files in os.walk(app_dir):
+
+                for d in dirs:
+                    dir_path = os.path.join(path, d)
+                    relpath = os.path.relpath(dir_path, app_dir)
+
+                    package.write(
+                        dir_path,
+                        os.path.join(virtue['id'], 'apps', relpath))
+
+                for f in files:
+                    file_path = os.path.join(path, f)
+                    relpath = os.path.relpath(file_path, app_dir)
+
+                    package.write(
+                        file_path,
+                        os.path.join(virtue['id'], 'apps', relpath))
+
+        package_json = {
+            'notes': admin_notes,
+            'galahadId': galahad_id,
+            'timeCreated': timestamp,
+            'virtueId': virtue_id,
+            'role': {
+                'name': role['name'],
+                'version': role['version'],
+                'applications': role_apps,
+            },
+            'transducerData': transducer_data,
+            'securityProfile': None,
+            'user': {
+                'username': virtue['username']
+            },
+            #'plugins': plugin_data
+        }
+
+        print()
+        print(package_json)
+
+        with ZipFile(tmp_pkg_path, 'a') as package:
+            with package.open(virtue['id'] + '/metadata.json', 'w') as f:
+                f.write(json.dumps(package_json).encode())
+
+        # We're done gathering data. Sign it and send it off!
+
+        # TODO: Sign zip file
+
+        shutil.copy(tmp_pkg_path, output_path)
+
+    @staticmethod
+    def interrogate_package(package_path):
+
+        # TODO: Check package signature
+
+        # Pretty-print JSON contents
+        metadata = Packager.get_metadata_from_package(package_path)
+        print('Package Metadata:')
+        print(json.dumps(metadata, indent=4, sort_keys=True))
+
+        print()
+
+        # Tree the package files
+        with ZipFile(package_path, 'r') as zip_file:
+            namelist = zip_file.namelist()
+
+        print('Package file structure:')
+        for line in namelist:
+
+            # Don't include the ending / when checking
+            if (line[0:-1].count('/') < 3):
+                print(line)
+
+    def import_role(self, package_path, role_id=None):
+
+        # TODO: Check package signature
+
+        metadata = self.get_metadata_from_package(package_path)
+
+        admin_url = 'https://{0}/virtue/admin'.format(self.excalibur_ip)
+        security_url = 'https://{0}/virtue/security'.format(self.excalibur_ip)
+
+        print('Package Notes: {0}'.format(metadata['notes']))
+        print()
+
+        apps = self.session.get('{0}/application/list'.format(admin_url)).json()
+        new_apps = copy.deepcopy(metadata['role']['applications'])
+        role_apps = []
+
+        for app in apps:
+            if (app in new_apps):
+                role_apps.append(app['id'])
+                new_apps.remove(app)
+
+        roles = self.session.get('{0}/role/list'.format(admin_url)).json()
+
+        matching_role = self.find_best_match_role(roles, metadata['role'])
+
+        i = 0
+        while i < len(new_apps):
+
+            app = new_apps[i]
+
+            app['original_id'] = app['id']
+
+            if (app['id'] in [a['id'] for a in apps]):
+                ans = ask_boolean(('Differing application with ID {0} already'
+                                   ' exists.\n'
+                                   'Re-ID imported application?').format(
+                                       app['id']))
+                if (ans):
+                    app['id'] = app['name'].lower() + str(int(time.time()))
+                    print('New app id: ' + app['id'])
+                else:
+                    new_apps.remove(app)
+                    i = i - 1
+
+            role_apps.append(app['id'])
+            i = i + 1
+
+        new_role = {
+            'name': metadata['role']['name'],
+            'version': metadata['role']['version'],
+            'applicationIds': role_apps,
+            'startingResourceIds': [],
+            'startingTransducerIds': [t['id'] for t in metadata['transducerData']]
+        }
+
+        if (type(matching_role) == dict
+            and matching_role['name'] == new_role['name']
+            and matching_role['version'] == new_role['version']
+            and matching_role['applicationIds'] == new_role['applicationIds']
+            and matching_role['startingTransducerIds'] \
+            == new_role['startingTransducerIds']):
+
+            if (ask_boolean(('Matching role\n{0}\nalready exists.'
+                               ' Cancel import?').format(
+                                   json.dumps(
+                                       matching_role,
+                                       indent=4,
+                                       sort_keys=True)))):
+                return
+
+        create_role = ask_boolean(
+            ('{0}\nCreate new role with the above'
+             ' configuration? {1} new application(s)'
+             ' will be added.').format(json.dumps(
+                 new_role, indent=4,
+                 sort_keys=True), len(new_apps)),
+            default=False)
+
+        if (not create_role):
+            return
+
+        work_dir = '/tmp/.{0}_import'.format(metadata['virtueId'])
+        app_dir = work_dir + '/apps'
+        os.makedirs(app_dir, exist_ok=True)
+        os.makedirs(work_dir + '/tmp', exist_ok=True)
+
+        for f in os.listdir(app_dir):
+            subprocess.check_call(['sudo', 'rm', '-rf', os.path.join(app_dir, f)])
+
+        src_path = metadata['virtueId'] + '/apps/'
+
+        with ZipFile(package_path, 'r') as zip_file:
+            for path in zip_file.namelist():
+                if (not path.startswith(src_path) or path == src_path):
+                    continue
+
+                f = zip_file.extract(path, work_dir + '/tmp')
+                d = os.path.join(app_dir, os.path.relpath(path, src_path))
+                try:
+                    os.rename(f, os.path.normpath(d))
+                except OSError:
+                    pass
+
+        if (len(new_apps) > 0):
+            docker_login_cmd = subprocess.check_output([
+                'aws', 'ecr', 'get-login',
+                '--no-include-email',
+                '--region', 'us-east-2']).decode()
+
+            subprocess.check_call(['sudo'] + shlex.split(docker_login_cmd))
+
+            ecr_auth_json = subprocess.check_output([
+                'aws', 'ecr', 'get-authorization-token',
+                '--output', 'json',
+                '--region', 'us-east-2'])
+
+            auth_data = json.loads(ecr_auth_json.decode())
+
+            docker_registry = auth_data['authorizationData'][0]['proxyEndpoint']
+
+            repo = '{0}/starlab-virtue'.format(urlparse(docker_registry).hostname)
+
+        for app in new_apps:
+            self.add_application(app, app_dir + '/' + app['original_id'], repo)
+
+        spinner = itertools.cycle(['|', '/', '-', '\\'])
+
+        role = self.session.get('{0}/role/create'.format(admin_url),
+                                params={'role': json.dumps(new_role)}).json()
+
+        if (self.is_error(role)):
+            return
+
+        print('New Role ID: {0}'.format(role['id']))
+
+        role['state'] = 'CREATING'
+
+        sys.stdout.write('\n\t ')
+        sys.stdout.flush()
+        while (role['state'] == 'CREATING'):
+
+            time.sleep(1)
+
+            role = self.get_role(role['id'])
+
+            sys.stdout.write('\b' + next(spinner))
+            sys.stdout.flush()
+
+        print()
+        print()
+
+        if (role['state'] != 'CREATED'):
+            print("role['state'] = " + role['state'])
 
 class FileInterface():
 
@@ -601,16 +526,16 @@ class FileInterface():
                  mode=Mode.INTERROGATE):
 
         self.check_paths(plugin_id)
-        
+
         self.package_path = package_path
         self.config_path = config_path
         self.plugin_id = plugin_id
         self.virtue_id = virtue_id
         self.app_ids = apps
         ''' self.mode =
-                EXPORT (package read/write virtue read-only
+                EXPORT (package read/write virtue read-only)
                 INTERROGATE (package read-only)
-                IMPORT (package read-only virtue read/write
+                IMPORT (package read-only virtue read/write)
         '''
 
         if (mode == self.Mode.EXPORT):
@@ -728,7 +653,7 @@ class FileInterface():
 
         if (not recursive):
             return
-        
+
         for path, dirs, files in os.walk(src_path):
 
             for d in dirs:
@@ -813,7 +738,7 @@ class FileInterface():
     def __exit__(self, thing1, thing2, thing3):
         self.close()
 
-def ask_yes_or_no(question, default=True):
+def ask_boolean(question, default=True):
 
     if (default):
         ans = input('{0} [Y/n] '.format(question))
@@ -880,14 +805,7 @@ def parse_args():
         required=False,
         default=None,
         help='The role ID to import with')
-    parser.add_argument(
-        '-i',
-        '--user_for_import',
-        type=str,
-        required=False,
-        default=None,
-        help='The user to give the imported virtue')
-    
+
     parser.add_argument(
         '--export',
         type=str,
@@ -916,7 +834,7 @@ if (__name__ == '__main__'):
     args = parse_args()
 
     if (args.interrogate):
-        Packager.interrogate_package(args.interrogate, [FirefoxPlugin])
+        Packager.interrogate_package(args.interrogate)
 
     if (not args.export and not args.import_):
         exit(0)
@@ -960,21 +878,16 @@ if (__name__ == '__main__'):
     token = sso.get_oauth_token(client_id, code, redirect)
     assert 'access_token' in token
 
-    # TODO: Get plugins
-
     pkger = Packager(ip, token['access_token'])
 
     if (args.export):
+
         if (args.output_path == None):
             output_path = 'package.zip'
         else:
             output_path = args.output_path
 
-        pkger.export_virtue(args.export, [FirefoxPlugin], output_path)
+        pkger.export_role(args.export, output_path)
 
     if (args.import_):
-        if (args.user_for_import == None):
-            print('Need -i/--user_for_import argument to import')
-            exit(1)
-
-        pkger.import_virtue(args.import_, args.user_for_import, [FirefoxPlugin], role_id=args.role)
+        pkger.import_role(args.import_, role_id=args.role)
