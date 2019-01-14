@@ -50,11 +50,11 @@
             ] 
         },
         {
-            "command": "valor destroy",
-            "help": "Stop and remove a Valor",
-            "url": "/valor/destroy",
+            "command": "role destroy",
+            "help": "Destroys a role",
+            "url": "/role/destroy",
             "parameters": [
-                { "name": "Valor ID", "url_name": "valor_id" }
+                { "name": "Role ID", "url_name": "roleId" }
             ]
         },
         { 
