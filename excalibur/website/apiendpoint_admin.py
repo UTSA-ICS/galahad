@@ -391,7 +391,6 @@ class EndPoint_Admin():
             user = None
             role = None
             resources = []
-            transducers = []
             virtue_dict = {}
 
             user = self.inst.get_obj('cusername', username, 'OpenLDAPuser')
@@ -427,16 +426,6 @@ class EndPoint_Admin():
                 ldap_tools.parse_ldap(resource)
 
                 resources.append(resource)
-
-            for tid in role['startingTransducerIds']:
-
-                transducer = self.inst.get_obj('cid', tid,
-                                               'OpenLDAPtransducer', True)
-                if (transducer == ()):
-                    continue
-                ldap_tools.parse_ldap(transducer)
-
-                transducers.append(transducer)
 
             virtue_id = 'Virtue_{0}_{1}'.format(role['name'], int(time.time()))
 

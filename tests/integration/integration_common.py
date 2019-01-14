@@ -33,7 +33,7 @@ def create_new_role(role_name, hard_code_path=None):
         'version': '1.0',
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': []
+        'startingTransducerIds': ['path_mkdir', 'bprm_set_creds', 'task_create', 'task_alloc', 'inode_create', 'socket_connect', 'socket_bind', 'socket_accept', 'socket_listen', 'create_process', 'process_start', 'process_died', 'srv_create_proc', 'open_fd']
     }
 
     if (hard_code_path != None):
