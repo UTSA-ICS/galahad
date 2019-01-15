@@ -20,7 +20,7 @@ from zipfile import ZipFile
 from sso_login import sso_tool
 
 DEFAULT_EXCALIBUR_PORT = 5002
-DEFAULT_APP_NAME = 'APP_1'
+DEFAULT_APP_NAME = 'PKGR_APP_1'
 OAUTH_REDIRECT = 'https://{0}/virtue/test'
 
 class Packager():
@@ -762,7 +762,7 @@ def parse_args():
         '-e',
         '--excalibur_ip',
         type=str,
-        required=True,
+        required=False,
         help='The IP address of an existing aws excalibur instance')
     parser.add_argument(
         '-p',
