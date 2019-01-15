@@ -33,12 +33,30 @@ echo "  bridge_maxwait 0" >> /etc/network/interfaces
 /bin/bash ../base_setup.sh "${GUESTNET_IP}"
 
 #
+# Create User Groups for Syslog-Ng unix socket
+#
+addgroup camelot
+adduser root camelot
+
+#
 # Install necessary System packages
 #
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
     apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb
+    DPKG_LOCK=$?
+done
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 1
+    apt --assume-yes install ./libvmi_0.13-1.deb
+    DPKG_LOCK=$?
+done
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 1
+    apt --assume-yes install ./introspection-monitor_0.2-1.deb
     DPKG_LOCK=$?
 done
 DPKG_LOCK=1
@@ -95,6 +113,11 @@ cp config/vif-bridge /etc/xen/scripts/vif-bridge
 cp config/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
 cp config/xl.conf /etc/xen/xl.conf
 systemctl restart xencommons
+
+# Configure introspection files
+cp config/libvmi/libvmi.conf /etc/libvmi.conf
+mkdir -p /usr/share/libvmi/kernel-data
+cp config/libvmi/kernel-data/System.map-4.13.0-46-generic /usr/share/libvmi/kernel-data/System.map-4.13.0-46-generic
 
 #
 # Configure tty

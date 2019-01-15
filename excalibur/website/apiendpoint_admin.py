@@ -11,7 +11,7 @@ from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
 from . import ldap_tools
 from aws import AWS
-from valor import ValorAPI
+from valor import ValorAPI, RethinkDbManager
 
 from assembler.assembler import Assembler
 
@@ -25,6 +25,7 @@ class EndPoint_Admin():
         self.inst = LDAP(user, password)
         self.inst.bind_ldap()
         self.valor_api = ValorAPI()
+        self.rdb_manager = RethinkDbManager()
 
 
     def application_list(self):
@@ -483,6 +484,8 @@ class EndPoint_Admin():
                     virtue['id'], traceback.format_exc()))
                 return json.dumps(ErrorCodes.user['serverDestroyError'])
 
+            self.rdb_manager.destroy_virtue(virtue['id'])
+
             return json.dumps(ErrorCodes.admin['success'])
 
         except:
@@ -594,4 +597,20 @@ class EndPoint_Admin():
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
+        try:
+            self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
+            return json.dumps({'virtue_id': virtue_id})
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def virtue_introspect_stop(self, virtue_id):
+        try:
+            self.rdb_manager.introspect_virtue_stop(virtue_id)
+            return json.dumps({'virtue_id': virtue_id})
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])

@@ -218,7 +218,8 @@ def test_role_create():
 
     response = session.get(
         base_url + '/role/create',
-        params={'role': json.dumps(role)}
+        params={'role': json.dumps(role),
+                'unitySize': '4GB'}
     )
     print(response.json())
     assert set(response.json().keys()) == set(['id', 'name'])
