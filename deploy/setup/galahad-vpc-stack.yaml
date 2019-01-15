@@ -474,6 +474,11 @@ Outputs:
     Value: !Ref VirtUELog4AdminSubnet
     Export:
       Name: !Sub "${AWS::StackName}--ADMIN-SUBNETID"
+  StarlabFinalsAdminRouteTable:
+    Description: "virtue route table for admin assets"
+    Value: !Ref AdminSubnetRT
+    Export:
+      Name: !Sub "${AWS::StackName}--ADMIN-ROUTE-TABLE"
   DeveloperSecurityGroupId:
     Description: "Security Group Id for Developer rules"
     Value: !Ref DeveloperSecGroup
