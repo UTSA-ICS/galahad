@@ -1,0 +1,12 @@
+[Unit]
+Description=Introspection monitor
+After=network.target mnt-efs.mount
+
+[Service]
+User=root
+Restart=always
+Type=simple
+ExecStart=/usr/local/bin/introspection-monitor /tmp/control.socket
+
+[Install]
+WantedBy=multi-user.target

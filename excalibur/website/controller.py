@@ -239,7 +239,8 @@ class AssembleRoleThread(threading.Thread):
                     valor['address'],
                     valor['id'],
                     self.role['id'],
-                    virtue_path)
+                    virtue_path,
+                    True) # send role_create=True)
 
                 time.sleep(5)
 

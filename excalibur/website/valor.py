@@ -106,6 +106,9 @@ class Valor:
         setup_gaius_command = \
             'cd /mnt/efs/valor && sudo /bin/bash setup_gaius.sh'
 
+        setup_syslog_ng_command = \
+            'cd /mnt/efs/valor/ && sudo /bin/bash setup_syslog_ng.sh'
+
         shutdown_node_command = \
             'sudo shutdown -h now'
 
@@ -120,6 +123,10 @@ class Valor:
         stdout = self.client.ssh(
             setup_gaius_command, output=True)
         print('[!] setup_gaius : stdout : ' + stdout)
+
+        stdout = self.client.ssh(
+            setup_syslog_ng_command, output=True)
+        print('[!] setup_syslog_ng : stdout : ' + stdout)
 
         try:
             stdout = self.client.ssh(
@@ -166,6 +173,8 @@ class ValorManager:
         self.aws = AWS()
         self.rethinkdb_manager = RethinkDbManager()
         self.router_manager = RouterManager()
+        self.setup_syslog_config()
+
 
     def get_stack_name(self):
 
@@ -357,6 +366,28 @@ class ValorManager:
             .filter({"valor_ip": current_valor_ip_address}) \
             .update({"enabled": True}).run()
 
+    def setup_syslog_config(self):
+        # Todo:  Make this configurable
+        conf_dir = '/home/ubuntu/galahad/valor/syslog-ng/'
+        mount_dir = '/mnt/efs/valor/syslog-ng/'
+        aggregator_node = 'https://aggregator.galahad.com:9200'
+        aggregator_host = "aggregator.galahad.com"
+        syslog_ng_server = "172.30.128.131"
+
+        # Create syslog-ng.conf from
+        #   payload/syslog-ng-virtue-node.conf.template
+        with open(conf_dir + '/syslog-ng-valor-node.conf.template',
+                  'r') as t:
+            syslog_ng_config = t.read()
+            with open(mount_dir + '/syslog-ng.conf', 'w') as f:
+                f.write(syslog_ng_config % (aggregator_node,
+                                            syslog_ng_server))
+        # Create elasticsearch.yml from ELASTIC_YML
+        with open(conf_dir + '/elasticsearch.yml.template', 'r') as t:
+            elastic_yml = t.read()
+            with open(mount_dir + '/elasticsearch.yml',
+                      'w') as f:
+                f.write(elastic_yml % (aggregator_host))
 
 
 
@@ -456,7 +487,7 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
@@ -475,8 +506,25 @@ class RethinkDbManager:
             'guestnet'  : guestnet,
             'img_path'  : efs_path
         }
-
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
+
+        if not role_create:
+            trans_migration = rethinkdb.db('transducers').table('commands')\
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
+            trans_introspection = rethinkdb.db('transducers').table('commands')\
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
+
+            trans_migration['valor_ip'] = valor_address
+            trans_migration['valor_dest'] = None
+            trans_migration['history'] = []
+            rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+                'transducer_id': 'migration'}).update(trans_migration).run()
+
+            trans_introspection['valor_id'] = valor_id
+            trans_introspection['interval'] = 10
+            trans_introspection['comms'] = []
+            rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
+                'transducer_id': 'introspection'}).update(trans_introspection).run()
 
         return guestnet
 
@@ -493,7 +541,7 @@ class RethinkDbManager:
 
         return matching_virtues[0]
 
-
+    # Run on virtue stop and virtue destroy
     def remove_virtue(self, virtue_id):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
@@ -506,6 +554,27 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_virtues[0]).delete().run()
 
+    # Run on only virtue destroy
+    def destroy_virtue(self, virtue_id):
+        rethinkdb.db('transducers').table('commands').filter(
+            {'virtue_id', virtue_id}).delete().run()
+
+
+    def introspect_virtue_start(self, virtue_id, interval, modules):
+        rethink_filter = rethinkdb.db('transducers').table('commands').filter({
+            'transducer_id': 'introspection', 'virtue_id': virtue_id})
+        record = rethink_filter.run().next()
+        
+        if interval is not None: record['interval'] = int(interval)
+        if modules is not None: record['comms'] = modules.split(',')
+        rethink_filter.update(record).run()
+        rethink_filter.update({'enabled': True}).run()
+
+
+    def introspect_virtue_stop(self, virtue_id):
+        rethinkdb.db('transducers').table('commands').filter({
+            'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run()
+        
 
     def get_router(self):
 

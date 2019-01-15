@@ -1059,3 +1059,35 @@ def admin_valor_migrate_virtue():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(valor_id)
+
+@bp.route('/admin/virtue/introspect_start', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_start():
+    
+    virtue_id = ''
+
+    try:
+        ep = get_admin_endpoint()
+        virtue_id = ep.virtue_introspect_start(
+            request.args['virtueId'],
+            request.args['interval'],
+            request.args['modules'])
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(virtue_id)
+
+@bp.route('/admin/virtue/introspect_stop', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_stop():
+    virtue_id = ''
+
+    try:
+        ep = get_admin_endpoint()
+        virtue_id = ep.virtue_introspect_stop(
+            request.args['virtueId'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(virtue_id)

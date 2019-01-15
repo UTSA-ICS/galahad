@@ -226,3 +226,5 @@ if (__name__ == '__main__'):
 
     add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, '{processes:[]}', [])
     add_transducer('block_net', 'Block Network', 'ACTUATOR', False, '{}', [])
+    add_transducer('migration', 'Migration', 'ACTUATOR', False, '{}', [])
+    add_transducer('introspection', 'Introspection', 'ACTUATOR', False, '{}', [])

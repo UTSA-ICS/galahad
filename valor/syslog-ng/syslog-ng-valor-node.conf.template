@@ -1,0 +1,58 @@
+@version: 3.14
+@module mod-java
+@include "scl.conf"
+
+
+source s_local { systemd-journal(); internal(); };
+
+destination d_file {
+    file("/var/log/syslog-ng-msg");
+};
+
+destination d_elastic {
+    elasticsearch2(
+        client-lib-dir("/etc/syslog-ng/jars/")
+        index("valor-${YEAR}.${MONTH}.${DAY}")
+        type("syslog")
+        time-zone("UTC")
+        client-mode("https")
+        cluster("docker-cluster")
+        cluster-url("%s")
+        java_keystore_filepath("/etc/syslog-ng/kirk-keystore.jks")
+        java_keystore_password("changeit")
+        java_truststore_filepath("/etc/syslog-ng/truststore.jks")
+        java_truststore_password("changeit")
+        http_auth_type("clientcert")
+        resource("/etc/syslog-ng/elasticsearch.yml")
+        template("$(format-json --scope rfc3164 --scope nv-pairs --exclude DATE --pair ValorID=$(env VALOR_ID) @timestamp=${ISODATE} @valor_ip=${HOST})")
+    );
+};
+
+destination d_network {
+    syslog("%s"
+        transport("tcp")
+        template("${S_ISODATE} ${HOST} ${MESSAGE}")
+    );
+};
+
+parser message_parser {
+    kv-parser(value-separator(":"));
+};
+
+parser introspection_parser {
+    csv-parser(
+        columns("VirtueID", "pid", "process")
+        delimiters(" ")
+        quote-pairs('[]')
+    );
+};
+
+log {
+    source(s_local);
+    parser(message_parser);
+    parser(introspection_parser);
+    filter { match("VMmonitor" value("PROGRAM")) };
+    destination(d_file);
+    destination(d_elastic);
+    destination(d_network);
+};
