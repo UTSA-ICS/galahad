@@ -218,6 +218,24 @@
                 { "name": "Virtue ID", "url_name": "virtue_id" },
                 { "name": "Destination Valor ID", "url_name": "destination_valor_id" }
             ] 
+        },
+        {
+            "command": "virtue introspect start",
+            "help": "Start introspection on a specific Virtue",
+            "url": "/virtue/introspect_start",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" },
+                { "name": "Interval", "url_name": "interval" },
+                { "name": "Modules", "url_name": "modules" }
+            ]
+        },
+        {
+            "command": "virtue introspect stop",
+            "help": "Stop introspection on a specific Virtue",
+            "url": "/virtue/introspect_stop",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
         }
    ]
 }

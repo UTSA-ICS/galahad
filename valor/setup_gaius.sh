@@ -12,6 +12,7 @@ pip install /usr/share/valor
 # Copy over service definition file
 #
 cp gaius.service /etc/systemd/system/
+cp introspect.service /etc/systemd/system/
 
 #
 # Now install the service and then start it
@@ -19,3 +20,5 @@ cp gaius.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable gaius.service
 systemctl start gaius.service
+systemctl enable introspect.service
+systemctl start introspect.service

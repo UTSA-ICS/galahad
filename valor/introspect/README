@@ -113,7 +113,11 @@ sudo ldconfig
 
 # Introspection monitor
 
-The LibVMI must be installed prior to building this.
+The LibVMI must be installed prior to building this and it also requires
+the OpenSSL library development package
+
+sudo apt install libssl-dev
+
 A simple Makefile is provided to build thus:
 
 make
@@ -136,11 +140,11 @@ Description: Virtual Machine Introspection Library
 The debian control file used to generate the monitor deb package:
 #---
 Package: introspection-monitor
-Version: 0.1-1
+Version: 0.2-1
 Section: base
 Priority: optional
 Architecture: amd64
-Depends: libvmi (>= 0.13-1)
+Depends: libvmi (>= 0.13-1), openssl (>= 1.0.2g)
 Maintainer: Not Specified <none@none.com>
 Description: Daemon to act on introspection commands
  Listens on a UNIX domain socket.
