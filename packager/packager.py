@@ -361,7 +361,7 @@ class Packager():
             if (line[0:-1].count('/') < 3):
                 print(line)
 
-    def import_role(self, package_path, role_id=None):
+    def import_role(self, package_path, import_all_apps=False):
 
         # TODO: Check package signature
 
@@ -377,10 +377,11 @@ class Packager():
         new_apps = copy.deepcopy(metadata['role']['applications'])
         role_apps = []
 
-        for app in apps:
-            if (app in new_apps):
-                role_apps.append(app['id'])
-                new_apps.remove(app)
+        if (not import_all_apps):
+            for app in apps:
+                if (app in new_apps):
+                    role_apps.append(app['id'])
+                    new_apps.remove(app)
 
         roles = self.session.get('{0}/role/list'.format(admin_url)).json()
 
@@ -798,13 +799,13 @@ def parse_args():
         required=False,
         default=None,
         help='The path for the new Package')
+    # Could not give this argument the long-version --import_all_apps because
+    # of weird conflict with --import...
     parser.add_argument(
-        '-r',
-        '--role',
-        type=str,
-        required=False,
-        default=None,
-        help='The role ID to import with')
+        '-i',
+        action='store_true',
+        help=('Import all applications, regardless of whether they appear to'
+              ' already be in Galahad.'))
 
     parser.add_argument(
         '--export',
@@ -890,4 +891,4 @@ if (__name__ == '__main__'):
         pkger.export_role(args.export, output_path)
 
     if (args.import_):
-        pkger.import_role(args.import_, role_id=args.role)
+        pkger.import_role(args.import_, args.i)
