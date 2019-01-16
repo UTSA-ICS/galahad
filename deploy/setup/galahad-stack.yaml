@@ -665,7 +665,8 @@ Resources:
     DependsOn:
       - ValorRouterENI
     Properties:
-      RouteTableId:  "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-ROUTE-TABLE"
+      RouteTableId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-ROUTE-TABLE"
       DestinationCidrBlock: "10.91.0.0/16"
       NetworkInterfaceId: !Ref ValorRouterENI
 Outputs:
