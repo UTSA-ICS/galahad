@@ -216,6 +216,35 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidId'])
             ldap_tools.parse_ldap(role)
 
+            # Check if any virtues exist with given role
+            virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            for virtue in virtues:
+                ldap_tools.parse_ldap(virtue[1])
+                if (virtue[1]['roleId'] == roleId):
+                    # A Virtue exists for this role - Unable to destroy role
+                    virtueUsingRoleError = []
+                    virtueUsingRoleError.append({'Virtue using the '
+                                                 'specified role exists':
+                                                     virtue[1]['id']})
+                    virtueUsingRoleError.append(
+                        ErrorCodes.admin['virtueUsingRole'])
+                    return json.dumps(virtueUsingRoleError)
+
+            # Check if any user is authorized for the given role
+            users = self.inst.get_objs_of_type('OpenLDAPuser')
+            for user in users:
+                ldap_tools.parse_ldap(user[1])
+                if (roleId in user[1]['authorizedRoleIds']):
+                    # A User exists with this role authorized - Unable to
+                    # destroy role
+                    userUsingRoleError = []
+                    userUsingRoleError.append({'User authorized for the '
+                                                 'specified role exists':
+                                                     user[1]['username']})
+                    userUsingRoleError.append(
+                        ErrorCodes.admin['userUsingRole'])
+                    return json.dumps(userUsingRoleError)
+
             try:
                 self.inst.del_obj('cid', roleId, throw_error=True)
                 if (use_nfs):
@@ -324,9 +353,9 @@ class EndPoint_Admin():
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (role == ()):
                 if (roleId in user['authorizedRoleIds']):
-                    # The user is authorized for a nonexistant role...
+                    # The user is authorized for a nonexistent role...
                     # Remove it from their list?
-                    1 + 1
+                    pass
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             ldap_tools.parse_ldap(role)
 
@@ -365,11 +394,10 @@ class EndPoint_Admin():
             role = self.inst.get_obj(
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (roleId not in user['authorizedRoleIds'] and role == ()):
-                # If the role does not exist AND the user isn't 'authorized' for it,
-                #  return error.
-                # If the user is not authorized for a real role, return error.
-                # If the user is authorized for a nonexistant role, the admin
-                #  may be trying to clean up an error
+                # If the role does not exist AND the user isn't 'authorized'
+                # for it, return error. If the user is not authorized for a
+                # real role, return error. If the user is authorized for a
+                # nonexistent role, the admin may be trying to clean up an error
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             elif (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])

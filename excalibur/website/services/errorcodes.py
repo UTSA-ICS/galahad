@@ -294,17 +294,32 @@ class ErrorCodes():
             'result': [12, 'The User is not authorized for that Role']
         },
         'userUsingVirtue': {
-            'status':
-            'failed',
+            'status': 'failed',
             'result': [
                 13,
                 'The indicated user is logged in and currently using a Virtue with the '
                 + 'indicated Role. Force their logout and try again.'
             ]
         },
+        'virtueUsingRole': {
+            'status': 'failed',
+            'result': [
+                14,
+                'A virtue exists which is using the specified role. '
+                + 'Destroy the virtue before attempting to destroy the role.'
+            ]
+        },
+        'userUsingRole': {
+            'status': 'failed',
+            'result': [
+                15,
+                'A user exists which is authorized to use the specified role. '
+                + 'Unauthorize the user for the role before attempting to '
+                + 'destroy the role.'
+            ]
+        },
         'roleDestroyError': {
-            'status':
-                'failed',
+            'status': 'failed',
             'result': [
                 100,
                 'There was an unanticipated error destroying the indicated Role.'
