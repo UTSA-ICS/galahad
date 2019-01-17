@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import subprocess
 import time
 import traceback
@@ -252,6 +253,16 @@ class EndPoint_Admin():
                         ['sudo', 'rm',
                          '/mnt/efs/images/non_provisioned_virtues/' +
                          role['id'] + '.img'])
+
+                    # Delete the Standby virtue role image files
+                    files = os.listdir('/mnt/efs/images/provisioned_virtues/')
+                    standby_files = (file for file in files if role['id'] +
+                                     '_STANDBY_VIRTUE_' in file)
+                    for standby_file in standby_files:
+                        subprocess.check_call(
+                            ['sudo', 'rm',
+                             '/mnt/efs/images/provisioned_virtues/' +
+                             standby_file])
             except:
                 print('Error while deleting {0}:\n{1}'.format(
                     role['id'], traceback.format_exc()))
