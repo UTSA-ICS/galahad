@@ -10,28 +10,24 @@ base_excalibur_dir = os.path.dirname(
 sys.path.insert(0, base_excalibur_dir)
 
 from website.valor import ValorManager
-from website.controller import AssembleRoleThread
-from website.ldaplookup import LDAP
+from website.controller import StandbyRoles
 
 
 def create_valor_standby_pool():
+
     valor_manager = ValorManager()
 
     valor_manager.get_empty_valor()
 
 
 def create_role_image_file_standby_pool(unity_image_size):
-    inst = LDAP('', '')
-    dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
-    inst.get_ldap_connection()
-    inst.conn.simple_bind_s(dn, 'Test123!')
 
-    # Call a controller thread to create and assemble the new image
     new_role = {}
-    role = AssembleRoleThread(inst.email, inst.password,
-                              new_role, unity_image_size,
-                              use_ssh=True)
-    role.create_standby_roles()
+
+    # Create the role standby image files
+    standby_roles = StandbyRoles(unity_image_size, new_role)
+
+    standby_roles.create_role_image_file()
 
 
 def parse_args():
