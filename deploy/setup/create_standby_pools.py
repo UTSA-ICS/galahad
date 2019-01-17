@@ -27,7 +27,7 @@ def create_role_image_file_standby_pool(unity_image_size):
     # Create the role standby image files
     standby_roles = StandbyRoles(unity_image_size, new_role)
 
-    standby_roles.create_role_image_file()
+    standby_roles.create_standby_roles()
 
 
 def parse_args():
