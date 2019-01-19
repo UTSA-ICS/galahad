@@ -17,7 +17,7 @@ def create_valor_standby_pool():
 
     valor_manager = ValorManager()
 
-    valor_manager.get_empty_valor()
+    valor_manager.create_standby_valors()
 
 
 def create_role_image_file_standby_pool(unity_image_size):
