@@ -230,10 +230,10 @@ class ValorManager:
         # the above check.
 
         # Check to see which valors have the required number of virtues
-        available_valors = filter(lambda x: len(x['virtues']) <
+        available_valors = filter(lambda valor: len(valor.get('virtues', [])) <
                                            MAX_VIRTUES_PER_VALOR, valor_usage)
 
-        return available_valors[0]
+        return available_valors
 
     def get_empty_valors(self):
 
