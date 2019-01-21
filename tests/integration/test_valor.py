@@ -238,20 +238,23 @@ class Test_ValorAPI:
 
         virtue_id, valor_ip_address = virtue_launch()
 
-        destination_valor_id = self.valor_api.valor_create()
+        destination_valor_id = self.valor_api.valor_migrate_virtue(virtue_id)
 
-        self.valor_api.valor_launch(destination_valor_id)
-
-        time.sleep(180)
         destination_valor_ip_address = get_valor_ip(
             destination_valor_id)
 
-        self.valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
+        time.sleep(30)
 
-        time.sleep(30) 
         assert not is_virtue_running(valor_ip_address) 
         assert is_virtue_running(destination_valor_ip_address)
 
+        # Cleanup the new virtue created
+        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+
+        # Cleanup the new role created
+        integration_common.cleanup_role('jmitchell', role['id'])
+
+        # Cleanup the used valor node
         self.valor_api.valor_destroy(destination_valor_id)
 
 

@@ -57,10 +57,15 @@ class ValorAPI:
         return self.rethinkdb_manager.list_valors()
 
 
-    def valor_migrate_virtue(self, virtue_id, destination_valor_id):
-        return self.valor_manager.migrate_virtue(
-            virtue_id,
-            destination_valor_id)
+    def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
+
+        if destination_valor_id == None:
+            destination_valor = self.valor_manager.get_empty_valor()
+            destination_valor_id = destination_valor['valor_id']
+
+        self.valor_manager.migrate_virtue( virtue_id, destination_valor_id)
+
+        return destination_valor_id
 
 
 class Valor:
@@ -216,8 +221,11 @@ class ValorManager:
         valors = self.rethinkdb_manager.list_valors()
         virtues = self.rethinkdb_manager.list_virtues()
 
-        # Populate valor_usage with all valors
+        # Create valor_usage with all valors
         valor_usage = deepcopy(valors)
+
+        # Update each valor field with a virtues field.
+        [valor.update({'virtues': []}) for valor in valor_usage]
 
         # Update valor_usage with associated virtues for each valor
         [(valor['virtues'].append(virtue['virtue_id']))
