@@ -236,6 +236,9 @@ class Test_ValorAPI:
 
     def test_valor_migrate_virtue(self):
 
+        global virtue
+        global role
+
         virtue_id, valor_ip_address = virtue_launch()
 
         destination_valor_id = self.valor_api.valor_migrate_virtue(virtue_id)
@@ -250,9 +253,11 @@ class Test_ValorAPI:
 
         # Cleanup the new virtue created
         integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        virtue = None
 
         # Cleanup the new role created
         integration_common.cleanup_role('jmitchell', role['id'])
+        role = None
 
         # Cleanup the used valor node
         self.valor_api.valor_destroy(destination_valor_id)
