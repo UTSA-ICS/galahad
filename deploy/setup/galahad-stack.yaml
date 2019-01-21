@@ -660,13 +660,22 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - CanvasInstance
-  AdminSubnetVirtueRoute:
+  PublicSubnetVirtueRoute:
     Type: AWS::EC2::Route
     DependsOn:
       - ValorRouterENI
     Properties:
       RouteTableId:
-        "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-ROUTE-TABLE"
+        "Fn::ImportValue": !Sub "${ImportStackName}--PUBLIC-RT"
+      DestinationCidrBlock: "10.91.0.0/16"
+      NetworkInterfaceId: !Ref ValorRouterENI
+  PrivateSubnetVirtueRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - ValorRouterENI
+    Properties:
+      RouteTableId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--PRIVATE-RT"
       DestinationCidrBlock: "10.91.0.0/16"
       NetworkInterfaceId: !Ref ValorRouterENI
 Outputs:

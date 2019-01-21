@@ -474,11 +474,6 @@ Outputs:
     Value: !Ref VirtUELog4AdminSubnet
     Export:
       Name: !Sub "${AWS::StackName}--ADMIN-SUBNETID"
-  StarlabFinalsAdminRouteTable:
-    Description: "virtue route table for admin assets"
-    Value: !Ref AdminSubnetRT
-    Export:
-      Name: !Sub "${AWS::StackName}--ADMIN-ROUTE-TABLE"
   DeveloperSecurityGroupId:
     Description: "Security Group Id for Developer rules"
     Value: !Ref DeveloperSecGroup
@@ -499,6 +494,16 @@ Outputs:
     Value: !GetAtt FSRPrivateENISecGrp.GroupId
     Export:
       Name: !Sub "${AWS::StackName}--PRIVATE-SECGRPID"
+  StarlabFinalsPublicSubnetRoutingTable:
+    Description: "Routing table ID for public subnet"
+    Value: !Ref PublicSubnetRoutingTable
+    Export:
+      Name: !Sub "${AWS::StackName}--PUBLIC-RT"
+  StarlabFinalsPrivateSubnetsRoutingTable:
+    Description: "Routing table ID for private subnets"
+    Value: !Ref PrivateSubnetsRoutingTable
+    Export:
+      Name: !Sub "${AWS::StackName}--PRIVATE-RT"
   StarlabFinalsKeyPair:
     Description: "SSH Key Pair Name"
     Value: !Ref FarSideKeyPair
