@@ -265,7 +265,7 @@ class Test_ValorAPI:
 
         # Cleanup the used valor node
         json.loads(session.get(admin_url + '/valor/destroy', params={
-            'valor_id': destination_valor_id}).text)
+            'valor_id': destination_valor_id['valor_id']}).text)
 
 
 def teardown_module():
