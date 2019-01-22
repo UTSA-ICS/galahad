@@ -36,6 +36,8 @@ Parameters:
     AllowedPattern: '^[a-zA-Z0-9]+$'
 
 Resources:
+
+# Creating the VPC and four subnets
   VirtUELog4VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -83,6 +85,8 @@ Resources:
       Tags:
       - Key: Name
         Value: "starlab-finals-user-subnet"
+
+# Creating Internet gateway and associating with VPC
   VirtUELog4IGW:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -94,44 +98,53 @@ Resources:
     Properties:
       InternetGatewayId: !Ref VirtUELog4IGW
       VpcId: !Ref VirtUELog4VPC
-  PublicOpenVPNSubnetRT:
+
+# Creating the routing tables
+  PublicSubnetRoutingTable:
+    DependsOn: VirtUELog4VPC
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VirtUELog4VPC
       Tags:
         - Key: Name
-          Value: "starlab-finals-virtue-openvpn-rt"
-  PublicOpenVPNSubnetDefaultRoute:
+          Value: "starlab-finals-public-rt"
+  PrivateSubnetsRoutingTable:
+    DependsOn: VirtUELog4VPC
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VirtUELog4VPC
+      Tags:
+        - Key: Name
+          Value: "starlab-finals-private-rt"
+
+# Create the Routes
+  PublicSubnetTestbedRoute:
     Type: AWS::EC2::Route
-    DependsOn: VirtUELog4IGW
+    DependsOn:
+    - FSRPublicENI
+    - PublicSubnetRoutingTable
     Properties:
-      RouteTableId: !Ref PublicOpenVPNSubnetRT
-      DestinationCidrBlock: "0.0.0.0/0"
-      GatewayId: !Ref VirtUELog4IGW
-  PublicOpenVPNSubnetRTAttachment:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+      RouteTableId: !Ref PublicSubnetRoutingTable
+      DestinationCidrBlock: "192.168.4.0/24"
+      NetworkInterfaceId: !Ref FSRPublicENI
+  PrivateSubnetsTestbedRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+    - FSRPublicENI
+    - PrivateSubnetsRoutingTable
     Properties:
-      SubnetId: !Ref PublicOpenVPNSubnet
-      RouteTableId: !Ref PublicOpenVPNSubnetRT
-  AdminSubnetRT:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VirtUELog4VPC
-      Tags:
-        - Key: Name
-          Value: "starlab-finals-virtue-admin-rt"
+      RouteTableId: !Ref PrivateSubnetsRoutingTable
+      DestinationCidrBlock: "192.168.4.0/24"
+      NetworkInterfaceId: !Ref FSRPublicENI
   AdminSubnetDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: FSRAdminSubnetENI
     Properties:
-      RouteTableId: !Ref AdminSubnetRT
+      RouteTableId: !Ref PrivateSubnetsRoutingTable
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref VirtUELog4IGW
-  AdminSubnetRTAttachment:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref VirtUELog4AdminSubnet
-      RouteTableId: !Ref AdminSubnetRT
+
+# Create the Route Table to Subnet Associations
   UserSubnetRT:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -170,6 +183,17 @@ Resources:
     Properties:
       SubnetId: !Ref VirtUELog4LoggingSubnet
       RouteTableId: !Ref LoggingSubnetRT
+
+# Route Table wih Subnet Associations
+  VirtUELog4AdminSubnetRtAttachment:
+    DependsOn:
+    - PrivateSubnetsRoutingTable
+    - VirtUELog4AdminSubnet
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VirtUELog4AdminSubnet
+      RouteTableId: !Ref PrivateSubnetsRoutingTable
+
   FSRPublicENI:
     Type: AWS::EC2::NetworkInterface
     DependsOn: FSRPublicENISecGrp
