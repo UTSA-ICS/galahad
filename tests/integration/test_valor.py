@@ -176,8 +176,6 @@ def get_valor_ip(valor_id):
     return valor['address']
     
 
-
-
 @pytest.mark.usefixtures('initialize_valor_api')
 class Test_ValorAPI:
 
@@ -199,8 +197,6 @@ class Test_ValorAPI:
         valor_id = Test_ValorAPI.valor_id
 
         self.valor_api.valor_launch(valor_id)
-
-        time.sleep(120)
 
         assert is_valor_in_rethinkdb(valor_id)
         assert is_valor_pingable(valor_id)
@@ -252,7 +248,7 @@ class Test_ValorAPI:
                         params={'virtue_id': virtue_id}).text)
 
         destination_valor_ip_address = get_valor_ip(
-            destination_valor_id)
+            destination_valor_id['valor_id'])
 
         time.sleep(30)
 
