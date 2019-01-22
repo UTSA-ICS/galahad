@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import time
+import json
 
 import pytest
 import rethinkdb
@@ -26,9 +27,14 @@ def setup_module():
 
     global virtue
     global role
+    global session
+    global admin_url
 
     virtue = None
     role = None
+
+    session, admin_url, security_url, user_url = \
+        integration_common.create_session()
 
 
 def get_rethinkdb_connection():
@@ -241,7 +247,9 @@ class Test_ValorAPI:
 
         virtue_id, valor_ip_address = virtue_launch()
 
-        destination_valor_id = self.valor_api.valor_migrate_virtue(virtue_id)
+        destination_valor_id = json.loads(
+            session.get(admin_url + '/valor/migrate_virtue',
+                        params={'virtue_id': virtue_id}).text)
 
         destination_valor_ip_address = get_valor_ip(
             destination_valor_id)
@@ -260,7 +268,8 @@ class Test_ValorAPI:
         role = None
 
         # Cleanup the used valor node
-        self.valor_api.valor_destroy(destination_valor_id)
+        json.loads(session.get(admin_url + '/valor/destroy', params={
+            'valor_id': destination_valor_id}).text)
 
 
 def teardown_module():

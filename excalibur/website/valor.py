@@ -238,8 +238,11 @@ class ValorManager:
         # the above check.
 
         # Check to see which valors have the required number of virtues
-        available_valors = filter(lambda valor: len(valor.get('virtues', [])) <
-                                           MAX_VIRTUES_PER_VALOR, valor_usage)
+        available_valors = filter(lambda valor:
+                                  (len(valor.get('virtues',
+                                                 [])) < MAX_VIRTUES_PER_VALOR)
+                                  and (valor['state'] == 'RUNNING'),
+                                  valor_usage)
 
         return available_valors
 
