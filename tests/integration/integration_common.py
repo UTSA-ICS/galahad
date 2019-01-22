@@ -25,7 +25,7 @@ EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 TIMEOUT = 1200
 
 
-def create_new_role(role_name, hard_code_path=None):
+def create_new_role(role_name, unity_img_name=None):
     admin_api, user_api = create_apiendpoints()
 
     role_data = {
@@ -36,9 +36,9 @@ def create_new_role(role_name, hard_code_path=None):
         'startingTransducerIds': ['path_mkdir', 'bprm_set_creds', 'task_create', 'task_alloc', 'inode_create', 'socket_connect', 'socket_bind', 'socket_accept', 'socket_listen', 'create_process', 'process_start', 'process_died', 'srv_create_proc', 'open_fd']
     }
 
-    if (hard_code_path != None):
+    if (unity_img_name != None):
         new_role = json.loads(admin_api.role_create(role_data,
-                                                    hard_code_path=hard_code_path))
+                                                    unity_img_name=unity_img_name))
     else:
         new_role = json.loads(admin_api.role_create(role_data))
 

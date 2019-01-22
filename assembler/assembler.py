@@ -611,8 +611,6 @@ class Assembler(object):
 
         try:
 
-            shutil.copy(img_path, output_path)
-
             subprocess.check_call(['mount',
                                    output_path,
                                    image_mount])

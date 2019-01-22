@@ -44,6 +44,12 @@ adduser root camelot
 DPKG_LOCK=1
 while (( $DPKG_LOCK -nz )); do
     sleep 1
+    apt --assume-yes install -f
+    DPKG_LOCK=$?
+done
+DPKG_LOCK=1
+while (( $DPKG_LOCK -nz )); do
+    sleep 1
     apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb
     DPKG_LOCK=$?
 done

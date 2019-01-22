@@ -17,6 +17,7 @@ import time
 from pprint import pformat
 
 import boto3
+import botocore
 from sultan.api import Sultan, SSHConfig
 
 # File names

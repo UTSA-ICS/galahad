@@ -42,7 +42,6 @@ VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
 CANVAS_HOSTNAME = 'canvas.galahad.com'
 
-
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +72,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
         return result
 
+
 def check_cloud_init_finished(host_server, path_to_key):
     # Check if the file "/var/lib/cloud/instance/boot-finished" exists
     # indicating that boot is complete and cloud init has finished running
@@ -82,7 +82,7 @@ def check_cloud_init_finished(host_server, path_to_key):
     run_ssh_cmd(host_server, path_to_key, _cmd)
 
 
-class Stack():
+class Stack:
 
     def read_template(self):
 
@@ -200,7 +200,6 @@ class Stack():
             resource.Instance(instance).terminate()
             logger.info('Terminating instance [{}] not created by the stack'.format(instance))
 
-
     def list_stacks(self):
         client = boto3.client('cloudformation')
         response = client.list_stacks()
@@ -212,7 +211,7 @@ class Stack():
                     stack['StackStatus']))
 
 
-class RethinkDB():
+class RethinkDB:
 
     def __init__(self, stack_name, ssh_key):
 
@@ -242,7 +241,7 @@ class RethinkDB():
         result.append(result1.stdout)
         result.append(result2.stdout)
 
-        return (result)
+        return result
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -288,7 +287,7 @@ class RethinkDB():
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
 
-class Excalibur():
+class Excalibur:
 
     def __init__(self, stack_name, ssh_key):
 
@@ -351,7 +350,7 @@ class Excalibur():
         result.append(result2.stdout)
         result.append(result3.stdout)
 
-        return (result)
+        return result
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -480,7 +479,7 @@ class Excalibur():
         return aws_instance_info
 
 
-class Aggregator():
+class Aggregator:
 
     def __init__(self, stack_name, ssh_key):
 
@@ -510,7 +509,7 @@ class Aggregator():
         result.append(result1.stdout)
         result.append(result2.stdout)
 
-        return (result)
+        return result
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -544,14 +543,14 @@ class Aggregator():
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
-class EFS():
+
+class EFS:
 
     def __init__(self, stack_name, ssh_key):
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.efs_id = self.get_efs_id()
-
 
     def get_efs_id(self):
         cloudformation = boto3.resource('cloudformation')
@@ -566,7 +565,6 @@ class EFS():
 
         return efs_id
 
-
     def setup_valor_router(self):
         # SCP over the setup file to the instance
         with Sultan.load() as s:
@@ -578,12 +576,10 @@ class EFS():
         _cmd = "bash('./setup_valor_router.sh')"
         run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
 
-
     def setup_valor_keys(self):
         # Generate private/public keypair for valor nodes to be able to access each other.
         _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f valor-key')".format(GALAHAD_KEY_DIR_NAME)
         run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
-
 
     def setup_xen_pvm_builder(self):
 
@@ -611,7 +607,6 @@ class EFS():
         # Apply workarounds and setup the xen pvm builder server
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
-
 
     def setup_ubuntu_img(self, image_name):
         # Create the base ubuntu image
@@ -652,7 +647,9 @@ class EFS():
                                  ' -b /mnt/efs/images/base_ubuntu/{0}'
                                  ' -p /tmp/{1}_unity_key.pub'
                                  ' -o /mnt/efs/images/unities/{0}'
-                                 ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
+                                 ' -w /mnt/efs/{1}_tmp'))'''.format(
+            image_name,
+            image_name.split('.')[0])
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
 
@@ -719,6 +716,28 @@ class Canvas():
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_canvas.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+
+class StandbyPools:
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.server_ip = EXCALIBUR_HOSTNAME
+
+    def initialize_valor_standby_pool(self):
+
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --valors')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+    def initialize_role_image_file_standby_pool(self, unity_image_size):
+
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --role_image_files " \
+               "--unity_image_size {}')".format(unity_image_size)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
@@ -790,15 +809,40 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
+    standby_pools = StandbyPools(stack_name, path_to_key)
+
+    start_standby_valor_pools_time = time.time()
+    standby_valor_pools_thread = threading.Thread(
+        target=standby_pools.initialize_valor_standby_pool)
+    standby_valor_pools_thread.start()
+
     setup_unity_thread.join()
+    logger.info(
+        '\n*** Time taken for {0} unity is [{1}] ***\n'.format(
+            image_size,
+            (time.time() - start_unity_time) / 60))
 
-    logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                    start_unity_time) / 60))
+    start_standby_role_pools_time = time.time()
+    standby_role_pools_thread = threading.Thread(
+        target=standby_pools.initialize_role_image_file_standby_pool,
+        args=(image_size,))
+    standby_role_pools_thread.start()
+    standby_role_pools_thread.join()
+    logger.info(
+        '\n*** Time taken for Standby Pools of Role is [{0}] ***\n'.format(
+            (time.time() - start_standby_role_pools_time) / 60))
 
-    logger.info('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
+    standby_valor_pools_thread.join()
+    logger.info(
+        '\n*** Time taken for Standby Pools of Valor is [{0}] ***\n'.format(
+            (time.time() - start_standby_valor_pools_time) / 60))
+
+    logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
+        (time.time() - start_setup_time) / 60))
 
     logger.info(
-        '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+        '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format(
+            (time.time() - start_stack_time) / 60))
 
 
 def parse_args():
@@ -933,14 +977,17 @@ def main():
 
         efs.setup_ubuntu_img(args.image_size)
 
-        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(args.image_size,
-                                                                                (time.time()-start_ubuntu_img_time)/60))
+        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
+            args.image_size,
+            (time.time() - start_ubuntu_img_time) / 60))
+
         start_unity_time = time.time()
 
         efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
 
-        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(args.image_size,
-                                                                           (time.time()-start_unity_time)/60))
+        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
+            args.image_size,
+            (time.time() - start_unity_time) / 60))
 
 
 if __name__ == '__main__':

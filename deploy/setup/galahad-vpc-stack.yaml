@@ -402,6 +402,33 @@ Resources:
       ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.247/32
+      Description: UTSA
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.247/32
+      Description: UTSA
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.247/32
+      Description: UTSA
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
   DeveloperSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -434,7 +461,7 @@ Resources:
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
-        - CidrIp: 129.115.2.249/32
+        - CidrIp: 129.115.2.247/32
           Description: Farhan - UTSA
           FromPort: '22'
           ToPort: '22'

@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-from endpoint import Endpoint
-
 import json
-import os
 import os.path
 import sys
 
+from endpoint import Endpoint
 
 if __name__ == '__main__':
     if 'VIRTUE_ADDRESS' not in os.environ:
