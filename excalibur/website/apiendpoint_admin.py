@@ -1,24 +1,20 @@
 import os
 import shutil
-import json
-import random
-import time
 import copy
-import traceback
+import json
 import subprocess
+import time
+import traceback
 import base64
 import requests
 from zipfile import ZipFile
 
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
-from . import ldap_tools
-from aws import AWS
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
 from valor import ValorAPI, RethinkDbManager
-
-from assembler.assembler import Assembler
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
@@ -147,7 +143,7 @@ class EndPoint_Admin():
         self,
         role,
         use_ssh=True,
-        hard_code_path='images/unities/4GB.img'):
+        unity_img_name='4GB'):
 
         # TODO: Assemble on a running VM
 
@@ -204,7 +200,7 @@ class EndPoint_Admin():
             try:
                 # Call a controller thread to create and assemble the new image
                 thr = AssembleRoleThread(self.inst.email, self.inst.password,
-                                         new_role, hard_code_path,
+                                         new_role, unity_img_name,
                                          use_ssh=use_ssh)
             except AssertionError:
                 return json.dumps(ErrorCodes.admin['storageError'])
@@ -215,6 +211,72 @@ class EndPoint_Admin():
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    # Destroy the specified role
+    def role_destroy(self, roleId, use_nfs=True):
+
+        try:
+            role = self.inst.get_obj('cid', roleId, 'OpenLDAProle', True)
+            if (role == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(role)
+
+            # Check if any virtues exist with given role
+            virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            for virtue in virtues:
+                ldap_tools.parse_ldap(virtue[1])
+                if (virtue[1]['roleId'] == roleId):
+                    # A Virtue exists for this role - Unable to destroy role
+                    virtueUsingRoleError = []
+                    virtueUsingRoleError.append({'Virtue using the '
+                                                 'specified role exists':
+                                                     virtue[1]['id']})
+                    virtueUsingRoleError.append(
+                        ErrorCodes.admin['virtueUsingRole'])
+                    return json.dumps(virtueUsingRoleError)
+
+            # Check if any user is authorized for the given role
+            users = self.inst.get_objs_of_type('OpenLDAPuser')
+            for user in users:
+                ldap_tools.parse_ldap(user[1])
+                if (roleId in user[1]['authorizedRoleIds']):
+                    # A User exists with this role authorized - Unable to
+                    # destroy role
+                    userUsingRoleError = []
+                    userUsingRoleError.append({'User authorized for the '
+                                                 'specified role exists':
+                                                     user[1]['username']})
+                    userUsingRoleError.append(
+                        ErrorCodes.admin['userUsingRole'])
+                    return json.dumps(userUsingRoleError)
+
+            try:
+                self.inst.del_obj('cid', roleId, throw_error=True)
+                if (use_nfs):
+                    subprocess.check_call(
+                        ['sudo', 'rm',
+                         '/mnt/efs/images/non_provisioned_virtues/' +
+                         role['id'] + '.img'])
+
+                    # Delete the Standby virtue role image files
+                    files = os.listdir('/mnt/efs/images/provisioned_virtues/')
+                    standby_files = (file for file in files if role['id'] +
+                                     '_STANDBY_VIRTUE_' in file)
+                    for standby_file in standby_files:
+                        subprocess.check_call(
+                            ['sudo', 'rm',
+                             '/mnt/efs/images/provisioned_virtues/' +
+                             standby_file])
+            except:
+                print('Error while deleting {0}:\n{1}'.format(
+                    role['id'], traceback.format_exc()))
+                return json.dumps(ErrorCodes.admin['roleDestroyError'])
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def role_list(self):
 
@@ -306,9 +368,9 @@ class EndPoint_Admin():
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (role == ()):
                 if (roleId in user['authorizedRoleIds']):
-                    # The user is authorized for a nonexistant role...
+                    # The user is authorized for a nonexistent role...
                     # Remove it from their list?
-                    1 + 1
+                    pass
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             ldap_tools.parse_ldap(role)
 
@@ -347,11 +409,10 @@ class EndPoint_Admin():
             role = self.inst.get_obj(
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (roleId not in user['authorizedRoleIds'] and role == ()):
-                # If the role does not exist AND the user isn't 'authorized' for it,
-                #  return error.
-                # If the user is not authorized for a real role, return error.
-                # If the user is authorized for a nonexistant role, the admin
-                #  may be trying to clean up an error
+                # If the role does not exist AND the user isn't 'authorized'
+                # for it, return error. If the user is not authorized for a
+                # real role, return error. If the user is authorized for a
+                # nonexistent role, the admin may be trying to clean up an error
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             elif (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])

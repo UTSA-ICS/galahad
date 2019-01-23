@@ -1,26 +1,20 @@
-import sys
-import logging
 import inspect
+import json
+import logging
+import sys
+
+from authlib.flask.oauth2 import current_token
+from flask import Blueprint
 from flask import request, Response
 
-from flask import Blueprint, url_for
-from flask import abort, redirect, render_template
-from authlib.flask.oauth2 import current_token
-from ..auth import require_login
-from ..models import OAuth2Client, User
-from ..forms.client import (Client2Form, OAuth2ClientWrapper)
-from ..ldaplookup import LDAP
 from ..apiendpoint import EndPoint
 from ..apiendpoint_admin import EndPoint_Admin
 from ..apiendpoint_security import EndPoint_Security
-from ..services.oauth2 import require_oauth
+from ..auth import require_login
+from ..ldaplookup import LDAP
+from ..models import User
 from ..services.errorcodes import ErrorCodes
-import json
-import time
-
 from ..services.oauth2 import require_oauth
-from ..services.errorcodes import ErrorCodes
-from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
@@ -441,10 +435,29 @@ def admin_role_create():
         ep = get_admin_endpoint()
         ret = ep.role_create(
             json.loads(request.args['role']),
-            hard_code_path='images/unities/{}.img'.format(request.args['unitySize']))
+            unity_img_name=request.args['unitySize'])
         log_to_elasticsearch('Create admin role',
                              extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+@bp.route('/admin/role/destroy', methods=['GET'])
+@require_oauth()
+def admin_role_destroy():
+
+    ret = ''
+
+    try:
+        # Destroys a role. Releases all resources.
+        ep = get_admin_endpoint()
+        ret = ep.role_destroy(request.args['roleId'])
+        log_to_elasticsearch('Destroy role', extra={'user': get_user(), 'role_id': request.args['roleId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -1051,9 +1064,13 @@ def admin_valor_migrate_virtue():
     try:
 
         ep = get_admin_endpoint()
+
+        # destination_valor_id is an optional parm, set to None by default
+        destination_valor_id = request.args.get('destination_valor_id', None)
+
         valor_id = ep.valor_migrate_virtue(
             request.args['virtue_id'],
-            request.args['destination_valor_id'])
+            destination_valor_id)
 
     except:
         print("Unexpected error:", sys.exc_info())
