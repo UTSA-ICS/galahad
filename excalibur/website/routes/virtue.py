@@ -724,6 +724,42 @@ def admin_virtue_destroy():
     return make_response(ret)
 
 
+@bp.route('/admin/galahad/get/id', methods=['GET'])
+@require_oauth()
+def admin_galahad_get_id():
+
+    ret = ''
+
+    try:
+        # Outputs this Galahad system's ID
+        ep = get_admin_endpoint()
+        ret = ep.galahad_get_id()
+        log_to_elasticsearch('Get Galahad ID', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error: " + sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/application/add', methods=['GET'])
+@require_oauth()
+def admin_application_add():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.application_add(json.loads(request.args['application']))
+        log_to_elasticsearch('Application add', extra={'user': get_user(), 'username': request.args['username'], 'application': request.args['application']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 ################ Security API ##################
 
 

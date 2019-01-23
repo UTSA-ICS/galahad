@@ -245,7 +245,7 @@ class ErrorCodes():
             'failed',
             'result': [
                 10,
-                'The implementation does not understand the format of this Role.'
+                'The implementation does not understand the format of this object.'
             ]
         },
         'invalidApplicationId': {
@@ -299,6 +299,13 @@ class ErrorCodes():
                 13,
                 'The indicated user is logged in and currently using a Virtue with the '
                 + 'indicated Role. Force their logout and try again.'
+            ]
+        },
+        'imageNotFound': {
+            'status': 'failed',
+            'result': [
+                16,
+                'A matching Docker image was not found for this application.'
             ]
         },
         'virtueUsingRole': {

@@ -1,9 +1,13 @@
+import os
+import shutil
 import copy
 import json
-import os
 import subprocess
 import time
 import traceback
+import base64
+import requests
+from zipfile import ZipFile
 
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
@@ -661,6 +665,72 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+
+    def galahad_get_id(self):
+
+        try:
+
+            instance_data = AWS.get_instance_info()
+            return json.dumps(instance_data['instance-id'])
+
+        except Exception as e:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
+    def application_add(self, application):
+
+        try:
+
+            if (set(application.keys()) != set(['id', 'name', 'version', 'os'])
+                and set(application.keys()) != set(
+                    ['id', 'name', 'version', 'os', 'port'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (not isinstance(application['id'], basestring)
+                or not isinstance(application['name'], basestring)
+                or not isinstance(application['version'], basestring)
+                or type(application.get('port', 0)) != int):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (application['os'] != 'LINUX' and application['os'] != 'WINDOWS'):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (self.inst.get_obj('cid', application['id'], throw_error=True) != ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+
+            ecr_auth_json = subprocess.check_output([
+                'aws', 'ecr', 'get-authorization-token',
+                '--output', 'json',
+                '--region', 'us-east-2'])
+
+            ecr_auth = json.loads(ecr_auth_json.decode())
+
+            docker_registry = ecr_auth['authorizationData'][0]['proxyEndpoint']
+            docker_token = ecr_auth['authorizationData'][0]['authorizationToken']
+
+            # Since the user is only adding the app, not creating it, make sure
+            # the image is already in the docker repo.
+            response = requests.get(
+                '{0}/v2/starlab-virtue/tags/list'.format(docker_registry),
+                headers={'Authorization': 'Basic ' + docker_token})
+
+            if ('virtue-' + application['id'] not in response.json()['tags']):
+                return json.dumps(ErrorCodes.admin['imageNotFound'])
+
+            ldap_app = ldap_tools.to_ldap(application, 'OpenLDAPapplication')
+            ret = self.inst.add_obj(ldap_app, 'virtues', 'cid')
+            assert ret == 0
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except Exception as e:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
@@ -668,6 +738,7 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
 
     def virtue_introspect_stop(self, virtue_id):
         try:

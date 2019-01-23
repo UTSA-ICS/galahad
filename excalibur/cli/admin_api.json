@@ -236,6 +236,14 @@
             "parameters": [
                 { "name": "Virtue ID", "url_name": "virtueId" }
             ]
+        },
+        {
+            "command": "application add",
+            "help": "Add an application to the system",
+            "url": "/application/add",
+            "parameters": [
+                { "name": "Application (as JSON)", "url_name": "application", "is_file": true }
+            ]
         }
-   ]
+    ]
 }
