@@ -18,29 +18,20 @@ def parse_ldap(data):
         'cawsInstId': 'awsInstanceId'
     }
 
-    entries_with_lists = [
-        'applicationIds', 'startingResourceIds', 'startingTransducerIds',
-        'requiredAccess', 'authorizedRoleIds', 'resourceIds', 'transducerIds'
-    ]
-
     if ('ou' in data.keys()):
         del data['ou']
     if ('objectClass' in data.keys()):
         del data['objectClass']
 
     for k in data.keys():
-        if (k in parse_map.keys()):
-            tmp = data.pop(k)[0]
+        tmp = json.loads(data.pop(k)[0])
 
-            # Lists are formatted to strings in LDAP
-            if (parse_map[k] in entries_with_lists):
-                data[parse_map[k]] = eval(tmp)
-            else:
-                data[parse_map[k]] = tmp
+        if (k in parse_map.keys()):
+            data[parse_map[k]] = tmp
         elif (k[0] == 'c' and k != 'credentials'):
-            data[k[1:len(k)]] = data.pop(k)[0]
-        elif (type(data[k]) == list and k not in entries_with_lists):
-            data[k] = data[k][0]
+            data[k[1:]] = tmp
+        elif (type(data[k]) == list):
+            data[k] = tmp
 
 
 def to_ldap(data, objectClass):
@@ -78,10 +69,7 @@ def to_ldap(data, objectClass):
     modified_data = {'objectClass': objectClass, 'ou': 'virtue'}
 
     for k in data.keys():
-        if (k in parse_map.keys()):
-            modified_data[parse_map[k]] = str(data[k])
-        else:
-            modified_data[k] = str(data[k])
+        modified_data[parse_map.get(k, k)] = json.dumps(data[k])
 
     return modified_data
 
