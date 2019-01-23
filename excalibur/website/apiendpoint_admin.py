@@ -628,7 +628,7 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
             for v in application.values():
-                if (not isinstance(v), basestring):
+                if (not isinstance(v, basestring)):
                     return json.dumps(ErrorCodes.admin['invalidFormat'])
 
             if (application['os'] != 'LINUX' and application['os'] != 'WINDOWS'):
