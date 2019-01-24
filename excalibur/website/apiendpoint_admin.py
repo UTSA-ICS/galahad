@@ -1,19 +1,16 @@
-import json
-import random
-import time
 import copy
-import traceback
+import json
 import subprocess
+import time
+import traceback
 
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
-from . import ldap_tools
-from aws import AWS
+from ldaplookup import LDAP
+from create_ldap_users import update_ldap_users_from_ad
+from services.errorcodes import ErrorCodes
 from valor import ValorAPI, RethinkDbManager
-
-from assembler.assembler import Assembler
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
@@ -243,6 +240,9 @@ class EndPoint_Admin():
     def user_list(self):
 
         try:
+            # Check AD and update user list in ldap if required
+            update_ldap_users_from_ad()
+
             ldap_users = self.inst.get_objs_of_type('OpenLDAPuser')
             assert ldap_users != None
 
@@ -257,6 +257,9 @@ class EndPoint_Admin():
     def user_get(self, username):
 
         try:
+            # Check AD and update user list in ldap if required
+            update_ldap_users_from_ad()
+
             user = self.inst.get_obj(
                 'cusername',
                 username,
@@ -274,20 +277,31 @@ class EndPoint_Admin():
 
     def user_virtue_list(self, username):
 
-        user = self.inst.get_obj(
-            'cusername', username, objectClass='OpenLDAPuser')
-        if (user == ()):
-            return json.dumps(ErrorCodes.admin['invalidUsername'])
-        elif (user == None):
+        try:
+            # Check AD and update user list in ldap if required
+            update_ldap_users_from_ad()
+
+            user = self.inst.get_obj(
+                'cusername', username, objectClass='OpenLDAPuser')
+            if (user == ()):
+                return json.dumps(ErrorCodes.admin['invalidUsername'])
+            elif (user == None):
+                return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+            ep = EndPoint(self.inst.email, self.inst.password)
+
+            return ep.user_virtue_list(username)
+
+        except Exception as e:
+            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
-
-        ep = EndPoint(self.inst.email, self.inst.password)
-
-        return ep.user_virtue_list(username)
 
     def user_role_authorize(self, username, roleId):
 
         try:
+            # Check AD and update user list in ldap if required
+            update_ldap_users_from_ad()
+
             user = self.inst.get_obj(
                 'cusername',
                 username,

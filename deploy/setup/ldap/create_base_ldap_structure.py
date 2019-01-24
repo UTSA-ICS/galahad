@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 import os
-import sys
 import shutil
+import sys
+
 import ldap
 import ldap.modlist
 
@@ -10,8 +11,11 @@ file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(file_path)) + '/../../excalibur'
 sys.path.insert(0, base_excalibur_dir)
+
 from website.ldaplookup import LDAP
 from website.ldap_tools import to_ldap
+from website.create_ldap_users import update_ldap_users_from_ad
+
 
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
 
@@ -197,13 +201,15 @@ if (__name__ == '__main__'):
 
     add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
 
-    add_user('jmitchell', '[]')
-    add_user('fpatwa', '[]')
-    add_user('klittle', '[]')
+    #add_user('jmitchell', '[]')
+    #add_user('fpatwa', '[]')
+    #add_user('klittle', '[]')
 
-    add_person('jmitchell', 'Mitchell', 'Test123!')
-    add_person('klittle', 'Little', 'Test123!')
-    add_person('jmartin', 'Martin', 'Test123!')
+    #add_person('jmitchell', 'Mitchell', 'Test123!')
+    #add_person('klittle', 'Little', 'Test123!')
+    #add_person('jmartin', 'Martin', 'Test123!')
+    # Update the ldap user list with users from Active Directory
+    update_ldap_users_from_ad()
 
     add_transducer('path_mkdir', 'Directory Creation', 'SENSOR', True, '{}',
                    [])
