@@ -1,12 +1,18 @@
 import os
+import threading
 import time
+from copy import deepcopy
 
 import boto3
 import rethinkdb
-from aws import AWS
 from boto.utils import get_instance_metadata
+
+from aws import AWS
 from ssh_tool import ssh_tool
 
+NUM_STANDBY_VALORS = 3
+
+MAX_VIRTUES_PER_VALOR = 1
 
 class ValorAPI:
 
@@ -51,11 +57,15 @@ class ValorAPI:
         return self.rethinkdb_manager.list_valors()
 
 
-    def valor_migrate_virtue(self, virtue_id, destination_valor_id):
-        return self.valor_manager.migrate_virtue(
-            virtue_id,
-            destination_valor_id)
+    def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
 
+        if destination_valor_id == None:
+            destination_valor = self.valor_manager.get_empty_valor()
+            destination_valor_id = destination_valor['valor_id']
+
+        self.valor_manager.migrate_virtue( virtue_id, destination_valor_id)
+
+        return destination_valor_id
 
 
 class Valor:
@@ -197,6 +207,8 @@ class ValorManager:
         cloudformation = boto3.resource('cloudformation')
         efs_stack = cloudformation.Stack(stack_name)
 
+        file_system_id = ''
+
         for output in efs_stack.outputs:
 
             if output['OutputKey'] == 'FileSystemID':
@@ -204,36 +216,113 @@ class ValorManager:
 
         return file_system_id
 
-    def get_empty_valor(self):
+    def get_available_valors(self):
 
         valors = self.rethinkdb_manager.list_valors()
         virtues = self.rethinkdb_manager.list_virtues()
 
+        # Create valor_usage with all valors
+        valor_usage = deepcopy(valors)
+
+        # Update each valor field with a virtues field.
+        [valor.update({'virtues': []}) for valor in valor_usage]
+
+        # Update valor_usage with associated virtues for each valor
+        [(valor['virtues'].append(virtue['virtue_id']))
+            for valor in valor_usage for virtue in virtues
+                if valor['valor_id'] == virtue['valor_id']]
+
+        # available_valors = [valor['valor_id'] for valor in valor_usage if
+        #                    len(valor['virtues']) <= MAX_VIRTUES_PER_VALOR]
+        # The filter and lambda function below is a more efficient way of doing
+        # the above check.
+
+        # Check to see which valors have the required number of virtues
+        available_valors = filter(lambda valor:
+                                  (len(valor.get('virtues',
+                                                 [])) < MAX_VIRTUES_PER_VALOR)
+                                  and (valor['state'] == 'RUNNING'),
+                                  valor_usage)
+
+        return available_valors
+
+    def get_empty_valors(self):
+
+        valors = self.rethinkdb_manager.list_valors()
+        virtues = self.rethinkdb_manager.list_virtues()
+
+        empty_valors = []
         for valor in valors:
+            if valor['valor_id'] not in str(virtues):
+                empty_valors.append(valor)
 
-            valor_is_empty = True
+        return empty_valors
 
-            for virtue in virtues:
+    def create_and_launch_valor(self, subnet_id, security_group_id):
 
-                if valor['address'] == virtue['address']:
-                    valor_is_empty = False
-                    break
-
-            if valor_is_empty:
-                # return this empty valor
-                return valor
-
-        # If no empty valors are found then create a valor
-        aws = AWS()
-
-        valor_id = self.create_valor(
-            aws.get_subnet_id(),
-            aws.get_sec_group().id)
+        valor_id = self.create_valor(subnet_id, security_group_id)
 
         self.launch_valor(valor_id)
 
-        return self.rethinkdb_manager.get_valor(valor_id)
+        return valor_id
 
+    def create_standby_valors(self, offset=0):
+
+        empty_valors = self.get_empty_valors()
+
+        # Check if the number of empty valors is less than NUM_STANDBY_VALORS
+        # If so then create additional valors
+        if len(empty_valors) <= NUM_STANDBY_VALORS:
+
+            # offset is used to account for valors that are going to be used
+            # but rethinkdb has not been updated to mark them as in use e.g
+            # when get_empty_valor() is called
+            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors) + \
+                                   offset
+
+            aws = AWS()
+
+            for i in range(NUM_VALORS_TO_CREATE):
+                create_standby_valors_thread = threading.Thread(
+                    target=self.create_and_launch_valor,
+                    args=(aws.get_subnet_id(),
+                          aws.get_sec_group().id,))
+                create_standby_valors_thread.start()
+
+        elif len(empty_valors) > NUM_STANDBY_VALORS:
+            # Number of empty valors is more than the required number of
+            # standby valors so do nothing
+            pass
+
+    def get_empty_valor(self):
+        """ Get and return an available valor node.
+        If less than the standby number of valors exist then
+        create more standby valors
+        """
+
+        empty_valors = self.get_available_valors()
+
+        # Check if there are no empty valors
+        # If there are none then create a valor node
+        if not empty_valors:
+            aws = AWS()
+            valor_id = self.create_and_launch_valor(aws.get_subnet_id(),
+                                                    aws.get_sec_group().id)
+
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(valor_id)
+
+            empty_valor = self.rethinkdb_manager.get_valor(valor_id)
+        else:
+
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(empty_valors[0]['valor_id'])
+
+            empty_valor = empty_valors[0]
+
+        self.create_standby_valors(offset=1)
+
+        return empty_valor
 
     def create_valor(self, subnet, sec_group):
 
@@ -265,7 +354,7 @@ class ValorManager:
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
-            'inst_type' : 't2.medium',
+            'inst_type' : 't2.large',
             'subnet_id' : subnet,
             'key_name' : 'starlab-virtue-te',
             'tag_key' : 'Project',
@@ -282,9 +371,17 @@ class ValorManager:
 
         valor.connect_with_ssh()
 
-        self.rethinkdb_manager.add_valor(valor)
+        # Not using self.rethinkdb_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.rethinkdb_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
+        RethinkDbManager().add_valor(valor)
 
-        self.router_manager.add_valor(valor)
+        # Not using self.router_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.router_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
+        RouterManager().add_valor(valor)
 
         valor.setup()
 
@@ -293,6 +390,12 @@ class ValorManager:
         instance.wait_until_stopped()
         instance.reload()
 
+        # Not using self.rethinkdb_manager variable here as when create_valor
+        # is called using a separate thread in get_empty_valor() the
+        # self.rethinkdb_manager variable is not initialized as the
+        # initialization is done in the ValorManager constructor.
+        RethinkDbManager().set_valor(valor.aws_instance.id, 'state', 'STOPPED')
+
         return instance.id
 
 
@@ -300,15 +403,41 @@ class ValorManager:
 
         instance = self.aws.instance_launch(valor_id)
 
-        # Wait for 20 seconds for valor node to start
-        time.sleep(20)
-
         valor = Valor(valor_id)
 
         valor.connect_with_ssh()
 
+        self.rethinkdb_manager.set_valor(valor_id, 'state', 'RUNNING')
+
         return instance.id
 
+
+    def verify_valor_running(self, valor_id):
+
+        # Check the valor state and verify that it is 'RUNNING'
+        valor_state = self.rethinkdb_manager.get_valor(valor_id)['state']
+
+        valor_wait_timeout = 60
+        valor_wait_count = 0
+
+        while valor_state != 'RUNNING':
+
+            if valor_state == 'STOPPED':
+                self.launch_valor(valor_id)
+                break
+
+            elif valor_state == 'CREATING':
+                time.sleep(10)
+                valor_state = self.rethinkdb_manager.get_valor(valor_id)['state']
+                valor_wait_count = valor_wait_count + 1
+
+            elif valor_wait_count >= valor_wait_timeout:
+                Exception('Timed out waiting for valor to reach '
+                          '[RUNNING] state - current state is [{}]'.format(
+                    valor_state))
+
+            else:
+                Exception('Unexpected Error condition encountered while getting a valor')
 
     def create_valor_pool(
         self,
@@ -323,6 +452,9 @@ class ValorManager:
             valor_id = self.create_valor(subnet, sec_group)
             valor_ids.append(valor_id)
 
+        for valor_id in valor_ids:
+            self.launch_valor(valor_id)
+
         return valor_ids
 
 
@@ -330,7 +462,9 @@ class ValorManager:
 
         instance = self.aws.instance_stop(valor_id)
 
-        return instance.id 
+        self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
+
+        return instance.id
 
 
     def destroy_valor(self, valor_id):
@@ -389,8 +523,6 @@ class ValorManager:
                       'w') as f:
                 f.write(elastic_yml % (aggregator_host))
 
-
-
 class RethinkDbManager:
 
     domain_name = 'rethinkdb.galahad.com'
@@ -420,6 +552,15 @@ class RethinkDbManager:
         # corresponding to the specified valor_id
         return valor[0]
 
+    def set_valor(self, valor_id, key, value):
+
+        valor_query = rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'valor', 'valor_id': valor_id})
+
+        valor_query.update({key: value}).run()
+
+        return self.get_valor(valor_id)
+
     def list_valors(self):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
@@ -447,8 +588,9 @@ class RethinkDbManager:
         record = {
             'function': 'valor',
             'guestnet': self.get_free_guestnet(),
-            'valor_id'    : valor.aws_instance.id,
-            'address' : valor.aws_instance.private_ip_address
+            'valor_id': valor.aws_instance.id,
+            'address' : valor.aws_instance.private_ip_address,
+            'state'   : 'CREATING'
         }
 
         rethinkdb.db('transducers').table('galahad').insert([record]).run()
@@ -471,18 +613,25 @@ class RethinkDbManager:
 
     def get_free_guestnet(self):
 
-        guestnet = '10.91.0.{0}'
+        lock = threading.Lock()
 
-        for test_number in range(1, 256):
-            results = rethinkdb.db('transducers').table('galahad').filter({
-                'guestnet': guestnet.format(test_number)
-            }).run()
-            if len(list(results)) == 0:
-                guestnet = guestnet.format(test_number)
-                break
+        lock.acquire()
 
-        # If this fails, then there was no available guestnet
-        assert '{0}' not in guestnet
+        try:
+            guestnet = '10.91.0.{0}'
+
+            for test_number in range(1, 256):
+                results = rethinkdb.db('transducers').table('galahad').filter({
+                    'guestnet': guestnet.format(test_number)
+                }).run()
+                if len(list(results)) == 0:
+                    guestnet = guestnet.format(test_number)
+                    break
+
+            # If this fails, then there was no available guestnet
+            assert '{0}' not in guestnet
+        finally:
+            lock.release()
 
         return guestnet
 

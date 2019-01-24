@@ -216,10 +216,6 @@ class ErrorCodes():
             'status': 'failed',
             'result': [10, 'The given ID is invalid.']
         },
-        'invalidResourceId': {
-            'status': 'failed',
-            'result': [10, 'The given Resource ID is invalid.']
-        },
         'invalidRoleId': {
             'status': 'failed',
             'result': [11, 'The given Role ID is invalid.']
@@ -249,7 +245,7 @@ class ErrorCodes():
             'failed',
             'result': [
                 10,
-                'The implementation does not understand the format of this Role.'
+                'The implementation does not understand the format of this object.'
             ]
         },
         'invalidApplicationId': {
@@ -298,12 +294,43 @@ class ErrorCodes():
             'result': [12, 'The User is not authorized for that Role']
         },
         'userUsingVirtue': {
-            'status':
-            'failed',
+            'status': 'failed',
             'result': [
                 13,
                 'The indicated user is logged in and currently using a Virtue with the '
                 + 'indicated Role. Force their logout and try again.'
+            ]
+        },
+        'imageNotFound': {
+            'status': 'failed',
+            'result': [
+                16,
+                'A matching Docker image was not found for this application.'
+            ]
+        },
+        'virtueUsingRole': {
+            'status': 'failed',
+            'result': [
+                14,
+                'A virtue exists which is using the specified role. '
+                + 'Destroy the virtue before attempting to destroy the role.'
+            ]
+        },
+        'userUsingRole': {
+            'status': 'failed',
+            'result': [
+                15,
+                'A user exists which is authorized to use the specified role. '
+                + 'Unauthorize the user for the role before attempting to '
+                + 'destroy the role.'
+            ]
+        },
+        'roleDestroyError': {
+            'status': 'failed',
+            'result': [
+                100,
+                'There was an unanticipated error destroying the indicated Role.'
+                + 'Check user messages and server logs for more information.'
             ]
         },
         'cantAttach': {

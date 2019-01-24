@@ -244,7 +244,7 @@ def test_role_calls():
     assert result_role == {'id': result_role['id'], 'name': good_role['name']}
 
     good_role['id'] = result_role['id']
-    good_role['state'] = 'CREATING'
+    good_role['state'] = 'CREATED'
 
     time.sleep(1)
 
@@ -252,7 +252,6 @@ def test_role_calls():
                              objectClass='OpenLDAProle')
     assert ldap_role != ()
     ldap_tools.parse_ldap(ldap_role)
-    assert ldap_role == good_role
 
     # TODO: Make sure loops like these don't continue forever.
     while (ldap_role['state'] == 'CREATING'):
@@ -260,7 +259,7 @@ def test_role_calls():
         ldap_role = inst.get_obj('cid', result_role['id'])
         ldap_tools.parse_ldap(ldap_role)
 
-    assert ldap_role['state'] == 'CREATED'
+    assert ldap_role == good_role
     assert os.path.exists(('/mnt/efs/images/non_provisioned_virtues/'
                            '{0}.img').format(result_role['id']))
 

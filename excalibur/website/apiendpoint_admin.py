@@ -1,13 +1,16 @@
 import copy
 import json
+import os
 import subprocess
 import time
 import traceback
 
+import requests
+
 from apiendpoint import EndPoint
 from controller import CreateVirtueThread, AssembleRoleThread
-from ldaplookup import LDAP
 from create_ldap_users import update_ldap_users_from_ad
+from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from valor import ValorAPI, RethinkDbManager
 from . import ldap_tools
@@ -139,7 +142,7 @@ class EndPoint_Admin():
         self,
         role,
         use_ssh=True,
-        hard_code_path='images/unities/4GB.img'):
+        unity_img_name='4GB'):
 
         # TODO: Assemble on a running VM
 
@@ -196,7 +199,7 @@ class EndPoint_Admin():
             try:
                 # Call a controller thread to create and assemble the new image
                 thr = AssembleRoleThread(self.inst.email, self.inst.password,
-                                         new_role, hard_code_path,
+                                         new_role, unity_img_name,
                                          use_ssh=use_ssh)
             except AssertionError:
                 return json.dumps(ErrorCodes.admin['storageError'])
@@ -207,6 +210,72 @@ class EndPoint_Admin():
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    # Destroy the specified role
+    def role_destroy(self, roleId, use_nfs=True):
+
+        try:
+            role = self.inst.get_obj('cid', roleId, 'OpenLDAProle', True)
+            if (role == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(role)
+
+            # Check if any virtues exist with given role
+            virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            for virtue in virtues:
+                ldap_tools.parse_ldap(virtue[1])
+                if (virtue[1]['roleId'] == roleId):
+                    # A Virtue exists for this role - Unable to destroy role
+                    virtueUsingRoleError = []
+                    virtueUsingRoleError.append({'Virtue using the '
+                                                 'specified role exists':
+                                                     virtue[1]['id']})
+                    virtueUsingRoleError.append(
+                        ErrorCodes.admin['virtueUsingRole'])
+                    return json.dumps(virtueUsingRoleError)
+
+            # Check if any user is authorized for the given role
+            users = self.inst.get_objs_of_type('OpenLDAPuser')
+            for user in users:
+                ldap_tools.parse_ldap(user[1])
+                if (roleId in user[1]['authorizedRoleIds']):
+                    # A User exists with this role authorized - Unable to
+                    # destroy role
+                    userUsingRoleError = []
+                    userUsingRoleError.append({'User authorized for the '
+                                                 'specified role exists':
+                                                     user[1]['username']})
+                    userUsingRoleError.append(
+                        ErrorCodes.admin['userUsingRole'])
+                    return json.dumps(userUsingRoleError)
+
+            try:
+                self.inst.del_obj('cid', roleId, throw_error=True)
+                if (use_nfs):
+                    subprocess.check_call(
+                        ['sudo', 'rm',
+                         '/mnt/efs/images/non_provisioned_virtues/' +
+                         role['id'] + '.img'])
+
+                    # Delete the Standby virtue role image files
+                    files = os.listdir('/mnt/efs/images/provisioned_virtues/')
+                    standby_files = (file for file in files if role['id'] +
+                                     '_STANDBY_VIRTUE_' in file)
+                    for standby_file in standby_files:
+                        subprocess.check_call(
+                            ['sudo', 'rm',
+                             '/mnt/efs/images/provisioned_virtues/' +
+                             standby_file])
+            except:
+                print('Error while deleting {0}:\n{1}'.format(
+                    role['id'], traceback.format_exc()))
+                return json.dumps(ErrorCodes.admin['roleDestroyError'])
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def role_list(self):
 
@@ -315,9 +384,9 @@ class EndPoint_Admin():
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (role == ()):
                 if (roleId in user['authorizedRoleIds']):
-                    # The user is authorized for a nonexistant role...
+                    # The user is authorized for a nonexistent role...
                     # Remove it from their list?
-                    1 + 1
+                    pass
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             ldap_tools.parse_ldap(role)
 
@@ -356,11 +425,10 @@ class EndPoint_Admin():
             role = self.inst.get_obj(
                 'cid', roleId, objectClass='OpenLDAProle', throw_error=True)
             if (roleId not in user['authorizedRoleIds'] and role == ()):
-                # If the role does not exist AND the user isn't 'authorized' for it,
-                #  return error.
-                # If the user is not authorized for a real role, return error.
-                # If the user is authorized for a nonexistant role, the admin
-                #  may be trying to clean up an error
+                # If the role does not exist AND the user isn't 'authorized'
+                # for it, return error. If the user is not authorized for a
+                # real role, return error. If the user is authorized for a
+                # nonexistent role, the admin may be trying to clean up an error
                 return json.dumps(ErrorCodes.admin['invalidRoleId'])
             elif (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
@@ -613,6 +681,72 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+
+    def galahad_get_id(self):
+
+        try:
+
+            instance_data = AWS.get_instance_info()
+            return json.dumps(instance_data['instance-id'])
+
+        except Exception as e:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
+    def application_add(self, application):
+
+        try:
+
+            if (set(application.keys()) != set(['id', 'name', 'version', 'os'])
+                and set(application.keys()) != set(
+                    ['id', 'name', 'version', 'os', 'port'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (not isinstance(application['id'], basestring)
+                or not isinstance(application['name'], basestring)
+                or not isinstance(application['version'], basestring)
+                or type(application.get('port', 0)) != int):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (application['os'] != 'LINUX' and application['os'] != 'WINDOWS'):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+
+            if (self.inst.get_obj('cid', application['id'], throw_error=True) != ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+
+            ecr_auth_json = subprocess.check_output([
+                'aws', 'ecr', 'get-authorization-token',
+                '--output', 'json',
+                '--region', 'us-east-2'])
+
+            ecr_auth = json.loads(ecr_auth_json.decode())
+
+            docker_registry = ecr_auth['authorizationData'][0]['proxyEndpoint']
+            docker_token = ecr_auth['authorizationData'][0]['authorizationToken']
+
+            # Since the user is only adding the app, not creating it, make sure
+            # the image is already in the docker repo.
+            response = requests.get(
+                '{0}/v2/starlab-virtue/tags/list'.format(docker_registry),
+                headers={'Authorization': 'Basic ' + docker_token})
+
+            if ('virtue-' + application['id'] not in response.json()['tags']):
+                return json.dumps(ErrorCodes.admin['imageNotFound'])
+
+            ldap_app = ldap_tools.to_ldap(application, 'OpenLDAPapplication')
+            ret = self.inst.add_obj(ldap_app, 'virtues', 'cid')
+            assert ret == 0
+
+            return json.dumps(ErrorCodes.admin['success'])
+
+        except Exception as e:
+
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
@@ -620,6 +754,7 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
 
     def virtue_introspect_stop(self, virtue_id):
         try:
