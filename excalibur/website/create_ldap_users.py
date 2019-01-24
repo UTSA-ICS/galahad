@@ -21,6 +21,8 @@ def update_ldap_users_from_ad():
     dn = "cn=admin,dc=canvas,dc=virtue,dc=com"
     ldap = LDAP('', '')
     ldap.get_ldap_connection()
+    # FIXME - Figure out a soluton for the Hardcoded password
+    # TODO - Fix Hardcoded password for ldap and AD connection
     ldap.conn.simple_bind_s(dn, "Test123!")
 
     # Bind the AD connection
