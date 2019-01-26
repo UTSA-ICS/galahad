@@ -27,6 +27,6 @@ echo -e '{
     "startingTransducerIds": ["path_mkdir", "bprm_set_creds", "task_create", "task_alloc", "inode_create", "socket_connect", "socket_bind", "socket_accept", "socket_listen", "create_process", "process_start", "process_died", "srv_create_proc", "open_fd"]
 }' > role.json
 
-python3 virtue-admin role create --role=role.json --unitySize=$2
+python3 virtue-admin role create --role=role.json --unitySize=$3
 
 cat role.json
