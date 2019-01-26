@@ -21,7 +21,8 @@ from sso_login import sso_tool
 
 DEFAULT_EXCALIBUR_PORT = 5002
 DEFAULT_APP_NAME = 'PKGR_APP_1'
-OAUTH_REDIRECT = 'https://{0}/virtue/test'
+OAUTH_REDIRECT = 'https://{0}/virtue/test\n' \
+                 'http://canvas.com:3000/connect/excalibur/callback'
 
 class Packager():
 

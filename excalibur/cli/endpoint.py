@@ -148,7 +148,8 @@ class Endpoint(object):
 
     def get_token(self, app_name):
 
-        redirect = 'https://{0}:5002/virtue/test'.format(self.ip)
+        redirect = 'https://{}/virtue/test\n' \
+                   'http://canvas.com:3000/connect/excalibur/callback'.format(self.ip)
 
         client_id = self.sso.get_app_client_id(app_name)
         if (client_id == None):
