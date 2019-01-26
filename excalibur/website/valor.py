@@ -1,7 +1,6 @@
 import os
 import threading
 import time
-from copy import deepcopy
 
 import boto3
 import rethinkdb
@@ -54,7 +53,7 @@ class ValorAPI:
 
 
     def valor_list(self):
-        return self.rethinkdb_manager.list_valors()
+        return self.valor_manager.list_valors()
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
@@ -144,8 +143,8 @@ class Valor:
             print('[!] shutdown_node : stdout : ' + stdout)
         except:
             # TODO
-            # Currently the shutdown command is issued it causes immediate disconnect
-            # and ssh_tool throws an error due to that.
+            # Currently the shutdown command is issued it causes immediate
+            # disconnect and ssh_tool throws an error due to that.
             # Ignore the error for now
             pass
 
@@ -218,45 +217,16 @@ class ValorManager:
 
     def get_available_valors(self):
 
-        valors = self.rethinkdb_manager.list_valors()
-        virtues = self.rethinkdb_manager.list_virtues()
-
-        # Create valor_usage with all valors
-        valor_usage = deepcopy(valors)
-
-        # Update each valor field with a virtues field.
-        [valor.update({'virtues': []}) for valor in valor_usage]
-
-        # Update valor_usage with associated virtues for each valor
-        [(valor['virtues'].append(virtue['virtue_id']))
-            for valor in valor_usage for virtue in virtues
-                if valor['valor_id'] == virtue['valor_id']]
-
-        # available_valors = [valor['valor_id'] for valor in valor_usage if
-        #                    len(valor['virtues']) <= MAX_VIRTUES_PER_VALOR]
-        # The filter and lambda function below is a more efficient way of doing
-        # the above check.
-
-        # Check to see which valors have the required number of virtues
-        available_valors = filter(lambda valor:
-                                  (len(valor.get('virtues',
-                                                 [])) < MAX_VIRTUES_PER_VALOR)
-                                  and (valor['state'] == 'RUNNING'),
-                                  valor_usage)
-
-        return available_valors
+        # Return valors that have the required number of virtues
+        return [valor for valor in self.list_valors()
+                if (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
+                   (valor['state'] == 'RUNNING')]
 
     def get_empty_valors(self):
 
-        valors = self.rethinkdb_manager.list_valors()
-        virtues = self.rethinkdb_manager.list_virtues()
-
-        empty_valors = []
-        for valor in valors:
-            if valor['valor_id'] not in str(virtues):
-                empty_valors.append(valor)
-
-        return empty_valors
+        # Return valors that have no virtues on them
+        return [valor for valor in self.list_valors()
+                if len(valor['virtues']) == 0]
 
     def create_and_launch_valor(self, subnet_id, security_group_id):
 
@@ -314,7 +284,6 @@ class ValorManager:
 
             empty_valor = self.rethinkdb_manager.get_valor(valor_id)
         else:
-
             # Check the valor state and verify that it is 'RUNNING'
             self.verify_valor_running(empty_valors[0]['valor_id'])
 
@@ -323,6 +292,21 @@ class ValorManager:
         self.create_standby_valors(offset=1)
 
         return empty_valor
+
+    def list_valors(self):
+
+        valors = self.rethinkdb_manager.list_valors()
+        virtues = self.rethinkdb_manager.list_virtues()
+
+        # Update each valor field with a virtues field.
+        [valor.update({'virtues': []}) for valor in valors]
+
+        # Update valors list with associated virtues for each valor
+        [valor['virtues'].append(virtue['virtue_id'])
+         for valor in valors for virtue in virtues
+         if valor['valor_id'] == virtue['valor_id']]
+
+        return valors
 
     def create_valor(self, subnet, sec_group):
 
@@ -439,6 +423,7 @@ class ValorManager:
             else:
                 Exception('Unexpected Error condition encountered while getting a valor')
 
+
     def create_valor_pool(
         self,
         number_of_valors,
@@ -457,7 +442,6 @@ class ValorManager:
 
         return valor_ids
 
-
     def stop_valor(self, valor_id):
 
         instance = self.aws.instance_stop(valor_id)
@@ -466,13 +450,23 @@ class ValorManager:
 
         return instance.id
 
-
     def destroy_valor(self, valor_id):
 
-        self.aws.instance_destroy(valor_id, block=False)
+        if valor_id in str(self.get_empty_valors()):
+            self.aws.instance_destroy(valor_id, block=False)
 
-        self.rethinkdb_manager.remove_valor(valor_id)
-
+            self.rethinkdb_manager.remove_valor(valor_id)
+        else:
+            virtues_on_valor = [valor['virtues'] for valor in self.list_valors()
+                                if valor['valor_id'] == valor_id]
+            # If no valors are found then the valor_id does not exist
+            if len(virtues_on_valor) == 0:
+                raise Exception(
+                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+            else:
+                raise Exception(
+                    'Valor currently has the following Virtue/s running on it:'
+                    '{}'.format(virtues_on_valor))
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
 
@@ -713,7 +707,7 @@ class RethinkDbManager:
         rethink_filter = rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id})
         record = rethink_filter.run().next()
-        
+
         if interval is not None: record['interval'] = int(interval)
         if modules is not None: record['comms'] = modules.split(',')
         rethink_filter.update(record).run()
@@ -723,7 +717,7 @@ class RethinkDbManager:
     def introspect_virtue_stop(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run()
-        
+
 
     def get_router(self):
 
