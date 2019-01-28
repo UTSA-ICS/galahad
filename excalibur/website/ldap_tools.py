@@ -1,4 +1,5 @@
 import copy
+import json
 
 # A static file to make LDAP more usable while implementing the VirtUE API
 
