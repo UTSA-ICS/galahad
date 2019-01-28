@@ -1,13 +1,12 @@
-import ldap
-
-import time
 import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+
 from sqlalchemy import Column
-from sqlalchemy import UniqueConstraint
 from sqlalchemy import (Integer, String, DateTime)
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from .base import db, Base
 from ..ldaplookup import LDAP
+from ..create_ldap_users import update_ldap_users_from_ad
 
 
 class User(Base):
@@ -28,21 +27,21 @@ class User(Base):
     def validate_login(self, email, password):
         self.conn = LDAP(email, password)
         if not self.conn.bind_ad():
-            print('WAT   : returning False')
             return False
-        print('WAT    : returning True')
-        print('WAT    : %s' % self.conn)
+
+        # Update ldap users from AD user list
+        update_ldap_users_from_ad()
+
         return True
 
     def query_name(self, password):
-        print('WAT    : query_name')
         self.conn = LDAP(self.email, password)
         if self.conn.bind_ad():
             cn = self.email.split("@")[0]
-            r = self.conn.query_ad('sAMAccountName', cn)
+            r = self.conn.query_ad('sAMAccountName', cn)[0][1]
+            self.name = r['cn'][0]
         else:
-            print('WAT    : query_name bind error')
-        self.name = r['cn'][0]
+            print('ERROR: Failed to Bind to AD during call to query_name()')
 
     def get_user_id(self):
         return self.id

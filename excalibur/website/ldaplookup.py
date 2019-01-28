@@ -203,8 +203,8 @@ class LDAP():
     def query_ad(self, prop, prop_value):
         try:
             r = self.conn.search_s(AD_QUERY_DN, ldap.SCOPE_SUBTREE,
-                                   '(%s=%s)' % (prop, prop_value), ['cn'])
-            return r[0][1]
+                                   '(%s=%s)' % (prop, prop_value))
+            return r
         except:
             print('Conn Error')
 
