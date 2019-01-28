@@ -290,7 +290,7 @@ class EndPoint_Security:
         if transducer is None or transducer == ():
             return self.__error('invalidTransducerId')
 
-        transducerType = transducer['ctype']
+        ldap_tools.parse_ldap(transducer)
 
         # Make sure virtue exists
         virtue = self.inst.get_obj('cid', virtueId, 'openLDAPvirtue', True)
@@ -301,7 +301,7 @@ class EndPoint_Security:
 
         # Change the ruleset
         ret = self.__change_ruleset(
-            virtueId, transducerId, transducerType, isEnable, virtue_running, config=configuration)
+            virtueId, transducerId, transducer['type'], isEnable, virtue_running, config=configuration)
         if ret != True:
             return ret
 

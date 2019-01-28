@@ -4,6 +4,10 @@ import json
 # A static file to make LDAP more usable while implementing the VirtUE API
 
 
+# Due to LDAP constraints (dn cannot contain quotes), these values will not
+# be run through the json formatter:
+always_string_values = ['username', 'id']
+
 def parse_ldap(data):
 
     parse_map = {
@@ -25,14 +29,23 @@ def parse_ldap(data):
         del data['objectClass']
 
     for k in data.keys():
-        tmp = json.loads(data.pop(k)[0])
+        tmp = data.pop(k)
 
+        if (type(tmp) == list):
+            tmp = tmp[0]
+
+        new_key = None
         if (k in parse_map.keys()):
-            data[parse_map[k]] = tmp
+            new_key = parse_map[k]
         elif (k[0] == 'c' and k != 'credentials'):
-            data[k[1:]] = tmp
-        elif (type(data[k]) == list):
-            data[k] = tmp
+            new_key = k[1:]
+        else:
+            new_key = k
+
+        if (new_key not in always_string_values):
+            tmp = json.loads(tmp)
+
+        data[new_key] = tmp
 
 
 def to_ldap(data, objectClass):
@@ -70,7 +83,10 @@ def to_ldap(data, objectClass):
     modified_data = {'objectClass': objectClass, 'ou': 'virtue'}
 
     for k in data.keys():
-        modified_data[parse_map.get(k, k)] = json.dumps(data[k])
+        tmp = data[k]
+        if (k not in always_string_values):
+            tmp = json.dumps(tmp)
+        modified_data[parse_map.get(k, k)] = tmp
 
     return modified_data
 
