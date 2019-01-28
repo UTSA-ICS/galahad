@@ -302,9 +302,10 @@ class ValorManager:
         [valor.update({'virtues': []}) for valor in valors]
 
         # Update valors list with associated virtues for each valor
-        [valor['virtues'].append(virtue['virtue_id'])
-         for valor in valors for virtue in virtues
-         if valor['valor_id'] == virtue['valor_id']]
+        for valor in valors:
+            for virtue in virtues:
+                if (valor['valor_id'] == virtue['valor_id']):
+                    valor['virtues'].append(virtue['virtue_id'])
 
         return valors
 
@@ -452,7 +453,12 @@ class ValorManager:
 
     def destroy_valor(self, valor_id):
 
-        if valor_id in str(self.get_empty_valors()):
+        valor_found = False
+        for valor in self.get_empty_valors():
+            if valor_id == valor['valor_id']:
+                valor_found = True
+
+        if valor_found:
             self.aws.instance_destroy(valor_id, block=False)
 
             self.rethinkdb_manager.remove_valor(valor_id)
@@ -465,7 +471,7 @@ class ValorManager:
                     'No Valor exists with the specified valor_id {}'.format(valor_id))
             else:
                 raise Exception(
-                    'Valor currently has the following Virtue/s running on it:'
+                    'Valor currently has the following Virtue/s running on it: '
                     '{}'.format(virtues_on_valor))
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
