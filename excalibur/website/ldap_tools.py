@@ -84,7 +84,9 @@ def to_ldap(data, objectClass):
 
     for k in data.keys():
         tmp = data[k]
-        if (k not in always_string_values):
+        if (k in always_string_values):
+            tmp = str(tmp)
+        else:
             tmp = json.dumps(tmp)
         modified_data[parse_map.get(k, k)] = tmp
 
