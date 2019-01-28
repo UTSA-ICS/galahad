@@ -615,7 +615,7 @@ class EndPoint_Admin():
 
             # Virtue/s exists on this valor - Unable to destroy valor
             return json.dumps(
-                [{'status': 'failed', 'result': exception.message}])
+                {'status': 'failed', 'result': [11, exception.message]})
 
 
     def valor_list(self):
