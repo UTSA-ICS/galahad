@@ -445,11 +445,28 @@ class ValorManager:
 
     def stop_valor(self, valor_id):
 
-        instance = self.aws.instance_stop(valor_id)
+        valor_found = False
+        for valor in self.get_empty_valors():
+            if valor_id == valor['valor_id']:
+                valor_found = True
 
-        self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
+        if valor_found:
+            instance = self.aws.instance_stop(valor_id)
 
-        return instance.id
+            self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
+
+            return instance.id
+        else:
+            virtues_on_valor = [valor['virtues'] for valor in self.list_valors() if
+                                valor['valor_id'] == valor_id]
+            # If no valors are found then the valor_id does not exist
+            if len(virtues_on_valor) == 0:
+                raise Exception(
+                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+            else:
+                raise Exception(
+                    'ERROR: Valor currently has the following Virtue/s running on it: '
+                    '{}'.format(virtues_on_valor))
 
     def destroy_valor(self, valor_id):
 
@@ -462,6 +479,8 @@ class ValorManager:
             self.aws.instance_destroy(valor_id, block=False)
 
             self.rethinkdb_manager.remove_valor(valor_id)
+
+            return valor_id
         else:
             virtues_on_valor = [valor['virtues'] for valor in self.list_valors()
                                 if valor['valor_id'] == valor_id]
@@ -471,7 +490,7 @@ class ValorManager:
                     'No Valor exists with the specified valor_id {}'.format(valor_id))
             else:
                 raise Exception(
-                    'Valor currently has the following Virtue/s running on it: '
+                    'ERROR: Valor currently has the following Virtue/s running on it: '
                     '{}'.format(virtues_on_valor))
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
