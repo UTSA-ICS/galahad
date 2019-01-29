@@ -311,7 +311,7 @@ Resources:
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0e445010152f0abc4
+      ImageId: ami-03f8c363db505f8a5
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
