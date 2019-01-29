@@ -548,9 +548,6 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
-            #if (virtue['username'] != username):
-            #    return json.dumps(ErrorCodes.admin['userNotAuthorized'])
-
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
@@ -613,11 +610,12 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            # Virtue/s exists on this valor - Unable to stop valor
+            return json.dumps({'status': 'failed', 'result': [11, exception.message]})
 
 
     def valor_destroy(self, valor_id):
@@ -628,11 +626,13 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            # Virtue/s exists on this valor - Unable to destroy valor
+            return json.dumps(
+                {'status': 'failed', 'result': [11, exception.message]})
 
 
     def valor_list(self):
