@@ -1,15 +1,14 @@
-import rethinkdb as r
-import socket
-import datetime
-import time
-import threading
-import base64
 import logging
+import socket
+import threading
+import time
 
-from __init__ import RT_CONN, RT_DB, RT_IP, RT_PORT, RT_CERT
-from __init__ import RT_VALOR_TB, RT_COMM_TB, RT_ACK_TB, RT_ARC_TB
-from virtue_client import Virtue
+import rethinkdb as r
+
+from __init__ import RT_DB, RT_IP, RT_PORT, RT_CERT
+from __init__ import RT_VALOR_TB, RT_COMM_TB
 from introspect_client import Introspect
+from virtue_client import Virtue
 
 RETHINKDB_LOGFILE = "/var/log/gaius-rethink.log"
 rethinkdb_client_handler = logging.FileHandler(RETHINKDB_LOGFILE)
@@ -26,6 +25,11 @@ class Changes(threading.Thread):
         self.ip = socket.gethostbyname(socket.gethostname())
         self.name = name
         self.rt = rt
+        valor = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "valor", "address": self.ip}).run(self.rt).next()
+        self.valor_id = valor["valor_id"]
+        self.valor_guestnet = valor["guestnet"]
+
 
     def run(self):
         if self.name == "valor":
@@ -33,59 +37,80 @@ class Changes(threading.Thread):
         elif self.name == "migration":
             self.migration()
 
+    def is_change_from_migration(self, change):
+        if change["type"] == "add":
+            # Check to see if virtue just migrated
+            migration = r.db(RT_DB).table(RT_COMM_TB).filter(
+                {"transducer_id": "migration",
+                 "virtue_id": change["new_val"]['virtue_id']}).run(self.rt)
+            rethinkdb_client_logger.debug("\n\nWhy is this causing an error \n{}\n".format(
+                migration))
+            if list(migration) != []:
+                migration_dict = migration.next()
+                # Check to see if this is a add produced as a result of migration
+                if self.ip == migration_dict["valor_ip"] and self.ip == change["new_val"][
+                    "address"]:
+                    rethinkdb_client_logger.debug(
+                        'Fake migration ADD feed detected : IGNORE!!!')
+                    return True
+            return False
+        elif change["type"] == "remove":
+            # Check to see if virtue just migrated
+            virtue = r.db(RT_DB).table(RT_VALOR_TB).filter(
+                {"virtue_id": change["old_val"]["virtue_id"]}).run(self.rt).next()
+            # Check to see if this is a remove produced as a result of migration
+            if self.ip != virtue['address']:
+                rethinkdb_client_logger.debug(
+                    'Fake migration REMOVE feed detected : IGNORE!!!')
+                return True
+            return False
+
     def valor(self):
         for change in self.feed:
+            rethinkdb_client_logger.debug(
+                'Detected change feed in Valor: \n{}\n'.format(change))
+            # For an change feed type of 'add'
             if change["type"] == "add":
-                self.add(change["new_val"])
+                if change["new_val"]["function"] == "virtue":
+                    if not self.is_change_from_migration(change):
+                        self.add(change["new_val"])
+            # For an change feed type of 'remove'
             elif change["type"] == "remove":
-                self.remove(change["old_val"])
-
-    def getid(self, table, search):
-        doc = r.db(RT_DB).table(table).filter(search).run(self.rt)
-        return doc.next()["id"]
+                if change["old_val"] == "virtue":
+                    if not self.is_change_from_migration(change):
+                        self.remove(change["old_val"])
 
     def add(self, change):
-        if change["function"] == "virtue":
-            valor = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", 
-            	"address": self.ip}).run(self.rt).next()
-
-            virtue = Virtue(change)
-            try:
-                r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id, 
-                    "transducer_id": "migration"}).update({"enabled":"False"}).run(self.rt).next()
-                return
-            except Exception as e:
-                pass
-
-            rethinkdb_client_logger.debug("Continuing...")
-            virtue.create_cfg(valor["guestnet"])
-            virtue.createDomU()
+        virtue = Virtue(change)
+        virtue.create_cfg(self.valor_guestnet)
+        virtue.createDomU()
 
     def remove(self, change):
-        if change["function"] == "virtue":
-            rethinkdb_client_logger.debug("Valor remove change = {}".format(change))
-            virtue = Virtue(change)
-            virtue.destroyDomU()
+        virtue = Virtue(change)
+        virtue.destroyDomU()
 
     def migrate(self, change):
         rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
         rethinkdb_client_logger.debug("MIGRATION - table = {}".format(r.db(RT_DB).table(RT_VALOR_TB)\
             .run(self.rt)))
+
         virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"]})\
             .run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
-        virtue_id = change["virtue_id"]
-        transducer_id = change["transducer_id"]
-        valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", 
+
+        valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor",
             "address": change["valor_dest"]}).run(self.rt).next()
-        history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue_id,
-            "transducer_id": "migration"}).run(self.rt).next()["history"]
-        history.append({"valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})})
+
+        # history is already contained in the change feed.
+        #history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue_id,
+        #    "transducer_id": "migration"}).run(self.rt).next()["history"]
+        history = change['history']
+        history.append({"valor_id": self.valor_id})
 
         ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
-        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": transducer_id,
-            "virtue_id": virtue_id})
+        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"],
+            "virtue_id": virtue.virtue_id})
         record = comm_tb_filter.run(self.rt).next()
         record["enabled"] = False
         record["history"] = history
@@ -96,8 +121,9 @@ class Changes(threading.Thread):
         ### Updates Virtue object with new Valor IP
         valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"],
             "function": "virtue"})
-        valor_tb_filter.update({"address": change["valor_dest"]}).run(self.rt)
-        valor_tb_filter.update({"valor_id": valor_dest["valor_id"]}).run(self.rt)
+        valor_tb_filter.update(
+            {"address": change["valor_dest"],
+             "valor_id": valor_dest["valor_id"]}).run(self.rt)
 
     def migration(self):
         for change in self.feed:
