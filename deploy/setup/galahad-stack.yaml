@@ -333,7 +333,7 @@ Resources:
               - !Ref NameSuffix
               - '-AD'
   Exchange:
-    Type: 'AWS::EC2::INSTANCE'
+    Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-0ca4fc7c290fbd1f6
       InstanceType: t2.large
