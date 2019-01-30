@@ -37,51 +37,16 @@ class Changes(threading.Thread):
         elif self.name == "migration":
             self.migration()
 
-    def is_change_from_migration(self, change):
-        if change["type"] == "add":
-            # Check to see if virtue just migrated
-            migration = r.db(RT_DB).table(RT_COMM_TB).filter(
-                {"transducer_id": "migration",
-                 "virtue_id": change["new_val"]['virtue_id']}).run(self.rt)
-            rethinkdb_client_logger.debug("\n\nWhy is this causing an error \n{}\n".format(
-                migration))
-            if list(migration) != []:
-                migration_dict = migration.next()
-                # Check to see if this is a add produced as a result of migration
-                if self.ip == migration_dict["valor_ip"] and self.ip == change["new_val"][
-                    "address"]:
-                    rethinkdb_client_logger.debug(
-                        'Fake migration ADD feed detected : IGNORE!!!')
-                    return True
-            return False
-        elif change["type"] == "remove":
-            # Check to see if virtue just migrated
-            virtue = r.db(RT_DB).table(RT_VALOR_TB).filter(
-                {"virtue_id": change["old_val"]["virtue_id"]}).run(self.rt)
-            if list(virtue) != []:
-                virtue_dict = virtue.next()
-                rethinkdb_client_logger.debug("\n The virtue for deletion is \n{}\n".format(virtue_dict))
-                # Check to see if this is a remove produced as a result of migration
-                if self.ip != virtue_dict['address']:
-                    rethinkdb_client_logger.debug(
-                        'Fake migration REMOVE feed detected : IGNORE!!!')
-                    return True
-            return False
-
     def valor(self):
         for change in self.feed:
             rethinkdb_client_logger.debug(
                 'Detected change feed in Valor: \n{}\n'.format(change))
             # For an change feed type of 'add'
-            if change["type"] == "add":
-                if change["new_val"]["function"] == "virtue":
-                    if not self.is_change_from_migration(change):
-                        self.add(change["new_val"])
+            if change["type"] == "add" and change['new_val']['address'] == self.ip:
+                self.add(change["new_val"])
             # For an change feed type of 'remove'
-            elif change["type"] == "remove":
-                if change["old_val"]["function"] == "virtue":
-                    if not self.is_change_from_migration(change):
-                        self.remove(change["old_val"])
+            elif change["type"] == "remove" and change['old_val']['address'] == self.ip:
+                self.remove(change["old_val"])
 
     def add(self, change):
         virtue = Virtue(change)
@@ -149,12 +114,12 @@ class Rethink():
 
         #valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         valor_rt = self.valor_rt
-        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue", 
-            "address": self.ip}).changes(include_types=True).run(valor_rt)
+        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue"}).changes(include_types=True).run(valor_rt)
 
         #migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         migration_rt = self.migration_rt
-        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_ip": self.ip, 
+        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({
+            "valor_ip": self.ip,
             "transducer_id": "migration"}).changes(include_types=True).run(migration_rt)
 
         valor_thread = Changes("valor", valor_feed, valor_rt)
