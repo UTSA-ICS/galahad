@@ -57,12 +57,15 @@ class Changes(threading.Thread):
         elif change["type"] == "remove":
             # Check to see if virtue just migrated
             virtue = r.db(RT_DB).table(RT_VALOR_TB).filter(
-                {"virtue_id": change["old_val"]["virtue_id"]}).run(self.rt).next()
-            # Check to see if this is a remove produced as a result of migration
-            if self.ip != virtue['address']:
-                rethinkdb_client_logger.debug(
-                    'Fake migration REMOVE feed detected : IGNORE!!!')
-                return True
+                {"virtue_id": change["old_val"]["virtue_id"]}).run(self.rt)
+            if list(virtue) != []:
+                virtue_dict = virtue.next()
+                rethinkdb_client_logger.debug("\n The virtue for deletion is \n{}\n".format(virtue_dict))
+                # Check to see if this is a remove produced as a result of migration
+                if self.ip != virtue_dict['address']:
+                    rethinkdb_client_logger.debug(
+                        'Fake migration REMOVE feed detected : IGNORE!!!')
+                    return True
             return False
 
     def valor(self):
@@ -76,7 +79,7 @@ class Changes(threading.Thread):
                         self.add(change["new_val"])
             # For an change feed type of 'remove'
             elif change["type"] == "remove":
-                if change["old_val"] == "virtue":
+                if change["old_val"]["function"] == "virtue":
                     if not self.is_change_from_migration(change):
                         self.remove(change["old_val"])
 
