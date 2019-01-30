@@ -11,7 +11,7 @@ from ssh_tool import ssh_tool
 
 NUM_STANDBY_VALORS = 3
 
-MAX_VIRTUES_PER_VALOR = 1
+MAX_VIRTUES_PER_VALOR = 2
 
 class ValorAPI:
 
@@ -62,7 +62,7 @@ class ValorAPI:
             destination_valor = self.valor_manager.get_empty_valor()
             destination_valor_id = destination_valor['valor_id']
 
-        self.valor_manager.migrate_virtue( virtue_id, destination_valor_id)
+        self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
 
         return destination_valor_id
 
@@ -503,18 +503,24 @@ class ValorManager:
             'function' : 'valor',
             'address' : virtue['address']}).run().next()
 
-
         destination_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'valor_id' : destination_valor_id}).run().next()
 
-        current_valor_ip_address = current_valor['address']
-        destination_valor_ip_address = destination_valor['address']
+        virtues_on_dst_valor = rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'virtue',
+            'address': destination_valor['address']}).run()
+
+        dst_virtue_count = len(list(virtues_on_dst_valor))
+        if (dst_virtue_count >= MAX_VIRTUES_PER_VALOR):
+            raise Exception(('ERROR: Destination Valor has too many ({0})'
+                             ' Virtues running on it'
+                             ' to migrate.'.format(dst_virtue_count)))
 
         rethinkdb.db("transducers").table("commands") \
-            .filter({'valor_ip': current_valor_ip_address,
+            .filter({'valor_ip': current_valor['address'],
                      'virtue_id': virtue_id}) \
-            .update({'valor_dest': destination_valor_ip_address,
+            .update({'valor_dest': destination_valor['address'],
                      'enabled': True}).run()
 
     def setup_syslog_config(self):
