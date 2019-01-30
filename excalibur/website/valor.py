@@ -512,12 +512,10 @@ class ValorManager:
         destination_valor_ip_address = destination_valor['address']
 
         rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"valor_dest": destination_valor_ip_address}).run()
-
-        rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"enabled": True}).run()
+            .filter({'valor_ip': current_valor_ip_address,
+                     'virtue_id': virtue_id}) \
+            .update({'valor_dest': destination_valor_ip_address,
+                     'enabled': True}).run()
 
     def setup_syslog_config(self):
         # Todo:  Make this configurable
