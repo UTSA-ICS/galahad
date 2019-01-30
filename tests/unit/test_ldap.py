@@ -3,6 +3,7 @@
 import copy
 import os
 import sys
+import json
 import traceback
 
 file_path = os.path.realpath(__file__)
@@ -94,9 +95,9 @@ def test_write_to_ldap():
         'objectClass': 'OpenLDAProle',
         'ou': 'virtue',
         'cid': 'routeradmin',
-        'name': 'Router Admin',
-        'cversion': '1.0',
-        'cappIds': str(['firefox', 'xterm']),
+        'name': '"Router Admin"',
+        'cversion': '"1.0"',
+        'cappIds': json.dumps(['firefox', 'xterm']),
         'cstartResIds': '[]',
         'cstartTransIds': '[]'
     }
