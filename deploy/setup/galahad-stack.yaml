@@ -335,7 +335,7 @@ Resources:
   Exchange:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0ca4fc7c290fbd1f6
+      ImageId: ami-0f4c7e570f044b46f
       InstanceType: t2.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -355,7 +355,7 @@ Resources:
             - ''
             - - VirtUE-
               - !Ref NameSuffix
-              - '-AD'
+              - '-Exchange'
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
