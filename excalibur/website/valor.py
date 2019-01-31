@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 
@@ -11,7 +12,7 @@ from ssh_tool import ssh_tool
 
 NUM_STANDBY_VALORS = 3
 
-MAX_VIRTUES_PER_VALOR = 1
+MAX_VIRTUES_PER_VALOR = 2
 
 class ValorAPI:
 
@@ -57,12 +58,19 @@ class ValorAPI:
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
+        # Get virtue's current valor
+        source_valor_id = self.valor_manager.get_valor_for_virtue(virtue_id)['valor_id']
 
+        # If no destination valor is specified then select an available one
         if destination_valor_id == None:
-            destination_valor = self.valor_manager.get_empty_valor()
+            destination_valor = self.valor_manager.get_empty_valor(source_valor_id)
             destination_valor_id = destination_valor['valor_id']
+        elif source_valor_id == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(source_valor_id,
+                                                   destination_valor_id)))
 
-        self.valor_manager.migrate_virtue( virtue_id, destination_valor_id)
+        self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
 
         return destination_valor_id
 
@@ -90,7 +98,8 @@ class Valor:
             print('Failed to connect to valor with IP {} using SSH'.format(
                 self.aws_instance.private_ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.private_ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(
+                    self.aws_instance.private_ip_address))
 
 
     def setup(self):
@@ -215,12 +224,29 @@ class ValorManager:
 
         return file_system_id
 
-    def get_available_valors(self):
+    def get_valor_for_virtue(self, virtue_id):
+        # Go through the list of valors and return the valor that has the specified
+        # virtue running on it.
+        for valor in self.list_valors():
+            for virtue in valor['virtues']:
+                if virtue == virtue_id:
+                    return valor
 
-        # Return valors that have the required number of virtues
-        return [valor for valor in self.list_valors()
-                if (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
-                   (valor['state'] == 'RUNNING')]
+    def get_available_valors(self, migration_source_valor_id=None):
+
+        if not migration_source_valor_id:
+            # Return valors that have the required number of virtues
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and (
+                                valor['state'] == 'RUNNING')]
+        else:
+            # Return valors that have the required number of virtues and that do not
+            # match the migration source valor
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
+                    (valor['state'] == 'RUNNING') and
+                    (valor['valor_id'] != migration_source_valor_id)]
+
 
     def get_empty_valors(self):
 
@@ -264,13 +290,13 @@ class ValorManager:
             # standby valors so do nothing
             pass
 
-    def get_empty_valor(self):
+    def get_empty_valor(self, migration_source_valor_id=None):
         """ Get and return an available valor node.
         If less than the standby number of valors exist then
         create more standby valors
         """
 
-        empty_valors = self.get_available_valors()
+        empty_valors = self.get_available_valors(migration_source_valor_id)
 
         # Check if there are no empty valors
         # If there are none then create a valor node
@@ -284,10 +310,14 @@ class ValorManager:
 
             empty_valor = self.rethinkdb_manager.get_valor(valor_id)
         else:
-            # Check the valor state and verify that it is 'RUNNING'
-            self.verify_valor_running(empty_valors[0]['valor_id'])
+            # Select a random index for the array of empty_valors
+            # This essentially selects a random valor from the list of valors
+            random_index = random.randint(0, len(empty_valors) - 1)
 
-            empty_valor = empty_valors[0]
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(empty_valors[random_index]['valor_id'])
+
+            empty_valor = empty_valors[random_index]
 
         self.create_standby_valors(offset=1)
 
@@ -417,12 +447,13 @@ class ValorManager:
                 valor_wait_count = valor_wait_count + 1
 
             elif valor_wait_count >= valor_wait_timeout:
-                Exception('Timed out waiting for valor to reach '
+                Exception('ERROR: Timed out waiting for valor to reach '
                           '[RUNNING] state - current state is [{}]'.format(
                     valor_state))
 
             else:
-                Exception('Unexpected Error condition encountered while getting a valor')
+                Exception('ERROR: Unexpected Error condition encountered while getting a '
+                          'valor')
 
 
     def create_valor_pool(
@@ -462,7 +493,8 @@ class ValorManager:
             # If no valors are found then the valor_id does not exist
             if len(virtues_on_valor) == 0:
                 raise Exception(
-                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
             else:
                 raise Exception(
                     'ERROR: Valor currently has the following Virtue/s running on it: '
@@ -487,7 +519,8 @@ class ValorManager:
             # If no valors are found then the valor_id does not exist
             if len(virtues_on_valor) == 0:
                 raise Exception(
-                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
             else:
                 raise Exception(
                     'ERROR: Valor currently has the following Virtue/s running on it: '
@@ -503,21 +536,30 @@ class ValorManager:
             'function' : 'valor',
             'address' : virtue['address']}).run().next()
 
-
         destination_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'valor_id' : destination_valor_id}).run().next()
 
-        current_valor_ip_address = current_valor['address']
-        destination_valor_ip_address = destination_valor['address']
+        if current_valor['valor_id'] == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(current_valor['valor_id'],
+                                                   destination_valor_id)))
+
+        virtues_on_dst_valor = rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'virtue',
+            'address': destination_valor['address']}).run()
+
+        dst_virtue_count = len(list(virtues_on_dst_valor))
+        if (dst_virtue_count >= MAX_VIRTUES_PER_VALOR):
+            raise Exception(('ERROR: Destination Valor has too many ({0})'
+                             ' Virtues running on it'
+                             ' to migrate.'.format(dst_virtue_count)))
 
         rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"valor_dest": destination_valor_ip_address}).run()
-
-        rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"enabled": True}).run()
+            .filter({'valor_ip': current_valor['address'],
+                     'virtue_id': virtue_id}) \
+            .update({'valor_dest': destination_valor['address'],
+                     'enabled': True}).run()
 
     def setup_syslog_config(self):
         # Todo:  Make this configurable
@@ -558,6 +600,7 @@ class RethinkDbManager:
 
         except Exception as error:
             print(error)
+            raise Exception('ERROR: Failed to connect to RethinkDB: {}'.format(error))
 
 
     def get_valor(self, valor_id):
@@ -785,7 +828,7 @@ class RouterManager:
                    '/galahad-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
-            print('Failed to connect to valor with IP {} using SSH'.format(
+            print('ERROR: Failed to connect to valor with IP {} using SSH'.format(
                 self.ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(self.ip_address))

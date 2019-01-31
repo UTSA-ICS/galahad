@@ -675,11 +675,11 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
-
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            return json.dumps(
+                {'status': 'failed', 'result': [11, exception.message]})
 
 
     def galahad_get_id(self):

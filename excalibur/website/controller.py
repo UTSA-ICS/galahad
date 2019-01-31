@@ -34,6 +34,8 @@ UNITY_PATH = '/mnt/efs/images/unities/'
 ROLE_PATH = '/mnt/efs/images/non_provisioned_virtues/'
 VIRTUE_PATH = '/mnt/efs/images/provisioned_virtues/'
 
+# AWS Account under which the Docker ECR is being hosted
+AWS_ECR_ACCOUNT_NUMBER = "703915126451"
 
 class StandbyVirtues:
 
@@ -367,8 +369,11 @@ class AssembleRoleThread(threading.Thread):
                 time.sleep(5)
 
                 # Get Docker login command
+                # Use the AWS Account ID of the Account which has the docker registry,
+                # currently this is in the StarLab account.
                 docker_cmd = subprocess.check_output(shlex.split(
-                    'aws ecr get-login --no-include-email --region us-east-2'))
+                    'aws ecr get-login --registry-ids {} --no-include-email '
+                    '--region us-east-2'.format(AWS_ECR_ACCOUNT_NUMBER)))
 
                 print('docker_cmd: ' + docker_cmd)
 
