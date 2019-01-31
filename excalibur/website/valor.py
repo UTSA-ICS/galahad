@@ -65,6 +65,10 @@ class ValorAPI:
         if destination_valor_id == None:
             destination_valor = self.valor_manager.get_empty_valor(source_valor_id)
             destination_valor_id = destination_valor['valor_id']
+        elif source_valor_id == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(source_valor_id,
+                                                   destination_valor_id)))
 
         self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
 
@@ -94,7 +98,8 @@ class Valor:
             print('Failed to connect to valor with IP {} using SSH'.format(
                 self.aws_instance.private_ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.private_ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(
+                    self.aws_instance.private_ip_address))
 
 
     def setup(self):
@@ -442,12 +447,13 @@ class ValorManager:
                 valor_wait_count = valor_wait_count + 1
 
             elif valor_wait_count >= valor_wait_timeout:
-                Exception('Timed out waiting for valor to reach '
+                Exception('ERROR: Timed out waiting for valor to reach '
                           '[RUNNING] state - current state is [{}]'.format(
                     valor_state))
 
             else:
-                Exception('Unexpected Error condition encountered while getting a valor')
+                Exception('ERROR: Unexpected Error condition encountered while getting a '
+                          'valor')
 
 
     def create_valor_pool(
@@ -487,7 +493,8 @@ class ValorManager:
             # If no valors are found then the valor_id does not exist
             if len(virtues_on_valor) == 0:
                 raise Exception(
-                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
             else:
                 raise Exception(
                     'ERROR: Valor currently has the following Virtue/s running on it: '
@@ -512,7 +519,8 @@ class ValorManager:
             # If no valors are found then the valor_id does not exist
             if len(virtues_on_valor) == 0:
                 raise Exception(
-                    'No Valor exists with the specified valor_id {}'.format(valor_id))
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
             else:
                 raise Exception(
                     'ERROR: Valor currently has the following Virtue/s running on it: '
@@ -592,6 +600,7 @@ class RethinkDbManager:
 
         except Exception as error:
             print(error)
+            raise Exception('ERROR: Failed to connect to RethinkDB: {}'.format(error))
 
 
     def get_valor(self, valor_id):
@@ -819,7 +828,7 @@ class RouterManager:
                    '/galahad-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
-            print('Failed to connect to valor with IP {} using SSH'.format(
+            print('ERROR: Failed to connect to valor with IP {} using SSH'.format(
                 self.ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
