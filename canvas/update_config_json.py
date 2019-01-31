@@ -6,11 +6,15 @@ from sso_login import sso_tool
 
 if (__name__ == '__main__'):
 
-    parser = argparse.ArgumentParser(description='Get the APP client ID and update the config.json file')
+    parser = argparse.ArgumentParser(
+        description='Get the APP client ID and update the config.json file')
     parser.add_argument('-u', '--user', required=True, help='Username to log in with')
-    parser.add_argument('-p', '--password', help='Password to use. If not specified, will prompt.')
-    parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use (default is APP_1)')
-    parser.add_argument('-s', '--server', default='excalibur.galahad.com:5002', help='Server address')
+    parser.add_argument('-p', '--password',
+                        help='Password to use. If not specified, will prompt.')
+    parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use ('
+                                                               'default is APP_1)')
+    parser.add_argument('-s', '--server', default='excalibur.galahad.com:5002',
+                        help='Server address')
 
     args = parser.parse_args()
 
@@ -35,7 +39,6 @@ if (__name__ == '__main__'):
 
     print('The Client ID is {}'.format(client_id))
 
-    config = None
     with open('config.json', 'r') as filecontents:
         config = json.load(filecontents, object_pairs_hook=OrderedDict)
 

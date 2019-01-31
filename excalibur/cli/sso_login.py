@@ -170,7 +170,8 @@ if (__name__ == '__main__'):
     parser.add_argument('-p', '--password', help='Password to use. If not specified, will prompt.')
     parser.add_argument('-o', '--outfile', default='usertoken.json', help='File to write access token to (default is usertoken.json)')
     parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use (default is APP_1)')
-    parser.add_argument('server', help='Server address')
+    parser.add_argument('server', default='excalibur.galahad.com:5002', help='Server '
+                                                                             'address')
 
     args = parser.parse_args()
 
@@ -186,12 +187,14 @@ if (__name__ == '__main__'):
         print('ERROR: Could not log in')
         sys.exit(1)
 
-    redirect = 'https://{}/virtue/test\n' \
-               'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
+    redirect = 'https://{}/virtue/test'.format(args.server)
+    redirect_canvas = 'https://{}/virtue/test\n' \
+                      'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
+
 
     client_id = sso.get_app_client_id(args.appid)
     if (client_id == None):
-        client_id = sso.create_app(args.appid, redirect)
+        client_id = sso.create_app(args.appid, redirect_canvas)
         assert client_id
     
     code = sso.get_oauth_code(client_id, redirect)
