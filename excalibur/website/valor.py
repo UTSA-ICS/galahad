@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 
@@ -57,9 +58,12 @@ class ValorAPI:
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
+        # Get virtue's current valor
+        source_valor_id = self.valor_manager.get_valor_for_virtue(virtue_id)['valor_id']
 
+        # If no destination valor is specified then select an available one
         if destination_valor_id == None:
-            destination_valor = self.valor_manager.get_empty_valor()
+            destination_valor = self.valor_manager.get_empty_valor(source_valor_id)
             destination_valor_id = destination_valor['valor_id']
 
         self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
@@ -215,12 +219,29 @@ class ValorManager:
 
         return file_system_id
 
-    def get_available_valors(self):
+    def get_valor_for_virtue(self, virtue_id):
+        # Go through the list of valors and return the valor that has the specified
+        # virtue running on it.
+        for valor in self.list_valors():
+            for virtue in valor['virtues']:
+                if virtue == virtue_id:
+                    return valor
 
-        # Return valors that have the required number of virtues
-        return [valor for valor in self.list_valors()
-                if (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
-                   (valor['state'] == 'RUNNING')]
+    def get_available_valors(self, migration_source_valor_id=None):
+
+        if not migration_source_valor_id:
+            # Return valors that have the required number of virtues
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and (
+                                valor['state'] == 'RUNNING')]
+        else:
+            # Return valors that have the required number of virtues and that do not
+            # match the migration source valor
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
+                    (valor['state'] == 'RUNNING') and
+                    (valor['valor_id'] != migration_source_valor_id)]
+
 
     def get_empty_valors(self):
 
@@ -264,13 +285,13 @@ class ValorManager:
             # standby valors so do nothing
             pass
 
-    def get_empty_valor(self):
+    def get_empty_valor(self, migration_source_valor_id=None):
         """ Get and return an available valor node.
         If less than the standby number of valors exist then
         create more standby valors
         """
 
-        empty_valors = self.get_available_valors()
+        empty_valors = self.get_available_valors(migration_source_valor_id)
 
         # Check if there are no empty valors
         # If there are none then create a valor node
@@ -284,10 +305,14 @@ class ValorManager:
 
             empty_valor = self.rethinkdb_manager.get_valor(valor_id)
         else:
-            # Check the valor state and verify that it is 'RUNNING'
-            self.verify_valor_running(empty_valors[0]['valor_id'])
+            # Select a random index for the array of empty_valors
+            # This essentially selects a random valor from the list of valors
+            random_index = random.randint(0, len(empty_valors) - 1)
 
-            empty_valor = empty_valors[0]
+            # Check the valor state and verify that it is 'RUNNING'
+            self.verify_valor_running(empty_valors[random_index]['valor_id'])
+
+            empty_valor = empty_valors[random_index]
 
         self.create_standby_valors(offset=1)
 
@@ -506,6 +531,11 @@ class ValorManager:
         destination_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'valor_id' : destination_valor_id}).run().next()
+
+        if current_valor['valor_id'] == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(current_valor['valor_id'],
+                                                   destination_valor_id)))
 
         virtues_on_dst_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
