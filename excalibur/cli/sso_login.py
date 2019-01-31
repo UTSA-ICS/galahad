@@ -170,8 +170,7 @@ if (__name__ == '__main__'):
     parser.add_argument('-p', '--password', help='Password to use. If not specified, will prompt.')
     parser.add_argument('-o', '--outfile', default='usertoken.json', help='File to write access token to (default is usertoken.json)')
     parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use (default is APP_1)')
-    parser.add_argument('server', default='excalibur.galahad.com:5002', help='Server '
-                                                                             'address')
+    parser.add_argument('server', help='Server address e.g: excalibur.galahad.com:5002')
 
     args = parser.parse_args()
 
