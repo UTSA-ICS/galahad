@@ -70,9 +70,6 @@ class Changes(threading.Thread):
         valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor",
             "address": change["valor_dest"]}).run(self.rt).next()
 
-        # history is already contained in the change feed.
-        #history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue_id,
-        #    "transducer_id": "migration"}).run(self.rt).next()["history"]
         history = change['history']
         history.append({"valor_id": self.valor_id})
 
@@ -112,11 +109,9 @@ class Rethink():
 
     def changes(self):
 
-        #valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         valor_rt = self.valor_rt
         valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue"}).changes(include_types=True).run(valor_rt)
 
-        #migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         migration_rt = self.migration_rt
         migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({
             "valor_ip": self.ip,
@@ -132,6 +127,8 @@ class Rethink():
         migration_thread.start()
         rethinkdb_client_logger.debug("Migration thread starting...")
 
+        # TODO - Introspection might be broken for 2 virtues on a valor
+        # TODO - Ensure that Instrospection works with 2 virtues on a single valor
         introspection_thread = Introspect()
         introspection_thread.start()
         introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
