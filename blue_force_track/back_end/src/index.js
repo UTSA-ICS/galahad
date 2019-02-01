@@ -16,8 +16,6 @@ const r = require('rethinkdb');
 //app.use(express.static(path.join(__dirname, 'front_end')))
 const root = 'front_end';
 app.use(express.static(root));
-app.use(fallback('index.html', { root: root }))
-
 
 var ldapClient = null;
 var esClient = null;
@@ -490,5 +488,8 @@ function query_rethinkdb(tableName, send_fn) {
         });
     });
 }
+
+app.use(fallback('index.html', { root: root }))
+
 
 app.listen(3000, () => console.log('Blue Force Tracker listening on port 3000!'));
