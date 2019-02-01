@@ -311,7 +311,7 @@ Resources:
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-03f8c363db505f8a5
+      ImageId: ami-06768f803661facc2
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -335,7 +335,7 @@ Resources:
   Exchange:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0f4c7e570f044b46f
+      ImageId: ami-0af5bd73e925f9853
       InstanceType: t2.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
