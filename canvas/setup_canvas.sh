@@ -29,10 +29,10 @@ cd $HOME/$CANVAS_DIR
 cp -R pki_store $HOME/.pki
 
 # Download the Excalibur certificate
-echo | openssl s_client -connect excalibur.galahad.com:5002 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ~/excalibur-cert.pem
+echo | openssl s_client -connect excalibur.galahad.com:5002 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > $HOME/excalibur-cert.pem
 
 # Install the certificate
-certutil -d sql:/home/ubuntu/.pki/nssdb -A -t "PC,," -n excalibur.galahad.com -i ~/excalibur-cert.pem
+certutil -d sql:$HOME/.pki/nssdb -A -t "PC,," -n excalibur.galahad.com -i $HOME/excalibur-cert.pem
 
 # Download the NWJS Package and untar it
 cd $HOME
