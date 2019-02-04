@@ -211,7 +211,7 @@ class CreateVirtueThread(threading.Thread):
         # Local Dir for storing of keys, this will be replaced when key
         # management is implemented
         key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
-	print("Starting create_virtue")
+
         thread_list.append(self)
 
         # Going to need to write to LDAP
