@@ -152,7 +152,8 @@ class EndPoint_Admin():
                 'version',
                 'applicationIds',
                 'startingResourceIds',
-                'startingTransducerIds'
+                'startingTransducerIds',
+                'networkRules'
             ]
             if (set(role.keys()) != set(role_keys)
                     and set(role.keys()) != set(role_keys + ['id'])):
@@ -162,6 +163,7 @@ class EndPoint_Admin():
                     or not isinstance(role['version'], basestring)
                     or type(role['applicationIds']) != list
                     or type(role['startingResourceIds']) != list
+                    or type(role['networkRules']) != list
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
@@ -520,6 +522,7 @@ class EndPoint_Admin():
                     'applicationIds': [],
                     'resourceIds': role['startingResourceIds'],
                     'transducerIds': role['startingTransducerIds'],
+                    'networkRules': role['networkRules'],
                     'state': 'STOPPED',
                     'ipAddress': 'NULL'
                 }
