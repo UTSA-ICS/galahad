@@ -40,7 +40,7 @@ def create_new_role(role_name, unity_img_name=None):
         new_role = json.loads(
             admin_api.role_create(role_data, unity_img_name=unity_img_name))
     else:
-        new_role = json.loads(admin_api.role_create(role_data), unity_img_name='8GB')
+        new_role = json.loads(admin_api.role_create(role_data, unity_img_name='8GB'))
 
     if new_role in ErrorCodes.admin.values():
         raise Exception('Error creating new role - {}'.format(new_role))
