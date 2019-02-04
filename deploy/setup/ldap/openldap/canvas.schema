@@ -197,5 +197,5 @@ objectClass ( 1.3.6.1.4.1.62000.0.7
 	NAME 'OpenLDAPvirtue'
 	DESC 'OpenLDAP Virtue'
 	SUP organizationalUnit
-	MUST ( cusername $ croleId $ cappIds $ cresIds $ ctransIds $ cstate $ cipAddress )
+	MUST ( cusername $ croleId $ cappIds $ cresIds $ ctransIds $ cnetRules $ cstate $ cipAddress )
 	MAY ( cid ) )

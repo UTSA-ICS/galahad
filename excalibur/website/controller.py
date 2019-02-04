@@ -211,7 +211,7 @@ class CreateVirtueThread(threading.Thread):
         # Local Dir for storing of keys, this will be replaced when key
         # management is implemented
         key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
-
+	print("Starting create_virtue")
         thread_list.append(self)
 
         # Going to need to write to LDAP
@@ -262,7 +262,7 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
-            with open('/etc/networkRules','w+') as iprules_file:
+            with open('/tmp/networkRules','w+') as iprules_file:
                 for rule in role['networkRules']:
                     iprules_file.write(rule + '\n')
 
@@ -275,7 +275,7 @@ class CreateVirtueThread(threading.Thread):
                                    + \
                                    'call_provisioner.py',
                                    '-i', virtue['id'],
-                                   '-n', '/etc/networkRules',
+                                   '-n', '/tmp/networkRules',
                                    '-b',
                                    '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
