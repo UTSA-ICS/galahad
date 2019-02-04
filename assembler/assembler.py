@@ -604,7 +604,8 @@ class Assembler(object):
                          output_path,
                          virtue_key, # The Virtue's private key
                          excalibur_key, # Excalibur's public key
-                         rethinkdb_cert): # RethinkDB's SSL cert
+                         rethinkdb_cert, #RethinkDB's SSL cert
+                         networkRules):
 
         image_mount = '{0}/{1}'.format(os.environ['HOME'], virtue_id)
         os.mkdir(image_mount)
@@ -624,7 +625,19 @@ class Assembler(object):
             # Enable merlin since virtue-id is now available
             subprocess.check_call(['chroot', image_mount,
                                    'systemctl', 'enable', 'merlin'])
-    
+
+            # read network rules
+	    rules = ""
+            with open(networkRules,'r') as networkRulesFile:
+                rules += networkRulesFile.read()
+
+            # echo network rules to a file on the virtue
+            with open(image_mount + '/etc/networkRules', 'w+') as iprules_file:
+                iprules_file.write(rules)
+
+	    # delete network rules file from the virtue
+            os.remove(networkRules)
+
             if (not os.path.exists(image_mount + '/var/private/ssl')):
                 os.makedirs(image_mount + '/var/private/ssl')
 

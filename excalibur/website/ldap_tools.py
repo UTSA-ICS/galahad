@@ -15,12 +15,13 @@ def parse_ldap(data):
         'cresIds': 'resourceIds',
         'ctransIds': 'transducerIds',
         'cAmiId': 'amiId',
-        'cawsInstId': 'awsInstanceId'
+        'cawsInstId': 'awsInstanceId',
+        'cnetRules': 'networkRules'
     }
 
     entries_with_lists = [
         'applicationIds', 'startingResourceIds', 'startingTransducerIds',
-        'requiredAccess', 'authorizedRoleIds', 'resourceIds', 'transducerIds'
+        'requiredAccess', 'authorizedRoleIds', 'resourceIds', 'transducerIds', 'networkRules'
     ]
 
     if ('ou' in data.keys()):
@@ -72,7 +73,8 @@ def to_ldap(data, objectClass):
         'state': 'cstate',
         'ipAddress': 'cipAddress',
         'amiId': 'cAmiId',
-        'awsInstanceId': 'cawsInstId'
+        'awsInstanceId': 'cawsInstId',
+        'networkRules': 'cnetRules'
     }
 
     modified_data = {'objectClass': objectClass, 'ou': 'virtue'}

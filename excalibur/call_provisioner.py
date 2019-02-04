@@ -37,6 +37,10 @@ def parse_args():
                         '--rethinkdb_cert',
                         type=str,
                         required=True)
+    parser.add_argument('-n',
+                        '--network_rules',
+                        'type=str,
+                        required=True)
 
     args = parser.parse_args()
 
@@ -52,4 +56,5 @@ if (__name__ == '__main__'):
                                args.output_path,
                                args.virtue_key,
                                args.excalibur_key,
-                               args.rethinkdb_cert)
+                               args.rethinkdb_cert,
+                               args.network_rules)
