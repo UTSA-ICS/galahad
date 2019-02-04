@@ -146,7 +146,7 @@ def __assemble_applications(unity_image, applications):
     assembler = Assembler(work_dir=WORK_DIR)
 
     # Copy the Unity image for assembly testing into efs/images/tests/
-    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/4GB.img',
+    subprocess.check_call(['sudo', 'cp', '/mnt/efs/images/unities/8GB.img',
                            '/mnt/efs/images/tests/assembly.img'])
 
     # TODO: Launch on a Valor
@@ -174,7 +174,7 @@ def test_assembler():
 
     # Update the unity image by adding in the terminal app
     # Run the assumbler for this function.
-    #assembled_ami_id = __assemble_application('/mnt/efs/images/unities/4GB.img',
+    #assembled_ami_id = __assemble_application('/mnt/efs/images/unities/8GB.img',
     #                                          ['terminal'])
 
     role = {

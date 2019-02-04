@@ -82,7 +82,7 @@ python3 deploy.py
 The `deploy-galahad.py` script will perform the following tasks:
 - create a stack in AWS using the cloudformation file `deploy/setup.galahad-stack.yaml` which will create the ec2 instances to host all the galahad infrastructure components.
 - The script will then proceed to setup and configure the software components and start all the required galahad processes.
-- After completing the installation, the script will call the constructor to create the base unity image (default 4GB and 8GB image) which will be used for all the roles and appropriate virtues. A `--image_size` option can be specified to change this default size.
+- After completing the installation, the script will call the constructor to create the base unity image (default 8GB image) which will be used for all the roles and appropriate virtues. A `--image_size` option can be specified to change this default size.
 - This script can be run again with `--build_image_only` option specified to build additional base ubuntu and unity images for a different `--image_size`. This option assumes that the stack has already been setup and only works on a completed galahad deployment.
 
 Usage:
@@ -121,7 +121,7 @@ optional arguments:
   --delete_stack        delete the specified stack
   --image_size {4GB,8GB,16GB}
                         Indicate size of initial ubuntu image to be created
-                        (default: 4GB, 8GB)
+                        (default: 8GB)
   --build_image_only    Build the ubuntu and unity image only - Assume an
                         existing stack
   --default_user_key DEFAULT_USER_KEY

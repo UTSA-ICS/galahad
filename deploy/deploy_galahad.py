@@ -915,8 +915,7 @@ def parse_args():
         help="delete the specified stack")
     parser.add_argument(
         "--image_size",
-        nargs='+',
-        default=["4GB", "8GB"],
+        default="8GB",
         choices=["4GB", "8GB", "16GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
