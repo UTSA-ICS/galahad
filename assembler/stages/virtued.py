@@ -14,7 +14,7 @@ class DockerVirtueStage(SSHStage):
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         sudo %s
-        sudo ./run.py -pr start %s
+        sudo ./run.py -p start %s
         cd /home/virtue
         sudo rm -rf docker-virtue
         '''

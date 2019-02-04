@@ -82,7 +82,7 @@ Everything I could think of that I know about Virtue, in the hopes that it will 
 	git clone git@github.com:starlab-io/docker-virtue.git
 	cd docker-virtue/virtue
 	sudo [DOCKER LOGIN]
-	sudo ./run.py -pr start [ONE OR MORE CONTAINERS TO START]
+	sudo ./run.py -p start [ONE OR MORE CONTAINERS TO START]
 	# -p means to pull down the container
 	# -r means it should restart if it ever dies
 	```
