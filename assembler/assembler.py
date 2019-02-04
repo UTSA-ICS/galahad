@@ -179,6 +179,7 @@ class Assembler(object):
                                mount_path])
 
         real_HOME = os.environ['HOME']
+        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
         try:
 
@@ -221,7 +222,10 @@ class Assembler(object):
                             'openssh-server',
                             'auditd',
                             'dkms',
-                            'psmisc'])
+                            'psmisc',
+                            'krb5-user',
+                            'cifs-utils',
+                            'smbclient'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
