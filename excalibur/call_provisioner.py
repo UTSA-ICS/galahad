@@ -39,8 +39,9 @@ def parse_args():
                         required=True)
     parser.add_argument('-n',
                         '--network_rules',
-                        'type=str,
-                        required=True)
+                        type=str,
+                        required=True,
+                        help='file containing network rules for the virtue')
 
     args = parser.parse_args()
 
