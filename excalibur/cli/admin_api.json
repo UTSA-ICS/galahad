@@ -45,7 +45,7 @@
             "help": "Creates a Role with the given parameters",
             "url": "/role/create",
             "parameters": [
-                { "name": "Role (as JSON)", "url_name": "role", "is_file": true },
+                { "name": "Role (as JSON)", "url_name": "role", "is_file": true }
             ]
         },
         {
