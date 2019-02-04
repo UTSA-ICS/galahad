@@ -39,8 +39,6 @@ class Changes(threading.Thread):
 
     def valor(self):
         for change in self.feed:
-            rethinkdb_client_logger.debug(
-                'Detected change feed in Valor: \n{}\n'.format(change))
             # For an change feed type of 'add'
             if change["type"] == "add" and change['new_val']['address'] == self.ip:
                 self.add(change["new_val"])
@@ -49,18 +47,20 @@ class Changes(threading.Thread):
                 self.remove(change["old_val"])
 
     def add(self, change):
+        rethinkdb_client_logger.debug(
+            'Detected ADD change feed in Valor: \n{}\n'.format(change))
         virtue = Virtue(change)
         virtue.create_cfg(self.valor_guestnet)
         virtue.createDomU()
 
     def remove(self, change):
+        rethinkdb_client_logger.debug(
+            'Detected REMOVE change feed in Valor: \n{}\n'.format(change))
         virtue = Virtue(change)
         virtue.destroyDomU()
 
     def migrate(self, change):
         rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
-        rethinkdb_client_logger.debug("MIGRATION - table = {}".format(r.db(RT_DB).table(RT_VALOR_TB)\
-            .run(self.rt)))
 
         virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"]})\
             .run(self.rt).next()
@@ -110,7 +110,8 @@ class Rethink():
     def changes(self):
 
         valor_rt = self.valor_rt
-        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue"}).changes(include_types=True).run(valor_rt)
+        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "virtue"}).changes(include_types=True).run(valor_rt)
 
         migration_rt = self.migration_rt
         migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({
