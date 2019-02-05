@@ -13,16 +13,16 @@ then
 fi
 
 echo -e '{
-    "name": '\"$3\"',
+    "name": '\"$1\"',
     "version": "1.0",
-    "applicationIds": ['\"$4\"'],
+    "applicationIds": ['\"$2\"'],
     "startingResourceIds": [],
     "startingTransducerIds": ["path_mkdir", "bprm_set_creds", "task_create", "task_alloc", "inode_create", "socket_connect", "socket_bind", "socket_accept", "socket_listen", "create_process", "process_start", "process_died", "srv_create_proc", "open_fd"]
-}' > role_$3.json
+}' > role_$1.json
 
 echo ""
 echo "#################################"
-echo "Created <role_$3.json> file"
+echo "Created <role_$1.json> file"
 echo "#################################"
 echo ""
-cat role_$3.json
+cat role_$1.json
