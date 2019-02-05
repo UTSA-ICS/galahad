@@ -35,7 +35,7 @@ def parse_args():
         help="The name of the cloudformation stack for the virtue environment")
     parser.add_argument(
         "--image_size",
-        default="4GB",
+        default="8GB",
         choices=["4GB", "8GB", "16GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
 
