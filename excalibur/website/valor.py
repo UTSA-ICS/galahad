@@ -582,7 +582,7 @@ class ValorManager:
             .update({'valor_dest': destination_valor['address'],
                      'enabled': True}).run()
 
-    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
         self.create_standby_valors()
 
         return self.rethinkdb_manager.add_virtue(valor_address, valor_id, virtue_id,
@@ -738,7 +738,7 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
