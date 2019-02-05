@@ -1,17 +1,17 @@
-import os
-import time
 import json
-import traceback
-import subprocess
+import os
 import shlex
+import subprocess
+import time
+import traceback
+
 import paramiko
 from paramiko import SSHClient
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
-from . import ldap_tools
-from aws import AWS
 from valor import ValorManager, RethinkDbManager
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
@@ -197,12 +197,11 @@ class EndPoint():
 
             if (use_valor):
                 valor_manager = ValorManager()
-                rdb_manager = RethinkDbManager()
 
                 valor = valor_manager.get_empty_valor()
 
                 try:
-                    virtue['ipAddress'] = rdb_manager.add_virtue(
+                    virtue['ipAddress'] = valor_manager.add_virtue(
                         valor['address'],
                         valor['valor_id'],
                         virtue['id'],

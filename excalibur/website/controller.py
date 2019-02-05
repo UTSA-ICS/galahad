@@ -1,20 +1,17 @@
 import json
 import os
+import re
 import shlex
 import subprocess
 import threading
 import time
 import traceback
-import re
 
 import ldap_tools
-from aws import AWS
-from ldaplookup import LDAP
-
-from valor import ValorManager
-from valor import RethinkDbManager
-from assembler.assembler import Assembler
 from apiendpoint_security import EndPoint_Security
+from assembler.assembler import Assembler
+from ldaplookup import LDAP
+from valor import ValorManager
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -359,7 +356,7 @@ class AssembleRoleThread(threading.Thread):
             if (self.use_ssh):
                 # Launch by adding a 'virtue' to RethinkDB
                 valor = valor_manager.get_empty_valor()
-                virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
+                virtue_ip = valor_manager.add_virtue(
                     valor['address'],
                     valor['id'],
                     self.role['id'],
