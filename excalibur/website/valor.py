@@ -583,9 +583,10 @@ class ValorManager:
                      'enabled': True}).run()
 
     def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
-        self.rethinkdb_manager.add_virtue(valor_address, valor_id, virtue_id, efs_path,
-                                          role_create)
         self.create_standby_valors()
+
+        return self.rethinkdb_manager.add_virtue(valor_address, valor_id, virtue_id,
+                                                 efs_path, role_create)
 
     def list_virtues(self):
         return self.rethinkdb_manager.list_virtues()
