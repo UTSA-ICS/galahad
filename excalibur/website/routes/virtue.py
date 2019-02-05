@@ -433,9 +433,13 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
+
+        # If UnitySize is not provided then set to default of 8GB
+        unitySize = request.args.get('unitySize', '8GB')
+
         ret = ep.role_create(
             json.loads(request.args['role']),
-            unity_img_name=request.args['unitySize'])
+            unity_img_name=unitySize)
         log_to_elasticsearch('Create admin role',
                              extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)

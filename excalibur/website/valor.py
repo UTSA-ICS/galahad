@@ -596,7 +596,7 @@ class ValorManager:
         mount_dir = '/mnt/efs/valor/syslog-ng/'
         aggregator_node = 'https://aggregator.galahad.com:9200'
         aggregator_host = "aggregator.galahad.com"
-        syslog_ng_server = "172.30.128.131"
+        syslog_ng_server = "192.168.4.10"
 
         # Create syslog-ng.conf from
         #   payload/syslog-ng-virtue-node.conf.template

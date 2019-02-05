@@ -374,7 +374,7 @@ def test_user_calls():
 
 def test_virtue_create():
 
-    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
                            ('/mnt/efs/images/non_provisioned_virtues/'
                             'admintestrole0.img')])
 
@@ -442,7 +442,7 @@ def test_virtue_destroy():
 
     img_path = '/mnt/efs/images/provisioned_virtues/admintestvirtue0.img'
 
-    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
                            img_path])
 
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_destroy(
