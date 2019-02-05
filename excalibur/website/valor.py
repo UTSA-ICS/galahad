@@ -59,12 +59,11 @@ class ValorAPI:
     def valor_list(self):
         return self.valor_manager.list_valors()
 
-
     def auto_migration_start(self):
-        self.valor_manager.auto_migration_start()
-        auto_migration_thread = threading.Thread(
-            target=self.auto_migration())
-        auto_migration_thread.start()
+        if not self.is_auto_migration_on():
+            self.valor_manager.auto_migration_start()
+            auto_migration_thread = threading.Thread(target=self.auto_migration)
+            auto_migration_thread.start()
 
 
     def auto_migration_stop(self):
@@ -75,14 +74,13 @@ class ValorAPI:
     def is_auto_migration_on(self):
         return self.valor_manager.is_auto_migration_on()
 
-
     def auto_migration(self):
-        while (self.is_auto_migration_on()):
+        while self.is_auto_migration_on():
             virtues = self.valor_manager.list_virtues()
             for virtue in virtues:
                 self.valor_migrate_virtue(virtue['virtue_id'])
-            # Now sleep for 60 seconds before starting another migration run for ALL
-            # virtues
+            # Now sleep for AUTO_MIGRATION_INTERVAL before starting another migration
+            # run for ALL virtues
             time.sleep(AUTO_MIGRATION_INTERVAL)
 
 
@@ -291,19 +289,15 @@ class ValorManager:
 
         return valor_id
 
-    def create_standby_valors(self, offset=0):
+    def create_standby_valors(self):
 
-        empty_valors = self.get_empty_valors()
+        empty_valors = self.get_available_valors()
 
         # Check if the number of empty valors is less than NUM_STANDBY_VALORS
         # If so then create additional valors
         if len(empty_valors) <= NUM_STANDBY_VALORS:
 
-            # offset is used to account for valors that are going to be used
-            # but rethinkdb has not been updated to mark them as in use e.g
-            # when get_empty_valor() is called
-            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors) + \
-                                   offset
+            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors)
 
             aws = AWS()
 
@@ -347,8 +341,6 @@ class ValorManager:
             self.verify_valor_running(empty_valors[random_index]['valor_id'])
 
             empty_valor = empty_valors[random_index]
-
-        self.create_standby_valors(offset=1)
 
         return empty_valor
 
@@ -590,6 +582,11 @@ class ValorManager:
             .update({'valor_dest': destination_valor['address'],
                      'enabled': True}).run()
 
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
+        self.rethinkdb_manager.add_virtue(valor_address, valor_id, virtue_id, efs_path,
+                                          role_create)
+        self.create_standby_valors()
+
     def list_virtues(self):
         return self.rethinkdb_manager.list_virtues()
 
@@ -623,7 +620,7 @@ class ValorManager:
         self.rethinkdb_manager.auto_migration_stop()
 
     def is_auto_migration_on(self):
-        return self.rethinkdb_manager.is_auto_migration_on()
+        return RethinkDbManager().is_auto_migration_on()
 
 
 class RethinkDbManager:
