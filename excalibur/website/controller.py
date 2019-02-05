@@ -269,6 +269,7 @@ class CreateVirtueThread(threading.Thread):
                                    os.environ['HOME'] + '/galahad/excalibur/'
                                    + \
                                    'call_provisioner.py',
+                                   '-u', self.username,
                                    '-i', virtue['id'],
                                    '-b',
                                    '/mnt/efs/images/non_provisioned_virtues/' +

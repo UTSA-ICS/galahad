@@ -11,7 +11,7 @@ from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
 from aws import AWS
-from valor import ValorManager, RethinkDbManager
+from valor import ValorManager, RethinkDbManager, ResourceManager
 
 DEBUG_PERMISSIONS = False
 
@@ -247,6 +247,28 @@ class EndPoint():
 
                         print('Successfully connected to {}'.format(
                             virtue['ipAddress'],))
+
+                        # KL --- add if resIDs not empty run:
+                        # Kerberos tgt setup for resource management
+                        if len(virtue['resourceIds']) is not 0:
+                            krb5cc_src = '/tmp/krb5cc_{}'.format(username)
+                            krb5cc_dest = '/tmp/krb5cc_0'
+                            subprocess.check_call(['scp', '-i',
+                                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                                    krb5cc_src,
+                                                    'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
+
+                            for res in virtue['resourceIds']:
+                                print("Entered for")
+                                resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                                ldap_tools.parse_ldap(resource)
+                                print("retrieved resource = {}".format(resource))
+                                resource_manager = ResourceManager(username, resource)
+                                print("created resource_manager")
+                                getattr(resource_manager, resource['type'].lower())()
+                                print("called attr")
+
+
                         success = True
 
                         break

@@ -97,13 +97,22 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
 
-            if (virtue['state'] == 'DELETING'):
+            #if (virtue['state'] == 'DELETING'):
+            #    return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+            if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
 
             if (resourceId in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantAttach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            virtue['resourceIds'].append(resourceId)
+            self.inst.modify_obj('cid', virtue['id'], 
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
 
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -133,7 +142,17 @@ class EndPoint_Admin():
             if (resourceId not in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantDetach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            if (virtue['state'] != 'STOPPED'):
+                return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+
+            virtue['resourceIds'].remove(resourceId)
+            self.inst.modify_obj('cid', virtue['id'],
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])

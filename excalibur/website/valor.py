@@ -770,3 +770,18 @@ class RouterManager:
                 self.ip_address))
             raise Exception(
                 'Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+
+class ResourceManager:
+    def __init__(self, username, resource):
+        self.username = username
+        self.resource = resource
+
+    def drive(self):
+        # map resource
+        print("WAT:    DRIVE")
+
+    def printer(self):
+        print("WAT:    PRINTER")
+
+    def email(self):
+        print("WAT:    EMAIL")
