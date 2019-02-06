@@ -740,8 +740,31 @@ class StandbyPools:
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
-          aws_keys, branch, image_size, user_key):
+class AutomatedVirtueMigration:
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.server_ip = EXCALIBUR_HOSTNAME
+
+    def activate_automated_virtue_migration(self, migration_interval=None):
+
+        if migration_interval:
+            _cmd = "cd('galahad/deploy/setup').and_().python(" \
+                   "'automated_virtue_migration.py --migration_interval {}')".format(
+                migration_interval)
+        else:
+            _cmd = "cd('galahad/deploy/setup').and_().python(" \
+                   "'automated_virtue_migration.py')"
+
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+
+def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
+          aws_config, aws_keys, branch, image_size, user_key, deactivate_virtue_migration,
+          auto_migration_interval):
+
     start_stack_time = time.time()
 
     stack = Stack()
@@ -837,6 +860,13 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
         '\n*** Time taken for Standby Pools of Valor is [{0}] ***\n'.format(
             (time.time() - start_standby_valor_pools_time) / 60))
 
+    if not deactivate_virtue_migration:
+        migration = AutomatedVirtueMigration(stack_name, path_to_key)
+        if auto_migration_interval:
+            migration.activate_automated_virtue_migration(auto_migration_interval)
+        else:
+            migration.activate_automated_virtue_migration()
+
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
         (time.time() - start_setup_time) / 60))
 
@@ -922,6 +952,15 @@ def parse_args():
         "--build_image_only",
         action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
+    parser.add_argument(
+        "--deactivate_virtue_migration",
+        action="store_true",
+        help="Deactivate automated migration of Virtues")
+    parser.add_argument(
+        "--auto_migration_interval",
+        default=None,
+        type=int,
+        help="Specify the interval at which Virtues are automatically migrated")
 
     # Temporary:
     parser.add_argument(
@@ -957,7 +996,8 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size, args.default_user_key)
+              args.aws_keys, args.branch_name, args.image_size, args.default_user_key,
+              args.deactivate_virtue_migration, args.auto_migration_interval)
 
     if args.setup_stack:
         stack = Stack()

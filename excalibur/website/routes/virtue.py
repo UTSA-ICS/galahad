@@ -1085,12 +1085,16 @@ def admin_valor_migrate_virtue():
 @bp.route('/admin/valor/auto_migration_start', methods=['GET'])
 @require_oauth()
 def admin_auto_migration_start():
-
     try:
 
         ep = get_admin_endpoint()
 
-        response = ep.auto_migration_start()
+        migration_interval = request.args.get('migration_interval', None)
+
+        if migration_interval:
+            response = ep.auto_migration_start(migration_interval)
+        else:
+            response = ep.auto_migration_start()
 
         return make_response(response)
 

@@ -222,7 +222,9 @@
             "command": "auto migrate start",
             "help": "Start Automated Migration",
             "url": "/valor/auto_migration_start",
-            "parameters": []
+            "parameters": [
+                { "name": "The Automated virtue migration time interval", "url_name": "migration_interval" }
+            ]
         },
         {
             "command": "auto migrate stop",

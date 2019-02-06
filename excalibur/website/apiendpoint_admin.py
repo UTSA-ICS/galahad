@@ -746,9 +746,9 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
 
-    def auto_migration_start(self):
+    def auto_migration_start(self, migration_interval=None):
         try:
-            self.valor_api.auto_migration_start()
+            self.valor_api.auto_migration_start(migration_interval)
             return json.dumps(ErrorCodes.admin['success'])
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -766,11 +766,14 @@ class EndPoint_Admin():
 
     def auto_migration_status(self):
         try:
-            if self.valor_api.is_auto_migration_on():
+            status, interval = self.valor_api.auto_migration_status()
+            if status:
                 migration_status = 'ON'
+                return json.dumps({'auto_migration_status': migration_status,
+                                   'auto_migration_interval': interval})
             else:
                 migration_status = 'OFF'
-            return json.dumps({'AUTO_MIGRATION_STATUS': migration_status})
+                return json.dumps({'auto_migration_status': migration_status})
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])

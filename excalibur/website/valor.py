@@ -14,8 +14,8 @@ NUM_STANDBY_VALORS = 3
 
 MAX_VIRTUES_PER_VALOR = 2
 
-# 2 minutes interval between migration runs
-AUTO_MIGRATION_INTERVAL = 120
+# Default of 5 minutes interval between migration runs
+AUTO_MIGRATION_INTERVAL = 300
 
 
 class ValorAPI:
@@ -59,10 +59,12 @@ class ValorAPI:
     def valor_list(self):
         return self.valor_manager.list_valors()
 
-    def auto_migration_start(self):
+
+    def auto_migration_start(self, migration_interval=AUTO_MIGRATION_INTERVAL):
         if not self.is_auto_migration_on():
-            self.valor_manager.auto_migration_start()
-            auto_migration_thread = threading.Thread(target=self.auto_migration)
+            self.valor_manager.auto_migration_start(migration_interval)
+            auto_migration_thread = threading.Thread(target=self.auto_migration,
+                                                     args=(migration_interval,))
             auto_migration_thread.start()
 
 
@@ -71,17 +73,22 @@ class ValorAPI:
             self.valor_manager.auto_migration_stop()
 
 
+    def auto_migration_status(self):
+        return self.valor_manager.auto_migration_status()
+
+
     def is_auto_migration_on(self):
         return self.valor_manager.is_auto_migration_on()
 
-    def auto_migration(self):
+
+    def auto_migration(self, migration_interval):
         while self.is_auto_migration_on():
             virtues = self.valor_manager.list_virtues()
             for virtue in virtues:
                 self.valor_migrate_virtue(virtue['virtue_id'])
             # Now sleep for AUTO_MIGRATION_INTERVAL before starting another migration
             # run for ALL virtues
-            time.sleep(AUTO_MIGRATION_INTERVAL)
+            time.sleep(migration_interval)
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
@@ -614,15 +621,17 @@ class ValorManager:
                       'w') as f:
                 f.write(elastic_yml % (aggregator_host))
 
-    def auto_migration_start(self):
-        self.rethinkdb_manager.auto_migration_start()
+    def auto_migration_start(self, migration_interval):
+        self.rethinkdb_manager.auto_migration_start(migration_interval)
 
     def auto_migration_stop(self):
         self.rethinkdb_manager.auto_migration_stop()
 
+    def auto_migration_status(self):
+        return RethinkDbManager().auto_migration_status()
+
     def is_auto_migration_on(self):
         return RethinkDbManager().is_auto_migration_on()
-
 
 class RethinkDbManager:
 
@@ -810,30 +819,37 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('commands').filter(
             {'virtue_id', virtue_id}).delete().run()
 
-    def auto_migration_start(self):
+    def auto_migration_start(self, migration_interval):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
             {'function': 'auto_migration'}).run())
         if len(response) != 0:
             rethinkdb.db('transducers').table('galahad').filter(
-                {'function': 'auto_migration'}).update({'enabled': True}).run()
+                {'function': 'auto_migration'}).update(
+                {'enabled': True, 'migration_interval': migration_interval}).run()
         else:
             rethinkdb.db('transducers').table('galahad').insert(
-                {'function': 'auto_migration', 'enabled': True}).run()
+                {'function': 'auto_migration', 'migration_interval': migration_interval,
+                 'enabled': True}).run()
 
     def auto_migration_stop(self):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
             {'function': 'auto_migration'}).run())
         if len(response) != 0:
             rethinkdb.db('transducers').table('galahad').filter(
-                {'function': 'auto_migration'}).update({'enabled': False}).run()
+                {'function': 'auto_migration'}).update(
+                {'enabled': False, 'migration_interval': None}).run()
 
-    def is_auto_migration_on(self):
+    def auto_migration_status(self):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
             {'function': 'auto_migration'}).run())
         if len(response) != 0:
-            return response[0].get('enabled', False)
+            return response[0].get('enabled', False), response[0].get(
+                'migration_interval')
         else:
-            return False
+            return False, None
+
+    def is_auto_migration_on(self):
+        return self.auto_migration_status()[0]
 
     def introspect_virtue_start(self, virtue_id, interval, modules):
         rethink_filter = rethinkdb.db('transducers').table('commands').filter({
