@@ -798,3 +798,34 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def virtue_introspect_start_all(self, interval=None, modules=None):
+        try:
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
+
+            return self.__error('success')
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def virtue_introspect_stop_all(self):
+        try:
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                self.rdb_manager.introspect_virtue_start(virtue[1]['id'])
+
+            return self.__error('success')
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])

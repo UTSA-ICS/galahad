@@ -4,11 +4,13 @@ from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
 import json
+import traceback
 import os.path
 import time
 from copy import deepcopy
 
 import rethinkdb as r
+from valor import ValorAPI, RethinkDbManager
 
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
@@ -20,6 +22,7 @@ DEBUG_PERMISSIONS = False
 class EndPoint_Security:
     def __init__(self, user, password):
         self.inst = LDAP(user, password)
+        self.rdb_manager = RethinkDbManager()
 
         self.inst.bind_ldap()
 
@@ -261,6 +264,36 @@ class EndPoint_Security:
                 details='Failed to get enabled transducers: ' + str(e))
 
         return json.dumps(enabled_transducers)
+
+
+
+    def transducer_all_virtues(self, transducerId, configuration, isEnabled):
+        '''
+        Sets
+
+        :param transducerId:
+        :param isEnabled::o
+        :return:
+        '''
+
+        try:
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                ret = self.__enable_disable(transducerId, virtue[1]['id'], configuration, isEnabled)
+                if (ret != True):
+                    return json.dumps(ret)
+
+            return self.__error('success')
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+
 
     def __connect_rethinkdb(self):
         # RethinkDB connection
