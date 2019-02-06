@@ -628,7 +628,7 @@ class Assembler(object):
 
             # read network rules
             rules = ""
-            with open(networkRules,'r') as networkRulesFile:
+            with open(networkRules, 'r') as networkRulesFile:
                 rules += networkRulesFile.read()
 
             # echo network rules to a file on the virtue
