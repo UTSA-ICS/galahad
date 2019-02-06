@@ -627,7 +627,7 @@ class Assembler(object):
                                    'systemctl', 'enable', 'merlin'])
 
             # read network rules
-	    rules = ""
+            rules = ""
             with open(networkRules,'r') as networkRulesFile:
                 rules += networkRulesFile.read()
 
@@ -635,7 +635,7 @@ class Assembler(object):
             with open(image_mount + '/etc/networkRules', 'w+') as iprules_file:
                 iprules_file.write(rules)
 
-	    # delete network rules file from the virtue
+            # delete network rules file from excalibur
             os.remove(networkRules)
 
             if (not os.path.exists(image_mount + '/var/private/ssl')):
