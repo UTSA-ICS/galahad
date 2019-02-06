@@ -138,13 +138,7 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(
-        self,
-        role,
-        use_ssh=True,
-        unity_img_name='4GB'):
-
-        # TODO: Assemble on a running VM
+    def role_create(self, role, use_ssh=True, unity_img_name='8GB'):
 
         try:
             role_keys = [
