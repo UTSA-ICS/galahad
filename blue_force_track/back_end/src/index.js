@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const express = require('express');
+var fallback = require('express-history-api-fallback')
 const app = express();
 
 const assert = require('assert');
@@ -13,7 +14,8 @@ const elasticsearch = require('elasticsearch');
 const r = require('rethinkdb');
 
 //app.use(express.static(path.join(__dirname, 'front_end')))
-app.use(express.static('front_end'));
+const root = 'front_end';
+app.use(express.static(root));
 
 var ldapClient = null;
 var esClient = null;
@@ -27,7 +29,7 @@ function connectLDAP(callback) {
     ldapClient = ldap.createClient({
         url: 'ldap://excalibur.galahad.com:389'
     });
-    ldapClient.bind('cn=jmitchell,ou=People,dc=canvas,dc=virtue,dc=com', 'Test123!', function(err) {
+    ldapClient.bind('cn=jmitchell,ou=galahad,dc=virtue,dc=gov', 'Test123!', function(err) {
         if (err) {
             console.error("Can't connect to OpenLDAP: " + err);
             return callback(null);
@@ -338,7 +340,7 @@ app.get('/migrations_per_virtue', (req, res) => {
     query_rethinkdb('commands', function(results_c) {
         var migrations_per_virtue_id = {}
         for (var i = 0; i < results_c.length; i++) {
-            if (results_c[i]['type'] === 'MIGRATION') {
+            if (results_c[i]['transducer_id'] === 'migration') {
                 if ('history' in results_c[i]) {
                     migrations_per_virtue_id[results_c[i]['virtue_id']] = results_c[i]['history'].length;
                 } else {
@@ -388,7 +390,7 @@ function valors_to_virtues(callback) {
             for (var i = 0; i < results_c.length; i++) {
                 var element = results_c[i];
                 if ('valor_ip' in element) {
-                    var valor_ip = element['varlor_ip'];
+                    var valor_ip = element['valor_ip'];
                     if (valor_ip in valors) {
                         valors[valor_ip]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
                     }
@@ -486,5 +488,8 @@ function query_rethinkdb(tableName, send_fn) {
         });
     });
 }
+
+app.use(fallback('index.html', { root: root }))
+
 
 app.listen(3000, () => console.log('Blue Force Tracker listening on port 3000!'));

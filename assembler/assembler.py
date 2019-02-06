@@ -33,7 +33,7 @@ class Assembler(object):
 
     def __init__(self,
                  es_node='https://{}:9200'.format(AGGREGATOR_HOSTNAME),
-                 syslog_server='172.30.128.131',
+                 syslog_server='192.168.4.10',
                  rethinkdb_host=RETHINKDB_HOSTNAME,
                  work_dir='tmp'):
         self.elastic_search_node = es_node

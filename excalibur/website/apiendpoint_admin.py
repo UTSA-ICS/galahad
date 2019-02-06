@@ -138,13 +138,7 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(
-        self,
-        role,
-        use_ssh=True,
-        unity_img_name='4GB'):
-
-        # TODO: Assemble on a running VM
+    def role_create(self, role, use_ssh=True, unity_img_name='8GB'):
 
         try:
             role_keys = [
@@ -551,9 +545,6 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidId'])
             ldap_tools.parse_ldap(virtue)
 
-            #if (virtue['username'] != username):
-            #    return json.dumps(ErrorCodes.admin['userNotAuthorized'])
-
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.user['virtueNotStopped'])
 
@@ -616,11 +607,12 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            # Virtue/s exists on this valor - Unable to stop valor
+            return json.dumps({'status': 'failed', 'result': [11, exception.message]})
 
 
     def valor_destroy(self, valor_id):
@@ -631,11 +623,13 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            # Virtue/s exists on this valor - Unable to destroy valor
+            return json.dumps(
+                {'status': 'failed', 'result': [11, exception.message]})
 
 
     def valor_list(self):
@@ -678,11 +672,11 @@ class EndPoint_Admin():
 
             return json.dumps({'valor_id' : valor_id})
 
-        except:
+        except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
-
-            return json.dumps(ErrorCodes.user['unspecifiedError'])
+            return json.dumps(
+                {'status': 'failed', 'result': [11, exception.message]})
 
 
     def galahad_get_id(self):
@@ -702,21 +696,26 @@ class EndPoint_Admin():
 
         try:
 
-            if (set(application.keys()) != set(['id', 'name', 'version', 'os'])
-                and set(application.keys()) != set(
+            app = copy.copy(application)
+
+            if (set(app.keys()) != set(['id', 'name', 'version', 'os'])
+                and set(app.keys()) != set(
                     ['id', 'name', 'version', 'os', 'port'])):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
-            if (not isinstance(application['id'], basestring)
-                or not isinstance(application['name'], basestring)
-                or not isinstance(application['version'], basestring)
-                or type(application.get('port', 0)) != int):
+            if (isinstance(app.get('port'), basestring)):
+                app['port'] = int(app['port'])
+
+            if (not isinstance(app['id'], basestring)
+                or not isinstance(app['name'], basestring)
+                or not isinstance(app['version'], basestring)
+                or type(app.get('port', 0)) != int):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
-            if (application['os'] != 'LINUX' and application['os'] != 'WINDOWS'):
+            if (app['os'] != 'LINUX' and app['os'] != 'WINDOWS'):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
-            if (self.inst.get_obj('cid', application['id'], throw_error=True) != ()):
+            if (self.inst.get_obj('cid', app['id'], throw_error=True) != ()):
                 return json.dumps(ErrorCodes.admin['invalidId'])
 
             ecr_auth_json = subprocess.check_output([
@@ -735,10 +734,10 @@ class EndPoint_Admin():
                 '{0}/v2/starlab-virtue/tags/list'.format(docker_registry),
                 headers={'Authorization': 'Basic ' + docker_token})
 
-            if ('virtue-' + application['id'] not in response.json()['tags']):
+            if ('virtue-' + app['id'] not in response.json()['tags']):
                 return json.dumps(ErrorCodes.admin['imageNotFound'])
 
-            ldap_app = ldap_tools.to_ldap(application, 'OpenLDAPapplication')
+            ldap_app = ldap_tools.to_ldap(app, 'OpenLDAPapplication')
             ret = self.inst.add_obj(ldap_app, 'virtues', 'cid')
             assert ret == 0
 

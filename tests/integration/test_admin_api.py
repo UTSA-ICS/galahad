@@ -83,8 +83,8 @@ def setup_module():
     base_url = 'https://{0}/virtue/admin'.format(ip)
 
     subprocess.call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
-                           '/mnt/efs/images/tests/4GB.img'])
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
+                           '/mnt/efs/images/tests/8GB.img'])
 
     aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
 
@@ -219,7 +219,7 @@ def test_role_create():
     response = session.get(
         base_url + '/role/create',
         params={'role': json.dumps(role),
-                'unitySize': '4GB'}
+                'unitySize': '8GB'}
     )
     print(response.json())
     assert set(response.json().keys()) == set(['id', 'name'])
@@ -440,7 +440,7 @@ def test_virtue_destroy():
     try:
 
         # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
                                'TEST_VIRTUE_DESTROY.img')])
 

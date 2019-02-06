@@ -2,8 +2,8 @@
 
 import os
 import shutil
+import json
 import sys
-
 import ldap
 import ldap.modlist
 
@@ -54,14 +54,17 @@ def add_application(
     name,
     version,
     os,
-    port=''):
+    port=None):
 
     app = {
+        'id': id,
         'name': name,
         'version': version,
-        'os': os,
-        'id': id,
-        'port': str(port)}
+        'os': os
+    }
+
+    if (port != None):
+        app['port'] = int(port)
 
     ldap_app = to_ldap(app, 'OpenLDAPapplication')
 
@@ -83,12 +86,21 @@ def add_role(id, name, version, appIds, resIds, transIds, networkRules, state='C
         'id': id,
         'name': name,
         'version': version,
-        'applicationIds': str(appIds),
-        'startingResourceIds': str(resIds),
-        'startingTransducerIds': str(transIds),
-        'networkRules': str(networkRules),
+        'applicationIds': appIds,
+        'startingResourceIds': resIds,
+        'startingTransducerIds': transIds,
+        'networkRules': networkRules,
         'state': state
     }
+
+    if (type(appIds) == str):
+        role['applicationIds'] = json.loads(appIds)
+
+    if (type(resIds) == str):
+        role['startingResourceIds'] = json.loads(resIds)
+
+    if (type(transIds) == str):
+        role['startingTransducerIds'] = json.loads(transIds)
 
     ldap_role = to_ldap(role, 'OpenLDAProle')
 
@@ -102,10 +114,16 @@ def add_transducer(id_, name, type_, startEnabled, startingConfiguration,
         'id': id_,
         'name': name,
         'type': type_,
-        'startEnabled': str(startEnabled),
-        'startingConfiguration': str(startingConfiguration),
-        'requiredAccess': str(requiredAccess)
+        'startEnabled': startEnabled,
+        'startingConfiguration': startingConfiguration,
+        'requiredAccess': requiredAccess
     }
+
+    if (type(startingConfiguration) == str):
+        transducer['startingConfiguration'] = json.loads(startingConfiguration)
+
+    if (type(requiredAccess) == str):
+        transducer['requiredAccess'] = json.loads(requiredAccess)
 
     ldap_transducer = to_ldap(transducer, 'OpenLDAPtransducer')
 
@@ -114,7 +132,13 @@ def add_transducer(id_, name, type_, startEnabled, startingConfiguration,
 
 def add_user(username, authRoleIds):
 
-    user = {'username': username, 'authorizedRoleIds': str(authRoleIds)}
+    user = {
+        'username': username,
+        'authorizedRoleIds': authRoleIds
+    }
+
+    if (type(authRoleIds) == str):
+        user['authorizedRoleIds'] = json.loads(authRoleIds)
 
     ldap_user = to_ldap(user, 'OpenLDAPuser')
 
@@ -150,25 +174,6 @@ def add_user_key(username):
          '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
         check=True
     )'''
-
-def add_virtue(id, username, roleid, appIds, resIds, transIds, networkRules, state, ipAddr):
-
-    virtue = {
-        'id': id,
-        'username': username,
-        'roleId': roleid,
-        'applicationIds': str(appIds),
-        'resourceIds': str(resIds),
-        'transducerIds': str(transIds),
-        'networkRules': str(networkRules),
-        'state': state,
-        'ipAddress': ipAddr
-    }
-
-    ldap_virtue = to_ldap(virtue, 'OpenLDAPvirtue')
-
-    inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
-
 
 if (__name__ == '__main__'):
 
@@ -224,9 +229,6 @@ if (__name__ == '__main__'):
     #add_user('fpatwa', '[]')
     #add_user('klittle', '[]')
 
-    #add_person('jmitchell', 'Mitchell', 'Test123!')
-    #add_person('klittle', 'Little', 'Test123!')
-    #add_person('jmartin', 'Martin', 'Test123!')
     # Update the ldap user list with users from Active Directory
     update_ldap_users_from_ad()
 
@@ -253,7 +255,7 @@ if (__name__ == '__main__'):
                    [])
     add_transducer('open_fd', 'File Open', 'SENSOR', True, '{}', [])
 
-    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, '{processes:[]}', [])
+    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, {'processes': []}, [])
     add_transducer('block_net', 'Block Network', 'ACTUATOR', False, '{}', [])
     add_transducer('migration', 'Migration', 'ACTUATOR', False, '{}', [])
     add_transducer('introspection', 'Introspection', 'ACTUATOR', False, '{}', [])
