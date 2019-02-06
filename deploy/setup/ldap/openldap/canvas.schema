@@ -171,8 +171,8 @@ objectClass ( 1.3.6.1.4.1.62000.0.3
 	NAME 'OpenLDAProle'
 	DESC 'OpenLDAP Role'
 	SUP organizationalUnit
-	MUST ( name $ cversion $ cappIds $ cstartResIds $ cstartTransIds )
-	MAY ( cid $ cvirtId $ cnetRules $ cstate ) )
+	MUST ( name $ cversion $ cappIds $ cstartResIds $ cstartTransIds $ cnetRules )
+	MAY ( cid $ cvirtId $ cstate ) )
 
 objectClass ( 1.3.6.1.4.1.62000.0.4
 	NAME 'OpenLDAPtransducer'
