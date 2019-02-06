@@ -24,11 +24,6 @@ def parse_ldap(data):
         'cnetRules': 'networkRules'
     }
 
-    entries_with_lists = [
-        'applicationIds', 'startingResourceIds', 'startingTransducerIds',
-        'requiredAccess', 'authorizedRoleIds', 'resourceIds', 'transducerIds', 'networkRules'
-    ]
-
     if ('ou' in data.keys()):
         del data['ou']
     if ('objectClass' in data.keys()):
