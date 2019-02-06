@@ -17,5 +17,8 @@ sudo apt-get update
 # Cannot yet automate responses to three-way merge prompts
 #sudo apt-get upgrade -y
 sudo apt-get install -y virtualenv python-pip libldap2-dev libsasl2-dev python-logilab-common nfs-common
+sudo DEBIAN_FRONTEND=noninteractive apt-get install krb5-user
 sudo apt-get autoremove -y
 sudo pip install --upgrade -r $HOME/$BASE_DIR/requirements.txt
+sudo rm /etc/krb5.conf
+sudo cp $HOME/$BASE_DIR/krb5.conf /etc
