@@ -743,21 +743,15 @@ class StandbyPools:
 class AutomatedVirtueMigration:
 
     def __init__(self, stack_name, ssh_key):
-
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.server_ip = EXCALIBUR_HOSTNAME
 
-    def activate_automated_virtue_migration(self, migration_interval=None):
-
-        if migration_interval:
-            _cmd = "cd('galahad/deploy/setup').and_().python(" \
-                   "'automated_virtue_migration.py --migration_interval {}')".format(
-                migration_interval)
-        else:
-            _cmd = "cd('galahad/deploy/setup').and_().python(" \
-                   "'automated_virtue_migration.py')"
-
+    def activate_automated_virtue_migration(self, migration_interval):
+        username = "slapd@virtue.gov"
+        password = "Test123!"
+        _cmd = "cd('galahad/deploy/setup').and_().bash('./automated_virtue_migration.sh " \
+               "{0} {1} {2}')".format(username, password, migration_interval)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
@@ -862,10 +856,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, path_to_key)
-        if auto_migration_interval:
-            migration.activate_automated_virtue_migration(auto_migration_interval)
-        else:
-            migration.activate_automated_virtue_migration()
+        migration.activate_automated_virtue_migration(auto_migration_interval)
 
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
         (time.time() - start_setup_time) / 60))
@@ -958,7 +949,7 @@ def parse_args():
         help="Deactivate automated migration of Virtues")
     parser.add_argument(
         "--auto_migration_interval",
-        default=None,
+        default=300,
         type=int,
         help="Specify the interval at which Virtues are automatically migrated")
 
