@@ -225,7 +225,7 @@ if (__name__ == '__main__'):
 
     add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
 
-    #add_user('jmitchell', '[]')
+    #add_user('slapd', '[]')
     #add_user('fpatwa', '[]')
     #add_user('klittle', '[]')
 

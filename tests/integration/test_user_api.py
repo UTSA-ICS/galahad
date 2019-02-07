@@ -239,7 +239,7 @@ def test_virtue_launch():
 
         virtue = {
             'id': 'TEST_VIRTUE_LAUNCH',
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'TBD',
             'applicationIds': [],
             'resourceIds': [],
@@ -330,7 +330,7 @@ def test_virtue_stop():
 
         virtue = {
             'id': 'TEST_VIRTUE_STOP',
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'TBD',
             'applicationIds': [],
             'resourceIds': [],

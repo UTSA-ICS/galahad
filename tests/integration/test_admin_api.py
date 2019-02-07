@@ -421,7 +421,7 @@ def test_virtue_create():
     response = session.get(
         base_url + '/virtue/create',
         params={
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'DoesNotExist'
         })
     assert response.json() == ErrorCodes.admin['invalidRoleId']['result']
@@ -446,7 +446,7 @@ def test_virtue_destroy():
 
         virtue = {
             'id': 'TEST_VIRTUE_DESTROY',
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'TBD',
             'applicationIds': [],
             'resourceIds': [],
