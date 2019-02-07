@@ -536,6 +536,8 @@ class ValorManager:
                 valor_found = True
 
         if valor_found:
+            self.create_standby_valors()
+
             self.aws.instance_destroy(valor_id, block=False)
 
             self.rethinkdb_manager.remove_valor(valor_id)
