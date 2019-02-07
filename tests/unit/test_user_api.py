@@ -34,6 +34,7 @@ def setup_module():
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': []
     }
 
     virtue = {
@@ -43,6 +44,7 @@ def setup_module():
         'applicationIds': [],
         'resourceIds': [],
         'transducerIds': [],
+        'networkRules': [],
         'state': 'STOPPED',
         'ipAddress': 'NULL'
     }
@@ -179,6 +181,7 @@ def test_virtue_calls():
         'applicationIds': real_virtue['applicationIds'],
         'resourceIds': real_virtue['resourceIds'],
         'transducerIds': real_virtue['transducerIds'],
+        'networkRules': real_virtue['networkRules'],
         'state': real_virtue['state'],
         'ipAddress': real_virtue['ipAddress']
     }

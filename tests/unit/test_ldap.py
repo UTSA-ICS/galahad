@@ -86,6 +86,7 @@ def test_write_to_ldap():
         'applicationIds': ['firefox', 'xterm'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': [],
         'version': '1.0'
     }
 
@@ -99,7 +100,8 @@ def test_write_to_ldap():
         'cversion': '"1.0"',
         'cappIds': json.dumps(['firefox', 'xterm']),
         'cstartResIds': '[]',
-        'cstartTransIds': '[]'
+        'cstartTransIds': '[]',
+        'cnetRules': '[]'
     }
 
     try:

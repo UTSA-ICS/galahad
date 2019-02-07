@@ -38,6 +38,7 @@ def setup_module():
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': []
     }
 
     ldap_role = ldap_tools.to_ldap(role, 'OpenLDAProle')
@@ -159,7 +160,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird'],
         'startingResourceIds': ['fileshare1'],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     bad_role_1 = {
@@ -167,7 +169,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird'],
         'startingResourceIds': ['fileshare1'],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     bad_role_2 = {
@@ -176,7 +179,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': "['firefox', 'thunderbird']",
         'startingResourceIds': "['fileshare1']",
-        'startingTransducerIds': "[]"
+        'startingTransducerIds': "[]",
+        'networkRules': []
     }
 
     bad_role_3 = {
@@ -185,7 +189,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird', 'DoesNotExist'],
         'startingResourceIds': ['fileshare1'],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     bad_role_4 = {
@@ -194,7 +199,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird'],
         'startingResourceIds': ['fileshare1', 'DoesNotExist'],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     bad_role_5 = {
@@ -203,7 +209,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': ['firefox', 'thunderbird'],
         'startingResourceIds': ['fileshare1'],
-        'startingTransducerIds': ['DoesNotExist']
+        'startingTransducerIds': ['DoesNotExist'],
+        'networkRules': []
     }
 
     bad_role_6 = {
@@ -212,7 +219,8 @@ def test_role_calls():
         'version': '1.0',
         'applicationIds': [],
         'startingResourceIds': ['fileshare1'],
-        'startingTransducerIds': ['DoesNotExist']
+        'startingTransducerIds': ['DoesNotExist'],
+        'networkRules': []
     }
 
     assert json.dumps(ErrorCodes.admin['invalidFormat']) == ep.role_create(
@@ -433,6 +441,7 @@ def test_virtue_destroy():
         'applicationIds': [],
         'resourceIds': [],
         'transducerIds': [],
+        'networkRules': [],
         'state': 'STOPPED',
         'ipAddress': 'NULL'
     }
