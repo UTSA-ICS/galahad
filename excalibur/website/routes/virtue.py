@@ -89,7 +89,7 @@ def make_response(message):
 def get_user():
 
     user = User.query.filter_by(id=current_token.user_id).first()
-    user = user.email.replace('@virtue.com', '')
+    user = user.email.split("@")[0]
 
     return user
 
