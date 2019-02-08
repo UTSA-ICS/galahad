@@ -24,7 +24,7 @@ sudo pip install --upgrade -r $HOME/$BASE_DIR/requirements.txt
 # kerberos setup
 sudo rm /etc/krb5.conf
 sudo cp $HOME/$BASE_DIR/krb5.conf /etc
-sudo echo "172.30.1.250 camelot.virtue.gov camelot >> /etc/hosts"
+echo "172.30.1.250 camelot.virtue.gov camelot" | sudo tee -a /etc/hosts
 
 # nfs ost setup
 sudo mkdir /mnt/ost
