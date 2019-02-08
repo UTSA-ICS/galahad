@@ -1240,7 +1240,7 @@ def admin_virtue_introspect_start_all():
 
 @bp.route('/admin/virtue/introspect_stop_all', methods=['GET'])
 @require_oauth()
-def admin_virtue_introspect_start_all():
+def admin_virtue_introspect_stop_all():
     ret = ''
 
     try:
