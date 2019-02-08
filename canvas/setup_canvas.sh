@@ -15,7 +15,7 @@ if [[ $# != 2 ]];
 then
   echo ""
   echo "Enter username and passwurd e.g"
-  echo "  $0 jmitchell@virtue.com Test123!"
+  echo "  $0 jmitchell@virtue.gov Test123!"
   echo ""
   echo ""
   exit 0

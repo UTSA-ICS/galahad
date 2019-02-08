@@ -235,6 +235,7 @@ class CreateVirtueThread(threading.Thread):
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
+            'networkRules': role['networkRules'],
             'state': 'CREATING',
             'ipAddress': 'NULL'
         }
@@ -260,6 +261,10 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
+            with open('/tmp/networkRules','w+') as iprules_file:
+                for rule in role['networkRules']:
+                    iprules_file.write(rule + '\n')
+
             # Create the virtue standby image files
             standby_virtues = StandbyVirtues(self.role_id)
             standby_virtues.create_virtue_image_file(self.virtue_id)
@@ -269,6 +274,7 @@ class CreateVirtueThread(threading.Thread):
                                    + \
                                    'call_provisioner.py',
                                    '-i', virtue['id'],
+                                   '-n', '/tmp/networkRules',
                                    '-b',
                                    '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',

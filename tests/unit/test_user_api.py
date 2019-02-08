@@ -24,7 +24,7 @@ def setup_module():
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
-    ep = EndPoint('jmitchell', 'Test123!')
+    ep = EndPoint('slapd', 'Test123!')
     ep.inst = inst
 
     role = {
@@ -34,15 +34,17 @@ def setup_module():
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': []
     }
 
     virtue = {
         'id': 'usertestvirtue0',
-        'username': 'jmitchell',
+        'username': 'slapd',
         'roleId': 'usertestrole0',
         'applicationIds': [],
         'resourceIds': [],
         'transducerIds': [],
+        'networkRules': [],
         'state': 'STOPPED',
         'ipAddress': 'NULL'
     }
@@ -54,7 +56,7 @@ def setup_module():
     inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     if ('usertestrole0' not in user['authorizedRoleIds']):
@@ -62,7 +64,7 @@ def setup_module():
         ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
         inst.modify_obj(
             'cusername',
-            'jmitchell',
+            'slapd',
             ldap_user,
             objectClass='OpenLDAPuser',
             throw_error=True)
@@ -71,14 +73,14 @@ def setup_module():
 def teardown_module():
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     user['authorizedRoleIds'].remove('usertestrole0')
     ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
     inst.modify_obj(
         'cusername',
-        'jmitchell',
+        'slapd',
         ldap_user,
         objectClass='OpenLDAPuser',
         throw_error=True)
@@ -93,13 +95,13 @@ def teardown_module():
 def test_application_calls():
     # application_get
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.application_get(
-        'jmitchell', 'DoesNotExist')
+        'slapd', 'DoesNotExist')
 
     assert json.dumps(
         ErrorCodes.user['userNotAuthorized']) == ep.application_get(
-            'jmitchell', 'terminal')
+            'slapd', 'terminal')
 
-    app = json.loads(ep.application_get('jmitchell', 'firefox'))
+    app = json.loads(ep.application_get('slapd', 'firefox'))
 
     real_app = inst.get_obj(
         'cid', 'firefox', objectClass='OpenLDAPapplication', throw_error=True)
@@ -111,12 +113,12 @@ def test_application_calls():
 def test_role_calls():
     # role_get
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.role_get(
-        'jmitchell', 'DoesNotExist')
+        'slapd', 'DoesNotExist')
 
     assert json.dumps(ErrorCodes.user['userNotAuthorized']) == ep.role_get(
-        'jmitchell', 'emptyrole')
+        'slapd', 'emptyrole')
 
-    role = json.loads(ep.role_get('jmitchell', 'usertestrole0'))
+    role = json.loads(ep.role_get('slapd', 'usertestrole0'))
 
     real_role = inst.get_obj(
         'cid', 'usertestrole0', objectClass='OpenLDAProle', throw_error=True)
@@ -129,10 +131,10 @@ def test_role_calls():
     assert role == real_role
 
     # user_role_list
-    user = inst.get_obj('cusername', 'jmitchell', 'OpenLDAPuser', True)
+    user = inst.get_obj('cusername', 'slapd', 'OpenLDAPuser', True)
     ldap_tools.parse_ldap(user)
 
-    roles = json.loads(ep.user_role_list('jmitchell'))
+    roles = json.loads(ep.user_role_list('slapd'))
 
     real_roles = []
 
@@ -158,12 +160,12 @@ def test_virtue_calls():
 
     # virtue_get
     assert json.dumps(ErrorCodes.user['invalidId']) == ep.virtue_get(
-        'jmitchell', 'DoesNotExist')
+        'slapd', 'DoesNotExist')
 
     assert json.dumps(ErrorCodes.user['userNotAuthorized']) == ep.virtue_get(
         'fpatwa', 'usertestvirtue0')
 
-    virtue = json.loads(ep.virtue_get('jmitchell', 'usertestvirtue0'))
+    virtue = json.loads(ep.virtue_get('slapd', 'usertestvirtue0'))
 
     real_virtue = inst.get_obj(
         'cid',
@@ -179,13 +181,14 @@ def test_virtue_calls():
         'applicationIds': real_virtue['applicationIds'],
         'resourceIds': real_virtue['resourceIds'],
         'transducerIds': real_virtue['transducerIds'],
+        'networkRules': real_virtue['networkRules'],
         'state': real_virtue['state'],
         'ipAddress': real_virtue['ipAddress']
     }
     assert virtue == real_virtue
 
     # user_virtue_list
-    virtues = json.loads(ep.user_virtue_list('jmitchell'))
+    virtues = json.loads(ep.user_virtue_list('slapd'))
 
     assert virtues == [real_virtue]
 
@@ -193,13 +196,13 @@ def test_virtue_calls():
 
     # virtue_launch
     assert (json.dumps(ErrorCodes.user['invalidId']) ==
-            ep.virtue_launch('jmitchell', 'DoesNotExist', use_valor=False))
+            ep.virtue_launch('slapd', 'DoesNotExist', use_valor=False))
 
     assert (json.dumps(ErrorCodes.user['userNotAuthorized']) ==
             ep.virtue_launch('fpatwa', 'usertestvirtue0', use_valor=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
-            ep.virtue_launch('jmitchell', 'usertestvirtue0', use_valor=False))
+            ep.virtue_launch('slapd', 'usertestvirtue0', use_valor=False))
 
     real_virtue = inst.get_obj(
         'cid',
@@ -215,19 +218,19 @@ def test_virtue_calls():
                                          'firefox', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['invalidVirtueId']) ==
-            ep.virtue_application_launch('jmitchell', 'DoesNotExist',
+            ep.virtue_application_launch('slapd', 'DoesNotExist',
                                          'firefox', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['invalidApplicationId']) ==
-            ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_launch('slapd', 'usertestvirtue0',
                                          'DoesNotExist', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
-            ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_launch('slapd', 'usertestvirtue0',
                                          'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
-            ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_launch('slapd', 'usertestvirtue0',
                                          'firefox', use_ssh=False))
     real_virtue = inst.get_obj(
         'cid',
@@ -238,7 +241,7 @@ def test_virtue_calls():
     assert real_virtue['applicationIds'] == ['firefox']
 
     assert (json.dumps(ErrorCodes.user['applicationAlreadyLaunched']) ==
-            ep.virtue_application_launch('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_launch('slapd', 'usertestvirtue0',
                                          'firefox', use_ssh=False))
 
     # virtue_application_stop
@@ -247,19 +250,19 @@ def test_virtue_calls():
                                        'firefox', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['invalidVirtueId']) ==
-            ep.virtue_application_stop('jmitchell', 'DoesNotExist',
+            ep.virtue_application_stop('slapd', 'DoesNotExist',
                                        'firefox', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['invalidApplicationId']) ==
-            ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_stop('slapd', 'usertestvirtue0',
                                        'DoesNotExist', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['applicationNotInVirtue']) ==
-            ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_stop('slapd', 'usertestvirtue0',
                                        'terminal', use_ssh=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
-            ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_stop('slapd', 'usertestvirtue0',
                                        'firefox', use_ssh=False))
     real_virtue = inst.get_obj(
         'cid',
@@ -270,24 +273,24 @@ def test_virtue_calls():
     assert real_virtue['applicationIds'] == []
 
     assert (json.dumps(ErrorCodes.user['applicationAlreadyStopped']) ==
-            ep.virtue_application_stop('jmitchell', 'usertestvirtue0',
+            ep.virtue_application_stop('slapd', 'usertestvirtue0',
                                        'firefox', use_ssh=False))
 
 
     # virtue_stop
     assert (json.dumps(ErrorCodes.user['invalidId']) ==
-            ep.virtue_stop('jmitchell', 'DoesNotExist', use_valor=False))
+            ep.virtue_stop('slapd', 'DoesNotExist', use_valor=False))
 
     assert (json.dumps(ErrorCodes.user['userNotAuthorized']) ==
             ep.virtue_stop('fpatwa', 'usertestvirtue0', use_valor=False))
 
     assert (json.dumps(ErrorCodes.user['success']) ==
-            ep.virtue_stop('jmitchell', 'usertestvirtue0', use_valor=False))
+            ep.virtue_stop('slapd', 'usertestvirtue0', use_valor=False))
 
 
 def test_key_calls():
 
     # key_get
-    key = json.loads(ep.key_get('jmitchell'))
+    key = json.loads(ep.key_get('slapd'))
     assert '-----BEGIN RSA PRIVATE KEY-----' in key
     assert '-----END RSA PRIVATE KEY-----' in key

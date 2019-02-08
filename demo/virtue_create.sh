@@ -11,7 +11,7 @@ fi
 
 cd ../excalibur/cli
 
-python3 sso_login.py -u jmitchell@virtue.com -p Test123! -A APP_1 excalibur.galahad.com:5002
+python3 sso_login.py -u jmitchell@virtue.gov -p Test123! -A APP_1 excalibur.galahad.com:5002
 
 export VIRTUE_ADDRESS="excalibur.galahad.com"
 export VIRTUE_TOKEN=$(cat usertoken.json)

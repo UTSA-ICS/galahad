@@ -15,7 +15,7 @@ else
   then
     echo ""
     echo "Enter username and passwurd e.g"
-    echo "  $BASH_SOURCE jmitchell@virtue.com Test123!"
+    echo "  $BASH_SOURCE jmitchell@virtue.gov Test123!"
     echo ""
     echo ""
   else
