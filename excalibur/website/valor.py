@@ -793,7 +793,12 @@ class ResourceManager:
     def email(self, virtue_ip, key_path):
         print("WAT:    EMAIL")
         if not os.path.exists(os.path.join("/mnt/ost", self.username)):
-            os.mkdir(os.path.join("/mnt/ost", self.username))
+            try:
+                os.mkdir(os.path.join("/mnt/ost/", self.username))
+                ret = subprocess.check_call("sudo chown nobody:nogroup /mnt/ost/{}".format(self.username))
+                assert ret == 0
+            except Exception as e:
+                print("Failed to create ost user directory with error: {}".format(e))
 
         try:
 
@@ -822,6 +827,17 @@ class ResourceManager:
     
             else:
                 print("Failed to append to NFS exports with message: {}".format(e))
+                return
 
         except Exception as e:
             print("Falled to append to NFS exports with message: {}".format(e))
+            return
+
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t', 'sudo', 'mkdir', '/ost'])
+        assert ret == 0
+
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t', 'sudo',
+                                     'mount -t nfs excalibur.galahad.com:/mnt/ost/{} /ost'.format(self.username)])
+        assert ret == 0

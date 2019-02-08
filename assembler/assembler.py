@@ -225,7 +225,8 @@ class Assembler(object):
                             'psmisc',
                             'krb5-user',
                             'cifs-utils',
-                            'smbclient'])
+                            'smbclient',
+                            'nfs-common'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
