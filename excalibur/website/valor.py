@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import subprocess
 from copy import deepcopy
 
 import boto3
@@ -776,12 +777,51 @@ class ResourceManager:
         self.username = username
         self.resource = resource
 
-    def drive(self):
+    def drive(self, virtue_ip, key_path):
         # map resource
+        # map to different directory than /home/virtue - causing key error
         print("WAT:    DRIVE")
-
-    def printer(self):
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo mount.cifs {} /mnt -o sec=krb5,user=VIRTUE\{}'.format(
+                                        self.resource['unc'], self.username)])
+        assert ret == 0
+    
+    def printer(self, virtue_ip, key_path):
         print("WAT:    PRINTER")
 
-    def email(self):
+    def email(self, virtue_ip, key_path):
         print("WAT:    EMAIL")
+        if not os.path.exists(os.path.join("/mnt/ost", self.username)):
+            os.mkdir(os.path.join("/mnt/ost", self.username))
+
+        try:
+
+            # Retrieve current export line for user and line number
+            line = subprocess.check_output("grep {} /etc/exports".format(self.username), shell=True).strip('\n')
+            line_num = subprocess.check_output("sed -n '/{}/=' /etc/exports".format(self.username),
+                shell=True).strip('\n')
+
+            # Remove current line
+            ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
+            assert ret == 0
+
+            # Append updated line to file with added virtue ip for access
+            line+= " {}(rw,sync,no_subtree_check)".format(virtue_ip)
+            ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+            assert ret == 0
+
+        except subprocess.CalledProcessError as e:
+            # If error caused by 'grep' ret == 1, exports entry for user doesn't exist
+            if e.returncode == 1:
+
+                # Create exports entry for user
+                line = "/mnt/ost/{}    {}(rw,sync,no_subtree_check)".format(self.username, virtue_ip)
+                ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+                assert ret == 0
+    
+            else:
+                print("Failed to append to NFS exports with message: {}".format(e))
+
+        except Exception as e:
+            print("Falled to append to NFS exports with message: {}".format(e))

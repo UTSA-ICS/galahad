@@ -259,14 +259,12 @@ class EndPoint():
                                                     'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
 
                             for res in virtue['resourceIds']:
-                                print("Entered for")
                                 resource = self.inst.get_obj('cid', res, 'openLDAPresource')
                                 ldap_tools.parse_ldap(resource)
-                                print("retrieved resource = {}".format(resource))
                                 resource_manager = ResourceManager(username, resource)
-                                print("created resource_manager")
-                                getattr(resource_manager, resource['type'].lower())()
-                                print("called attr")
+                                getattr(resource_manager, resource['type'].lower())(
+                                    virtue['ipAddress'],
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
 
 
                         success = True
