@@ -80,7 +80,7 @@ def add_resource(id, type, unc, credentials):
     inst.add_obj(ldap_res, 'resources', 'cid', throw_error=True)
 
 
-def add_role(id, name, version, appIds, resIds, transIds, state='CREATED'):
+def add_role(id, name, version, appIds, resIds, transIds, networkRules, state='CREATED'):
 
     role = {
         'id': id,
@@ -89,6 +89,7 @@ def add_role(id, name, version, appIds, resIds, transIds, state='CREATED'):
         'applicationIds': appIds,
         'startingResourceIds': resIds,
         'startingTransducerIds': transIds,
+        'networkRules': networkRules,
         'state': state
     }
 
@@ -174,7 +175,6 @@ def add_user_key(username):
         check=True
     )'''
 
-
 if (__name__ == '__main__'):
 
     inst = LDAP('', '')
@@ -223,7 +223,7 @@ if (__name__ == '__main__'):
     add_resource('fileshare1', 'DRIVE', '//ad.galahad.com/VirtueFileShare',
                  'token')
 
-    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
+    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]', '[]')
 
     #add_user('jmitchell', '[]')
     #add_user('fpatwa', '[]')

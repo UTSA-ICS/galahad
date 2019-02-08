@@ -180,10 +180,10 @@ def test_user_role_list():
     for obj in ls:
         assert (set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds', 'ipAddress'
+            'startingTransducerIds', 'networkRules', 'ipAddress'
         ]) or set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds', 'ipAddress', 'state'
+            'startingTransducerIds', 'networkRules', 'ipAddress', 'state'
         ]))
 
     result = query_elasticsearch_with_timeout(
@@ -200,7 +200,7 @@ def test_user_virtue_list():
     for obj in ls:
         assert set(obj.keys()) == set([
             'id', 'username', 'roleId', 'applicationIds', 'resourceIds',
-            'transducerIds', 'state', 'ipAddress'
+            'transducerIds', 'networkRules', 'state', 'ipAddress'
         ])
 
     result = query_elasticsearch_with_timeout(
@@ -244,6 +244,7 @@ def test_virtue_launch():
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
+            'networkRules': [],
             'state': 'STOPPED',
             'ipAddress': 'NULL'
         }
@@ -335,6 +336,7 @@ def test_virtue_stop():
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
+            'networkRules': [],
             'state': 'STOPPED',
             'ipAddress': 'NULL'
         }
