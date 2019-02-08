@@ -959,7 +959,7 @@ def transducer_list_enabled():
 
 @bp.route('/security/transducer/enable_all_virtues', methods=['GET'])
 @require_oauth()
-def transducer_list_enabled():
+def enable_all_virtues():
 
     ep = get_security_endpoint()
 
@@ -984,7 +984,7 @@ def transducer_list_enabled():
 
 @bp.route('/security/transducer/disable_all_virtues', methods=['GET'])
 @require_oauth()
-def transducer_list_enabled():
+def disable_all_virtues():
     ep = get_security_endpoint()
 
     if 'transducerId' not in request.args:
