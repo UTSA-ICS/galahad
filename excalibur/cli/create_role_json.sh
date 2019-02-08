@@ -4,10 +4,10 @@ if [[ $# != 4 ]];
 then
   echo ""
   echo "Enter username, passwurd, Role Name and Application name/s e.g"
-  echo "  $0 jmitchell@virtue.com Test123! Internet-Browsing firefox"
+  echo "  $0 jmitchell@virtue.gov Test123! Internet-Browsing firefox"
   echo ""
   echo "If there is more than 1 application then list the names comma separated and in quotes preceeded with backslash (\) e.g:"
-  echo "  $0 jmitchell@virtue.com Test123! Banking \"firefox\\\",\\\"wincmd\""
+  echo "  $0 jmitchell@virtue.gov Test123! Banking \"firefox\\\",\\\"wincmd\""
   echo ""
   exit 0
 fi

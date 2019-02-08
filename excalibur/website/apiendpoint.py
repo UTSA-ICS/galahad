@@ -454,12 +454,12 @@ class EndPoint():
 
 if (__name__ == '__main__'):
 
-    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep = EndPoint('slapd@virtue.gov', 'Test123!')
 
-    print(ep.inst.query_ldap('cn', 'jmitchell'))
+    print(ep.inst.query_ldap('cn', 'slapd'))
 
     fake_token = {
-        'username': 'jmitchell',
+        'username': 'slapd',
         'token': 3735928559,
         'expiration': 0
     }

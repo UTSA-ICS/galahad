@@ -151,10 +151,10 @@ def create_apiendpoints():
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
-    admin_api = EndPoint_Admin('jmitchell', 'Test123!')
+    admin_api = EndPoint_Admin('slapd', 'Test123!')
     admin_api.inst = inst
 
-    user_api = EndPoint('jmitchell', 'Test123!')
+    user_api = EndPoint('slapd', 'Test123!')
     user_api.inst = inst
 
     return admin_api, user_api

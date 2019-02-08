@@ -28,7 +28,7 @@ def setup_module():
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
-    ep = EndPoint_Admin('jmitchell', 'Test123!')
+    ep = EndPoint_Admin('slapd', 'Test123!')
     ep.inst = inst
 
     role = {
@@ -45,7 +45,7 @@ def setup_module():
     inst.add_obj(ldap_role, 'roles', 'cid', throw_error=True)
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     if ('admintestrole0' not in user['authorizedRoleIds']):
@@ -53,7 +53,7 @@ def setup_module():
         ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
         inst.modify_obj(
             'cusername',
-            'jmitchell',
+            'slapd',
             ldap_user,
             objectClass='OpenLDAPuser',
             throw_error=True)
@@ -102,14 +102,14 @@ def teardown_module():
 
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     user['authorizedRoleIds'].remove('admintestrole0')
     ldap_user = ldap_tools.to_ldap(user, 'OpenLDAPuser')
     inst.modify_obj(
         'cusername',
-        'jmitchell',
+        'slapd',
         ldap_user,
         objectClass='OpenLDAPuser',
         throw_error=True)
@@ -290,14 +290,14 @@ def test_role_calls():
 
     assert json.dumps(
         ErrorCodes.admin['invalidRoleId']) == ep.user_role_authorize(
-            'jmitchell', 'DoesNotExist')
+            'slapd', 'DoesNotExist')
 
-    assert ep.user_role_authorize('jmitchell', test_role_id) == json.dumps(
+    assert ep.user_role_authorize('slapd', test_role_id) == json.dumps(
         ErrorCodes.admin['success'])
 
     # Make sure LDAP has been updated
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     assert test_role_id in user['authorizedRoleIds']
@@ -305,7 +305,7 @@ def test_role_calls():
     # Try to authorize twice
     assert json.dumps(
         ErrorCodes.admin['userAlreadyAuthorized']) == ep.user_role_authorize(
-            'jmitchell', test_role_id)
+            'slapd', test_role_id)
 
     # user_role_unauthorize
     assert json.dumps(
@@ -314,16 +314,16 @@ def test_role_calls():
 
     assert json.dumps(
         ErrorCodes.admin['invalidRoleId']) == ep.user_role_unauthorize(
-            'jmitchell', 'DoesNotExist')
+            'slapd', 'DoesNotExist')
 
     # Todo: Check return when user is using a virtue
 
-    assert ep.user_role_unauthorize('jmitchell', test_role_id) == json.dumps(
+    assert ep.user_role_unauthorize('slapd', test_role_id) == json.dumps(
         ErrorCodes.admin['success'])
 
     # Make sure LDAP has been updated
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     ldap_tools.parse_ldap(user)
 
     assert test_role_id not in user['authorizedRoleIds']
@@ -331,7 +331,7 @@ def test_role_calls():
     # Try to unauthorize twice
     assert json.dumps(ErrorCodes.admin[
         'userNotAlreadyAuthorized']) == ep.user_role_unauthorize(
-            'jmitchell', test_role_id)
+            'slapd', test_role_id)
 
     # system_export (NotImplemented)
     # system_import (NotImplemented)
@@ -353,10 +353,10 @@ def test_user_calls():
     assert json.dumps(
         ErrorCodes.admin['invalidUsername']) == ep.user_get('DoesNotExist')
 
-    user = ep.user_get('jmitchell')
+    user = ep.user_get('slapd')
 
     ldap_user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
     assert ldap_user != ()
 
     ldap_tools.parse_ldap(ldap_user)
@@ -367,7 +367,7 @@ def test_user_calls():
     assert json.dumps(ErrorCodes.admin[
         'invalidUsername']) == ep.user_virtue_list('DoesNotExist')
 
-    virtue_list = ep.user_virtue_list('jmitchell')
+    virtue_list = ep.user_virtue_list('slapd')
 
     ldap_virtue_list = inst.get_objs_of_type('OpenLDAPvirtue')
     parsed_virtue_list = ldap_tools.parse_ldap_list(ldap_virtue_list)
@@ -375,7 +375,7 @@ def test_user_calls():
     real_virtue_list = []
 
     for v in parsed_virtue_list:
-        if (v['username'] == 'jmitchell'):
+        if (v['username'] == 'slapd'):
             real_virtue_list.append(v)
 
     assert json.loads(virtue_list) == real_virtue_list
@@ -390,13 +390,13 @@ def test_virtue_create():
         'DoesNotExist', 'admintestrole0')
 
     assert json.dumps(ErrorCodes.admin['invalidRoleId']) == ep.virtue_create(
-        'jmitchell', 'DoesNotExist')
+        'slapd', 'DoesNotExist')
 
     assert json.dumps(
         ErrorCodes.admin['userNotAlreadyAuthorized']) == ep.virtue_create(
-            'jmitchell', 'emptyrole')
+            'slapd', 'emptyrole')
 
-    result = json.loads(ep.virtue_create('jmitchell', 'admintestrole0'))
+    result = json.loads(ep.virtue_create('slapd', 'admintestrole0'))
 
     assert set(result.keys()) == set(['id', 'ipAddress'])
 
@@ -412,7 +412,7 @@ def test_virtue_create():
         throw_error=True)
     ldap_tools.parse_ldap(ldap_virtue)
 
-    assert ldap_virtue['username'] == 'jmitchell'
+    assert ldap_virtue['username'] == 'slapd'
     assert ldap_virtue['state'] == 'CREATING'
 
     # TODO: Make sure loops like these don't continue forever.
@@ -427,7 +427,7 @@ def test_virtue_create():
 
     assert json.dumps(
         ErrorCodes.user['virtueAlreadyExistsForRole']) == ep.virtue_create(
-            'jmitchell', 'admintestrole0')
+            'slapd', 'admintestrole0')
 
     inst.del_obj('cid', result['id'], objectClass='OpenLDAPvirtue',
                  throw_error=True)

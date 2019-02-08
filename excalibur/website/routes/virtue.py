@@ -28,7 +28,7 @@ def get_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep = EndPoint('slapd@virtue.gov', 'Test123!')
     ep.inst = inst
 
     return ep
@@ -42,7 +42,7 @@ def get_admin_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    epa = EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
+    epa = EndPoint_Admin('slapd@virtue.gov', 'Test123!')
     epa.inst = inst
 
     return epa
@@ -56,7 +56,7 @@ def get_security_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    eps = EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+    eps = EndPoint_Security('slapd@virtue.gov', 'Test123!')
     eps.inst = inst
 
     return eps

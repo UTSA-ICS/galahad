@@ -175,4 +175,4 @@ class Endpoint(object):
 
 if __name__ == '__main__':
     ep = Endpoint.factory(Endpoint.EpType.USER, "127.0.0.1")
-    ep.login("jmitchell@virtue.com", "Test123!", "APP_1")
+    ep.login("slapd@virtue.gov", "Test123!", "APP_1")
