@@ -30,12 +30,13 @@ if (__name__ == '__main__'):
         print('ERROR: Could not log in')
         sys.exit(1)
 
-    redirect = 'https://{}/virtue/test\n' \
-               'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
+    redirect = 'https://{}/virtue/test'.format(args.server)
+    redirect_canvas = 'https://{}/virtue/test\n' \
+                      'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
 
     client_id = sso.get_app_client_id(args.appid)
     if (client_id == None):
-        client_id = sso.create_app(args.appid, redirect)
+        client_id = sso.create_app(args.appid, redirect_canvas)
         assert client_id
 
     print('The Client ID is {}'.format(client_id))
