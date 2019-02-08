@@ -749,6 +749,39 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
 
+    def auto_migration_start(self, migration_interval=None):
+        try:
+            self.valor_api.auto_migration_start(migration_interval)
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def auto_migration_stop(self):
+        try:
+            self.valor_api.auto_migration_stop()
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def auto_migration_status(self):
+        try:
+            status, interval = self.valor_api.auto_migration_status()
+            if status:
+                migration_status = 'ON'
+                return json.dumps({'auto_migration_status': migration_status,
+                                   'auto_migration_interval': interval})
+            else:
+                migration_status = 'OFF'
+                return json.dumps({'auto_migration_status': migration_status})
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)

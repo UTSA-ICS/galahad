@@ -1081,6 +1081,65 @@ def admin_valor_migrate_virtue():
 
     return make_response(valor_id)
 
+
+@bp.route('/admin/valor/auto_migration_start', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_start():
+    try:
+
+        ep = get_admin_endpoint()
+
+        migration_interval = request.args.get('migration_interval', None)
+
+        if migration_interval:
+            response = ep.auto_migration_start(migration_interval)
+        else:
+            response = ep.auto_migration_start()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_stop', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_stop():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_stop()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_status', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_status():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_status()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
 @bp.route('/admin/virtue/introspect_start', methods=['GET'])
 @require_oauth()
 def admin_virtue_introspect_start():
