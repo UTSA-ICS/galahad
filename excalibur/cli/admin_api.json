@@ -223,7 +223,7 @@
             "help": "Start Automated Migration",
             "url": "/valor/auto_migration_start",
             "parameters": [
-                { "name": "The Automated virtue migration time interval", "url_name": "migration_interval" }
+                { "name": "The Automated virtue migration time interval in seconds", "url_name": "migration_interval" }
             ]
         },
         {
