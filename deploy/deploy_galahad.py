@@ -943,7 +943,7 @@ def parse_args():
         "--build_image_only",
         action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
-    parser.add_argument(
+    parser.add_argument("-d",
         "--deactivate_virtue_migration",
         action="store_true",
         help="Deactivate automated migration of Virtues")
