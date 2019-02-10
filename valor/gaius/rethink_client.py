@@ -29,13 +29,15 @@ class Changes(threading.Thread):
             {"function": "valor", "address": self.ip}).run(self.rt).next()
         self.valor_id = valor["valor_id"]
         self.valor_guestnet = valor["guestnet"]
-
+        self.introspection_threads = []
 
     def run(self):
         if self.name == "valor":
-            self.valor()    
+            self.valor()
         elif self.name == "migration":
             self.migration()
+        elif self.name == "introspection":
+            self.introspection()
 
     def valor(self):
         for change in self.feed:
@@ -97,73 +99,114 @@ class Changes(threading.Thread):
                 rethinkdb_client_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
 
+    def introspection(self):
+        for change in self.feed:
+            rethinkdb_client_logger.debug(
+                "Introspection change feed detected: {}".format(change))
+            if change["type"] == "add":
+                if change["new_val"]["enabled"] == True:
+                    self.introspection_add(change["new_val"])
+                else:
+                    # Do nothing as this is the initial virtue entry in rethinkdb with
+                    # introspection disabled.
+                    pass
+            elif change["type"] == "remove":
+                self.introspection_remove(change)
+            elif change["type"] == "change":
+                self.introspection_change(change)
+
+    def get_virtue_introspection_thread(self, virtue_id):
+        for thread in self.introspection_threads:
+            if thread.virtue_id == virtue_id:
+                return thread
+        return
+
+    def introspection_add(self, change):
+        introspection_thread = Introspect(change["virtue_id"],
+                                          change["comms"],
+                                          change["interval"])
+        introspection_thread.start()
+        self.introspection_threads.append(introspection_thread)
+
+    def introspection_remove(self, change):
+        introspection_thread = self.get_virtue_introspection_thread(change["virtue_id"])
+        if introspection_thread:
+            introspection_thread.stop_introspect()
+            self.introspection_threads.remove(introspection_thread)
+
+    def introspection_change(self, change):
+        # Update if introspection is enabled
+        if change["old_val"]["enabled"] == False and change["new_val"]["enabled"] == True:
+            self.introspection_add(change["new_val"])
+
+        # Update if introspection is disabled
+        elif change["old_val"]["enabled"] == True and change["new_val"][
+            "enabled"] == False:
+            self.introspection_remove(change["new_val"])
+
+        # Update if introspection was enabled but its parameters changed.
+        elif change["old_val"]["enabled"] == True and change["new_val"][
+            "enabled"] == True:
+            introspection_thread = self.get_virtue_introspection_thread(
+                change["new_val"]["virtue_id"])
+            if introspection_thread:
+                # Update if interval changes
+                if change["old_val"]["interval"] is not change["new_val"]["interval"]:
+                    introspection_thread.set_interval(change["new_val"]["interval"])
+                # Update if the list of modules changes
+                if change["old_val"]["comms"] is not change["new_val"]["comms"]:
+                    introspection_thread.set_comms(change["new_val"]["comms"])
+
 class Rethink():
     def __init__(self):
         rethinkdb_client_logger.debug("Starting to monitor changes in rethinkDB...")
         self.valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
         self.migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        self.introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
 
         self.ip = socket.gethostbyname(socket.gethostname())
-        self.valor_id = r.db(RT_DB).table(RT_VALOR_TB).filter({"function":"valor", "address": self.ip}).run(
-            self.valor_rt).next()["valor_id"]
+        self.valor_id = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "valor", "address": self.ip}).run(self.valor_rt).next()["valor_id"]
 
     def changes(self):
-
-        valor_rt = self.valor_rt
+        # Virtue updates
+        # Handle changes related to the galahad table for the virtue
         valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter(
-            {"function": "virtue"}).changes(include_types=True).run(valor_rt)
+            {"function": "virtue"}).changes(include_types=True).run(self.valor_rt)
 
-        migration_rt = self.migration_rt
-        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({
-            "valor_ip": self.ip,
-            "transducer_id": "migration"}).changes(include_types=True).run(migration_rt)
-
-        valor_thread = Changes("valor", valor_feed, valor_rt)
+        valor_thread = Changes("valor", valor_feed, self.valor_rt)
         valor_thread.daemon = True
         valor_thread.start()
         rethinkdb_client_logger.debug("Valor thread starting...")
 
-        migration_thread = Changes("migration", migration_feed, migration_rt)
+        # Migration updates
+        # Handle changes related to the transducer table for migration
+        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"valor_ip": self.ip, "transducer_id": "migration"}).changes(
+            include_types=True).run(self.migration_rt)
+
+        migration_thread = Changes("migration", migration_feed, self.migration_rt)
         migration_thread.daemon = True
         migration_thread.start()
         rethinkdb_client_logger.debug("Migration thread starting...")
 
-        # TODO - Introspection might be broken for 2 virtues on a valor
-        # TODO - Ensure that Instrospection works with 2 virtues on a single valor
-        introspection_thread = Introspect()
+        # Introspection updates
+        # Handle changes related to the transducer table for introspection
+        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"valor_id": self.valor_id, "transducer_id": "introspection"}).changes(
+            include_types=True).run(self.introspection_rt)
+
+        introspection_thread = Changes("introspection", introspection_feed,
+                                       self.introspection_rt)
+        introspection_thread.daemon = True
         introspection_thread.start()
-        introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
-        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_id": self.valor_id, 
-            "transducer_id": "introspection"}).changes(include_types=True).run(introspection_rt)
-        for change in introspection_feed:
-            rethinkdb_client_logger.debug(change)
-            if change["type"] == "add":
-                introspection_thread.set_virtue_id(change["new_val"]["virtue_id"])
-                introspection_thread.set_interval(change["new_val"]["interval"])
-                introspection_thread.set_comms(change["new_val"]["comms"])
-            elif change["type"] == "change":
-                if change["old_val"]["virtue_id"] is not change["new_val"]["virtue_id"]:
-                    introspection_thread.set_virtue_id(change["new_val"]["virtue_id"])
-                    rethinkdb_client_logger.debug("changed = virtue_id")
-                if change["old_val"]["interval"] is not change["new_val"]["interval"]:
-                    introspection_thread.set_interval(change["new_val"]["interval"])
-                    rethinkdb_client_logger.debug("changed = interval")
-                if change["old_val"]["comms"] is not change["new_val"]["comms"]:
-                    introspection_thread.set_comms(change["new_val"]["comms"])
-                    rethinkdb_client_logger.debug("changed = comms")
-                if change["old_val"]["enabled"] == False and change["new_val"]["enabled"] == True:
-                    introspection_thread.event.set()
-                    rethinkdb_client_logger.debug("introspection_thread.event.set()")
-                elif change["old_val"]["enabled"] == True and change["new_val"]["enabled"] == False:
-                    introspection_thread.event.clear()
-                    rethinkdb_client_logger.debug("introspection_thread.event.clear()")
-            elif change["type"] == "remove":
-                introspection_thread.event.clear()
+        rethinkdb_client_logger.debug("Introspection thread starting...")
+
 
 if __name__ == "__main__":
     rt = Rethink()
     rt.changes()
 
-    # super hacky but it works for now
+    # while loop to keep the program alive/running
     while True:
         time.sleep(3600)
