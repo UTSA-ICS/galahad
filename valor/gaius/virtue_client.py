@@ -29,7 +29,7 @@ class Virtue():
         cfg = open(CFG_OUT + self.virtue_id + ".cfg", "w+")
         cfg.write("bootloader='/usr/local/lib/xen/bin/pygrub\'\n")
         cfg.write("vcpus=1\n")
-        cfg.write("memory=3072\n")
+        cfg.write("memory=4096\n")
         cfg.write("disk=['file:/mnt/efs/" + self.img_path + ",xvda2,w']\n")
         cfg.write("name='" + self.virtue_id + "'\n")
         cfg.write("vif=['bridge=hello-br0']\n")

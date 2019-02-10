@@ -12,7 +12,7 @@ from ssh_tool import ssh_tool
 
 NUM_STANDBY_VALORS = 3
 
-MAX_VIRTUES_PER_VALOR = 2
+MAX_VIRTUES_PER_VALOR = 3
 
 # Default of 5 minutes interval between migration runs
 AUTO_MIGRATION_INTERVAL = 300
@@ -397,7 +397,7 @@ class ValorManager:
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
-            'inst_type' : 't2.large',
+            'inst_type' : 't2.xlarge',
             'subnet_id' : subnet,
             'key_name' : 'starlab-virtue-te',
             'tag_key' : 'Project',
