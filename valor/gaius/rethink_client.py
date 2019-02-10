@@ -18,7 +18,8 @@ rethinkdb_client_logger.addHandler(rethinkdb_client_handler)
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
-        rethinkdb_client_logger.debug("Starting Gaius Service to monitor rethinkDB for changes")
+        rethinkdb_client_logger.debug(
+            "Starting Gaius Service to monitor rethinkDB for changes")
 
         threading.Thread.__init__(self)
         self.feed = feed
@@ -64,8 +65,8 @@ class Changes(threading.Thread):
     def migrate(self, change):
         rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
 
-        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"]})\
-            .run(self.rt).next()
+        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"virtue_id": change["virtue_id"]}).run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
 
@@ -75,9 +76,10 @@ class Changes(threading.Thread):
         history = change['history']
         history.append({"valor_id": self.valor_id})
 
-        ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
-        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"],
-            "virtue_id": virtue.virtue_id})
+        ### RethinkDB updating with dict causes inconsistencies. This updates
+        # transducer object. Need to cleanup
+        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"transducer_id": change["transducer_id"], "virtue_id": virtue.virtue_id})
         record = comm_tb_filter.run(self.rt).next()
         record["enabled"] = False
         record["history"] = history
@@ -86,8 +88,8 @@ class Changes(threading.Thread):
         comm_tb_filter.update(record).run(self.rt)
 
         ### Updates Virtue object with new Valor IP
-        valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"],
-            "function": "virtue"})
+        valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"virtue_id": change["virtue_id"], "function": "virtue"})
         valor_tb_filter.update(
             {"address": change["valor_dest"],
              "valor_id": valor_dest["valor_id"]}).run(self.rt)

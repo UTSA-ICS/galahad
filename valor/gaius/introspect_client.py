@@ -1,9 +1,7 @@
 import logging
 import subprocess
-import time
-import datetime
 import threading
-import shutil
+import time
 
 INTRO_LOGFILE = "/var/log/gaius-introspect.log"
 intro_handler = logging.FileHandler(INTRO_LOGFILE)
