@@ -810,7 +810,7 @@ class EndPoint_Admin():
                 ldap_tools.parse_ldap(virtue[1])
                 self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
 
-            return self.__error('success')
+            return json.dumps(ErrorCodes.admin['success'])
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
@@ -825,7 +825,7 @@ class EndPoint_Admin():
                 ldap_tools.parse_ldap(virtue[1])
                 self.rdb_manager.introspect_virtue_start(virtue[1]['id'])
 
-            return self.__error('success')
+            return json.dumps(ErrorCodes.admin['success'])
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
