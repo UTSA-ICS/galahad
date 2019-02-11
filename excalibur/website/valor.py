@@ -1,8 +1,8 @@
 import os
+import random
 import threading
 import time
 import subprocess
-from copy import deepcopy
 
 import boto3
 import rethinkdb
@@ -13,13 +13,16 @@ from ssh_tool import ssh_tool
 
 NUM_STANDBY_VALORS = 3
 
-MAX_VIRTUES_PER_VALOR = 1
+MAX_VIRTUES_PER_VALOR = 3
+
+# Default of 5 minutes interval between migration runs
+AUTO_MIGRATION_INTERVAL = 300
+
 
 class ValorAPI:
 
     def __init__(self):
 
-        self.rethinkdb_manager = RethinkDbManager()
         self.valor_manager = ValorManager()
 
 
@@ -55,16 +58,54 @@ class ValorAPI:
 
 
     def valor_list(self):
-        return self.rethinkdb_manager.list_valors()
+        return self.valor_manager.list_valors()
+
+
+    def auto_migration_start(self, migration_interval=AUTO_MIGRATION_INTERVAL):
+        if not self.is_auto_migration_on():
+            self.valor_manager.auto_migration_start(migration_interval)
+            auto_migration_thread = threading.Thread(target=self.auto_migration,
+                                                     args=(migration_interval,))
+            auto_migration_thread.start()
+
+
+    def auto_migration_stop(self):
+        if self.is_auto_migration_on():
+            self.valor_manager.auto_migration_stop()
+
+
+    def auto_migration_status(self):
+        return self.valor_manager.auto_migration_status()
+
+
+    def is_auto_migration_on(self):
+        return self.valor_manager.is_auto_migration_on()
+
+
+    def auto_migration(self, migration_interval):
+        while self.is_auto_migration_on():
+            virtues = self.valor_manager.list_virtues()
+            for virtue in virtues:
+                self.valor_migrate_virtue(virtue['virtue_id'])
+            # Now sleep for AUTO_MIGRATION_INTERVAL before starting another migration
+            # run for ALL virtues
+            time.sleep(migration_interval)
 
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
+        # Get virtue's current valor
+        source_valor_id = self.valor_manager.get_valor_for_virtue(virtue_id)['valor_id']
 
+        # If no destination valor is specified then select an available one
         if destination_valor_id == None:
-            destination_valor = self.valor_manager.get_empty_valor()
+            destination_valor = self.valor_manager.get_empty_valor(source_valor_id)
             destination_valor_id = destination_valor['valor_id']
+        elif source_valor_id == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(source_valor_id,
+                                                   destination_valor_id)))
 
-        self.valor_manager.migrate_virtue( virtue_id, destination_valor_id)
+        self.valor_manager.migrate_virtue(virtue_id, destination_valor_id)
 
         return destination_valor_id
 
@@ -92,7 +133,8 @@ class Valor:
             print('Failed to connect to valor with IP {} using SSH'.format(
                 self.aws_instance.private_ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.aws_instance.private_ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(
+                    self.aws_instance.private_ip_address))
 
 
     def setup(self):
@@ -145,8 +187,8 @@ class Valor:
             print('[!] shutdown_node : stdout : ' + stdout)
         except:
             # TODO
-            # Currently the shutdown command is issued it causes immediate disconnect
-            # and ssh_tool throws an error due to that.
+            # Currently the shutdown command is issued it causes immediate
+            # disconnect and ssh_tool throws an error due to that.
             # Ignore the error for now
             pass
 
@@ -217,47 +259,35 @@ class ValorManager:
 
         return file_system_id
 
-    def get_available_valors(self):
+    def get_valor_for_virtue(self, virtue_id):
+        # Go through the list of valors and return the valor that has the specified
+        # virtue running on it.
+        for valor in self.list_valors():
+            for virtue in valor['virtues']:
+                if virtue == virtue_id:
+                    return valor
 
-        valors = self.rethinkdb_manager.list_valors()
-        virtues = self.rethinkdb_manager.list_virtues()
+    def get_available_valors(self, migration_source_valor_id=None):
 
-        # Create valor_usage with all valors
-        valor_usage = deepcopy(valors)
+        if not migration_source_valor_id:
+            # Return valors that have the required number of virtues
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and (
+                                valor['state'] == 'RUNNING')]
+        else:
+            # Return valors that have the required number of virtues and that do not
+            # match the migration source valor
+            return [valor for valor in self.list_valors() if
+                    (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
+                    (valor['state'] == 'RUNNING') and
+                    (valor['valor_id'] != migration_source_valor_id)]
 
-        # Update each valor field with a virtues field.
-        [valor.update({'virtues': []}) for valor in valor_usage]
-
-        # Update valor_usage with associated virtues for each valor
-        [(valor['virtues'].append(virtue['virtue_id']))
-            for valor in valor_usage for virtue in virtues
-                if valor['valor_id'] == virtue['valor_id']]
-
-        # available_valors = [valor['valor_id'] for valor in valor_usage if
-        #                    len(valor['virtues']) <= MAX_VIRTUES_PER_VALOR]
-        # The filter and lambda function below is a more efficient way of doing
-        # the above check.
-
-        # Check to see which valors have the required number of virtues
-        available_valors = filter(lambda valor:
-                                  (len(valor.get('virtues',
-                                                 [])) < MAX_VIRTUES_PER_VALOR)
-                                  and (valor['state'] == 'RUNNING'),
-                                  valor_usage)
-
-        return available_valors
 
     def get_empty_valors(self):
 
-        valors = self.rethinkdb_manager.list_valors()
-        virtues = self.rethinkdb_manager.list_virtues()
-
-        empty_valors = []
-        for valor in valors:
-            if valor['valor_id'] not in str(virtues):
-                empty_valors.append(valor)
-
-        return empty_valors
+        # Return valors that have no virtues on them
+        return [valor for valor in self.list_valors()
+                if len(valor['virtues']) == 0]
 
     def create_and_launch_valor(self, subnet_id, security_group_id):
 
@@ -267,19 +297,15 @@ class ValorManager:
 
         return valor_id
 
-    def create_standby_valors(self, offset=0):
+    def create_standby_valors(self):
 
-        empty_valors = self.get_empty_valors()
+        empty_valors = self.get_available_valors()
 
         # Check if the number of empty valors is less than NUM_STANDBY_VALORS
         # If so then create additional valors
         if len(empty_valors) <= NUM_STANDBY_VALORS:
 
-            # offset is used to account for valors that are going to be used
-            # but rethinkdb has not been updated to mark them as in use e.g
-            # when get_empty_valor() is called
-            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors) + \
-                                   offset
+            NUM_VALORS_TO_CREATE = NUM_STANDBY_VALORS - len(empty_valors)
 
             aws = AWS()
 
@@ -295,13 +321,13 @@ class ValorManager:
             # standby valors so do nothing
             pass
 
-    def get_empty_valor(self):
+    def get_empty_valor(self, migration_source_valor_id=None):
         """ Get and return an available valor node.
         If less than the standby number of valors exist then
         create more standby valors
         """
 
-        empty_valors = self.get_available_valors()
+        empty_valors = self.get_available_valors(migration_source_valor_id)
 
         # Check if there are no empty valors
         # If there are none then create a valor node
@@ -315,15 +341,32 @@ class ValorManager:
 
             empty_valor = self.rethinkdb_manager.get_valor(valor_id)
         else:
+            # Select a random index for the array of empty_valors
+            # This essentially selects a random valor from the list of valors
+            random_index = random.randint(0, len(empty_valors) - 1)
 
             # Check the valor state and verify that it is 'RUNNING'
-            self.verify_valor_running(empty_valors[0]['valor_id'])
+            self.verify_valor_running(empty_valors[random_index]['valor_id'])
 
-            empty_valor = empty_valors[0]
-
-        self.create_standby_valors(offset=1)
+            empty_valor = empty_valors[random_index]
 
         return empty_valor
+
+    def list_valors(self):
+
+        valors = self.rethinkdb_manager.list_valors()
+        virtues = self.rethinkdb_manager.list_virtues()
+
+        # Update each valor field with a virtues field.
+        [valor.update({'virtues': []}) for valor in valors]
+
+        # Update valors list with associated virtues for each valor
+        for valor in valors:
+            for virtue in virtues:
+                if (valor['valor_id'] == virtue['valor_id']):
+                    valor['virtues'].append(virtue['virtue_id'])
+
+        return valors
 
     def create_valor(self, subnet, sec_group):
 
@@ -355,7 +398,7 @@ class ValorManager:
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
-            'inst_type' : 't2.large',
+            'inst_type' : 't2.xlarge',
             'subnet_id' : subnet,
             'key_name' : 'starlab-virtue-te',
             'tag_key' : 'Project',
@@ -454,12 +497,14 @@ class ValorManager:
                 valor_wait_count = valor_wait_count + 1
 
             elif valor_wait_count >= valor_wait_timeout:
-                Exception('Timed out waiting for valor to reach '
+                Exception('ERROR: Timed out waiting for valor to reach '
                           '[RUNNING] state - current state is [{}]'.format(
                     valor_state))
 
             else:
-                Exception('Unexpected Error condition encountered while getting a valor')
+                Exception('ERROR: Unexpected Error condition encountered while getting a '
+                          'valor')
+
 
     def create_valor_pool(
         self,
@@ -479,43 +524,81 @@ class ValorManager:
 
         return valor_ids
 
-
     def stop_valor(self, valor_id):
 
-        instance = self.aws.instance_stop(valor_id)
+        valor_found = False
+        for valor in self.get_empty_valors():
+            if valor_id == valor['valor_id']:
+                valor_found = True
 
-        self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
+        if valor_found:
+            instance = self.aws.instance_stop(valor_id)
 
-        valor_ip = self.rethinkdb_manager.get_valor(valor_id)['address']
+            self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
 
-        # Remove NFS export entry
-        try:
-            line = subprocess.check_output("grep mnt/ost /etc/exports", shell=True).strip("\n")
-            line_num = subprocess.check_output("sed -n '/mnt\/ost/=' /etc/exports", shell=True).strip("\n")
+            valor_ip = self.rethinkdb_manager.get_valor(valor_id)['address']
 
-            # Remove current line and replace with updated export
-            ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
-            assert ret == 0
+            # Remove NFS export entry
+            try:
+                line = subprocess.check_output("grep mnt/ost /etc/exports", shell=True).strip("\n")
+                line_num = subprocess.check_output("sed -n '/mnt\/ost/=' /etc/exports", shell=True).strip("\n")
 
-            line = line.replace(" {}(rw,sync,no_subtree_check)".format(valor_ip), "")
-            ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
-            assert ret == 0
+                # Remove current line and replace with updated export
+                ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
+                assert ret == 0
 
-            ret = subprocess.check_call(['sudo', 'exportfs', '-ra'])
-            assert ret == 0
+                line = line.replace(" {}(rw,sync,no_subtree_check)".format(valor_ip), "")
+                ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+                assert ret == 0
 
-        except Exception as e:
-            print("Failed to remove NFS export with message: {}".format(e))
+                ret = subprocess.check_call(['sudo', 'exportfs', '-ra'])
+                assert ret == 0
 
-        return instance.id
+            except Exception as e:
+                print("Failed to remove NFS export with message: {}".format(e))
 
+            return instance.id
+
+        else:
+            virtues_on_valor = [valor['virtues'] for valor in self.list_valors() if
+                                valor['valor_id'] == valor_id]
+            # If no valors are found then the valor_id does not exist
+            if len(virtues_on_valor) == 0:
+                raise Exception(
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
+            else:
+                raise Exception(
+                    'ERROR: Valor currently has the following Virtue/s running on it: '
+                    '{}'.format(virtues_on_valor))
 
     def destroy_valor(self, valor_id):
 
-        self.aws.instance_destroy(valor_id, block=False)
+        valor_found = False
+        for valor in self.get_empty_valors():
+            if valor_id == valor['valor_id']:
+                valor_found = True
 
-        self.rethinkdb_manager.remove_valor(valor_id)
+        if valor_found:
+            self.create_standby_valors()
 
+            self.aws.instance_destroy(valor_id, block=False)
+
+            self.rethinkdb_manager.remove_valor(valor_id)
+
+            return valor_id
+        else:
+            virtues_on_valor = [valor['virtues'] for valor in self.list_valors()
+                                if valor['valor_id'] == valor_id]
+            # If no valors are found then the valor_id does not exist
+            if len(virtues_on_valor) == 0:
+                raise Exception(
+                    'ERROR: No Valor exists with the specified valor_id {}'.format(
+                        valor_id))
+            else:
+                raise Exception(
+                    'ERROR: Valor currently has the following Virtue/s running on it: '
+                    '{}'.format(virtues_on_valor))
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
 
@@ -527,21 +610,45 @@ class ValorManager:
             'function' : 'valor',
             'address' : virtue['address']}).run().next()
 
-
         destination_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'valor_id' : destination_valor_id}).run().next()
 
-        current_valor_ip_address = current_valor['address']
-        destination_valor_ip_address = destination_valor['address']
+        if current_valor['valor_id'] == destination_valor_id:
+            raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
+                             'are the same'.format(current_valor['valor_id'],
+                                                   destination_valor_id)))
+
+        virtues_on_dst_valor = rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'virtue',
+            'address': destination_valor['address']}).run()
+
+        dst_virtue_count = len(list(virtues_on_dst_valor))
+        if (dst_virtue_count >= MAX_VIRTUES_PER_VALOR):
+            raise Exception(('ERROR: Destination Valor has too many ({0})'
+                             ' Virtues running on it'
+                             ' to migrate.'.format(dst_virtue_count)))
 
         rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"valor_dest": destination_valor_ip_address}).run()
+            .filter({'valor_ip': current_valor['address'],
+                     'virtue_id': virtue_id}) \
+            .update({'valor_dest': destination_valor['address'],
+                     'enabled': True}).run()
 
-        rethinkdb.db("transducers").table("commands") \
-            .filter({"valor_ip": current_valor_ip_address}) \
-            .update({"enabled": True}).run()
+        rethinkdb.db('transducers').table('commands') \
+            .filter({'virtue_id': virtue_id,
+                     'transducer_id': 'introspection'}) \
+            .update({"valor_id": destination_valor_id}).run()
+
+
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
+        self.create_standby_valors()
+
+        return self.rethinkdb_manager.add_virtue(valor_address, valor_id, virtue_id,
+                                                 efs_path, role_create)
+
+    def list_virtues(self):
+        return self.rethinkdb_manager.list_virtues()
 
     def setup_syslog_config(self):
         # Todo:  Make this configurable
@@ -549,7 +656,7 @@ class ValorManager:
         mount_dir = '/mnt/efs/valor/syslog-ng/'
         aggregator_node = 'https://aggregator.galahad.com:9200'
         aggregator_host = "aggregator.galahad.com"
-        syslog_ng_server = "172.30.128.131"
+        syslog_ng_server = "192.168.4.10"
 
         # Create syslog-ng.conf from
         #   payload/syslog-ng-virtue-node.conf.template
@@ -565,6 +672,18 @@ class ValorManager:
             with open(mount_dir + '/elasticsearch.yml',
                       'w') as f:
                 f.write(elastic_yml % (aggregator_host))
+
+    def auto_migration_start(self, migration_interval):
+        self.rethinkdb_manager.auto_migration_start(migration_interval)
+
+    def auto_migration_stop(self):
+        self.rethinkdb_manager.auto_migration_stop()
+
+    def auto_migration_status(self):
+        return RethinkDbManager().auto_migration_status()
+
+    def is_auto_migration_on(self):
+        return RethinkDbManager().is_auto_migration_on()
 
 class RethinkDbManager:
 
@@ -582,6 +701,7 @@ class RethinkDbManager:
 
         except Exception as error:
             print(error)
+            raise Exception('ERROR: Failed to connect to RethinkDB: {}'.format(error))
 
 
     def get_valor(self, valor_id):
@@ -679,7 +799,7 @@ class RethinkDbManager:
         return guestnet
 
 
-    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
+    def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
 
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
@@ -751,12 +871,43 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('commands').filter(
             {'virtue_id', virtue_id}).delete().run()
 
+    def auto_migration_start(self, migration_interval):
+        response = list(rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'auto_migration'}).run())
+        if len(response) != 0:
+            rethinkdb.db('transducers').table('galahad').filter(
+                {'function': 'auto_migration'}).update(
+                {'enabled': True, 'migration_interval': migration_interval}).run()
+        else:
+            rethinkdb.db('transducers').table('galahad').insert(
+                {'function': 'auto_migration', 'migration_interval': migration_interval,
+                 'enabled': True}).run()
+
+    def auto_migration_stop(self):
+        response = list(rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'auto_migration'}).run())
+        if len(response) != 0:
+            rethinkdb.db('transducers').table('galahad').filter(
+                {'function': 'auto_migration'}).update(
+                {'enabled': False, 'migration_interval': None}).run()
+
+    def auto_migration_status(self):
+        response = list(rethinkdb.db('transducers').table('galahad').filter(
+            {'function': 'auto_migration'}).run())
+        if len(response) != 0:
+            return response[0].get('enabled', False), response[0].get(
+                'migration_interval')
+        else:
+            return False, None
+
+    def is_auto_migration_on(self):
+        return self.auto_migration_status()[0]
 
     def introspect_virtue_start(self, virtue_id, interval, modules):
         rethink_filter = rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id})
         record = rethink_filter.run().next()
-        
+
         if interval is not None: record['interval'] = int(interval)
         if modules is not None: record['comms'] = modules.split(',')
         rethink_filter.update(record).run()
@@ -766,7 +917,7 @@ class RethinkDbManager:
     def introspect_virtue_stop(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run()
-        
+
 
     def get_router(self):
 
@@ -809,10 +960,10 @@ class RouterManager:
                    '/galahad-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
-            print('Failed to connect to valor with IP {} using SSH'.format(
+            print('ERROR: Failed to connect to valor with IP {} using SSH'.format(
                 self.ip_address))
             raise Exception(
-                'Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+                'ERROR: Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
 
 class ResourceManager:
     def __init__(self, username, resource):

@@ -1,20 +1,17 @@
 import json
 import os
+import re
 import shlex
 import subprocess
 import threading
 import time
 import traceback
-import re
 
 import ldap_tools
-from aws import AWS
-from ldaplookup import LDAP
-
-from valor import ValorManager
-from valor import RethinkDbManager
-from assembler.assembler import Assembler
 from apiendpoint_security import EndPoint_Security
+from assembler.assembler import Assembler
+from ldaplookup import LDAP
+from valor import ValorManager
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
@@ -34,6 +31,8 @@ UNITY_PATH = '/mnt/efs/images/unities/'
 ROLE_PATH = '/mnt/efs/images/non_provisioned_virtues/'
 VIRTUE_PATH = '/mnt/efs/images/provisioned_virtues/'
 
+# AWS Account under which the Docker ECR is being hosted
+AWS_ECR_ACCOUNT_NUMBER = "703915126451"
 
 class StandbyVirtues:
 
@@ -236,6 +235,7 @@ class CreateVirtueThread(threading.Thread):
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
+            'networkRules': role['networkRules'],
             'state': 'CREATING',
             'ipAddress': 'NULL'
         }
@@ -261,6 +261,10 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
+            with open('/tmp/networkRules','w+') as iprules_file:
+                for rule in role['networkRules']:
+                    iprules_file.write(rule + '\n')
+
             # Create the virtue standby image files
             standby_virtues = StandbyVirtues(self.role_id)
             standby_virtues.create_virtue_image_file(self.virtue_id)
@@ -271,6 +275,7 @@ class CreateVirtueThread(threading.Thread):
                                    'call_provisioner.py',
                                    '-u', self.username,
                                    '-i', virtue['id'],
+                                   '-n', '/tmp/networkRules',
                                    '-b',
                                    '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
@@ -358,7 +363,7 @@ class AssembleRoleThread(threading.Thread):
             if (self.use_ssh):
                 # Launch by adding a 'virtue' to RethinkDB
                 valor = valor_manager.get_empty_valor()
-                virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
+                virtue_ip = valor_manager.add_virtue(
                     valor['address'],
                     valor['id'],
                     self.role['id'],
@@ -368,8 +373,11 @@ class AssembleRoleThread(threading.Thread):
                 time.sleep(5)
 
                 # Get Docker login command
+                # Use the AWS Account ID of the Account which has the docker registry,
+                # currently this is in the StarLab account.
                 docker_cmd = subprocess.check_output(shlex.split(
-                    'aws ecr get-login --no-include-email --region us-east-2'))
+                    'aws ecr get-login --registry-ids {} --no-include-email '
+                    '--region us-east-2'.format(AWS_ECR_ACCOUNT_NUMBER)))
 
                 print('docker_cmd: ' + docker_cmd)
 

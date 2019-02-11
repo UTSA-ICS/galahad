@@ -83,8 +83,8 @@ def setup_module():
     base_url = 'https://{0}/virtue/admin'.format(ip)
 
     subprocess.call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
-    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/4GB.img',
-                           '/mnt/efs/images/tests/4GB.img'])
+    subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
+                           '/mnt/efs/images/tests/8GB.img'])
 
     aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
 
@@ -213,13 +213,14 @@ def test_role_create():
         'version': '1.0',
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     response = session.get(
         base_url + '/role/create',
         params={'role': json.dumps(role),
-                'unitySize': '4GB'}
+                'unitySize': '8GB'}
     )
     print(response.json())
     assert set(response.json().keys()) == set(['id', 'name'])
@@ -264,10 +265,10 @@ def test_role_list():
     for obj in ls:
         assert set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds'
+            'startingTransducerIds', 'networkRules'
         ]) or set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds', 'state'
+            'startingTransducerIds', 'networkRules', 'state'
         ])
 
     result = query_elasticsearch_with_timeout(
@@ -421,7 +422,7 @@ def test_virtue_create():
     response = session.get(
         base_url + '/virtue/create',
         params={
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'DoesNotExist'
         })
     assert response.json() == ErrorCodes.admin['invalidRoleId']['result']
@@ -440,17 +441,18 @@ def test_virtue_destroy():
     try:
 
         # 'Create' a Virtue
-        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/4GB.img',
+        subprocess.check_call(['sudo', 'mv', '/mnt/efs/images/tests/8GB.img',
                                ('/mnt/efs/images/provisioned_virtues/'
                                'TEST_VIRTUE_DESTROY.img')])
 
         virtue = {
             'id': 'TEST_VIRTUE_DESTROY',
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'TBD',
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
+            'networkRules': [],
             'state': 'STOPPED',
             'ipAddress': 'NULL'
         }

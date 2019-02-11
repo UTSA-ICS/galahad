@@ -3,6 +3,7 @@
 import copy
 import os
 import sys
+import json
 import traceback
 
 file_path = os.path.realpath(__file__)
@@ -27,10 +28,10 @@ def setup_module():
 def test_get_obj():
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
 
     assert user == {
-        'cusername': ['jmitchell'],
+        'cusername': ['slapd'],
         'cauthRoleIds': ['[]'],
         'ou': ['virtue'],
         'objectClass': ['OpenLDAPuser']
@@ -38,7 +39,7 @@ def test_get_obj():
 
     ldap_tools.parse_ldap(user)
 
-    assert user == {'username': 'jmitchell', 'authorizedRoleIds': []}
+    assert user == {'username': 'slapd', 'authorizedRoleIds': []}
 
 
 def test_objs_of_type():
@@ -46,8 +47,8 @@ def test_objs_of_type():
     users = inst.get_objs_of_type('OpenLDAPuser')
 
     assert (
-        'cusername=jmitchell,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
-            'cusername': ['jmitchell'],
+        'cusername=slapd,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
+            'cusername': ['slapd'],
             'cauthRoleIds': ['[]'],
             'ou': ['virtue'],
             'objectClass': ['OpenLDAPuser']
@@ -70,7 +71,7 @@ def test_objs_of_type():
 
     users_parsed = ldap_tools.parse_ldap_list(users)
 
-    assert {'username': 'jmitchell', 'authorizedRoleIds': []} in users_parsed
+    assert {'username': 'slapd', 'authorizedRoleIds': []} in users_parsed
 
     assert {'username': 'fpatwa', 'authorizedRoleIds': []} in users_parsed
 
@@ -85,6 +86,7 @@ def test_write_to_ldap():
         'applicationIds': ['firefox', 'xterm'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': [],
         'version': '1.0'
     }
 
@@ -94,11 +96,12 @@ def test_write_to_ldap():
         'objectClass': 'OpenLDAProle',
         'ou': 'virtue',
         'cid': 'routeradmin',
-        'name': 'Router Admin',
-        'cversion': '1.0',
-        'cappIds': str(['firefox', 'xterm']),
+        'name': '"Router Admin"',
+        'cversion': '"1.0"',
+        'cappIds': json.dumps(['firefox', 'xterm']),
         'cstartResIds': '[]',
-        'cstartTransIds': '[]'
+        'cstartTransIds': '[]',
+        'cnetRules': '[]'
     }
 
     try:

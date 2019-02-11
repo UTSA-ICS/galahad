@@ -28,7 +28,7 @@ def get_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep = EndPoint('slapd@virtue.gov', 'Test123!')
     ep.inst = inst
 
     return ep
@@ -42,7 +42,7 @@ def get_admin_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    epa = EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
+    epa = EndPoint_Admin('slapd@virtue.gov', 'Test123!')
     epa.inst = inst
 
     return epa
@@ -56,7 +56,7 @@ def get_security_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    eps = EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+    eps = EndPoint_Security('slapd@virtue.gov', 'Test123!')
     eps.inst = inst
 
     return eps
@@ -89,7 +89,7 @@ def make_response(message):
 def get_user():
 
     user = User.query.filter_by(id=current_token.user_id).first()
-    user = user.email.replace('@virtue.com', '')
+    user = user.email.split("@")[0]
 
     return user
 
@@ -470,9 +470,13 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
+
+        # If UnitySize is not provided then set to default of 8GB
+        unitySize = request.args.get('unitySize', '8GB')
+
         ret = ep.role_create(
             json.loads(request.args['role']),
-            unity_img_name=request.args['unitySize'])
+            unity_img_name=unitySize)
         log_to_elasticsearch('Create admin role',
                              extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)
@@ -1113,6 +1117,65 @@ def admin_valor_migrate_virtue():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(valor_id)
+
+
+@bp.route('/admin/valor/auto_migration_start', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_start():
+    try:
+
+        ep = get_admin_endpoint()
+
+        migration_interval = request.args.get('migration_interval', None)
+
+        if migration_interval:
+            response = ep.auto_migration_start(migration_interval)
+        else:
+            response = ep.auto_migration_start()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_stop', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_stop():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_stop()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_status', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_status():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_status()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
 
 @bp.route('/admin/virtue/introspect_start', methods=['GET'])
 @require_oauth()

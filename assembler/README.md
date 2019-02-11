@@ -38,7 +38,7 @@ Unity construction is done with `Assembler.construct_unity(build_options, clean=
 While creating the Assembler object, `__init__` takes four optional arguments:
 ```
 es_node # The Elastic Search Node for storing logs. Defaults to 'https://aggregator.galahad.com:9200'
-syslog_server # The IP address for the Syslog Server. Defaults to '172.30.128.131'
+syslog_server # The IP address for the Syslog Server. Defaults to '192.168.4.10'
 rethinkdb_host # The IP address for RethinkDB. Defaults to 'rethinkdb.galahad.com'
 work_dir # The work directory
 ```
