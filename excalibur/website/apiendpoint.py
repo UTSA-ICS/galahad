@@ -255,7 +255,7 @@ class EndPoint():
                         print('Attempt {0} failed to connect').format(attempt_number+1)
 
                 if (not success):
-                    rdb_manager.remove_virtue(virtue['id'])
+                    valor_manager.rethinkdb_manager.remove_virtue(virtue['id'])
                     virtue['state'] = 'STOPPED'
                     ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                     self.inst.modify_obj(
@@ -428,7 +428,7 @@ class EndPoint():
                     + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
                     + ' name="{3}" -q)').format(
                         os.environ['HOME'], username, virtue['ipAddress'],
-                        app['name'].lower()))
+                        app['id'].lower()))
 
                 docker_exit = subprocess.call(args)
 
