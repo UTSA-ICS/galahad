@@ -280,6 +280,10 @@ class EndPoint_Security:
             ret = self.__update_roles_transducer(transducerId, isEnabled)
             if ret != True:
                     return ret
+
+            ret = self.__update_transducer_starting_config(transducerId, configuration)
+            if ret != True:
+                    return ret
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
                 return json.dumps(ErrorCodes.user['unspecifiedError'])
@@ -553,8 +557,6 @@ class EndPoint_Security:
             roles = ldap_tools.parse_ldap_list(ldap_roles)
 
             for role in roles:
-                print(role)
-                print(role['startingTransducerIds'])
                 new_t_list = role['startingTransducerIds']
 
                 if isEnabled:
@@ -576,3 +578,22 @@ class EndPoint_Security:
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    def __update_transducer_starting_config(self, transducerId, configuration):
+        transducer = self.inst.get_obj('cid', transducerId,
+                                       'openLDAPtransducer', True)
+        if transducer is None or transducer == ():
+            return self.__error('invalidTransducerId')
+
+
+        ldap_tools.parse_ldap(transducer)
+        transducer['startingConfiguration'] = configuration
+
+        ret = self.inst.modify_obj('cid', transducer['id'], ldap_tools.to_ldap(transducer, 'openLDAPtransducer'),
+                                   'openLDAPtransducer', True)
+        if ret != 0:
+            return self.__error(
+                'unspecifiedError',
+                details='Unable to update virtue\'s list of transducers')
+
+        return True
