@@ -315,11 +315,29 @@ class EndPoint():
                     ErrorCodes.user['virtueStateCannotBeStopped'])
 
             try:
+                for res in virtue['resourceIds']:
+                    resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                    ldap_tools.parse_ldap(resource)
+                    resource_manager = ResourceManager(username, resource)
+                    call = 'remove_' + resource['type'].lower()
+                    getattr(resource_manager, call)(
+                        virtue['ipAddress'],
+                        os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+
+                ret = subprocess.check_call(['ssh', '-i',
+                                       os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                       'virtue@' + virtue['ipAddress'],
+                                       '-t', 'sudo rm /tmp/krb5cc_0'])
+                assert ret == 0
+
                 if (use_valor):
                     rdb_manager = RethinkDbManager()
                     rdb_manager.remove_virtue(virtue['id'])
             except AssertionError:
                 return json.dumps(ErrorCodes.user['serverStopError'])
+            except:
+                print('Error:\n{}'.format(traceback.format_exc()))
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
             else:
                 virtue['state'] = 'STOPPED'
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
