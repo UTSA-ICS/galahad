@@ -269,7 +269,9 @@ class EndPoint_Security:
 
     def transducer_all_virtues(self, transducerId, configuration, isEnabled):
         '''
-        Sets
+        Sets the given transducer to true for all running and stopped virtues.
+        Updates roles and starting configuration to match, so additionally created
+        or started virtues will share the same config.
 
         :param transducerId:
         :param isEnabled::o
