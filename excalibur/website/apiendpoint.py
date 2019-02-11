@@ -255,7 +255,7 @@ class EndPoint():
                         print('Attempt {0} failed to connect').format(attempt_number+1)
 
                 if (not success):
-                    rdb_manager.remove_virtue(virtue['id'])
+                    valor_manager.rethinkdb_manager.remove_virtue(virtue['id'])
                     virtue['state'] = 'STOPPED'
                     ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                     self.inst.modify_obj(
@@ -351,11 +351,26 @@ class EndPoint():
                     + ' virtue@{2} sudo docker start $(sudo docker ps -af'
                     + ' name="{3}" -q)').format(
                         os.environ['HOME'], username, virtue['ipAddress'],
-                        app['name'].lower()))
+                        app['id'].lower()))
 
-                docker_exit = subprocess.call(args)
+                with open(os.devnull, 'w')  as DEVNULL:
+                    docker_exit = subprocess.call(args, stdout=DEVNULL,
+                                                  stderr=subprocess.STDOUT)
 
                 if (docker_exit != 0):
+                    # This is an issue with docker where if the docker daemon exits
+                    # uncleanly then a system file is locked and docker start fails
+                    # with the error:
+                    #     Error response from daemon: id already in use
+                    #     Error: failed to start containers:
+                    # The current workaround is to issue the docker start command
+                    # twice. Tne first time it fails with the above error and the
+                    # second time it succeeds.
+                    docker_exit = subprocess.call(args)
+                if (docker_exit != 0):
+                    print(
+                        "Docker start command for launching application {} Failed".format(
+                            app['id']))
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
 
             virtue['applicationIds'].append(applicationId)
@@ -413,7 +428,7 @@ class EndPoint():
                     + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
                     + ' name="{3}" -q)').format(
                         os.environ['HOME'], username, virtue['ipAddress'],
-                        app['name'].lower()))
+                        app['id'].lower()))
 
                 docker_exit = subprocess.call(args)
 

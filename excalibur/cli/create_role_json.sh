@@ -17,7 +17,8 @@ echo -e '{
     "version": "1.0",
     "applicationIds": ['\"$2\"'],
     "startingResourceIds": [],
-    "startingTransducerIds": ["path_mkdir", "bprm_set_creds", "task_create", "task_alloc", "inode_create", "socket_connect", "socket_bind", "socket_accept", "socket_listen", "create_process", "process_start", "process_died", "srv_create_proc", "open_fd"]
+    "startingTransducerIds": ["path_mkdir", "bprm_set_creds", "task_create", "task_alloc", "inode_create", "socket_connect", "socket_bind", "socket_accept", "socket_listen", "create_process", "process_start", "process_died", "srv_create_proc", "open_fd"],
+    "networkRules": []
 }' > role_$1.json
 
 echo ""
