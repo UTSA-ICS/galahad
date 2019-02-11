@@ -591,6 +591,12 @@ class ValorManager:
             .update({'valor_dest': destination_valor['address'],
                      'enabled': True}).run()
 
+        rethinkdb.db('transducers').table('commands') \
+            .filter({'virtue_id': virtue_id,
+                     'transducer_id': 'introspection'}) \
+            .update({"valor_id": destination_valor_id}).run()
+
+
     def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
         self.create_standby_valors()
 
