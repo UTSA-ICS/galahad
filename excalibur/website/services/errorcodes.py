@@ -316,6 +316,14 @@ class ErrorCodes():
                 + 'Destroy the virtue before attempting to destroy the role.'
             ]
         },
+        'virtueUsingResource': {
+            'status': 'failed',
+            'result': [
+                14,
+                'A virtue exists which is using the specified resource. '
+                + 'Detach the resource before attempting to destroy.'
+            ]
+        },
         'userUsingRole': {
             'status': 'failed',
             'result': [
