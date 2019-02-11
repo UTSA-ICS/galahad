@@ -808,6 +808,9 @@ class EndPoint_Admin():
 
     def virtue_introspect_start_all(self, interval=None, modules=None):
         try:
+            ret = self._set_introspection_role(True)
+            if ret != True:
+                return ret
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
                 return json.dumps(ErrorCodes.user['unspecifiedError'])
@@ -825,6 +828,9 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def virtue_introspect_stop_all(self):
+        ret = self._set_introspection_role(False)
+        if ret != True:
+            return ret
         try:
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
@@ -867,3 +873,35 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
         return json.dumps(ErrorCodes.admin['success'])
+
+    def _set_introspection_role(self, isEnabled):
+        introspection_id = 'introspection'
+        try:
+            ldap_roles = self.inst.get_objs_of_type('OpenLDAProle')
+            assert ldap_roles != None
+
+            roles = ldap_tools.parse_ldap_list(ldap_roles)
+
+            for role in roles:
+                print(role)
+                print(role['startingTransducerIds'])
+                new_t_list = role['startingTransducerIds']
+
+                if isEnabled:
+                    if introspection_id not in new_t_list:
+                        new_t_list.append(introspection_id)
+                else:
+                    if introspection_id in new_t_list:
+                        new_t_list.remove(introspection_id)
+
+                role['startingTransducerIds'] = new_t_list
+                ret = self.inst.modify_obj('cid', role['id'], ldap_tools.to_ldap(role, 'OpenLDAProle'),
+                                           'OpenLDAProle', True)
+                if ret != 0:
+                    return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            return True
+
+        except Exception as e:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])

@@ -277,6 +277,9 @@ class EndPoint_Security:
         '''
 
         try:
+            ret = self.__update_roles_transducer(transducerId, isEnabled)
+            if ret != True:
+                    return ret
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
                 return json.dumps(ErrorCodes.user['unspecifiedError'])
@@ -535,3 +538,41 @@ class EndPoint_Security:
             #e['details'] = details
             e['result'].append(details)
         return json.dumps(e)
+
+    def __update_roles_transducer(self, transducerId, isEnabled):
+        # Make sure transducer exists
+        transducer = self.inst.get_obj('cid', transducerId,
+                                       'openLDAPtransducer', True)
+        if transducer is None or transducer == ():
+            return self.__error('invalidTransducerId')
+
+        try:
+            ldap_roles = self.inst.get_objs_of_type('OpenLDAProle')
+            assert ldap_roles != None
+
+            roles = ldap_tools.parse_ldap_list(ldap_roles)
+
+            for role in roles:
+                print(role)
+                print(role['startingTransducerIds'])
+                new_t_list = role['startingTransducerIds']
+
+                if isEnabled:
+                    if transducerId not in new_t_list:
+                        new_t_list.append(transducerId)
+                else:
+                    if transducerId in new_t_list:
+                        new_t_list.remove(transducerId)
+
+                role['startingTransducerIds'] = new_t_list
+                ret = self.inst.modify_obj('cid', role['id'], ldap_tools.to_ldap(role, 'OpenLDAProle'),
+                                           'OpenLDAProle', True)
+                if ret != 0:
+                    return self.__error(
+                        'unspecifiedError',
+                        details='Unable to update virtue\'s list of transducers')
+            return True
+
+        except Exception as e:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
