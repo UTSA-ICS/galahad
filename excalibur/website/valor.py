@@ -410,6 +410,27 @@ class ValorManager:
 
         self.rethinkdb_manager.set_valor(valor_id, 'state', 'RUNNING')
 
+        valor_ip = self.rethinkdb_manager.get_valor(valor_id)['address']
+
+        # Add NFS export line for valor to access email preferences dir
+        try:
+            line = subprocess.check_output("grep mnt/ost /etc/exports", shell=True).strip("\n")
+            line_num = subprocess.check_output("sed -n '/mnt\/ost/=' /etc/exports", shell=True).strip("\n")
+
+            # Remove current line and replace with updated export
+            ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
+            assert ret == 0
+
+            line+= " {}(rw,sync,no_subtree_check)".format(valor_ip)
+            ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+            assert ret == 0
+
+            ret = subprocess.check_call(['sudo', 'exportfs', '-ra'])
+            assert ret == 0
+
+        except Exception as e:
+            print("Failed to append to NFS exports with message: {}".format(e))
+
         return instance.id
 
 
@@ -794,49 +815,15 @@ class ResourceManager:
         print("WAT:    EMAIL")
         if not os.path.exists(os.path.join("/mnt/ost", self.username)):
             try:
-                os.mkdir(os.path.join("/mnt/ost/", self.username))
-                ret = subprocess.check_call("sudo chown nobody:nogroup /mnt/ost/{}".format(self.username))
+                ret = subprocess.check_call("sudo mkdir -p /mnt/ost/{}".format(self.username), shell=True)
+                assert ret == 0
+                ret = subprocess.check_call("sudo chown nobody:nogroup /mnt/ost/{}".format(self.username), shell=True)
                 assert ret == 0
             except Exception as e:
                 print("Failed to create ost user directory with error: {}".format(e))
-
-        try:
-
-            # Retrieve current export line for user and line number
-            line = subprocess.check_output("grep {} /etc/exports".format(self.username), shell=True).strip('\n')
-            line_num = subprocess.check_output("sed -n '/{}/=' /etc/exports".format(self.username),
-                shell=True).strip('\n')
-
-            # Remove current line
-            ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
-            assert ret == 0
-
-            # Append updated line to file with added virtue ip for access
-            line+= " {}(rw,sync,no_subtree_check)".format(virtue_ip)
-            ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
-            assert ret == 0
-
-        except subprocess.CalledProcessError as e:
-            # If error caused by 'grep' ret == 1, exports entry for user doesn't exist
-            if e.returncode == 1:
-
-                # Create exports entry for user
-                line = "/mnt/ost/{}    {}(rw,sync,no_subtree_check)".format(self.username, virtue_ip)
-                ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
-                assert ret == 0
-    
-            else:
-                print("Failed to append to NFS exports with message: {}".format(e))
                 return
 
-        except Exception as e:
-            print("Falled to append to NFS exports with message: {}".format(e))
-            return
-
         try:
-            ret = subprocess.check_call(['sudo', 'exportfs', '-r'])
-            assert ret == 0
-
             ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
                                          '-t', 'sudo', 'mkdir', '/ost'])
             assert ret == 0
