@@ -346,10 +346,28 @@ class EndPoint_Security:
                 return self.__error(
                     'unspecifiedError',
                     details='Unable to update virtue\'s list of transducers')
- 
+
             virtue['transducerIds'] = new_t_list
             ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
                 'OpenLDAPvirtue', True)
+            if ret != 0:
+                return self.__error(
+                    'unspecifiedError',
+                    details='Unable to update virtue\'s list of transducers')
+        else:
+            # Update list of transducers in LDAP without syncing it with rethink (Non-running virutes are not in rethink)
+            new_t_list = json.loads(virtue['transducerIds'])
+
+            if isEnable:
+                if transducerId not in new_t_list:
+                    new_t_list.append(transducerId)
+            else:
+                if transducerId in new_t_list:
+                    new_t_list.remove(transducerId)
+
+            virtue['transducerIds'] = json.dumps(new_t_list)
+            ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                                       'OpenLDAPvirtue', True)
             if ret != 0:
                 return self.__error(
                     'unspecifiedError',

@@ -785,6 +785,9 @@ class EndPoint_Admin():
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
+            ret = self._set_introspection_ldap(virtue_id, True)
+            if ret != json.dumps(ErrorCodes.admin['success']):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
             return json.dumps({'virtue_id': virtue_id})
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -794,6 +797,9 @@ class EndPoint_Admin():
     def virtue_introspect_stop(self, virtue_id):
         try:
             self.rdb_manager.introspect_virtue_stop(virtue_id)
+            ret = self._set_introspection_ldap(virtue_id, False)
+            if ret != json.dumps(ErrorCodes.admin['success']):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
             return json.dumps({'virtue_id': virtue_id})
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -809,6 +815,9 @@ class EndPoint_Admin():
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
                 self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
+                ret = self._set_introspection_ldap(virtue[1]['id'], True)
+                if ret != json.dumps(ErrorCodes.admin['success']):
+                    return json.dumps(ErrorCodes.user['unspecifiedError'])
 
             return json.dumps(ErrorCodes.admin['success'])
         except:
@@ -823,9 +832,38 @@ class EndPoint_Admin():
 
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
-                self.rdb_manager.introspect_virtue_start(virtue[1]['id'])
+                self.rdb_manager.introspect_virtue_stop(virtue[1]['id'])
+                ret = self._set_introspection_ldap(virtue[1]['id'], False)
+                if ret != json.dumps(ErrorCodes.admin['success']):
+                    return json.dumps(ErrorCodes.user['unspecifiedError'])
 
             return json.dumps(ErrorCodes.admin['success'])
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def _set_introspection_ldap(self, virtueId, isEnabled):
+        introsection_id = 'introspection'
+        virtue = self.inst.get_obj('cid', virtueId,
+                                       'OpenLDAPvirtue', True)
+        if virtue is None or virtue == ():
+            return json.dumps(ErrorCodes.admin['invalidVirtueId'])
+
+        ldap_tools.parse_ldap(virtue)
+
+        new_t_list = json.loads(virtue['transducerIds'])
+
+        if isEnabled:
+            if introsection_id not in new_t_list:
+                new_t_list.append(introsection_id)
+        else:
+            if introsection_id in new_t_list:
+                new_t_list.remove(introsection_id)
+
+        virtue['transducerIds'] = json.dumps(new_t_list)
+        ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                                   'OpenLDAPvirtue', True)
+        if ret != 0:
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+        return json.dumps(ErrorCodes.admin['success'])
