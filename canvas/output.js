@@ -4,20 +4,6 @@ const exec = require('child_process').exec;
 const fs = require('fs');
 const debug = require('debug')('connector');
 var Client = require('ssh2').Client;
-const config = {
-  username: 'virtue',
-  //password:"derp",
-  //host: "ec2-54-91-72-220.compute-1.amazonaws.com",
-  //host: "172.30.1.246",
-  host: '34.226.244.252',
-  port: 6767,
-  dstHost: '127.0.0.1',
-  dstPort: 2023,
-  localHost: '0.0.0.0',
-  localPort: 10000,
-  //privateKey:fs.readFileSync('key.pem')
-  privateKey: 'key.pem',
-};
 let data = null;
 const express = require('express')
   , logger = require('morgan')
@@ -382,22 +368,10 @@ function bringToFront(appId) {
 }
 
 
-function getExcaliburIpAddress() {
-  console.log('entry: getExcaliburIpAddress()');
-
-  // MVS
-  //excaliburIpAddress = document.getElementById("excaliburIpAddress").value;
-  excaliburIpAddress = 'excalibur.galahad.com';
-
-  console.log(`getExcaliburIpAddress = ${excaliburIpAddress}`);
-  console.log('exit: getExcaliburIpAddress()');
-}
-
-
 function login(e) {
   console.log('login() entry');
 
-  getExcaliburIpAddress();
+  excaliburIpAddress = 'excalibur.galahad.com';
   checkOAuth();
 
   console.log('login() exit');
