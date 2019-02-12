@@ -60,7 +60,7 @@ def __setup_virtue():
     else:
         new_virtue = True
         role = integration_common.create_new_role('SecurityTestRole')
-        virtue = integration_common.create_new_virtue('jmitchell', role['id'])
+        virtue = integration_common.create_new_virtue('slapd', role['id'])
         virtue_ip = virtue['ipAddress']
         virtue_id = virtue['id']
         role_id = virtue['roleId']
@@ -345,6 +345,6 @@ def teardown_module():
         # Only delete a Virtue if it was created during these tests, not passed in manually
         if new_virtue:
             # Cleanup the new virtue created
-            integration_common.cleanup_virtue('jmitchell', virtue_id)
+            integration_common.cleanup_virtue('slapd', virtue_id)
             # Cleanup the new role created
-            integration_common.cleanup_role('jmitchell', role_id)
+            integration_common.cleanup_role('slapd', role_id)

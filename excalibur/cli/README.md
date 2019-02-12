@@ -54,7 +54,7 @@ optional arguments:
   -o OUTFILE, --outfile OUTFILE     File to write access token to (default is usertoken.json)
   -A APPID, --appid APPID           Application ID to use (default is APP_1)
 
-$ python sso_login.py -u jmitchell@virtue.com -o token.json 54.172.77.13:5002
+$ python sso_login.py -u jmitchell@virtue.gov -o token.json 54.172.77.13:5002
 ```
 
 You'll also have to set some environment variables, either on the command line, or in your environment, in order for the CLI to know where things are:
