@@ -12,6 +12,16 @@ body {
   display: flex;
 }
 
+.appBackground {
+  position: relative;
+  background-image: url("../img/virtue.png");
+  background-repeat:no-repeat;
+  /* background-size:100% 100vh; */
+  background-size:initial;
+  background-position: center;
+  background-color:rgba(238,238,238,1);
+}
+
 .greeting {
   display: flex;
   font-size: 2rem;
@@ -25,14 +35,14 @@ body {
   border: 1px solid;
 }
 .submit {
-  background-color: #009688;
+  background-color: #0059b2;
   color: white;
   border: 1px solid black;
   padding: 10px;
   font-size: 1.3rem;
   align-self: flex-end;
   border-radius: 5px;
-  margin-top: 10px;
+  /* margin-top: 10px; */
   opacity: 0.75;
 }
 .submit:hover {
@@ -43,7 +53,7 @@ body {
   opacity: 0.85;
 }
 .control_button {
-  background-color: #009688;
+  background-color: #0059b2;
   color: white;
   border: 1px solid black;
   padding: 10px;
@@ -89,12 +99,13 @@ webview {
   overflow: hidden;
 }
 .wrapper {
+  background-color: #0059b2;
   padding: 10px;
   display: flex;
   flex-direction: column;
   position: relative; /* to hide dock. absolute gets weird. */
   flex: 1;
-  box-shadow:  0 0 7px 4px rgba(0,0,0,0.5);
+  /* box-shadow:  0 0 7px 4px rgba(0,0,0,0.5); */
 }
 
 .admin {
@@ -107,22 +118,22 @@ webview {
   border-color: #E91E63;
 }
 .editor {
-  color: #FF9800;
+  color: #0059b2;
 }
 .editor-bg {
-  background-color: #FF9800;
+  background-color: #0059b2;
 }
 .editor-border {
-  border-color: #FF9800;
+  border-color: #0059b2;
 }
 .viewer {
-  color: #009688;
+  color: #0059b2;
 }
 .viewer-bg {
-  background-color: #009688;
+  background-color: #0059b2;
 }
 .viewer-border {
-  border-color: #009688;
+  border-color: #0059b2;
 }
 
 #dockWrapper {
