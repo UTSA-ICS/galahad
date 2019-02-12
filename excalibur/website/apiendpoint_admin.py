@@ -8,7 +8,8 @@ import traceback
 import requests
 
 from apiendpoint import EndPoint
-from controller import CreateVirtueThread, AssembleRoleThread
+from controller import CreateVirtueThread, \
+    AssembleRoleThread
 from create_ldap_users import update_ldap_users_from_ad
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -785,9 +786,6 @@ class EndPoint_Admin():
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
-            ret = self._set_introspection_ldap(virtue_id, True)
-            if ret != json.dumps(ErrorCodes.admin['success']):
-                return json.dumps(ErrorCodes.user['unspecifiedError'])
             return json.dumps({'virtue_id': virtue_id})
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -797,9 +795,6 @@ class EndPoint_Admin():
     def virtue_introspect_stop(self, virtue_id):
         try:
             self.rdb_manager.introspect_virtue_stop(virtue_id)
-            ret = self._set_introspection_ldap(virtue_id, False)
-            if ret != json.dumps(ErrorCodes.admin['success']):
-                return json.dumps(ErrorCodes.user['unspecifiedError'])
             return json.dumps({'virtue_id': virtue_id})
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -808,19 +803,15 @@ class EndPoint_Admin():
 
     def virtue_introspect_start_all(self, interval=None, modules=None):
         try:
-            ret = self._set_introspection_role(True)
-            if ret != True:
-                return ret
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
                 return json.dumps(ErrorCodes.user['unspecifiedError'])
 
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
-                self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
-                ret = self._set_introspection_ldap(virtue[1]['id'], True)
-                if ret != json.dumps(ErrorCodes.admin['success']):
-                    return json.dumps(ErrorCodes.user['unspecifiedError'])
+                virtue_running = (virtue[1]['state'] == 'RUNNING')
+                if virtue_running:
+                    self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
 
             return json.dumps(ErrorCodes.admin['success'])
         except:
@@ -828,9 +819,6 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def virtue_introspect_stop_all(self):
-        ret = self._set_introspection_role(False)
-        if ret != True:
-            return ret
         try:
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
@@ -838,10 +826,9 @@ class EndPoint_Admin():
 
             for virtue in virtues_raw:
                 ldap_tools.parse_ldap(virtue[1])
-                self.rdb_manager.introspect_virtue_stop(virtue[1]['id'])
-                ret = self._set_introspection_ldap(virtue[1]['id'], False)
-                if ret != json.dumps(ErrorCodes.admin['success']):
-                    return json.dumps(ErrorCodes.user['unspecifiedError'])
+                virtue_running = (virtue[1]['state'] == 'RUNNING')
+                if virtue_running:
+                    self.rdb_manager.introspect_virtue_stop(virtue[1]['id'])
 
             return json.dumps(ErrorCodes.admin['success'])
         except:
