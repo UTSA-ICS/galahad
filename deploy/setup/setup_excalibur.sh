@@ -28,4 +28,4 @@ echo "172.30.1.250 camelot.virtue.gov camelot" | sudo tee -a /etc/hosts
 
 # nfs ost setup
 sudo mkdir /mnt/ost
-echo "excalibur.galahad.com(rw,sync,no_subtree_check)" | sudo tee -a /etc/exports
+echo "/mnt/ost excalibur.galahad.com(rw,sync,no_subtree_check)" | sudo tee -a /etc/exports

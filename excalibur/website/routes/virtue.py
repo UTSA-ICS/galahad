@@ -341,17 +341,13 @@ def admin_application_list():
 @require_oauth()
 def admin_resource_create():
     ret = ''
-    print("1")
     try:
         ep = get_admin_endpoint()
-        print("2")
         ret = ep.resource_create(
             json.loads(request.args['resource']))
-        print("3")
         log_to_elasticsearch('Create admin resource',
                              extra={'user': get_user(), 'resource_id': request.args['resource']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)
-        print("4")
     except:
         print("Unexpected error:", sys.exc_info())
 

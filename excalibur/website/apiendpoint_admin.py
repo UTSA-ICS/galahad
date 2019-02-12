@@ -44,29 +44,25 @@ class EndPoint_Admin():
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
     def resource_create(self, resource):
-        print("A")
         try:
             resource_keys = [
                 'credentials',
                 'type',
                 'unc'
             ]
-            print("B")
             if (set(resource.keys()) != set(resource_keys)
                     and set(resource.keys()) != set(resource_keys + ['id'])):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
-            print("C")
             if (not isinstance(resource['credentials'], basestring)
                     or not isinstance(resource['type'], basestring)
                     or not isinstance(resource['unc'], basestring)):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
-            print("D")
             resource['id'] = 'Resource_{}_{}'.format(resource['type'], int(time.time()))
-            print("E")
             ldap_resource = ldap_tools.to_ldap(resource, 'OpenLDAPresource')
             self.inst.add_obj(ldap_resource, 'resources', 'cid', throw_error=True)
+
+            return json.dumps(resource)
         except Exception as e:
-            print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
     def resource_destroy(self, resourceId):
