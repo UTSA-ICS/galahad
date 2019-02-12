@@ -96,7 +96,7 @@ if (__name__ == '__main__'):
     starting_roles = []
 
     starting_roles.append({
-        'name': 'Document Editor',
+        'name': 'Document_Editor',
         'version': '1.0',
         'applicationIds': [
             #'office-word',
@@ -110,7 +110,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Windows Corporate Email User',
+        'name': 'Windows_Corporate_Email_User',
         'version': '1.0',
         'applicationIds': [
             #'office-outlook',
@@ -123,7 +123,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Router Admin',
+        'name': 'Router_Admin',
         'version': '1.0',
         'applicationIds': [
             'terminal',
@@ -135,7 +135,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Linux Corporate Email User',
+        'name': 'Linux_Corporate_Email_User',
         'version': '1.0',
         'applicationIds': [
             'thunderbird',
@@ -147,7 +147,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'External Internet Consumer',
+        'name': 'External_Internet_Consumer',
         'version': '1.0',
         'applicationIds': [
             'chrome',
@@ -159,7 +159,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Linux and Windows Power User',
+        'name': 'Linux_and_Windows_Power_User',
         'version': '1.0',
         'applicationIds': [
             'chrome',
