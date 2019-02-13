@@ -210,10 +210,10 @@ class LDAP():
 
 
 if __name__ == "__main__":
-    user = LDAP('klittle@virtue.com', 'Test123!')
+    user = LDAP('klittle@virtue.gov', 'Test123!')
     user.bind_ad()
-    print user.query_ad('userPrincipalName', 'klittle@virtue.com')
+    print user.query_ad('userPrincipalName', 'klittle@virtue.gov')
 
-    user2 = LDAP('jmitchell@virtue.com', 'Test123!')
+    user2 = LDAP('slapd@virtue.gov', 'Test123!')
     user2.bind_ldap()
-    print user2.query_ldap('cn', 'jmitchell')
+    print user2.query_ldap('cn', 'slapd')

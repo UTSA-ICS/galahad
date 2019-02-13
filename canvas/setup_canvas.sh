@@ -15,7 +15,7 @@ if [[ $# != 2 ]];
 then
   echo ""
   echo "Enter username and passwurd e.g"
-  echo "  $0 jmitchell@virtue.com Test123!"
+  echo "  $0 jmitchell@virtue.gov Test123!"
   echo ""
   echo ""
   exit 0
@@ -36,8 +36,8 @@ certutil -d sql:$HOME/.pki/nssdb -A -t "PC,," -n excalibur.galahad.com -i $HOME/
 
 # Download the NWJS Package and untar it
 cd $HOME
-wget https://dl.nwjs.io/v0.34.5/nwjs-sdk-v0.34.5-linux-x64.tar.gz
-tar -xzf nwjs-sdk-v0.34.5-linux-x64.tar.gz
+wget https://dl.nwjs.io/v0.36.0/nwjs-sdk-v0.36.0-linux-x64.tar.gz
+tar -xzf nwjs-sdk-v0.36.0-linux-x64.tar.gz
 
 cd $HOME/$CANVAS_DIR
 npm install

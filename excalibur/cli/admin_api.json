@@ -219,6 +219,26 @@
             ] 
         },
         {
+            "command": "auto migrate start",
+            "help": "Start Automated Migration",
+            "url": "/valor/auto_migration_start",
+            "parameters": [
+                { "name": "The Automated virtue migration time interval in seconds", "url_name": "migration_interval" }
+            ]
+        },
+        {
+            "command": "auto migrate stop",
+            "help": "Stop Automated Migration",
+            "url": "/valor/auto_migration_stop",
+            "parameters": []
+        },
+        {
+            "command": "auto migrate status",
+            "help": "Get Status of Automated Migration",
+            "url": "/valor/auto_migration_status",
+            "parameters": []
+        },
+        {
             "command": "virtue introspect start",
             "help": "Start introspection on a specific Virtue",
             "url": "/virtue/introspect_start",

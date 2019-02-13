@@ -110,7 +110,7 @@ def virtue_launch():
     # Create a new role
     role = integration_common.create_new_role('ValorTestMigrateVirtueRole')
 
-    virtue = integration_common.create_new_virtue('jmitchell', role['id'])
+    virtue = integration_common.create_new_virtue('slapd', role['id'])
 
     try:
         rethinkdb_manager = RethinkDbManager()
@@ -144,10 +144,10 @@ def virtue_launch():
         assert xl_list.count('\n') == 3
     except:
         # Cleanup the new virtue created
-        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        integration_common.cleanup_virtue('slapd', virtue['id'])
 
         # Cleanup the new role created
-        integration_common.cleanup_role('jmitchell', role['id'])
+        integration_common.cleanup_role('slapd', role['id'])
 
         raise
 
@@ -260,11 +260,11 @@ class Test_ValorAPI:
         assert is_virtue_running(destination_valor_ip_address)
 
         # Cleanup the new virtue created
-        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        integration_common.cleanup_virtue('slapd', virtue['id'])
         virtue = None
 
         # Cleanup the new role created
-        integration_common.cleanup_role('jmitchell', role['id'])
+        integration_common.cleanup_role('slapd', role['id'])
         role = None
 
         # Cleanup the used valor node
@@ -277,7 +277,7 @@ def teardown_module():
     if virtue:
 
         # Cleanup the new virtue created
-        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        integration_common.cleanup_virtue('slapd', virtue['id'])
 
         # Cleanup the new role created
-        integration_common.cleanup_role('jmitchell', role['id'])
+        integration_common.cleanup_role('slapd', role['id'])

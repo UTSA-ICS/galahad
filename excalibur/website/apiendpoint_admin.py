@@ -146,7 +146,8 @@ class EndPoint_Admin():
                 'version',
                 'applicationIds',
                 'startingResourceIds',
-                'startingTransducerIds'
+                'startingTransducerIds',
+                'networkRules'
             ]
             if (set(role.keys()) != set(role_keys)
                     and set(role.keys()) != set(role_keys + ['id'])):
@@ -156,6 +157,7 @@ class EndPoint_Admin():
                     or not isinstance(role['version'], basestring)
                     or type(role['applicationIds']) != list
                     or type(role['startingResourceIds']) != list
+                    or type(role['networkRules']) != list
                     or type(role['startingTransducerIds']) != list):
                 return json.dumps(ErrorCodes.admin['invalidFormat'])
 
@@ -514,6 +516,7 @@ class EndPoint_Admin():
                     'applicationIds': [],
                     'resourceIds': role['startingResourceIds'],
                     'transducerIds': role['startingTransducerIds'],
+                    'networkRules': role['networkRules'],
                     'state': 'STOPPED',
                     'ipAddress': 'NULL'
                 }
@@ -744,6 +747,39 @@ class EndPoint_Admin():
 
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+
+    def auto_migration_start(self, migration_interval=None):
+        try:
+            self.valor_api.auto_migration_start(migration_interval)
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def auto_migration_stop(self):
+        try:
+            self.valor_api.auto_migration_stop()
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def auto_migration_status(self):
+        try:
+            status, interval = self.valor_api.auto_migration_status()
+            if status:
+                migration_status = 'ON'
+                return json.dumps({'auto_migration_status': migration_status,
+                                   'auto_migration_interval': interval})
+            else:
+                migration_status = 'OFF'
+                return json.dumps({'auto_migration_status': migration_status})
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
 
 
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):

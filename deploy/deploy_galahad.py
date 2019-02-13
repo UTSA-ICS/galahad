@@ -729,13 +729,30 @@ class StandbyPools:
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
+class AutomatedVirtueMigration:
+
+    def __init__(self, stack_name, ssh_key):
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.server_ip = EXCALIBUR_HOSTNAME
+
+    def activate_automated_virtue_migration(self, migration_interval):
+        username = "slapd@virtue.gov"
+        password = "Test123!"
+        _cmd = "cd('galahad/deploy/setup').and_().bash('./automated_virtue_migration.sh " \
+               "{0} {1} {2}')".format(username, password, migration_interval)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
-          aws_config, aws_keys, branch, image_size, user_key):
+          aws_config, aws_keys, branch, image_size, user_key, deactivate_virtue_migration,
+          auto_migration_interval):
+
     start_stack_time = time.time()
 
     stack = Stack()
-    #stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix,
-    #                  import_stack_name)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix,
+                      import_stack_name)
 
     logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format(
         (time.time() - start_stack_time) / 60))
@@ -848,6 +865,10 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
         '\n*** Time taken for Standby Pools of Valor is [{0}] ***\n'.format(
             (time.time() - start_standby_valor_pools_time) / 60))
 
+    if not deactivate_virtue_migration:
+        migration = AutomatedVirtueMigration(stack_name, path_to_key)
+        migration.activate_automated_virtue_migration(auto_migration_interval)
+
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
         (time.time() - start_setup_time) / 60))
 
@@ -896,6 +917,15 @@ def parse_args():
              "%(default)s)")
     parser.add_argument("--build_image_only", action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
+    parser.add_argument("-d",
+        "--deactivate_virtue_migration",
+        action="store_true",
+        help="Deactivate automated migration of Virtues")
+    parser.add_argument(
+        "--auto_migration_interval",
+        default=300,
+        type=int,
+        help="Specify the interval at which Virtues are automatically migrated")
 
     # Temporary:
     parser.add_argument("--default_user_key", type=str, required=True,
@@ -927,7 +957,8 @@ def main():
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
               args.aws_keys, args.branch_name, args.image_size,
-              args.default_user_key)
+              args.default_user_key, args.deactivate_virtue_migration,
+              args.auto_migration_interval)
 
     if args.setup_stack:
         stack = Stack()

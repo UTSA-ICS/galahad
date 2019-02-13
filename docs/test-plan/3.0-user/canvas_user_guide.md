@@ -32,7 +32,7 @@ Uncomment this out. Rerun canvas with
 
 Log in with the account
 	
-	jmitchell@virtue.com
+	jmitchell@virtue.gov
 	Test123!
 
 Open the firefox app (if availabile).  This should open an XPRA session for the firefox virtue

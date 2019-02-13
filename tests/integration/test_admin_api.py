@@ -213,7 +213,8 @@ def test_role_create():
         'version': '1.0',
         'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': []
+        'startingTransducerIds': [],
+        'networkRules': []
     }
 
     response = session.get(
@@ -264,10 +265,10 @@ def test_role_list():
     for obj in ls:
         assert set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds'
+            'startingTransducerIds', 'networkRules'
         ]) or set(obj.keys()) == set([
             'id', 'name', 'version', 'applicationIds', 'startingResourceIds',
-            'startingTransducerIds', 'state'
+            'startingTransducerIds', 'networkRules', 'state'
         ])
 
     result = query_elasticsearch_with_timeout(
@@ -421,7 +422,7 @@ def test_virtue_create():
     response = session.get(
         base_url + '/virtue/create',
         params={
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'DoesNotExist'
         })
     assert response.json() == ErrorCodes.admin['invalidRoleId']['result']
@@ -446,11 +447,12 @@ def test_virtue_destroy():
 
         virtue = {
             'id': 'TEST_VIRTUE_DESTROY',
-            'username': 'jmitchell',
+            'username': 'slapd',
             'roleId': 'TBD',
             'applicationIds': [],
             'resourceIds': [],
             'transducerIds': [],
+            'networkRules': [],
             'state': 'STOPPED',
             'ipAddress': 'NULL'
         }
