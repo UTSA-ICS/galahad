@@ -96,7 +96,7 @@ if (__name__ == '__main__'):
     starting_roles = []
 
     starting_roles.append({
-        'name': 'Document_Editor',
+        'name': 'Document Editor',
         'version': '1.0',
         'applicationIds': [
             #'office-word',
@@ -110,7 +110,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Windows_Corporate_Email_User',
+        'name': 'Windows Corporate Email User',
         'version': '1.0',
         'applicationIds': [
             #'office-outlook',
@@ -123,7 +123,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Router_Admin',
+        'name': 'Router Admin',
         'version': '1.0',
         'applicationIds': [
             'terminal',
@@ -135,7 +135,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Linux_Corporate_Email_User',
+        'name': 'Linux Corporate Email User',
         'version': '1.0',
         'applicationIds': [
             'thunderbird',
@@ -147,7 +147,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'External_Internet_Consumer',
+        'name': 'External Internet Consumer',
         'version': '1.0',
         'applicationIds': [
             'chrome',
@@ -159,7 +159,7 @@ if (__name__ == '__main__'):
     })
 
     starting_roles.append({
-        'name': 'Linux_and_Windows_Power_User',
+        'name': 'Linux and Windows Power User',
         'version': '1.0',
         'applicationIds': [
             'chrome',
@@ -176,7 +176,7 @@ if (__name__ == '__main__'):
 
     for role in starting_roles:
 
-        response = admin_call('role/create', role=role, unitySize='16GB')
+        response = admin_call('role/create', role=role, unitySize='8GB')
 
         if (type(response) != dict):
             print(json.dumps(role, indent=4, sort_keys=True))
