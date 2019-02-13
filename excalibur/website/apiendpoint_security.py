@@ -360,10 +360,8 @@ class EndPoint_Security:
             virtue['transducerIds'] = new_t_list
             ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
                 'OpenLDAPvirtue', True)
-            if ret != 0:
-                return self.__error(
-                    'unspecifiedError',
-                    details='Unable to update virtue\'s list of transducers')
+
+
         else:
             # Update list of transducers in LDAP without syncing it with rethink (Non-running virutes are not in rethink)
             new_t_list = virtue['transducerIds']
@@ -378,10 +376,11 @@ class EndPoint_Security:
             virtue['transducerIds'] = new_t_list
             ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
                                        'OpenLDAPvirtue', True)
-            if ret != 0:
-                return self.__error(
-                    'unspecifiedError',
-                    details='Unable to update virtue\'s list of transducers')
+
+        if ret != 0:
+            return self.__error(
+                'unspecifiedError',
+                details='Unable to update virtue\'s list of transducers')
 
         return True
 
