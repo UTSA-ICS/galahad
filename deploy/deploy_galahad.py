@@ -1,13 +1,5 @@
 #!/usr/bin/python3
 
-###
-# Test CI Orchestration:
-# - Setup Stack and Virtue Environment
-# - Start to collect system information to be able to run tests
-# -  - Get IP for LDAP/AD
-# - Checkout latest code
-# -
-###
 
 import argparse
 import json
@@ -48,13 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 def run_ssh_cmd(host_server, path_to_key, cmd):
-    config = SSHConfig(
-        identity_file=path_to_key,
+    config = SSHConfig(identity_file=path_to_key,
         option='StrictHostKeyChecking=no')
 
-    with Sultan.load(
-            user='ubuntu',
-            hostname=host_server,
+    with Sultan.load(user='ubuntu', hostname=host_server,
             ssh_config=config) as s:
 
         result = eval('s.{}.run()'.format(cmd))
@@ -64,8 +53,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
         else:
             logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
-                pformat(result.stdout),
-                pformat(result.stderr),
+                pformat(result.stdout), pformat(result.stderr),
                 pformat(result.is_success)))
 
         assert result.rc == 0
@@ -90,26 +78,21 @@ class Stack:
 
         return file.read()
 
-    def setup_stack(self, stack_template, stack_name, suffix_value, import_stack_name='None'):
+    def setup_stack(self, stack_template, stack_name, suffix_value,
+                    import_stack_name='None'):
 
         self.stack_template = stack_template
         self.stack_name = stack_name
         self.suffix_value = suffix_value
 
         client = boto3.client('cloudformation')
-        stack = client.create_stack(
-            StackName=self.stack_name,
+        stack = client.create_stack(StackName=self.stack_name,
             TemplateBody=self.read_template(),
-            Parameters=[{
-                'ParameterKey': 'KeyName',
-                'ParameterValue': key_name
-            }, {
-                'ParameterKey': 'NameSuffix',
-                'ParameterValue': self.suffix_value
-            }, {
-                'ParameterKey': 'ImportStackName',
-                'ParameterValue': import_stack_name
-            }])
+            Parameters=[{'ParameterKey': 'KeyName', 'ParameterValue': key_name},
+                {'ParameterKey': 'NameSuffix',
+                    'ParameterValue': self.suffix_value},
+                {'ParameterKey': 'ImportStackName',
+                    'ParameterValue': import_stack_name}])
 
         logger.info('Starting up Stack [{}] ...'.format(self.stack_name))
         waiter = client.get_waiter('stack_create_complete')
@@ -120,10 +103,9 @@ class Stack:
 
         for event in response['StackEvents']:
             if 'CREATE_COMPLETE' in event['ResourceStatus']:
-                logger.info('{} {} {}'.format(
-                    event['Timestamp'],
-                    event['ResourceType'],
-                    event['ResourceStatus']))
+                logger.info(
+                    '{} {} {}'.format(event['Timestamp'], event['ResourceType'],
+                        event['ResourceStatus']))
 
         # Wait a min to Ensure that the Stack resources are completely online.
         time.sleep(60)
@@ -147,20 +129,14 @@ class Stack:
     def clear_security_groups(self):
 
         client = boto3.client('ec2')
-        security_groups = client.describe_security_groups(
-            Filters=[{
-                'Name': 'tag-key',
-                'Values': ['aws:cloudformation:stack-name']
-            }, {
-                'Name': 'tag-value',
-                'Values': [self.stack_name]
-            }])
+        security_groups = client.describe_security_groups(Filters=[
+            {'Name': 'tag-key', 'Values': ['aws:cloudformation:stack-name']},
+            {'Name': 'tag-value', 'Values': [self.stack_name]}])
         ec2 = boto3.resource('ec2')
         for group in security_groups['SecurityGroups']:
             sec_group = ec2.SecurityGroup(group['GroupId'])
             if sec_group.ip_permissions:
-                sec_group.revoke_ingress(
-                    IpPermissions=sec_group.ip_permissions)
+                sec_group.revoke_ingress(IpPermissions=sec_group.ip_permissions)
             if sec_group.ip_permissions_egress:
                 sec_group.revoke_egress(
                     IpPermissions=sec_group.ip_permissions_egress)
@@ -168,14 +144,11 @@ class Stack:
     def terminate_non_stack_instances(self, stack_name):
         # Find the VPC ID from the excalibur Instance
         client = boto3.client('ec2')
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['ExcaliburServer']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [stack_name]
-            }])
+        server = client.describe_instances(Filters=[
+            {'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ExcaliburServer']},
+            {'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [stack_name]}])
 
         try:
             vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
@@ -183,32 +156,36 @@ class Stack:
             logger.error("Unable to find VPC ID from instance Excalibur")
             raise
 
-        # Now find all instances in ec2 within the VPC but without the stack tags.
+        # Now find all instances in ec2 within the VPC but without the stack
+        # tags.
         ec2 = boto3.client('ec2')
 
         # Get ALL instances in the stack VPC
-        vms = ec2.describe_instances(Filters=[{'Name': 'vpc-id',
-                                               'Values': [vpc_id]}])
+        vms = ec2.describe_instances(
+            Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])
         instances_not_in_stack = []
         for vm in vms['Reservations']:
-            if 'aws:cloudformation:stack-name' not in str(vm['Instances'][0]['Tags']):
+            if 'aws:cloudformation:stack-name' not in str(
+                    vm['Instances'][0]['Tags']):
                 instances_not_in_stack.append(vm['Instances'][0]['InstanceId'])
 
         # Now Terminate these instances not created by the stack
         resource = boto3.resource('ec2')
         for instance in instances_not_in_stack:
             resource.Instance(instance).terminate()
-            logger.info('Terminating instance [{}] not created by the stack'.format(instance))
+            logger.info(
+                'Terminating instance [{}] not created by the stack'.format(
+                    instance))
 
     def list_stacks(self):
         client = boto3.client('cloudformation')
         response = client.list_stacks()
         for stack in response['StackSummaries']:
-            if 'UPDATE' in stack['StackStatus'] or 'CREATE' in stack['StackStatus']:
-                logger.info('{} {} {}'.format(
-                    stack['StackName'],
-                    stack['CreationTime'],
-                    stack['StackStatus']))
+            if 'UPDATE' in stack['StackStatus'] or 'CREATE' in stack[
+                'StackStatus']:
+                logger.info(
+                    '{} {} {}'.format(stack['StackName'], stack['CreationTime'],
+                        stack['StackStatus']))
 
 
 class RethinkDB:
@@ -223,18 +200,19 @@ class RethinkDB:
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '
+                ''.format(
+                    self.ssh_key, github_key, self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.format(
+                    self.ssh_key, user_key, self.ip_address)).run()
 
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 " \
+                "~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
@@ -267,14 +245,17 @@ class RethinkDB:
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/rethinkdb.conf'.
-                    format(self.ssh_key, 'setup/rethinkdb.conf', self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/rethinkdb.conf'.format(
+                    self.ssh_key, 'setup/rethinkdb.conf',
+                    self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.sh'.
-                    format(self.ssh_key, 'setup/setup_rethinkdb.sh', self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.sh'.format(
+                    self.ssh_key, 'setup/setup_rethinkdb.sh',
+                    self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/configure_rethinkdb.py'.
-                    format(self.ssh_key, 'setup/configure_rethinkdb.py', self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/configure_rethinkdb.py'.format(
+                    self.ssh_key, 'setup/configure_rethinkdb.py',
+                    self.ip_address)).run()
 
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
@@ -303,23 +284,19 @@ class Excalibur:
 
         client = boto3.client('ec2')
 
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['ExcaliburServer']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name]
-            }, {
-                'Name': 'instance-state-name',
-                'Values': ['running']
-            }])
+        server = client.describe_instances(Filters=[
+            {'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['ExcaliburServer']},
+            {'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name]},
+            {'Name': 'instance-state-name', 'Values': ['running']}])
 
         self.vpc_id = server['Reservations'][0]['Instances'][0]['VpcId']
 
         self.subnet_id = server['Reservations'][0]['Instances'][0]['SubnetId']
 
-        for group in server['Reservations'][0]['Instances'][0]['SecurityGroups']:
+        for group in server['Reservations'][0]['Instances'][0][
+            'SecurityGroups']:
             if group['GroupName'] == 'default':
                 self.default_security_group_id = group['GroupId']
 
@@ -327,22 +304,24 @@ class Excalibur:
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.server_ip)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '
+                ''.format(
+                    self.ssh_key, github_key, self.server_ip)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.server_ip)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.format(
+                    self.ssh_key, user_key, self.server_ip)).run()
 
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 " \
+                "~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
 
-        # Now remove any existing public keys as they will conflict with the private key
+        # Now remove any existing public keys as they will conflict with the
+        # private key
         result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
                               "rm('-f ~/.ssh/id_rsa.pub')")
 
         # Now add the github public key to avoid host key verification prompt
-        result3 = run_ssh_cmd(
-            self.server_ip, self.ssh_key,
+        result3 = run_ssh_cmd(self.server_ip, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
@@ -367,11 +346,12 @@ class Excalibur:
         run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.
-                    format(self.ssh_key, aws_config, self.server_ip)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '
+                ''.format(
+                    self.ssh_key, aws_config, self.server_ip)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
-                    format(self.ssh_key, aws_keys, self.server_ip)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.format(
+                    self.ssh_key, aws_keys, self.server_ip)).run()
 
     def setup(self, branch, github_key, aws_config, aws_keys, user_key):
 
@@ -389,7 +369,8 @@ class Excalibur:
         self.checkout_repo('galahad-config')
         self.checkout_repo('galahad', branch)
 
-        # Sleep for 10 seconds to ensure that both repos are completely checked out
+        # Sleep for 10 seconds to ensure that both repos are completely
+        # checked out
         time.sleep(10)
 
         # Setup the config and keys for AWS communication
@@ -403,14 +384,16 @@ class Excalibur:
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
-        # Call the setup_bft.sh script for Blue Force Tracker installation and config.
+        # Call the setup_bft.sh script for Blue Force Tracker installation
+        # and config.
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
         self.setup_aws_instance_info()
 
         # Setup the transducer heartbeat Listener and Start it
-        _cmd3 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
+        _cmd3 = "cd('galahad/transducers').and_().bash(" \
+                "'./install_heartbeatlistener.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
 
         # Start the flask-server (excalibur)
@@ -421,27 +404,35 @@ class Excalibur:
         time.sleep(60)
 
         # Setup the Default key to be able to login to the virtues
-        # This private key's corresponding public key will be used for the virtues
+        # This private key's corresponding public key will be used for the
+        # virtues
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.format(
+                    self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
         # Copy over various other keys required for virtues
-        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(
+            GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(
+            GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
 
         # Now populate the /var/private/ssl dir for excalibur
         EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
-        _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
+        _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu " \
+                "/var/private')".format(
+            EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(
+            GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(
+            GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(
+            GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
 
         # Initialize the EFS class
@@ -473,8 +464,9 @@ class Excalibur:
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.
-                    format(self.ssh_key, filename, self.server_ip, AWS_INSTANCE_INFO)).run()
+                '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.format(
+                    self.ssh_key, filename, self.server_ip,
+                    AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info
 
@@ -491,18 +483,19 @@ class Aggregator:
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '
+                ''.format(
+                    self.ssh_key, github_key, self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.format(
+                    self.ssh_key, user_key, self.ip_address)).run()
 
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 " \
+                "~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
@@ -569,16 +562,20 @@ class EFS:
         # SCP over the setup file to the instance
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
+                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.format(
+                    self.ssh_key, 'setup_valor_router.sh',
+                    VALOR_ROUTER_HOSTNAME)).run()
 
         # Execute the setup file on the instance
         _cmd = "bash('./setup_valor_router.sh')"
         run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
 
     def setup_valor_keys(self):
-        # Generate private/public keypair for valor nodes to be able to access each other.
-        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f valor-key')".format(GALAHAD_KEY_DIR_NAME)
+        # Generate private/public keypair for valor nodes to be able to
+        # access each other.
+        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f " \
+               "valor-key')".format(
+            GALAHAD_KEY_DIR_NAME)
         run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
 
     def setup_xen_pvm_builder(self):
@@ -589,20 +586,17 @@ class EFS:
         # scp workaround payload to node
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/sources.list ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.format(
+                    self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(('-o StrictHostKeyChecking=no -i {} '
+                   'setup/sources.list ubuntu@{}:~/.').format(self.ssh_key,
+                                                              XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(('-o StrictHostKeyChecking=no -i {} '
+                   'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').format(
+                self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(('-o StrictHostKeyChecking=no -i {} '
+                   'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').format(
+                self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
 
         # Apply workarounds and setup the xen pvm builder server
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
@@ -620,14 +614,11 @@ class EFS:
 
         client = boto3.client('ec2')
 
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['XenPVMBuilder']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name + '-VPC']
-            }])
+        server = client.describe_instances(Filters=[
+            {'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']},
+            {'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name + '-VPC']}])
 
         instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
 
@@ -665,18 +656,19 @@ class Canvas():
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '
+                ''.format(
+                    self.ssh_key, github_key, self.ip_address)).run()
             s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.format(
+                    self.ssh_key, user_key, self.ip_address)).run()
 
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 " \
+                "~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
@@ -721,33 +713,32 @@ class Canvas():
 class StandbyPools:
 
     def __init__(self, stack_name, ssh_key):
-
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.server_ip = EXCALIBUR_HOSTNAME
 
     def initialize_valor_standby_pool(self):
-
         _cmd = "cd('galahad/deploy/setup').and_().python(" \
                "'create_standby_pools.py --valors')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
     def initialize_role_image_file_standby_pool(self, unity_image_size):
-
         _cmd = "cd('galahad/deploy/setup').and_().python(" \
                "'create_standby_pools.py --role_image_files " \
                "--unity_image_size {}')".format(unity_image_size)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
-          aws_keys, branch, image_size, user_key):
+def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
+          aws_config, aws_keys, branch, image_size, user_key):
     start_stack_time = time.time()
 
     stack = Stack()
-    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
+    #stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix,
+    #                  import_stack_name)
 
-    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format(
+        (time.time() - start_stack_time) / 60))
 
     start_setup_time = time.time()
 
@@ -757,13 +748,18 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
 
     efs.setup_xen_pvm_builder()
 
-    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format((time.time() - start_xen_pvm_time) / 60))
+    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
+        (time.time() - start_xen_pvm_time) / 60))
 
-    start_ubuntu_img_time = time.time()
-
-    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                               args=(image_size,))
-    setup_ubuntu_img_thread.start()
+    ubuntu_imgs = []
+    for image in image_size:
+        start_ubuntu_img_time = time.time()
+        setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+                                                   args=(image,))
+        setup_ubuntu_img_thread.start()
+        ubuntu_imgs.append({"image_size": image,
+                            "start_time": start_ubuntu_img_time,
+                            "thread": setup_ubuntu_img_thread})
 
     start_aggregator_time = time.time()
 
@@ -777,7 +773,8 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
 
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format((time.time() - start_excalibur_time) / 60))
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
 
     canvas = Canvas(stack_name, path_to_key)
     canvas_thread = threading.Thread(target=canvas.setup,
@@ -789,22 +786,29 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, user_key)
 
-    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
+    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
+        (time.time() - start_rethinkdb_time) / 60))
 
     aggregator_thread.join()
-    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format((time.time() -
-                                                                              start_aggregator_time) / 60))
+    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format(
+        (time.time() - start_aggregator_time) / 60))
 
-    setup_ubuntu_img_thread.join()
+    for ubuntu_img in ubuntu_imgs:
+        ubuntu_img["thread"].join()
+        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
+            ubuntu_img["image_size"],
+            (time.time() - ubuntu_img["start_time"]) / 60))
 
-    logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                         start_ubuntu_img_time) / 60))
-
-    start_unity_time = time.time()
-
-    setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                          args=(excalibur.server_ip, image_size + '.img',))
-    setup_unity_thread.start()
+    unity_imgs = []
+    for image in image_size:
+        start_unity_time = time.time()
+        setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip,
+                                                    image + '.img',))
+        setup_unity_thread.start()
+        unity_imgs.append({"image_size": image,
+                           "start_time": start_unity_time,
+                           "thread": setup_unity_thread})
 
     efs.setup_valor_keys()
     efs.setup_valor_router()
@@ -816,18 +820,25 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
         target=standby_pools.initialize_valor_standby_pool)
     standby_valor_pools_thread.start()
 
-    setup_unity_thread.join()
-    logger.info(
+    for unity_img in unity_imgs:
+        unity_img["thread"].join()
+        logger.info(
         '\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            image_size,
-            (time.time() - start_unity_time) / 60))
+            unity_img["image_size"],
+            (time.time() - unity_img["start_time"]) / 60))
 
     start_standby_role_pools_time = time.time()
-    standby_role_pools_thread = threading.Thread(
+    standby_roles = []
+    for image in image_size:
+        standby_role_pools_thread = threading.Thread(
         target=standby_pools.initialize_role_image_file_standby_pool,
-        args=(image_size,))
-    standby_role_pools_thread.start()
-    standby_role_pools_thread.join()
+        args=(image,))
+        standby_role_pools_thread.start()
+        standby_roles.append(standby_valor_pools_thread)
+
+    for standby_role in standby_roles:
+        standby_role.join()
+
     logger.info(
         '\n*** Time taken for Standby Pools of Role is [{0}] ***\n'.format(
             (time.time() - start_standby_role_pools_time) / 60))
@@ -844,91 +855,52 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, 
         '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format(
             (time.time() - start_stack_time) / 60))
 
+    logger.info('Starting role create for commonly used roles')
+    _cmd = "cd('galahad/deploy/setup').and_().bash('./post_setup.py')"
+    run_ssh_cmd(EXCALIBUR_HOSTNAME, path_to_key, _cmd)
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "-k",
-        "--path_to_key",
-        type=str,
-        required=True,
+    parser.add_argument("-k", "--path_to_key", type=str, required=True,
         help="The path to the public key used for the ec2 instances")
-    parser.add_argument(
-        "-g",
-        "--github_repo_key",
-        type=str,
-        required=True,
+    parser.add_argument("-g", "--github_repo_key", type=str, required=True,
         help="The path to the key to be able to access github repos")
-    parser.add_argument(
-        "-n",
-        "--stack_name",
-        type=str,
-        required=True,
+    parser.add_argument("-n", "--stack_name", type=str, required=True,
         help="The name of the cloudformation stack for the virtue environment")
-    parser.add_argument(
-        "-s",
-        "--stack_suffix",
-        type=str,
-        required=True,
-        help=
-        "The suffix used by the cloudformation stack to append to resource names")
-    parser.add_argument(
-        "--import_stack",
-        type=str,
-        default='None',
+    parser.add_argument("-s", "--stack_suffix", type=str, required=True,
+        help="The suffix used by the cloudformation stack to append to "
+             "resource names")
+    parser.add_argument("--import_stack", type=str, default='None',
         required=False,
-        help=
-        "The Name of the Stack containing resources that will be imported for use in this stack")
-    parser.add_argument(
-        "-b",
-        "--branch_name",
-        type=str,
-        default="master",
+        help="The Name of the Stack containing resources that will be "
+             "imported for use in this stack")
+    parser.add_argument("-b", "--branch_name", type=str, default="master",
         help="The branch name to be used for excalibur repo")
-    parser.add_argument(
-        "--aws_config",
-        type=str,
-        required=False,
+    parser.add_argument("--aws_config", type=str, required=False,
         default='setup/aws_config',
         help="AWS config to be used to communicate with AWS")
-    parser.add_argument(
-        "--aws_keys",
-        type=str,
-        required=True,
+    parser.add_argument("--aws_keys", type=str, required=True,
         help="AWS keys to be used for AWS communication")
-    parser.add_argument(
-        "--setup",
-        action="store_true",
+    parser.add_argument("--setup", action="store_true",
         help="setup the galahad/virtue test environment")
-    parser.add_argument(
-        "--setup_stack",
-        action="store_true",
+    parser.add_argument("--setup_stack", action="store_true",
         help="setup the galahad/virtue stack only")
-    parser.add_argument(
-        "--list_stacks",
-        action="store_true",
+    parser.add_argument("--list_stacks", action="store_true",
         help="List all the available stacks")
-    parser.add_argument(
-        "--delete_stack",
-        action="store_true",
+    parser.add_argument("--delete_stack", action="store_true",
         help="delete the specified stack")
-    parser.add_argument(
-        "--image_size",
-        default="8GB",
+    parser.add_argument("--image_size", nargs="+", default=["8GB", "16GB"],
         choices=["4GB", "8GB", "16GB"],
-        help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
-    parser.add_argument(
-        "--build_image_only",
-        action="store_true",
+        help="Indicate size of initial ubuntu image to be created (default: "
+             "%(default)s)")
+    parser.add_argument("--build_image_only", action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
 
     # Temporary:
-    parser.add_argument(
-        "--default_user_key",
-        type=str,
-        required=True,
-        help="Default private key for users to get (Will be replaced with generated keys)")
+    parser.add_argument("--default_user_key", type=str, required=True,
+        help="Default private key for users to get (Will be replaced with "
+             "generated keys)")
 
     args = parser.parse_args()
 
@@ -936,11 +908,8 @@ def parse_args():
 
 
 def ensure_required_files_exist(args):
-    required_files = '{} {} {} {}'.format(
-        args.path_to_key,
-        args.github_repo_key,
-        args.aws_config,
-        args.aws_keys)
+    required_files = '{} {} {} {}'.format(args.path_to_key,
+        args.github_repo_key, args.aws_config, args.aws_keys)
 
     for file in required_files.split():
 
@@ -957,11 +926,13 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size, args.default_user_key)
+              args.aws_keys, args.branch_name, args.image_size,
+              args.default_user_key)
 
     if args.setup_stack:
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.import_stack)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix,
+                          args.import_stack)
 
     if args.list_stacks:
         Stack().list_stacks()
@@ -970,7 +941,8 @@ def main():
         Stack().delete_stack(args.stack_name)
 
     if args.build_image_only:
-        # Build a base ubuntu and unity image only - Assume that the stack is already deployed.
+        # Build a base ubuntu and unity image only - Assume that the stack is
+        #  already deployed.
         efs = EFS(args.stack_name, args.path_to_key)
 
         start_ubuntu_img_time = time.time()
@@ -978,16 +950,14 @@ def main():
         efs.setup_ubuntu_img(args.image_size)
 
         logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_ubuntu_img_time) / 60))
+            args.image_size, (time.time() - start_ubuntu_img_time) / 60))
 
         start_unity_time = time.time()
 
         efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
 
         logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_unity_time) / 60))
+            args.image_size, (time.time() - start_unity_time) / 60))
 
 
 if __name__ == '__main__':
