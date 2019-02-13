@@ -19,7 +19,11 @@ sudo apt-get update
 sudo apt-get install -y virtualenv python-pip libldap2-dev libsasl2-dev python-logilab-common nfs-common
 sudo DEBIAN_FRONTEND=noninteractive apt-get install krb5-user nfs-kernel-server -y
 sudo apt-get autoremove -y
-sudo pip install --upgrade -r $HOME/$BASE_DIR/requirements.txt
+
+#Upgrade pip to latest version
+sudo pip install --upgrade pip
+# Install all pip packages from requirements list
+sudo pip install -r $HOME/$BASE_DIR/requirements.txt
 
 # kerberos setup
 sudo rm /etc/krb5.conf
