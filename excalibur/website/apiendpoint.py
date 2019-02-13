@@ -353,9 +353,17 @@ class EndPoint():
                         os.environ['HOME'], username, virtue['ipAddress'],
                         app['id'].lower()))
 
+                args2 = shlex.split((
+                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                     + ' virtue@{2} sudo docker cp /etc/networkRules $(sudo docker ps -af'
+                     + ' name="{3}" -q):/etc/networkRules').format(os.environ['HOME'], username,
+                       virtue['ipAddress'], app['id'].lower()))
+
                 with open(os.devnull, 'w')  as DEVNULL:
                     docker_exit = subprocess.call(args, stdout=DEVNULL,
                                                   stderr=subprocess.STDOUT)
+                    dockercp_exit = subprocess.call(args2, stdout=DEVNULL, stderr=subprocess.STDOUT)
+
 
                 if (docker_exit != 0):
                     # This is an issue with docker where if the docker daemon exits
