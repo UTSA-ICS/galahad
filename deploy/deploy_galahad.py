@@ -866,7 +866,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
             (time.time() - start_stack_time) / 60))
 
     logger.info('Starting role create for commonly used roles')
-    _cmd = "cd('galahad/deploy/setup').and_().bash('./post_setup.py')"
+    _cmd = "cd('galahad/deploy/setup').and_().python3('post_setup.py')"
     run_ssh_cmd(EXCALIBUR_HOSTNAME, path_to_key, _cmd)
 
 
