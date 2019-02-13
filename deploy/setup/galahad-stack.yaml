@@ -297,9 +297,6 @@ Resources:
           su - ubuntu -c "echo -e \"\ngnome-panel &\ngnome-settings-daemon &\nmetacity &\nnautilus &\" >> .vnc/xstartup"
           su - ubuntu -c "vncserver -geometry 1600x1200"
 
-          # Download the NWJS Package and untar it
-          su - ubuntu -c "wget https://dl.nwjs.io/v0.34.5/nwjs-sdk-v0.34.5-linux-x64.tar.gz"
-          su - ubuntu -c "tar -xzf nwjs-sdk-v0.34.5-linux-x64.tar.gz"
       Tags:
         - Key: Project
           Value: Virtue
