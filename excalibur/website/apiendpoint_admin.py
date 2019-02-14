@@ -253,7 +253,7 @@ class EndPoint_Admin():
 
             new_role = copy.deepcopy(role)
 
-            new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
+            new_role['id'] = '{0}{1}'.format(new_role['name'].lower().replace(' ', '_'), int(time.time()))
 
             try:
                 # Call a controller thread to create and assemble the new image

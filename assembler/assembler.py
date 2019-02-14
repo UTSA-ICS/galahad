@@ -211,6 +211,8 @@ class Assembler(object):
                                    'dist-upgrade', '-y'])
 
             # Install required packages
+            # Note: To install the latest version of Docker, see
+            #       https://docs.docker.com/install/linux/docker-ce/ubuntu/
             apt_cmd = ['chroot', mount_path, 'apt-get', 'install', '-y']
             apt_cmd.extend(['python', 'python-pip',
                             'python3', 'python3-pip',
