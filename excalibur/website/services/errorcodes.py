@@ -232,6 +232,13 @@ class ErrorCodes():
                 'The given Virtue is not in a proper state to perform operation'
             ]
         },
+        'invalidRoleState': {
+            'status': 'failed',
+            'result': [
+                12,
+                'The given Role is not in a proper state to perform operation'
+            ]
+        },
         'invalidCredentials': {
             'status':
             'failed',
@@ -314,6 +321,14 @@ class ErrorCodes():
                 14,
                 'A virtue exists which is using the specified role. '
                 + 'Destroy the virtue before attempting to destroy the role.'
+            ]
+        },
+        'virtueUsingResource': {
+            'status': 'failed',
+            'result': [
+                14,
+                'A virtue exists which is using the specified resource. '
+                + 'Detach the resource before attempting to destroy.'
             ]
         },
         'userUsingRole': {

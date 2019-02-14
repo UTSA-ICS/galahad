@@ -21,3 +21,4 @@ enum==0.4.6
 urllib3==1.21.1
 paramiko
 awscli
+pexpect

@@ -2,6 +2,7 @@ import os
 import random
 import threading
 import time
+import subprocess
 
 import boto3
 import rethinkdb
@@ -452,6 +453,27 @@ class ValorManager:
 
         self.rethinkdb_manager.set_valor(valor_id, 'state', 'RUNNING')
 
+        valor_ip = self.rethinkdb_manager.get_valor(valor_id)['address']
+
+        # Add NFS export line for valor to access email preferences dir
+        try:
+            line = subprocess.check_output("grep mnt/ost /etc/exports", shell=True).strip("\n")
+            line_num = subprocess.check_output("sed -n '/mnt\/ost/=' /etc/exports", shell=True).strip("\n")
+
+            # Remove current line and replace with updated export
+            ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
+            assert ret == 0
+
+            line+= " {}(rw,sync,no_subtree_check)".format(valor_ip)
+            ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+            assert ret == 0
+
+            ret = subprocess.check_call(['sudo', 'exportfs', '-ra'])
+            assert ret == 0
+
+        except Exception as e:
+            print("Failed to append to NFS exports with message: {}".format(e))
+
         return instance.id
 
 
@@ -514,7 +536,29 @@ class ValorManager:
 
             self.rethinkdb_manager.set_valor(valor_id, 'state', 'STOPPED')
 
+            valor_ip = self.rethinkdb_manager.get_valor(valor_id)['address']
+
+            # Remove NFS export entry
+            try:
+                line = subprocess.check_output("grep mnt/ost /etc/exports", shell=True).strip("\n")
+                line_num = subprocess.check_output("sed -n '/mnt\/ost/=' /etc/exports", shell=True).strip("\n")
+
+                # Remove current line and replace with updated export
+                ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
+                assert ret == 0
+
+                line = line.replace(" {}(rw,sync,no_subtree_check)".format(valor_ip), "")
+                ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
+                assert ret == 0
+
+                ret = subprocess.check_call(['sudo', 'exportfs', '-ra'])
+                assert ret == 0
+
+            except Exception as e:
+                print("Failed to remove NFS export with message: {}".format(e))
+
             return instance.id
+
         else:
             virtues_on_valor = [valor['virtues'] for valor in self.list_valors() if
                                 valor['valor_id'] == valor_id]
@@ -920,3 +964,63 @@ class RouterManager:
                 self.ip_address))
             raise Exception(
                 'ERROR: Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+
+class ResourceManager:
+    def __init__(self, username, resource):
+        self.username = username
+        self.resource = resource
+
+    def drive(self, virtue_ip, key_path):
+        # map resource
+        # map to different directory than /home/virtue - causing key error
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo mount.cifs {} /mnt -o sec=krb5,user=VIRTUE\{}'.format(
+                                        self.resource['unc'], self.username)])
+        assert ret == 0
+    
+    def printer(self, virtue_ip, key_path):
+        pass
+
+    def email(self, virtue_ip, key_path):
+        if not os.path.exists(os.path.join("/mnt/ost", self.username)):
+            try:
+                ret = subprocess.check_call("sudo mkdir -p /mnt/ost/{}".format(self.username), shell=True)
+                assert ret == 0
+                ret = subprocess.check_call("sudo chown nobody:nogroup /mnt/ost/{}".format(self.username), shell=True)
+                assert ret == 0
+            except Exception as e:
+                print("Failed to create ost user directory with error: {}".format(e))
+                return
+
+        try:
+            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                         '-t', 'sudo', 'mkdir', '/ost'])
+            assert ret == 0
+
+            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                         '-t', 'sudo',
+                                         'mount -t nfs excalibur.galahad.com:/mnt/ost/{} /ost'.format(self.username)])
+            assert ret == 0
+        except Exception as e:
+            print("Failed to mount ost NFS directory on virtue with error: {}".format(e))
+
+    def remove_drive(self, virtue_ip, key_path):
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo umount /mnt'])
+        assert ret == 0
+
+    def remove_printer(self, virtue_ip, key_path):
+        pass
+
+    def remove_email(self, virtue_ip, key_path):
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo umount /ost'])
+        assert ret == 0
+
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo rm -R /ost'])
+        assert ret == 0

@@ -44,6 +44,23 @@
             ]
         },
         {
+            "command" : "transducer enable all",
+            "help": "Enable a transducer on all Virtues",
+            "url": "/transducer/enable_all_virtues",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Transducer config (JSON)", "url_name": "configuration", "is_file": true }
+            ]
+        },
+        {
+            "command" : "transducer disable all",
+            "help": "Disable a transducer on all Virtues",
+            "url": "/transducer/disable_all_virtues",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" }
+            ]
+        },
+        {
             "command" : "transducer get enabled",
             "help": "Get list of enabled transducers on a Virtue",
             "url": "/transducer/get_enabled",

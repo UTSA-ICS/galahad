@@ -273,6 +273,7 @@ class CreateVirtueThread(threading.Thread):
                                    os.environ['HOME'] + '/galahad/excalibur/'
                                    + \
                                    'call_provisioner.py',
+                                   '-u', self.username,
                                    '-i', virtue['id'],
                                    '-n', '/tmp/networkRules',
                                    '-b',

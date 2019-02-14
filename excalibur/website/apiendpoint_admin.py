@@ -8,7 +8,8 @@ import traceback
 import requests
 
 from apiendpoint import EndPoint
-from controller import CreateVirtueThread, AssembleRoleThread
+from controller import CreateVirtueThread, \
+    AssembleRoleThread
 from create_ldap_users import update_ldap_users_from_ad
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -43,6 +44,49 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+    def resource_create(self, resource):
+        try:
+            resource_keys = [
+                'credentials',
+                'type',
+                'unc'
+            ]
+            if (set(resource.keys()) != set(resource_keys)
+                    and set(resource.keys()) != set(resource_keys + ['id'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+            if (not isinstance(resource['credentials'], basestring)
+                    or not isinstance(resource['type'], basestring)
+                    or not isinstance(resource['unc'], basestring)):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+            resource['id'] = 'Resource_{}_{}'.format(resource['type'], int(time.time()))
+            ldap_resource = ldap_tools.to_ldap(resource, 'OpenLDAPresource')
+            self.inst.add_obj(ldap_resource, 'resources', 'cid', throw_error=True)
+
+            return json.dumps(resource)
+        except Exception as e:
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    def resource_destroy(self, resourceId):
+        try:
+            resource = self.inst.get_obj('cid', resourceId, 'OpenLDAPresource', True)
+            if (resource == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(resource)
+
+            # KL --- add check if in use
+            ldap_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            virtues = ldap_tools.parse_ldap_list(ldap_virtues)
+
+            if any(resourceId in virtue['resourceIds'] for virtue in virtues):
+                return json.dumps(ErrorCodes.admin['virtueUsingResource'])
+
+            self.inst.del_obj('cid', resource['id'], throw_error=True)
+        except:
+            print('Error while deleting {}:\n{}'.format(
+                resource['id'], traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+        return json.dumps(ErrorCodes.admin['success'])
 
     def resource_get(self, resourceId):
 
@@ -97,13 +141,22 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
 
-            if (virtue['state'] == 'DELETING'):
+            #if (virtue['state'] == 'DELETING'):
+            #    return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+            if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
 
             if (resourceId in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantAttach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            virtue['resourceIds'].append(resourceId)
+            self.inst.modify_obj('cid', virtue['id'], 
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
 
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -133,7 +186,17 @@ class EndPoint_Admin():
             if (resourceId not in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantDetach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            if (virtue['state'] != 'STOPPED'):
+                return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+
+            virtue['resourceIds'].remove(resourceId)
+            self.inst.modify_obj('cid', virtue['id'],
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
@@ -190,7 +253,7 @@ class EndPoint_Admin():
 
             new_role = copy.deepcopy(role)
 
-            new_role['id'] = '{0}{1}'.format(new_role['name'], int(time.time()))
+            new_role['id'] = '{0}{1}'.format(new_role['name'].lower().replace(' ', '_'), int(time.time()))
 
             try:
                 # Call a controller thread to create and assemble the new image
@@ -480,7 +543,8 @@ class EndPoint_Admin():
             if (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
 
-            # TODO: If role is still CREATING or FAILED, return error
+            if (role.get('state', 'CREATED') != 'CREATED'):
+                return json.dumps(ErrorCodes.admin['invalidRoleState'])
 
             virtue = None
             curr_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
@@ -798,3 +862,96 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def virtue_introspect_start_all(self, interval=None, modules=None):
+        try:
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                virtue_running = (virtue[1]['state'] == 'RUNNING')
+                if virtue_running:
+                    self.rdb_manager.introspect_virtue_start(virtue[1]['id'], interval, modules)
+
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def virtue_introspect_stop_all(self):
+        try:
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                virtue_running = (virtue[1]['state'] == 'RUNNING')
+                if virtue_running:
+                    self.rdb_manager.introspect_virtue_stop(virtue[1]['id'])
+
+            return json.dumps(ErrorCodes.admin['success'])
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def _set_introspection_ldap(self, virtueId, isEnabled):
+        introsection_id = 'introspection'
+        virtue = self.inst.get_obj('cid', virtueId,
+                                       'OpenLDAPvirtue', True)
+        if virtue is None or virtue == ():
+            return json.dumps(ErrorCodes.admin['invalidVirtueId'])
+
+        ldap_tools.parse_ldap(virtue)
+
+        new_t_list = json.loads(virtue['transducerIds'])
+
+        if isEnabled:
+            if introsection_id not in new_t_list:
+                new_t_list.append(introsection_id)
+        else:
+            if introsection_id in new_t_list:
+                new_t_list.remove(introsection_id)
+
+        virtue['transducerIds'] = json.dumps(new_t_list)
+        ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                                   'OpenLDAPvirtue', True)
+        if ret != 0:
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+        return json.dumps(ErrorCodes.admin['success'])
+
+    def _set_introspection_role(self, isEnabled):
+        introspection_id = 'introspection'
+        try:
+            ldap_roles = self.inst.get_objs_of_type('OpenLDAProle')
+            assert ldap_roles != None
+
+            roles = ldap_tools.parse_ldap_list(ldap_roles)
+
+            for role in roles:
+                print(role)
+                print(role['startingTransducerIds'])
+                new_t_list = role['startingTransducerIds']
+
+                if isEnabled:
+                    if introspection_id not in new_t_list:
+                        new_t_list.append(introspection_id)
+                else:
+                    if introspection_id in new_t_list:
+                        new_t_list.remove(introspection_id)
+
+                role['startingTransducerIds'] = new_t_list
+                ret = self.inst.modify_obj('cid', role['id'], ldap_tools.to_ldap(role, 'OpenLDAProle'),
+                                           'OpenLDAProle', True)
+                if ret != 0:
+                    return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            return True
+
+        except Exception as e:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])

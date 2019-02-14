@@ -6,7 +6,23 @@
             "command": "application list",
             "help": "List available applications",
             "url": "/application/list",
-            "parameters": [] 
+            "parameters": []
+        },
+        {
+            "command": "resource create",
+            "help": "Creates a Resource with the given parameters",
+            "url": "/resource/create",
+            "parameters": [
+                { "name": "Resource (as JSON)", "url_name": "resource", "is_file": true }
+            ]
+        },
+        {
+            "command": "resource destroy",
+            "help": "Destroys a resource",
+            "url": "/resource/destroy",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" }
+            ]
         },
         {
             "command": "resource get",
@@ -255,6 +271,21 @@
             "parameters": [
                 { "name": "Virtue ID", "url_name": "virtueId" }
             ]
+        },
+        {
+            "command": "virtue introspect start all",
+            "help": "Start introspection on a specific Virtue",
+            "url": "/virtue/introspect_start_all",
+            "parameters": [
+                { "name": "Interval", "url_name": "interval" },
+                { "name": "Modules", "url_name": "modules" }
+            ]
+        },
+        {
+            "command": "virtue introspect stop all",
+            "help": "Stop introspection on a specific Virtue",
+            "url": "/virtue/introspect_stop_all",
+            "parameters": []
         },
         {
             "command": "application add",
