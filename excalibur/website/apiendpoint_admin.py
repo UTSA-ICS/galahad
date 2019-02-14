@@ -481,7 +481,8 @@ class EndPoint_Admin():
             if (roleId not in user['authorizedRoleIds']):
                 return json.dumps(ErrorCodes.admin['userNotAlreadyAuthorized'])
 
-            # TODO: If role is still CREATING or FAILED, return error
+            if (role.get('state', 'CREATED') != 'CREATED'):
+                return json.dumps(ErrorCodes.admin['invalidRoleState'])
 
             virtue = None
             curr_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
