@@ -957,6 +957,55 @@ def transducer_list_enabled():
             json.dumps(ErrorCodes.security['unspecifiedError']))
 
 
+@bp.route('/security/transducer/enable_all_virtues', methods=['GET'])
+@require_oauth()
+def enable_all_virtues():
+
+    ep = get_security_endpoint()
+
+    if 'transducerId' not in request.args:
+        return make_response(
+            'ERROR: Required arguments: transducerId, configuration')
+
+    try:
+        if 'configuration' in request.args:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], request.args['configuration'], True)
+        else:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], None, True)
+
+        log_to_elasticsearch('Transducer enable all', extra={'transducer_id': request.args['transducerId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+        return make_response(ret)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
+
+@bp.route('/security/transducer/disable_all_virtues', methods=['GET'])
+@require_oauth()
+def disable_all_virtues():
+    ep = get_security_endpoint()
+
+    if 'transducerId' not in request.args:
+        return make_response(
+            'ERROR: Required arguments: transducerId, configuration')
+
+    try:
+        if 'configuration' in request.args:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], request.args['configuration'], False)
+        else:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], None, False)
+
+        log_to_elasticsearch('Transducer enable all', extra={'transducer_id': request.args['transducerId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+        return make_response(ret)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 @bp.route('/admin/valor/list', methods=['GET'])
 @require_oauth()
 def admin_valor_list():
@@ -1171,3 +1220,33 @@ def admin_virtue_introspect_stop():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(virtue_id)
+
+
+@bp.route('/admin/virtue/introspect_start_all', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_start_all():
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_introspect_start_all(
+            request.args['interval'],
+            request.args['modules'])
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/virtue/introspect_stop_all', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_stop_all():
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_introspect_stop_all()
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)

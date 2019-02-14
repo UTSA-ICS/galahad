@@ -232,6 +232,13 @@ class ErrorCodes():
                 'The given Virtue is not in a proper state to perform operation'
             ]
         },
+        'invalidRoleState': {
+            'status': 'failed',
+            'result': [
+                12,
+                'The given Role is not in a proper state to perform operation'
+            ]
+        },
         'invalidCredentials': {
             'status':
             'failed',
