@@ -115,7 +115,8 @@ function displayApp(roleName, localPort, data) {
   view.setAttribute('ondrag', 'drag(event)');
   view.setAttribute('ondragstart', 'dragstart(event)');
   view.setAttribute('ondragend', 'dragend(event)');
-  view.innerHTML = `${'\n    <div class="wrapper ' + 'editor' + "-bg\" onclick=\"bringToFront('"}${view.id}')">\n      <div class="win-bar">\n        <div style="margin-left: -10px;">\n          <i class="${roleIcon} fa-2x"></i>\n        </div>\n        <div style="flex: 1; padding-left: 10px;">${name.charAt(0).toUpperCase()}${name.slice(1)}</div>\n        <div style="margin-right: -10px;">\n          <i class="far fa-minus win-ctrl"\n            onclick="minimizeApp(this);"\n            title="Minimize"\n          ></i>\n          <i class="far fa-square win-ctrl"\n            onclick="toggleMaximizeApp(this);"\n            title="Toggle Fullscreen"\n          ></i>\n          <i class="fas fa-times win-ctrl win-close"\n            onclick="closeApp(this);"\n            title="Close"\n          ></i>\n        </div>\n      </div>\n      <webview src="http://localhost:${localPort}/" allowtransparency></webview>\n    </div>\n  `;
+  view.setAttribute('appid', `${name.charAt(0).toLowerCase()}${name.slice(1)}`);
+  view.innerHTML = `${'\n    <div class="wrapper ' + 'editor' + "-bg\" onclick=\"bringToFront('"}${view.id}')">\n      <div class="win-bar">\n        <div style="margin-left: -10px;">\n          <i class="${roleIcon} fa-2x"></i>\n        </div>\n        <div style="flex: 1; padding-left: 10px;">${name.charAt(0).toUpperCase()}${name.slice(1)}</div>\n        <div style="margin-right: -10px;">\n          <i class="far fa-minus win-ctrl"\n            onclick="minimizeApp(this);"\n            title="Minimize"\n          ></i>\n          <i class="far fa-square win-ctrl"\n            onclick="toggleMaximizeApp(this);"\n            title="Toggle Fullscreen"\n          ></i>\n          <i class="fas fa-times win-ctrl win-close"\n      appId=${name}     onclick="closeApp(this);"\n            title="Close"\n          ></i>\n        </div>\n      </div>\n      <webview src="http://localhost:${localPort}/" allowtransparency></webview>\n    </div>\n  `;
   document.getElementById('appArea').appendChild(view);
 
   console.log('exit: displayApp()');
@@ -146,8 +147,12 @@ function startApp(virtueId, appId, roleName, ip, localPort) {
         localHost: '0.0.0.0',
         localPort,
         privateKey: 'key.pem',
-      }
-      createTunnel(local_config, roleName, app);
+      };
+
+      client.methods.userApplicationLaunch(args, (app1, resp1) => {
+        console.log('entry: userApplicationLaunch()');
+        createTunnel(local_config, roleName, app);
+      });
     });
   });
 
@@ -209,7 +214,16 @@ function toggleMaximizeApp(target) {
 
 
 function closeApp(target) {
+  const client = methods();
   const app = target.parentElement.parentElement.parentElement.parentElement;
+  const appId = app.getAttribute('appid');
+  console.log('appId = ' + appId);
+  const args = {
+    parameters: { appId },
+    headers: { Authorization: `Bearer ${data.access_token}` },
+  };
+
+  client.methods.userApplicationStop(args);
   return app.parentElement.removeChild(app);
 }
 
