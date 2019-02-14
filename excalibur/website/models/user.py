@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from .base import db, Base
 from ..ldaplookup import LDAP
 from ..create_ldap_users import update_ldap_users_from_ad
+from ..kerberos import Kerberos
 
 
 class User(Base):
@@ -31,6 +32,10 @@ class User(Base):
 
         # Update ldap users from AD user list
         update_ldap_users_from_ad()
+
+        # Generate Kerberos tgt for user
+        username = email.split("@")[0]
+        Kerberos().generate_tgt(username, password)
 
         return True
 

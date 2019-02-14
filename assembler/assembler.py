@@ -179,6 +179,7 @@ class Assembler(object):
                                mount_path])
 
         real_HOME = os.environ['HOME']
+        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
         try:
 
@@ -221,7 +222,11 @@ class Assembler(object):
                             'openssh-server',
                             'auditd',
                             'dkms',
-                            'psmisc'])
+                            'psmisc',
+                            'krb5-user',
+                            'cifs-utils',
+                            'smbclient',
+                            'nfs-common'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
@@ -588,6 +593,8 @@ class Assembler(object):
 
         shutil.copy(key_path, self.work_dir + '/id_rsa')
 
+        # KL --- copy krb tgts, mount dirs, and bind with docker
+
         docker_stage = DockerVirtueStage(docker_login, containers, ssh_host,
                                          str(ssh_port), self.work_dir,
                                          check_cloudinit=False)
@@ -599,6 +606,7 @@ class Assembler(object):
 
 
     def provision_virtue(self,
+                         username,
                          virtue_id,
                          img_path,
                          output_path,
@@ -660,13 +668,26 @@ class Assembler(object):
                     os.chown(os.path.join(path, d), 501, 500)
                     os.chmod(os.path.join(path, d), 0o700)
 
+            # KL --- configure krb5.conf file
+            with open(image_mount + '/etc/hosts', 'a') as hosts:
+                hosts.write("172.30.1.250 camelot.virtue.gov")
+
+            krb5_conf_src = '/etc/krb5.conf'
+            krb5_conf_dest = "{}{}".format(image_mount, krb5_conf_src)
+            shutil.copyfile(krb5_conf_src, krb5_conf_dest)
+
+            # KL --- move to virtue launch. tmp is overwritten when restarted :facepalm:
+            krb5cc_src = '/tmp/krb5cc_{}'.format(username)
+            krb5cc_dest = '{}/tmp/krb5cc_0'.format(image_mount)
+            print("WAT:    {}    {}".format(krb5cc_src, krb5cc_dest))
+            print(shutil.copyfile(krb5cc_src, krb5cc_dest))
+
         except:
             os.remove(output_path)
             raise
         finally:
             subprocess.call(['umount', image_mount])
             os.rmdir(image_mount)
-
 
     def create_aws_ami(self, instance, ami_name=None):
 

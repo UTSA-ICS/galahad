@@ -337,6 +337,39 @@ def admin_application_list():
     return make_response(ret)
 
 
+@bp.route('/admin/resource/create', methods=['GET'])
+@require_oauth()
+def admin_resource_create():
+    ret = ''
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.resource_create(
+            json.loads(request.args['resource']))
+        log_to_elasticsearch('Create admin resource',
+                             extra={'user': get_user(), 'resource_id': request.args['resource']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+@bp.route('/admin/resource/destroy', methods=['GET'])
+@require_oauth()
+def admin_resource_destroy():
+    ret = ''
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.resource_destroy(request.args['resourceId'])
+        log_to_elasticsearch('Destroy resource', 
+                extra={'user': get_user(), 'resource_id': request.args['resourceId']}, 
+                ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 @bp.route('/admin/resource/get', methods=['GET'])
 @require_oauth()
 def admin_resource_get():

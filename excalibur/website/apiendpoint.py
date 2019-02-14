@@ -10,8 +10,9 @@ from paramiko import SSHClient
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
-from valor import ValorManager, RethinkDbManager
 from . import ldap_tools
+from aws import AWS
+from valor import ValorManager, RethinkDbManager, ResourceManager
 
 DEBUG_PERMISSIONS = False
 
@@ -246,6 +247,26 @@ class EndPoint():
 
                         print('Successfully connected to {}'.format(
                             virtue['ipAddress'],))
+
+                        # KL --- add if resIDs not empty run:
+                        # Kerberos tgt setup for resource management
+                        if len(virtue['resourceIds']) is not 0:
+                            krb5cc_src = '/tmp/krb5cc_{}'.format(username)
+                            krb5cc_dest = '/tmp/krb5cc_0'
+                            subprocess.check_call(['scp', '-i',
+                                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                                    krb5cc_src,
+                                                    'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
+
+                            for res in virtue['resourceIds']:
+                                resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                                ldap_tools.parse_ldap(resource)
+                                resource_manager = ResourceManager(username, resource)
+                                getattr(resource_manager, resource['type'].lower())(
+                                    virtue['ipAddress'],
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+
+
                         success = True
 
                         break
@@ -295,10 +316,30 @@ class EndPoint():
 
             try:
                 if (use_valor):
+
+                    if len(virtue['resourceIds']) is not 0:
+                        for res in virtue['resourceIds']:
+                            resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                            ldap_tools.parse_ldap(resource)
+                            resource_manager = ResourceManager(username, resource)
+                            call = 'remove_' + resource['type'].lower()
+                            getattr(resource_manager, call)(
+                                virtue['ipAddress'],
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+
+                        ret = subprocess.check_call(['ssh', '-i',
+                                               os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                               'virtue@' + virtue['ipAddress'],
+                                               '-t', 'sudo rm /tmp/krb5cc_0'])
+                        assert ret == 0
+
                     rdb_manager = RethinkDbManager()
                     rdb_manager.remove_virtue(virtue['id'])
             except AssertionError:
                 return json.dumps(ErrorCodes.user['serverStopError'])
+            except:
+                print('Error:\n{}'.format(traceback.format_exc()))
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
             else:
                 virtue['state'] = 'STOPPED'
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')

@@ -6,6 +6,11 @@ from assembler.assembler import Assembler
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-u',
+                        '--username',
+                        type=str,
+                        required=True,
+                        help='Username of virtue owner')
     parser.add_argument('-i',
                         '--virtue_id',
                         type=str,
@@ -52,7 +57,8 @@ if (__name__ == '__main__'):
     args = parse_args()
 
     assembler = Assembler()
-    assembler.provision_virtue(args.virtue_id,
+    assembler.provision_virtue(args.username,
+                               args.virtue_id,
                                args.base_img,
                                args.output_path,
                                args.virtue_key,

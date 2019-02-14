@@ -44,6 +44,49 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+    def resource_create(self, resource):
+        try:
+            resource_keys = [
+                'credentials',
+                'type',
+                'unc'
+            ]
+            if (set(resource.keys()) != set(resource_keys)
+                    and set(resource.keys()) != set(resource_keys + ['id'])):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+            if (not isinstance(resource['credentials'], basestring)
+                    or not isinstance(resource['type'], basestring)
+                    or not isinstance(resource['unc'], basestring)):
+                return json.dumps(ErrorCodes.admin['invalidFormat'])
+            resource['id'] = 'Resource_{}_{}'.format(resource['type'], int(time.time()))
+            ldap_resource = ldap_tools.to_ldap(resource, 'OpenLDAPresource')
+            self.inst.add_obj(ldap_resource, 'resources', 'cid', throw_error=True)
+
+            return json.dumps(resource)
+        except Exception as e:
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    def resource_destroy(self, resourceId):
+        try:
+            resource = self.inst.get_obj('cid', resourceId, 'OpenLDAPresource', True)
+            if (resource == ()):
+                return json.dumps(ErrorCodes.admin['invalidId'])
+            ldap_tools.parse_ldap(resource)
+
+            # KL --- add check if in use
+            ldap_virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            virtues = ldap_tools.parse_ldap_list(ldap_virtues)
+
+            if any(resourceId in virtue['resourceIds'] for virtue in virtues):
+                return json.dumps(ErrorCodes.admin['virtueUsingResource'])
+
+            self.inst.del_obj('cid', resource['id'], throw_error=True)
+        except:
+            print('Error while deleting {}:\n{}'.format(
+                resource['id'], traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['serverDestroyError'])
+
+        return json.dumps(ErrorCodes.admin['success'])
 
     def resource_get(self, resourceId):
 
@@ -98,13 +141,22 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
 
-            if (virtue['state'] == 'DELETING'):
+            #if (virtue['state'] == 'DELETING'):
+            #    return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+            if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
 
             if (resourceId in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantAttach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            virtue['resourceIds'].append(resourceId)
+            self.inst.modify_obj('cid', virtue['id'], 
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
 
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -134,7 +186,17 @@ class EndPoint_Admin():
             if (resourceId not in virtue['resourceIds']):
                 return json.dumps(ErrorCodes.admin['cantDetach'])
 
-            return json.dumps(ErrorCodes.admin['notImplemented'])
+            if (virtue['state'] != 'STOPPED'):
+                return json.dumps(ErrorCodes.admin['invalidVirtueState'])
+
+            virtue['resourceIds'].remove(resourceId)
+            self.inst.modify_obj('cid', virtue['id'],
+                ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                objectClass='OpenLDAPvirtue',
+                throw_error=True)
+
+            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            return json.dumps(ErrorCodes.admin['success'])
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
