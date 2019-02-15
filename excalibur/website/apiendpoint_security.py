@@ -1,30 +1,33 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
-from . import ldap_tools
 import json
-import traceback
 import os.path
 import time
+import traceback
 from copy import deepcopy
 
 import rethinkdb as r
-from valor import ValorAPI, RethinkDbManager
-
-from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
+from valor import RethinkDbManager
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
 
 class EndPoint_Security:
     def __init__(self, user, password):
-        self.inst = LDAP(user, password)
-        self.rdb_manager = RethinkDbManager()
 
-        self.inst.bind_ldap()
+        self.inst = LDAP(user, password)
+        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+        self.inst.get_ldap_connection()
+        self.inst.conn.simple_bind_s(dn, 'Test123!')
+
+        self.rdb_manager = RethinkDbManager()
 
         if not hasattr(self.__class__, 'conn'):
             self.__class__.conn = None
