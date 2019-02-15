@@ -316,6 +316,7 @@ class Packager():
                 'name': role['name'],
                 'version': role['version'],
                 'applications': role_apps,
+                'networkRules': role['networkRules']
             },
             'transducerData': transducer_data,
             'securityProfile': None,
@@ -414,13 +415,15 @@ class Packager():
             'version': metadata['role']['version'],
             'applicationIds': role_apps,
             'startingResourceIds': [],
-            'startingTransducerIds': [t['id'] for t in metadata['transducerData']]
+            'startingTransducerIds': [t['id'] for t in metadata['transducerData']],
+            'networkRules': metadata['role']['networkRules']
         }
 
         if (type(matching_role) == dict
             and matching_role['name'] == new_role['name']
             and matching_role['version'] == new_role['version']
             and matching_role['applicationIds'] == new_role['applicationIds']
+            and matching_role['networkRules'] == new_role['networkRules']
             and matching_role['startingTransducerIds'] \
             == new_role['startingTransducerIds']):
 

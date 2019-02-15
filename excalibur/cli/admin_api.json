@@ -273,6 +273,21 @@
             ]
         },
         {
+            "command": "virtue introspect start all",
+            "help": "Start introspection on a specific Virtue",
+            "url": "/virtue/introspect_start_all",
+            "parameters": [
+                { "name": "Interval", "url_name": "interval" },
+                { "name": "Modules", "url_name": "modules" }
+            ]
+        },
+        {
+            "command": "virtue introspect stop all",
+            "help": "Stop introspection on a specific Virtue",
+            "url": "/virtue/introspect_stop_all",
+            "parameters": []
+        },
+        {
             "command": "application add",
             "help": "Add an application to the system",
             "url": "/application/add",

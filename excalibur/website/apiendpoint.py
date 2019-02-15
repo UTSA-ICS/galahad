@@ -387,16 +387,25 @@ class EndPoint():
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
             if (use_ssh):
-                args = shlex.split((
+                start_docker_container = shlex.split((
                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
                     + ' virtue@{2} sudo docker start $(sudo docker ps -af'
                     + ' name="{3}" -q)').format(
                         os.environ['HOME'], username, virtue['ipAddress'],
                         app['id'].lower()))
 
+                copy_network_rules = shlex.split((
+                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
+                     + ' virtue@{2} sudo docker cp /etc/networkRules $(sudo docker ps -af'
+                     + ' name="{3}" -q):/etc/networkRules').format(os.environ['HOME'], username,
+                       virtue['ipAddress'], app['id'].lower()))
+
                 with open(os.devnull, 'w')  as DEVNULL:
-                    docker_exit = subprocess.call(args, stdout=DEVNULL,
+                    docker_exit = subprocess.call(start_docker_container, stdout=DEVNULL,
                                                   stderr=subprocess.STDOUT)
+                    docker_copy_exit = subprocess.call(copy_network_rules, stdout=DEVNULL, 
+                                                  stderr=subprocess.STDOUT)
+
 
                 if (docker_exit != 0):
                     # This is an issue with docker where if the docker daemon exits
