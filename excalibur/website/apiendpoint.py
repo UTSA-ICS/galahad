@@ -394,18 +394,18 @@ class EndPoint():
                         os.environ['HOME'], username, virtue['ipAddress'],
                         app['id'].lower()))
 
+                # Copy the network Rules file.
                 copy_network_rules = shlex.split((
                      'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
                      + ' virtue@{2} sudo docker cp /etc/networkRules $(sudo docker ps -af'
                      + ' name="{3}" -q):/etc/networkRules').format(os.environ['HOME'], username,
                        virtue['ipAddress'], app['id'].lower()))
+                subprocess.call(copy_network_rules)
 
                 with open(os.devnull, 'w')  as DEVNULL:
-                    docker_exit = subprocess.call(start_docker_container, stdout=DEVNULL,
+                    docker_exit = subprocess.call(start_docker_container,
+                                                  stdout=DEVNULL,
                                                   stderr=subprocess.STDOUT)
-                    docker_copy_exit = subprocess.call(copy_network_rules, stdout=DEVNULL, 
-                                                  stderr=subprocess.STDOUT)
-
 
                 if (docker_exit != 0):
                     # This is an issue with docker where if the docker daemon exits
@@ -416,7 +416,7 @@ class EndPoint():
                     # The current workaround is to issue the docker start command
                     # twice. Tne first time it fails with the above error and the
                     # second time it succeeds.
-                    docker_exit = subprocess.call(args)
+                    docker_exit = subprocess.call(start_docker_container)
                 if (docker_exit != 0):
                     print(
                         "Docker start command for launching application {} Failed".format(
