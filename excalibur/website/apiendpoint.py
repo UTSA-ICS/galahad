@@ -251,7 +251,7 @@ class EndPoint():
                         # KL --- add if resIDs not empty run:
                         # Kerberos tgt setup for resource management
                         if len(virtue['resourceIds']) is not 0:
-                            role = self.inst.get_obj('cid', virtue['role'], 'openLDAProle')
+                            role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
                             ldap_tools.parse_ldap(role)
 
                             appIds = role['applicationIds']
@@ -322,6 +322,10 @@ class EndPoint():
 
             try:
                 if (use_valor):
+                    role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                    ldap_tools.parse_ldap(role)
+
+                    appIds = role['applicationIds']
 
                     if len(virtue['resourceIds']) is not 0:
                         for res in virtue['resourceIds']:
@@ -331,7 +335,8 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                appIds)
 
                         ret = subprocess.check_call(['ssh', '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
