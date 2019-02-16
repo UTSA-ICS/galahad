@@ -1024,7 +1024,7 @@ class ResourceManager:
             assert ret == 0
 
             ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                '-t', 'sudo rm /home/virtue/{}/share'.format(appId)])
+                '-t', 'sudo rmdir /home/virtue/{}/share'.format(appId)])
             assert ret == 0
 
     def remove_printer(self, virtue_ip, key_path, appIds):
@@ -1039,5 +1039,5 @@ class ResourceManager:
 
             ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
                                          '-t',
-                                         'sudo rm -R /home/virtue/{}/.thunderbird'.format(appId)])
+                                         'sudo rmdir /home/virtue/{}/.thunderbird'.format(appId)])
             assert ret == 0
