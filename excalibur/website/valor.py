@@ -822,9 +822,22 @@ class RethinkDbManager:
 
         if not role_create:
             trans_migration = rethinkdb.db('transducers').table('commands')\
-                .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run()
+
             trans_introspection = rethinkdb.db('transducers').table('commands')\
-                .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
+                .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run()
+
+
+            # Calling next() on an empty cursor will error out
+            if not trans_migration.is_empty():
+                trans_migration = trans_migration.next()
+            else:
+                trans_migration = {}
+
+            if not trans_introspection.is_empty():
+               trans_introspection = trans_introspection.next()
+            else:
+               trans_introspection = {}
 
             trans_migration['valor_ip'] = valor_address
             trans_migration['valor_dest'] = None
