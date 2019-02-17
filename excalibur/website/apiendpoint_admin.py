@@ -8,8 +8,7 @@ import traceback
 import requests
 
 from apiendpoint import EndPoint
-from controller import CreateVirtueThread, \
-    AssembleRoleThread
+from controller import CreateVirtueThread, AssembleRoleThread
 from create_ldap_users import update_ldap_users_from_ad
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes

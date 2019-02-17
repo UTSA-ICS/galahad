@@ -251,6 +251,11 @@ class EndPoint():
                         # KL --- add if resIDs not empty run:
                         # Kerberos tgt setup for resource management
                         if len(virtue['resourceIds']) is not 0:
+                            role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                            ldap_tools.parse_ldap(role)
+
+                            appIds = role['applicationIds']
+
                             krb5cc_src = '/tmp/krb5cc_{}'.format(username)
                             krb5cc_dest = '/tmp/krb5cc_0'
                             subprocess.check_call(['scp', '-i',
@@ -264,7 +269,8 @@ class EndPoint():
                                 resource_manager = ResourceManager(username, resource)
                                 getattr(resource_manager, resource['type'].lower())(
                                     virtue['ipAddress'],
-                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                    appIds)
 
 
                         success = True
@@ -316,6 +322,10 @@ class EndPoint():
 
             try:
                 if (use_valor):
+                    role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                    ldap_tools.parse_ldap(role)
+
+                    appIds = role['applicationIds']
 
                     if len(virtue['resourceIds']) is not 0:
                         for res in virtue['resourceIds']:
@@ -325,7 +335,8 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                appIds)
 
                         ret = subprocess.check_call(['ssh', '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
@@ -387,25 +398,34 @@ class EndPoint():
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
             if (use_ssh):
-                start_docker_container = shlex.split((
+
+                resource_mount = ""
+                for resourceId in virtue['resourceIds']:
+                    resource = self.inst.get_obj('cid', resourceId, 'OpenLDAPresource')
+                    if (resource == None or resource == ()):
+                        return json.dumps(ErrorCodes.user['unspecifiedError'])
+                    ldap_tools.parse_ldap(resource)
+
+                    if resource['type'] == 'EMAIL':
+                        resource_mount += " -v /ost:/home/virtue/.thunderbird"
+                    elif resource['type'] == 'DRIVE':
+                        resource_mount += " -v /mnt:/home/virtue/share"
+                    else:
+                        pass
+
+                # KL
+                print("resource mount commands = {}".format(resource_mount))
+
+                args = shlex.split((
                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
                     + ' virtue@{2} sudo docker start $(sudo docker ps -af'
                     + ' name="{3}" -q)').format(
                         os.environ['HOME'], username, virtue['ipAddress'],
                         app['id'].lower()))
 
-                copy_network_rules = shlex.split((
-                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                     + ' virtue@{2} sudo docker cp /etc/networkRules $(sudo docker ps -af'
-                     + ' name="{3}" -q):/etc/networkRules').format(os.environ['HOME'], username,
-                       virtue['ipAddress'], app['id'].lower()))
-
                 with open(os.devnull, 'w')  as DEVNULL:
-                    docker_exit = subprocess.call(start_docker_container, stdout=DEVNULL,
+                    docker_exit = subprocess.call(args, stdout=DEVNULL,
                                                   stderr=subprocess.STDOUT)
-                    docker_copy_exit = subprocess.call(copy_network_rules, stdout=DEVNULL, 
-                                                  stderr=subprocess.STDOUT)
-
 
                 if (docker_exit != 0):
                     # This is an issue with docker where if the docker daemon exits
