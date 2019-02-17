@@ -133,7 +133,7 @@ function startApp(virtueId, appId, roleName, ip, localPort) {
 
   client.methods.userVirtueLaunch(args, (virtue, response) => {
     const args = {
-      parameters: { appId },
+      parameters: { appId, virtueId },
       headers: { Authorization: `Bearer ${data.access_token}` },
     };
 
@@ -537,7 +537,8 @@ function addStopButtonToVirtues(virtueList) {
       'onclick',
       `stopVirtueForApp('${
         virtueList[virtueIndex].roleId
-      }');`);
+      }');`,
+    );
       
     optionsinner.appendChild(stop_app);
   }
@@ -552,7 +553,7 @@ function createVirtueDock() {
   const client = methods();
   const args = {
     headers: { Authorization: `Bearer ${data.access_token}` },
-  }
+  };
 
   client.methods.userRoleList(args, (roleList, resp) => {
     addVirtuesToSideDock(roleList);
@@ -602,13 +603,13 @@ function methods() {
 
   client.registerMethod(
     'userApplicationLaunch',
-    `${excalibur}/user/application/launch`,
+    `${excalibur}/user/virtue/application/launch`,
     'GET',
   );
 
   client.registerMethod(
     'userApplicationStop',
-    `${excalibur}/user/application/stop`,
+    `${excalibur}/user/virtue/application/stop`,
     'GET',
   );
 
