@@ -162,6 +162,8 @@ Resources:
   VirtUEValorEFS:
     Type: 'AWS::EFS::FileSystem'
     Properties:
+      ProvisionedThroughputInMibps: 1024
+      ThroughputMode: provisioned
       FileSystemTags:
         - Key: Project
           Value: Virtue
@@ -232,7 +234,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-0f9cf087c1f27d9b1
-      InstanceType: t2.medium
+      InstanceType: t3.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
