@@ -10,7 +10,6 @@ class DockerVirtueStage(SSHStage):
 
     USER_SCRIPT = '''#!/bin/bash
         cd /home/virtue
-        mkdir %s
         pip3 install --user docker pyyaml
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
@@ -32,7 +31,4 @@ class DockerVirtueStage(SSHStage):
         if not self._has_run:
             super(DockerVirtueStage, self).run()
 
-            # KL
-            #self._exec_cmd(self.USER_SCRIPT % (self._docker_login, ' '.join(self._containers)))
-            self._exec_cmd(self.USER_SCRIPT % (' '.join(self._containers), self._docker_login,
-                                               ' '.join(self._containers)))
+            self._exec_cmd(self.USER_SCRIPT % (self._docker_login, ' '.join(self._containers)))
