@@ -274,7 +274,7 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
-            with open('/tmp/networkRules','w+') as iprules_file:
+            with open('/tmp/networkRules-' + virtue['id'],'w+') as iprules_file:
                 for rule in role['networkRules']:
                     iprules_file.write(rule + '\n')
 
@@ -288,7 +288,7 @@ class CreateVirtueThread(threading.Thread):
                                    'call_provisioner.py',
                                    '-u', self.username,
                                    '-i', virtue['id'],
-                                   '-n', '/tmp/networkRules',
+                                   '-n', '/tmp/networkRules-' + virtue['id'],
                                    '-b',
                                    '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
