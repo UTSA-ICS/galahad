@@ -12,7 +12,7 @@ class DockerVirtueStage(SSHStage):
         cd /home/virtue
         mkdir %s
         pip3 install --user docker pyyaml
-        git clone --branch 283.virtue-sso https://github.com/starlab-io/docker-virtue.git
+        git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         sudo %s
         sudo ./run.py -p start %s
