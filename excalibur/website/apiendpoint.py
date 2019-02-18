@@ -258,13 +258,17 @@ class EndPoint():
                                                     krb5cc_src,
                                                     'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
 
+                            role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                            ldap_tools.parse_ldap(role)
+
                             for res in virtue['resourceIds']:
                                 resource = self.inst.get_obj('cid', res, 'openLDAPresource')
                                 ldap_tools.parse_ldap(resource)
                                 resource_manager = ResourceManager(username, resource)
                                 getattr(resource_manager, resource['type'].lower())(
                                     virtue['ipAddress'],
-                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                    role['applicationIds'])
 
 
                         success = True
@@ -318,6 +322,9 @@ class EndPoint():
                 if (use_valor):
 
                     if len(virtue['resourceIds']) is not 0:
+                        role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                        ldap_tools.parse_ldap(role)
+
                         for res in virtue['resourceIds']:
                             resource = self.inst.get_obj('cid', res, 'openLDAPresource')
                             ldap_tools.parse_ldap(resource)
@@ -325,7 +332,8 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                role['applicationIds'])
 
                         ret = subprocess.check_call(['ssh', '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
