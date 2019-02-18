@@ -982,6 +982,7 @@ class ResourceManager:
     def drive(self, virtue_ip, key_path, appIds):
         # map resource
         # map to different directory than /home/virtue - causing key error
+        print("drive")
 
         for appId in appIds:
             try:
@@ -990,7 +991,7 @@ class ResourceManager:
                                              'sudo mount.cifs {} /home/virtue/{} -o sec=krb5,user=VIRTUE\{}'.format(
                                                 self.resource['unc'], appId, self.username)])
                 assert ret == 0
-            catch Exception as e:
+            except Exception as e:
                 print("Failed to mount shared drive on virtue with error: {}".format(e))
     
     def printer(self, virtue_ip, key_path, appIds):
