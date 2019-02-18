@@ -579,7 +579,7 @@ function methods() {
 
   client.registerMethod(
     'logout',
-    `https://${excaliburIpAddress} :5002/oauth2/revoke`,
+    `https://${excaliburIpAddress}:5002/oauth2/revoke`,
     'POST',
   );
 
