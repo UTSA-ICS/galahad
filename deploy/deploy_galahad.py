@@ -756,45 +756,50 @@ class AutomatedVirtueMigration:
 
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
-          aws_config, aws_keys, branch, image_size, user_key, deactivate_virtue_migration,
-          auto_migration_interval):
+          aws_config, aws_keys, branch, image_size, user_key,
+          deactivate_virtue_migration, auto_migration_interval):
 
     start_stack_time = time.time()
 
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
-
-    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format(
+        (time.time() - start_stack_time) / 60))
 
     start_setup_time = time.time()
 
-    efs = EFS(stack_name, path_to_key)
 
     start_xen_pvm_time = time.time()
-
+    efs = EFS(stack_name, path_to_key)
     efs.setup_xen_pvm_builder()
+    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
+        (time.time() - start_xen_pvm_time) / 60))
 
-    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format((time.time() - start_xen_pvm_time) / 60))
-
-    start_ubuntu_img_time = time.time()
-
-    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                               args=(image_size,))
-    setup_ubuntu_img_thread.start()
+    #start_ubuntu_img_time = time.time()
+    #setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+    #                                           args=(image_size,))
+    #setup_ubuntu_img_thread.start()
+    ubuntu_imgs = []
+    for image in image_size:
+        start_ubuntu_img_time = time.time()
+        setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
+                                                   args=(image,))
+        setup_ubuntu_img_thread.start()
+        ubuntu_imgs.append({"image_size": image,
+                            "start_time": start_ubuntu_img_time,
+                            "thread": setup_ubuntu_img_thread})
 
     start_aggregator_time = time.time()
-
     aggregator = Aggregator(stack_name, path_to_key)
     aggregator_thread = threading.Thread(target=aggregator.setup,
                                          args=(branch, github_key, user_key,))
     aggregator_thread.start()
 
     start_excalibur_time = time.time()
-
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
-
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format((time.time() - start_excalibur_time) / 60))
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
 
     canvas = Canvas(stack_name, path_to_key)
     canvas_thread = threading.Thread(target=canvas.setup,
@@ -802,49 +807,76 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
     canvas_thread.start()
 
     start_rethinkdb_time = time.time()
-
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, user_key)
-
-    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
+    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
+        (time.time() - start_rethinkdb_time) / 60))
 
     aggregator_thread.join()
-    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format((time.time() -
-                                                                              start_aggregator_time) / 60))
+    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format(
+        (time.time() - start_aggregator_time) / 60))
 
-    setup_ubuntu_img_thread.join()
+    #setup_ubuntu_img_thread.join()
+    #logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
+    #    image_size, (time.time() - start_ubuntu_img_time) / 60))
+    for ubuntu_img in ubuntu_imgs:
+        ubuntu_img["thread"].join()
+        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
+            ubuntu_img["image_size"],
+            (time.time() - ubuntu_img["start_time"]) / 60))
 
-    logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                         start_ubuntu_img_time) / 60))
-
-    start_unity_time = time.time()
-
-    setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                          args=(excalibur.server_ip, image_size + '.img',))
-    setup_unity_thread.start()
+    #start_unity_time = time.time()
+    #setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
+    #                                      args=(excalibur.server_ip,
+    #                                            image_size + '.img',))
+    #setup_unity_thread.start()
+    unity_imgs = []
+    for image in image_size:
+        start_unity_time = time.time()
+        setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                              args=(excalibur.server_ip,
+                                                    image + '.img',))
+        setup_unity_thread.start()
+        unity_imgs.append({"image_size": image,
+                           "start_time": start_unity_time,
+                           "thread": setup_unity_thread})
 
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
     standby_pools = StandbyPools(stack_name, path_to_key)
-
     start_standby_valor_pools_time = time.time()
     standby_valor_pools_thread = threading.Thread(
         target=standby_pools.initialize_valor_standby_pool)
     standby_valor_pools_thread.start()
 
-    setup_unity_thread.join()
-    logger.info(
+    #setup_unity_thread.join()
+    #logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
+    #    image_size, (time.time() - start_unity_time) / 60))
+    for unity_img in unity_imgs:
+        unity_img["thread"].join()
+        logger.info(
         '\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            image_size,
-            (time.time() - start_unity_time) / 60))
+            unity_img["image_size"],
+            (time.time() - unity_img["start_time"]) / 60))
 
     start_standby_role_pools_time = time.time()
-    standby_role_pools_thread = threading.Thread(
+    #standby_role_pools_thread = threading.Thread(
+    #    target=standby_pools.initialize_role_image_file_standby_pool,
+    #    args=(image_size,))
+    #standby_role_pools_thread.start()
+    #standby_role_pools_thread.join()
+    standby_roles = []
+    for image in image_size:
+        standby_role_pools_thread = threading.Thread(
         target=standby_pools.initialize_role_image_file_standby_pool,
-        args=(image_size,))
-    standby_role_pools_thread.start()
-    standby_role_pools_thread.join()
+        args=(image,))
+        standby_role_pools_thread.start()
+        standby_roles.append(standby_valor_pools_thread)
+
+    for standby_role in standby_roles:
+        standby_role.join()
+
     logger.info(
         '\n*** Time taken for Standby Pools of Role is [{0}] ***\n'.format(
             (time.time() - start_standby_role_pools_time) / 60))
@@ -936,7 +968,8 @@ def parse_args():
         help="delete the specified stack")
     parser.add_argument(
         "--image_size",
-        default="8GB",
+        nargs="+",
+        default=["8GB", "16GB"],
         choices=["4GB", "8GB", "16GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(

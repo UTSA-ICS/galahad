@@ -42,9 +42,22 @@ class StandbyVirtues:
     def create_virtue_image_file(self, virtue_id):
         virtue_num = self.get_standby_virtue_image_files()
 
-        if virtue_num and os.path.isfile(VIRTUE_PATH + self.role_id +
-                                       '_STANDBY_VIRTUE_' + str(virtue_num[0]) +
-                                       '.img'):
+        if virtue_num:
+            timeout = 0
+            while not os.path.isfile(VIRTUE_PATH + self.role_id +
+                                     '_STANDBY_VIRTUE_' + str(virtue_num[0]) +
+                                     '.img'):
+                time.sleep(30)
+                timeout = timeout + 1
+                # Check if timing out for standby file to complete copy.
+                # 30 equates to 15 minutes timeout
+                if timeout > 30:
+                    # If timeout then give up on standby file and copy a new one
+                    subprocess.check_call(['sudo', 'rsync', '-W',
+                                           ROLE_PATH + self.role_id + '.img',
+                                           VIRTUE_PATH + virtue_id + '.img'])
+                    self.create_standby_virtues()
+                    return
             subprocess.check_call(['sudo', 'mv',
                                    VIRTUE_PATH + self.role_id +
                                    '_STANDBY_VIRTUE_' + str(
@@ -52,7 +65,7 @@ class StandbyVirtues:
                                    VIRTUE_PATH + virtue_id + '.img'])
         # If there are no standby roles
         else:
-            subprocess.check_call(['sudo', 'rsync',
+            subprocess.check_call(['sudo', 'rsync', '-W',
                                    ROLE_PATH + self.role_id + '.img',
                                    VIRTUE_PATH + virtue_id + '.img'])
 
@@ -106,7 +119,7 @@ class StandbyVirtues:
     def create_standby_virtue_image_files(self, virtue_count, index):
         print(VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(
             virtue_count + index))
-        subprocess.check_call(['sudo', 'rsync',
+        subprocess.check_call(['sudo', 'rsync', '-W',
                                ROLE_PATH + self.role_id + '.img',
                                VIRTUE_PATH + self.role_id +
                                '_STANDBY_VIRTUE_' + str(
@@ -132,7 +145,7 @@ class StandbyRoles:
                                    ROLE_PATH + self.role['id'] + '.img'])
         # If there are no standby roles
         else:
-            subprocess.check_call(['sudo', 'rsync',
+            subprocess.check_call(['sudo', 'rsync', '-W',
                                    UNITY_PATH + self.base_img_name + '.img',
                                    ROLE_PATH + self.role['id'] + '.img'])
 
@@ -185,7 +198,7 @@ class StandbyRoles:
     def create_standby_role_image_files(self, role_count, index):
         print(ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(
             role_count + index))
-        subprocess.check_call(['sudo', 'rsync',
+        subprocess.check_call(['sudo', 'rsync', '-W',
                                UNITY_PATH + self.base_img_name + '.img',
                                ROLE_PATH + self.base_img_name +
                                '_STANDBY_ROLE_' + str(
