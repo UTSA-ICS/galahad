@@ -264,7 +264,8 @@ class EndPoint():
                                 resource_manager = ResourceManager(username, resource)
                                 getattr(resource_manager, resource['type'].lower())(
                                     virtue['ipAddress'],
-                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+                                    virtue['applicationIds'])
 
 
                         success = True
@@ -325,7 +326,8 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                virtue['applicationIds'])
 
                         ret = subprocess.check_call(['ssh', '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
