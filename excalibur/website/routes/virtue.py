@@ -468,7 +468,7 @@ def admin_role_create():
         ep = get_admin_endpoint()
 
         # If UnitySize is not provided then set to default of 8GB
-        unitySize = request.args.get('unitySize', '8GB')
+        unitySize = request.args.get('unitySize')
 
         ret = ep.role_create(
             json.loads(request.args['role']),

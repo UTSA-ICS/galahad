@@ -32,7 +32,5 @@ class DockerVirtueStage(SSHStage):
         if not self._has_run:
             super(DockerVirtueStage, self).run()
 
-            # KL
-            #self._exec_cmd(self.USER_SCRIPT % (self._docker_login, ' '.join(self._containers)))
-            self._exec_cmd(self.USER_SCRIPT % (' '.join(self._containers), self._docker_login,
-                                               ' '.join(self._containers)))
+            self._exec_cmd(self.USER_SCRIPT % (
+                ' '.join(self._containers), self._docker_login, ' '.join(self._containers)))

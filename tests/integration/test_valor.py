@@ -46,11 +46,10 @@ def get_rethinkdb_connection():
             ssl = {
                 'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
             }).repl()
+        return connection
 
     except Exception as error:
         print(error)
-
-    return connection
 
 
 def is_valor_in_rethinkdb(valor_id):
@@ -141,7 +140,7 @@ def virtue_launch():
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
-        assert xl_list.count('\n') == 3
+        assert virtue['id'] in xl_list
     except:
         # Cleanup the new virtue created
         integration_common.cleanup_virtue('slapd', virtue['id'])
@@ -154,14 +153,14 @@ def virtue_launch():
     return (rethinkdb_virtue['virtue_id'], rethinkdb_valor['address'])
 
 
-def is_virtue_running(ip_address):
+def is_virtue_running(ip_address, virtue_id):
 
         xl_list = subprocess.check_output(
             ['ssh', '-i', key_path, 'ubuntu@' + ip_address,
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
-        return xl_list.count('\n') == 3
+        return virtue_id in xl_list
 
 
 def get_valor_ip(valor_id):
@@ -256,8 +255,8 @@ class Test_ValorAPI:
 
         time.sleep(60)
 
-        assert not is_virtue_running(valor_ip_address) 
-        assert is_virtue_running(destination_valor_ip_address)
+        assert not is_virtue_running(valor_ip_address, virtue_id)
+        assert is_virtue_running(destination_valor_ip_address, virtue_id)
 
         # Cleanup the new virtue created
         integration_common.cleanup_virtue('slapd', virtue['id'])
@@ -267,12 +266,10 @@ class Test_ValorAPI:
         integration_common.cleanup_role('slapd', role['id'])
         role = None
 
-        # Cleanup the used valor node
-        json.loads(session.get(admin_url + '/valor/destroy', params={
-            'valor_id': destination_valor_id['valor_id']}).text)
-
 
 def teardown_module():
+
+    global virtue
 
     if virtue:
 

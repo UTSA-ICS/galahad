@@ -982,16 +982,17 @@ class ResourceManager:
     def drive(self, virtue_ip, key_path, appIds):
         # map resource
         # map to different directory than /home/virtue - causing key error
-        for appId in appIds:
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                '-t', 'sudo', 'mkdir /home/virtue/{}/share'.format(appId)])
-            assert ret == 0
+        print("drive")
 
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t',
-                                         'sudo mount.cifs {} /home/virtue/{}/share -o sec=krb5,user=VIRTUE\{}'.format(
-                                            self.resource['unc'], appId, self.username)])
-            assert ret == 0
+        for appId in appIds:
+            try:
+                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                             '-t',
+                                             'sudo mount.cifs {} /home/virtue/{} -o sec=krb5,user=VIRTUE\{}'.format(
+                                                self.resource['unc'], appId, self.username)])
+                assert ret == 0
+            except Exception as e:
+                print("Failed to mount shared drive on virtue with error: {}".format(e))
     
     def printer(self, virtue_ip, key_path, appIds):
         pass
@@ -1008,45 +1009,37 @@ class ResourceManager:
                 return
 
         try:
-            #ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-            #                             '-t', 'sudo', 'mkdir', '/ost'])
-            #assert ret == 0
+            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                         '-t', 'sudo', 'mkdir', '/ost'])
+            assert ret == 0
 
-            for appId in appIds:
-                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                    '-t', 'sudo', 'mkdir /home/virtue/{}/.thunderbird'.format(appId)])
-                assert ret == 0
-
-                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                    '-t', 'sudo',
-                    'mount -t nfs excalibur.galahad.com:/mnt/ost/{} /home/virtue/{}/.thunderbird'.format(
-                        self.username, appId)])
-                assert ret == 0
+            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                         '-t', 'sudo',
+                                         'mount -t nfs excalibur.galahad.com:/mnt/ost/{} /ost'.format(self.username)])
+            assert ret == 0
         except Exception as e:
             print("Failed to mount ost NFS directory on virtue with error: {}".format(e))
 
     def remove_drive(self, virtue_ip, key_path, appIds):
         for appId in appIds:
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t',
-                                         'sudo umount /home/virtue/{}/share'.format(appId)])
-            assert ret == 0
-
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                '-t', 'sudo rmdir /home/virtue/{}/share'.format(appId)])
-            assert ret == 0
+            try:
+                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                             '-t',
+                                             'sudo umount /home/virtue/{}'.format(appId)])
+                assert ret == 0
+            except Exception as e:
+                print("Failed to unmount shared drive on virtue with error: {}".format(e))
 
     def remove_printer(self, virtue_ip, key_path, appIds):
         pass
 
     def remove_email(self, virtue_ip, key_path, appIds):
-        for appId in appIds:
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t',
-                                         'sudo umount /home/virtue/{}/.thunderbird'.format(appId)])
-            assert ret == 0
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo umount /ost'])
+        assert ret == 0
 
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t',
-                                         'sudo rmdir /home/virtue/{}/.thunderbird'.format(appId)])
-            assert ret == 0
+        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
+                                     '-t',
+                                     'sudo rm -R /ost'])
+        assert ret == 0
