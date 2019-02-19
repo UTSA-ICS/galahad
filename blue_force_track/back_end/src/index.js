@@ -315,22 +315,6 @@ app.get('/virtues_per_valor', (req, res) => {
                 virtues[element['virtue_id']] = element;
             }
         }
-//        query_rethinkdb('commands', function(results_c) {
-//            for (var i = 0; i < results_c.length; i++) {
-//                var element = results_c[i];
-//                if ('valor_ip' in element) {
-//                    var valor_ip = element['valor_ip'];
-//                    if (valor_ip in valors) {
-//                        valors[valor_ip]['virtues'].push(element['virtue_id']);
-//                    }
-//                }
-//            }
-//            var num_virtues_per_valor = {}
-//            for (valor_id in valors) {
-//                var valor = valors[valor_id];
-//                num_virtues_per_valor[valor['address']] = valor['virtues'].length;
-//            }
-//        });
 
         for (var key in virtues) {
             var element = virtues[key];
