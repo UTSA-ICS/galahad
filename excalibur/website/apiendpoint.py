@@ -253,7 +253,8 @@ class EndPoint():
                         if len(virtue['resourceIds']) is not 0:
                             krb5cc_src = '/tmp/krb5cc_{}'.format(username)
                             krb5cc_dest = '/tmp/krb5cc_0'
-                            subprocess.check_call(['scp', '-i',
+                            subprocess.check_call(['scp', '-o', 'StrictHostKeyChecking=no', 
+                                                    '-i',
                                                     os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                                     krb5cc_src,
                                                     'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
@@ -335,7 +336,8 @@ class EndPoint():
                                 os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                 role['applicationIds'])
 
-                        ret = subprocess.check_call(['ssh', '-i',
+                        ret = subprocess.check_call(['ssh', '-o', 'StrictHostKeyChecking=no',
+                                               '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                                'virtue@' + virtue['ipAddress'],
                                                '-t', 'sudo rm /tmp/krb5cc_0'])
