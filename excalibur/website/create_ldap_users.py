@@ -43,4 +43,18 @@ def update_ldap_users_from_ad():
             new_ldap_user = ldap_tools.to_ldap(new_user, 'OpenLDAPuser')
             ldap.add_obj(new_ldap_user, 'users', 'cusername', throw_error=True)
 
+            if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
+                os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
+
+            # Temporary code:
+            shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
+                        '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], ad_username))
+
+            # TODO: Future code will look like this:
+            '''subprocess.run(
+                ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(ad_username),
+                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '""'],
+                check=True
+            )'''
+
     return ldap
