@@ -48,12 +48,12 @@ def update_ldap_users_from_ad():
 
             # Temporary code:
             shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
-                        '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username))
+                        '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], ad_username))
 
             # TODO: Future code will look like this:
             '''subprocess.run(
-                ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(username),
-                 '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
+                ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(ad_username),
+                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '""'],
                 check=True
             )'''
 
