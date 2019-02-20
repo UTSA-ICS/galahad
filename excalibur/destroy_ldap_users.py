@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import sys
 
 from website import ldap_tools
 from website.ldaplookup import LDAP
@@ -24,6 +25,12 @@ if __name__ == "__main__":
     inst.conn.simple_bind_s(dn, 'Test123!')
 
     if args.delete_user:
+        msg = raw_input(
+            "This is a permanent change and cannot be undone. Are you "
+            "sure you want to continue?\n[Y/N]")
+        if msg != "Y":
+            print("Aborted Deletion...")
+            sys.exit()
         print('Deleting user [{}]'.format(args.delete_user))
         inst.del_obj('cusername', args.delete_user, objectClass='OpenLDAPUser')
     else:
@@ -31,6 +38,12 @@ if __name__ == "__main__":
         users = ldap_tools.parse_ldap_list(users)
 
         if args.delete_all_users:
+            msg = raw_input(
+                "This is a permanent change and cannot be undone. Are you "
+                "sure you want to continue?\n[Y/N]")
+            if msg != "Y":
+                print("Aborted Deletion...")
+                sys.exit()
             print('Deleting ALL users')
             for user in users:
                 print('Deleting user [{}]'.format(user['username']))
