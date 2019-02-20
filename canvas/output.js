@@ -223,7 +223,7 @@ function closeApp(target) {
     headers: { Authorization: `Bearer ${data.access_token}` },
   };
 
-  client.methods.userApplicationStop(args);
+  //client.methods.userApplicationStop(args);
   return app.parentElement.removeChild(app);
 }
 
