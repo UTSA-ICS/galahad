@@ -29,7 +29,7 @@ function connectLDAP(callback) {
     ldapClient = ldap.createClient({
         url: 'ldap://excalibur.galahad.com:389'
     });
-    ldapClient.bind('cn=jmitchell,ou=galahad,dc=virtue,dc=gov', 'Test123!', function(err) {
+    ldapClient.bind('cn=slapd,ou=galahad,dc=virtue,dc=gov', 'Test123!', function(err) {
         if (err) {
             console.error("Can't connect to OpenLDAP: " + err);
             return callback(null);
