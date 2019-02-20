@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import os
+import shutil
 import ldap_tools
 from ldaplookup import LDAP
 
