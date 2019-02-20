@@ -36,7 +36,10 @@ class User(Base):
         ldap = update_ldap_users_from_ad()
         user = ldap.get_obj('cusername', username, 'openLDAPuser')
         ldap_tools.parse_ldap(user)
-        cn = user['name']
+        if 'name' in user:
+            cn = user['name']
+        else:
+            cn = username
 
         self.conn = LDAP(cn, password)
         if not self.conn.bind_ad_user_check():
