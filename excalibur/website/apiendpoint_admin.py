@@ -826,6 +826,7 @@ class EndPoint_Admin():
 
             ecr_auth_json = subprocess.check_output([
                 'aws', 'ecr', 'get-authorization-token',
+                '--registry-ids', '703915126451',
                 '--output', 'json',
                 '--region', 'us-east-2'])
 
