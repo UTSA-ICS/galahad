@@ -12,5 +12,9 @@ sudo mount $HOME/domains/Unity$IMAGE_NAME/disk.img $UBUNTU_MNT
 sudo cp sources.list $UBUNTU_MNT/etc/apt
 sudo umount $UBUNTU_MNT
 
+# Copy over the image as the unity Size name over to EFS
 sudo mkdir -p /mnt/efs/images/base_ubuntu
-sudo rsync $HOME/domains/Unity$IMAGE_NAME/disk.img /mnt/efs/images/base_ubuntu/$IMAGE_NAME.img
+sudo rsync -W $HOME/domains/Unity$IMAGE_NAME/disk.img /mnt/efs/images/base_ubuntu/$IMAGE_NAME.img
+
+# Cleanup the image file
+sudo rm -rf $HOME/domains
