@@ -1,13 +1,5 @@
 #!/usr/bin/python3
 
-###
-# Test CI Orchestration:
-# - Setup Stack and Virtue Environment
-# - Start to collect system information to be able to run tests
-# -  - Get IP for LDAP/AD
-# - Checkout latest code
-# -
-###
 
 import argparse
 import json
@@ -869,10 +861,10 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
     standby_roles = []
     for image in image_size:
         standby_role_pools_thread = threading.Thread(
-        target=standby_pools.initialize_role_image_file_standby_pool,
-        args=(image,))
+            target=standby_pools.initialize_role_image_file_standby_pool,
+            args=(image,))
         standby_role_pools_thread.start()
-        standby_roles.append(standby_valor_pools_thread)
+        standby_roles.append(standby_role_pools_thread)
 
     for standby_role in standby_roles:
         standby_role.join()
@@ -969,8 +961,7 @@ def parse_args():
     parser.add_argument(
         "--image_size",
         nargs="+",
-        default=["8GB", "16GB"],
-        choices=["4GB", "8GB", "16GB"],
+        default=["8GB", "16GB", "32GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
@@ -1020,12 +1011,14 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size, args.default_user_key,
-              args.deactivate_virtue_migration, args.auto_migration_interval)
+              args.aws_keys, args.branch_name, args.image_size,
+              args.default_user_key, args.deactivate_virtue_migration,
+              args.auto_migration_interval)
 
     if args.setup_stack:
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.import_stack)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix,
+                          args.import_stack)
 
     if args.list_stacks:
         Stack().list_stacks()
@@ -1034,24 +1027,60 @@ def main():
         Stack().delete_stack(args.stack_name)
 
     if args.build_image_only:
-        # Build a base ubuntu and unity image only - Assume that the stack is already deployed.
+        # Build a base ubuntu and unity image only - Assume that the stack is
+        #  already deployed.
         efs = EFS(args.stack_name, args.path_to_key)
 
-        start_ubuntu_img_time = time.time()
+        ubuntu_imgs = []
+        for image in args.image_size:
+            start_ubuntu_img_time = time.time()
+            setup_ubuntu_img_thread = threading.Thread(
+                target=efs.setup_ubuntu_img, args=(image,))
+            setup_ubuntu_img_thread.start()
+            ubuntu_imgs.append(
+                {"image_size": image, "start_time": start_ubuntu_img_time,
+                 "thread": setup_ubuntu_img_thread})
 
-        efs.setup_ubuntu_img(args.image_size)
+        for ubuntu_img in ubuntu_imgs:
+            ubuntu_img["thread"].join()
+            logger.info(
+                '\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
+                    ubuntu_img["image_size"],
+                    (time.time() - ubuntu_img["start_time"]) / 60))
 
-        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_ubuntu_img_time) / 60))
+        unity_imgs = []
+        for image in args.image_size:
+            start_unity_time = time.time()
+            setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
+                                                  args=(EXCALIBUR_HOSTNAME,
+                                                        image + '.img',))
+            setup_unity_thread.start()
+            unity_imgs.append(
+                {"image_size": image, "start_time": start_unity_time,
+                 "thread": setup_unity_thread})
 
-        start_unity_time = time.time()
+        for unity_img in unity_imgs:
+            unity_img["thread"].join()
+            logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
+                unity_img["image_size"],
+                (time.time() - unity_img["start_time"]) / 60))
 
-        efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
+        standby_pools = StandbyPools(args.stack_name, args.path_to_key)
+        start_standby_role_pools_time = time.time()
+        standby_roles = []
+        for image in args.image_size:
+            standby_role_pools_thread = threading.Thread(
+                target=standby_pools.initialize_role_image_file_standby_pool,
+                args=(image,))
+            standby_role_pools_thread.start()
+            standby_roles.append(standby_role_pools_thread)
 
-        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_unity_time) / 60))
+        for standby_role in standby_roles:
+            standby_role.join()
+
+        logger.info(
+            '\n*** Time taken for Standby Pools of Role is [{0}] ***\n'.format(
+                (time.time() - start_standby_role_pools_time) / 60))
 
 
 if __name__ == '__main__':
