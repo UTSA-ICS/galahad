@@ -27,7 +27,7 @@ Parameters:
     Default: "ami-aa2ea6d0"
   FSRInstanceType:
     Type: String
-    Default: "t2.nano"
+    Default: "t3.nano"
   NameSuffix:
     Description: Suffix to add to all 'Name' tags for easy searching and viewing
     Type: String
@@ -490,7 +490,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-aa2ea6d0
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       KeyName: !Ref FarSideKeyPair
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
