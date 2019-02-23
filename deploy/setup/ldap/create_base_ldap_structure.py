@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import os
-import shutil
 import json
+import os
 import sys
+
 import ldap
 import ldap.modlist
 
@@ -15,7 +15,6 @@ sys.path.insert(0, base_excalibur_dir)
 from website.ldaplookup import LDAP
 from website.ldap_tools import to_ldap
 from website.create_ldap_users import update_ldap_users_from_ad
-from website.create_ldap_users import get_ldap_usernames
 
 
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
@@ -130,22 +129,6 @@ def add_transducer(id_, name, type_, startEnabled, startingConfiguration,
     inst.add_obj(ldap_transducer, 'transducers', 'cid', throw_error=True)
 
 
-def add_user_key(username):
-
-    if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
-        os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
-
-    # Temporary code:
-    shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
-                '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username))
-
-    # TODO: Future code will look like this:
-    '''subprocess.run(
-        ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(username),
-         '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
-        check=True
-    )'''
-
 if (__name__ == '__main__'):
 
     inst = LDAP('', '')
@@ -198,12 +181,6 @@ if (__name__ == '__main__'):
 
     # Update the ldap user list with users from Active Directory
     update_ldap_users_from_ad()
-
-    # Add Key for each user
-    # This can probably be removed now that Excalibur will
-    #   autogenerate keys for new users
-    for user in get_ldap_usernames(inst):
-        add_user_key(user)
 
     add_transducer('path_mkdir', 'Directory Creation', 'SENSOR', True, '{}',
                    [])
