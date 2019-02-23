@@ -24,7 +24,7 @@ Parameters:
     Default: "us-east-1b"
   FSRAMI:
     Type: String
-    Default: "ami-aa2ea6d0"
+    Default: "ami-0f9cf087c1f27d9b1"
   FSRInstanceType:
     Type: String
     Default: "t3.nano"
@@ -489,7 +489,7 @@ Resources:
   DeployServer:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-aa2ea6d0
+      ImageId: ami-0f9cf087c1f27d9b1
       InstanceType: t3.micro
       KeyName: !Ref FarSideKeyPair
       BlockDeviceMappings:
