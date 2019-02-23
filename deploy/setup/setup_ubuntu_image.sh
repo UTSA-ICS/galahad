@@ -16,5 +16,5 @@ sudo umount $UBUNTU_MNT
 sudo mkdir -p /mnt/efs/images/base_ubuntu
 sudo rsync -W $HOME/domains/Unity$IMAGE_NAME/disk.img /mnt/efs/images/base_ubuntu/$IMAGE_NAME.img
 
-# Cleanup the image file
-sudo rm -rf $HOME/domains
+# Cleanup the image file/directory
+sudo rm -rf $HOME/domains/Unity$IMAGE_NAME
