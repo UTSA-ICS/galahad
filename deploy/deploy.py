@@ -290,10 +290,7 @@ class DeployServer():
         _cmd = "sudo('apt-get install -y python-minimal python-pip python3-dev python3-pip')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-        _cmd = "sudo('pip install boto3')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-
-        _cmd = "sudo('pip3 install boto3 sultan')"
+        _cmd = "sudo('pip3 install -r galahad/deploy/requirements.txt')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         # Start the normal deployment process - Run the setup script
