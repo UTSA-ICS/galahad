@@ -182,6 +182,14 @@
                 { "name": "Virtue ID", "url_name": "virtueId" }
             ] 
         },
+        {
+            "command": "virtue reload state",
+            "help": "Reload the virtue's state and IP address",
+            "url": "/virtue/reload/state",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
         { 
             "command": "valor list",
             "help": "List available Valor instances",

@@ -337,7 +337,7 @@ def test_user_list():
     ls = response.json()
     assert type(ls) == list
     for obj in ls:
-        assert set(obj.keys()) == set(['username', 'authorizedRoleIds'])
+        assert set(obj.keys()) == set(['username', 'authorizedRoleIds', 'name'])
 
     result = query_elasticsearch_with_timeout(
         [('user', settings['user']), ('real_func_name', 'admin_user_list')])
