@@ -772,6 +772,10 @@ def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
         '\n*** Time taken for Standby Pool for image {0} is [{1}] ***\n'.format(
             image_size, (time.time() - start_standby_role_pools_time) / 60))
 
+    logger.info(
+        '\n*** Total Time taken for image {0} is [{1}] ***\n'.format(
+            image_size, (time.time() - start_ubuntu_img_time) / 60))
+
 
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
           aws_config, aws_keys, branch, image_size, user_key,
@@ -852,9 +856,6 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
         for thread in create_img_file_threads:
             threads_pending = True
             if not thread["thread"].is_alive():
-                logger.info('\n*** Time taken for {0} image is [{1}] '
-                            '***\n'.format(thread["image_size"],
-                    (time.time() - thread["start_time"]) / 60))
                 create_img_file_threads.remove(thread)
 
     if not deactivate_virtue_migration:
@@ -940,8 +941,7 @@ def parse_args():
     parser.add_argument(
         "--image_size",
         nargs="+",
-        #default=["8GB", "16GB", "32GB"],
-        default=["8GB", "32GB"],
+        default=["8GB", "16GB", "32GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
