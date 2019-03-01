@@ -1,13 +1,5 @@
 #!/usr/bin/python3
 
-###
-# Test CI Orchestration:
-# - Setup Stack and Virtue Environment
-# - Start to collect system information to be able to run tests
-# -  - Get IP for LDAP/AD
-# - Checkout latest code
-# -
-###
 
 import argparse
 import json
@@ -755,6 +747,36 @@ class AutomatedVirtueMigration:
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
+def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
+    efs = EFS(stack_name, path_to_key)
+
+    # Create a base ubuntu image
+    start_ubuntu_img_time = time.time()
+    efs.setup_ubuntu_img(image_size)
+    logger.info(
+        '\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size,
+            (time.time() - start_ubuntu_img_time) / 60))
+
+    # Build a unity from the base ubuntu image
+    start_unity_time = time.time()
+    efs.setup_unity_img(EXCALIBUR_HOSTNAME, image_size + '.img')
+    logger.info(
+        '\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size,
+            (time.time() - start_unity_time) / 60))
+
+    # Create Standby Pool of role image files
+    standby_pools = StandbyPools(stack_name, path_to_key)
+    start_standby_role_pools_time = time.time()
+    standby_pools.initialize_role_image_file_standby_pool(image_size)
+    logger.info(
+        '\n*** Time taken for Standby Pool for image {0} is [{1}] ***\n'.format(
+            image_size, (time.time() - start_standby_role_pools_time) / 60))
+
+    logger.info(
+        '\n*** Total Time taken for image {0} is [{1}] ***\n'.format(
+            image_size, (time.time() - start_ubuntu_img_time) / 60))
+
+
 def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
           aws_config, aws_keys, branch, image_size, user_key,
           deactivate_virtue_migration, auto_migration_interval):
@@ -768,26 +790,23 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
 
     start_setup_time = time.time()
 
-
     start_xen_pvm_time = time.time()
     efs = EFS(stack_name, path_to_key)
     efs.setup_xen_pvm_builder()
     logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
         (time.time() - start_xen_pvm_time) / 60))
 
-    #start_ubuntu_img_time = time.time()
-    #setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-    #                                           args=(image_size,))
-    #setup_ubuntu_img_thread.start()
-    ubuntu_imgs = []
+    # Start Creation of base ubuntu, Unity and Standby role image files
+    create_img_file_threads = []
     for image in image_size:
-        start_ubuntu_img_time = time.time()
-        setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                                   args=(image,))
-        setup_ubuntu_img_thread.start()
-        ubuntu_imgs.append({"image_size": image,
-                            "start_time": start_ubuntu_img_time,
-                            "thread": setup_ubuntu_img_thread})
+        create_img_file_start_time = time.time()
+        create_img_file_thread = threading.Thread(
+            target=create_and_setup_image_unity_files,
+            args=(stack_name, path_to_key, image,))
+        create_img_file_thread.start()
+        create_img_file_threads.append(
+            {"image_size": image, "start_time": create_img_file_start_time,
+                "thread": create_img_file_thread})
 
     start_aggregator_time = time.time()
     aggregator = Aggregator(stack_name, path_to_key)
@@ -816,31 +835,6 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
     logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format(
         (time.time() - start_aggregator_time) / 60))
 
-    #setup_ubuntu_img_thread.join()
-    #logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
-    #    image_size, (time.time() - start_ubuntu_img_time) / 60))
-    for ubuntu_img in ubuntu_imgs:
-        ubuntu_img["thread"].join()
-        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
-            ubuntu_img["image_size"],
-            (time.time() - ubuntu_img["start_time"]) / 60))
-
-    #start_unity_time = time.time()
-    #setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
-    #                                      args=(excalibur.server_ip,
-    #                                            image_size + '.img',))
-    #setup_unity_thread.start()
-    unity_imgs = []
-    for image in image_size:
-        start_unity_time = time.time()
-        setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                              args=(excalibur.server_ip,
-                                                    image + '.img',))
-        setup_unity_thread.start()
-        unity_imgs.append({"image_size": image,
-                           "start_time": start_unity_time,
-                           "thread": setup_unity_thread})
-
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
@@ -850,41 +844,19 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
         target=standby_pools.initialize_valor_standby_pool)
     standby_valor_pools_thread.start()
 
-    #setup_unity_thread.join()
-    #logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-    #    image_size, (time.time() - start_unity_time) / 60))
-    for unity_img in unity_imgs:
-        unity_img["thread"].join()
-        logger.info(
-        '\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            unity_img["image_size"],
-            (time.time() - unity_img["start_time"]) / 60))
-
-    start_standby_role_pools_time = time.time()
-    #standby_role_pools_thread = threading.Thread(
-    #    target=standby_pools.initialize_role_image_file_standby_pool,
-    #    args=(image_size,))
-    #standby_role_pools_thread.start()
-    #standby_role_pools_thread.join()
-    standby_roles = []
-    for image in image_size:
-        standby_role_pools_thread = threading.Thread(
-        target=standby_pools.initialize_role_image_file_standby_pool,
-        args=(image,))
-        standby_role_pools_thread.start()
-        standby_roles.append(standby_valor_pools_thread)
-
-    for standby_role in standby_roles:
-        standby_role.join()
-
-    logger.info(
-        '\n*** Time taken for Standby Pools of Role is [{0}] ***\n'.format(
-            (time.time() - start_standby_role_pools_time) / 60))
-
     standby_valor_pools_thread.join()
     logger.info(
         '\n*** Time taken for Standby Pools of Valor is [{0}] ***\n'.format(
             (time.time() - start_standby_valor_pools_time) / 60))
+
+    # Wait for creation of base ubuntu, unity and standby role image files
+    threads_pending = True
+    while threads_pending:
+        threads_pending = False
+        for thread in create_img_file_threads:
+            threads_pending = True
+            if not thread["thread"].is_alive():
+                create_img_file_threads.remove(thread)
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, path_to_key)
@@ -969,8 +941,7 @@ def parse_args():
     parser.add_argument(
         "--image_size",
         nargs="+",
-        default=["8GB", "16GB"],
-        choices=["4GB", "8GB", "16GB"],
+        default=["8GB", "16GB", "32GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
@@ -1020,12 +991,14 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size, args.default_user_key,
-              args.deactivate_virtue_migration, args.auto_migration_interval)
+              args.aws_keys, args.branch_name, args.image_size,
+              args.default_user_key, args.deactivate_virtue_migration,
+              args.auto_migration_interval)
 
     if args.setup_stack:
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.import_stack)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix,
+                          args.import_stack)
 
     if args.list_stacks:
         Stack().list_stacks()
@@ -1034,24 +1007,32 @@ def main():
         Stack().delete_stack(args.stack_name)
 
     if args.build_image_only:
-        # Build a base ubuntu and unity image only - Assume that the stack is already deployed.
-        efs = EFS(args.stack_name, args.path_to_key)
+        create_img_file_threads = []
+        for image in args.image_size:
+            create_img_file_start_time = time.time()
+            create_img_file_thread = threading.Thread(
+                target=create_and_setup_image_unity_files,
+                args=(args.stack_name, args.path_to_key, image,))
+            create_img_file_thread.start()
+            create_img_file_threads.append(
+                {
+                    "image_size": image,
+                    "start_time": create_img_file_start_time,
+                    "thread": create_img_file_thread
+                })
 
-        start_ubuntu_img_time = time.time()
-
-        efs.setup_ubuntu_img(args.image_size)
-
-        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_ubuntu_img_time) / 60))
-
-        start_unity_time = time.time()
-
-        efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
-
-        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(
-            args.image_size,
-            (time.time() - start_unity_time) / 60))
+        threads_pending = True
+        while threads_pending:
+            threads_pending = False
+            for thread in create_img_file_threads:
+                threads_pending = True
+                if not thread["thread"].is_alive():
+                    logger.info(
+                        '\n*** Time taken for {0} image is [{1}] '
+                        '***\n'.format(
+                            thread["image_size"],
+                            (time.time() - thread["start_time"]) / 60))
+                    create_img_file_threads.remove(thread)
 
 
 if __name__ == '__main__':
