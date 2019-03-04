@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import shlex
@@ -172,6 +173,39 @@ class EndPoint():
                 return json.dumps(virtue)
 
             return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+    def virtue_reload_state(self, username, virtueId):
+
+        try:
+            virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
+            if (virtue == ()):
+                return json.dumps(ErrorCodes.user['invalidId'])
+            ldap_tools.parse_ldap(virtue)
+
+            updated_virtue = copy.deepcopy(virtue)
+
+            if (virtue['username'] != username):
+                return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+            rdb_manager = RethinkDbManager()
+            rdb_virtue = rdb_manager.get_virtue(virtueId)
+            if (rdb_virtue == None):
+                updated_virtue['state'] = 'STOPPED'
+                updated_virtue['ipAddress'] = 'NULL'
+            else:
+                updated_virtue['state'] = 'RUNNING'
+                updated_virtue['ipAddress'] = rdb_virtue['guestnet']
+
+            if (updated_virtue != virtue):
+                ldap_virtue = ldap_tools.to_ldap(updated_virtue, 'OpenLDAPvirtue')
+                self.inst.modify_obj('cid', virtueId, ldap_virtue,
+                                     'OpenLDAPvirtue', True)
+
+            return json.dumps(ErrorCodes.user['success'])
 
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))

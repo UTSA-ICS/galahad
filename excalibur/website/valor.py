@@ -602,17 +602,13 @@ class ValorManager:
 
     def migrate_virtue(self, virtue_id, destination_valor_id):
 
-        virtue = rethinkdb.db('transducers').table('galahad').filter({
-            'function' : 'virtue',
-            'virtue_id' : virtue_id}).run().next()
+        virtue = self.rethinkdb_manager.get_virtue(virtue_id)
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
             'address' : virtue['address']}).run().next()
 
-        destination_valor = rethinkdb.db('transducers').table('galahad').filter({
-            'function' : 'valor',
-            'valor_id' : destination_valor_id}).run().next()
+        destination_valor = self.rethinkdb_manager.get_valor(destination_valor_id)
 
         if current_valor['valor_id'] == destination_valor_id:
             raise Exception(('ERROR: Source valor [{0}] and Destination Valor [{1}] '
@@ -713,6 +709,9 @@ class RethinkDbManager:
 
         # Return the first item in the list as there should only be 1 valor entry
         # corresponding to the specified valor_id
+        if (len(valor) == 0):
+            return None
+
         return valor[0]
 
     def set_valor(self, valor_id, key, value):
@@ -857,8 +856,8 @@ class RethinkDbManager:
             'virtue_id': virtue_id
         }).run())
 
-        if len(matching_virtues) != 1:
-            return matching_virtues
+        if len(matching_virtues) == 0:
+            return None
 
         return matching_virtues[0]
 
@@ -915,12 +914,13 @@ class RethinkDbManager:
     def introspect_virtue_start(self, virtue_id, interval, modules):
         rethink_filter = rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id})
-        record = rethink_filter.run().next()
 
-        if interval is not None: record['interval'] = int(interval)
-        if modules is not None: record['comms'] = modules.split(',')
-        rethink_filter.update(record).run()
-        rethink_filter.update({'enabled': True}).run()
+        update_dict = {'enabled': True}
+
+        if interval is not None: update_dict['interval'] = int(interval)
+        if modules is not None: update_dict['comms'] = modules.split(',')
+
+        rethink_filter.update(update_dict).run()
 
 
     def introspect_virtue_stop(self, virtue_id):
@@ -930,10 +930,13 @@ class RethinkDbManager:
 
     def get_router(self):
 
-        router = rethinkdb.db('transducers').table('galahad').filter({
-            'function': 'router' }).run()
+        router = list(rethinkdb.db('transducers').table('galahad').filter({
+            'function': 'router'}).run())
 
-        return router.next()
+        if (len(router) == 0):
+            return None
+
+        return router[0]
 
 
 class RouterManager:
