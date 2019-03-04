@@ -941,7 +941,7 @@ def parse_args():
     parser.add_argument(
         "--image_size",
         nargs="+",
-        default=["8GB", "16GB"],
+        default=["8GB", "16GB", "32GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
