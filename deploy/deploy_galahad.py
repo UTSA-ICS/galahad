@@ -857,6 +857,8 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
             threads_pending = True
             if not thread["thread"].is_alive():
                 create_img_file_threads.remove(thread)
+            else:
+                time.sleep(10)
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, path_to_key)
@@ -1027,12 +1029,9 @@ def main():
             for thread in create_img_file_threads:
                 threads_pending = True
                 if not thread["thread"].is_alive():
-                    logger.info(
-                        '\n*** Time taken for {0} image is [{1}] '
-                        '***\n'.format(
-                            thread["image_size"],
-                            (time.time() - thread["start_time"]) / 60))
                     create_img_file_threads.remove(thread)
+                else:
+                    time.sleep(10)
 
 
 if __name__ == '__main__':
