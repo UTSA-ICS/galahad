@@ -1208,7 +1208,7 @@ def admin_auto_migration_start():
         migration_interval = request.args.get('migration_interval', None)
 
         if migration_interval:
-            response = ep.auto_migration_start(migration_interval)
+            response = ep.auto_migration_start(int(migration_interval))
         else:
             response = ep.auto_migration_start()
 

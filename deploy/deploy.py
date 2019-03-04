@@ -303,6 +303,7 @@ class DeployServer():
                         ' -b {2}'
                         ' -s {3}' 
                         ' -n {4}'
+                        ' --deactivate_virtue_migration'
                         ' --import_stack {5}'
                         ' --setup"'))'''.format(GALAHAD_KEY_DIR, key_name, branch, stack_suffix, self.stack_name,
                                                 self.import_stack_name)
