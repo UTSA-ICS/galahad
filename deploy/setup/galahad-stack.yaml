@@ -503,7 +503,7 @@ Resources:
           apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
 
           # Install pip packages
-          pip install rethinkdb
+          pip install rethinkdb==2.3.0.post6
           pip install boto
       Tags:
         - Key: Project

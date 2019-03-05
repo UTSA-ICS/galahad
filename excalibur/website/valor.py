@@ -393,7 +393,7 @@ class ValorManager:
                        apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
 
                        # Install pip packages
-                       pip install rethinkdb
+                       pip install rethinkdb==2.3.0.post6
                     '''.format(self.get_efs_mount())
 
         valor_config = {

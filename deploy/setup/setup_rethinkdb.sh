@@ -32,7 +32,7 @@ sudo /etc/init.d/rethinkdb restart
 
 # Install python libraries for rethinkdb and configure the database
 sudo apt-get --assume-yes install python2.7 python-pip
-pip install rethinkdb
+pip install rethinkdb==2.3.0.post6
 
 
 sudo python configure_rethinkdb.py
