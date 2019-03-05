@@ -402,29 +402,83 @@ Resources:
       ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAIngressRule1:
+  UTSAICS1IngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA
+      Description: UTSA - ICS1
       FromPort: '22'
       ToPort: '22'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAIngressRule2:
+  UTSAICS1IngressRule2:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA
+      Description: UTSA - ICS1
       FromPort: '5002'
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAIngressRule3:
+  UTSAICS1IngressRule3:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA
+      Description: UTSA - ICS1
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAICS2IngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.250/32
+      Description: UTSA - ICS2
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAICS2IngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.250/32
+      Description: UTSA - ICS2
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSAICS2IngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.250/32
+      Description: UTSA - ICS2
+      FromPort: '5901'
+      ToPort: '5901'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSARDCIngressRule1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.178/32
+      Description: UTSA RDC
+      FromPort: '22'
+      ToPort: '22'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSARDCIngressRule2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.178/32
+      Description: UTSA RDC
+      FromPort: '5002'
+      ToPort: '5002'
+      IpProtocol: 'tcp'
+      GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
+  UTSARDCIngressRule3:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 129.115.2.178/32
+      Description: UTSA RDC
       FromPort: '5901'
       ToPort: '5901'
       IpProtocol: 'tcp'
@@ -462,7 +516,17 @@ Resources:
           ToPort: '22'
           IpProtocol: 'tcp'
         - CidrIp: 129.115.2.247/32
-          Description: Farhan - UTSA
+          Description: UTSA - ICS1
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 129.115.2.250/32
+          Description: UTSA - ICS2
+          FromPort: '22'
+          ToPort: '22'
+          IpProtocol: 'tcp'
+        - CidrIp: 129.115.2.178/32
+          Description: UTSA RDC
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
