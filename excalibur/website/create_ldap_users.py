@@ -60,4 +60,9 @@ def update_ldap_users_from_ad():
                 check=True
             )'''
 
+            # Create a dummy kerberos file for the user.
+            # It'll be regenerated as soon as the user logs in.
+            with open('/tmp/krb5cc_{}'.format(ad_username), 'w') as f:
+                f.write("Error 404: Easter Egg text not found")
+
     return ldap
