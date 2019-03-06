@@ -402,56 +402,56 @@ Resources:
       ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS1IngressRule1:
+  UTSAFarhanIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA - ICS1
+      Description: UTSA - Farhan
       FromPort: '22'
       ToPort: '22'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS1IngressRule2:
+  UTSAFarhanIngressRule2:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA - ICS1
+      Description: UTSA - Farhan
       FromPort: '5002'
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS1IngressRule3:
+  UTSAFarhanIngressRule3:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.247/32
-      Description: UTSA - ICS1
+      Description: UTSA - Farhan
       FromPort: '5901'
       ToPort: '5901'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS2IngressRule1:
+  UTSAJamesIngressRule1:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.250/32
-      Description: UTSA - ICS2
+      Description: UTSA - James
       FromPort: '22'
       ToPort: '22'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS2IngressRule2:
+  UTSAJamesIngressRule2:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.250/32
-      Description: UTSA - ICS2
+      Description: UTSA - James
       FromPort: '5002'
       ToPort: '5002'
       IpProtocol: 'tcp'
       GroupId: !GetAtt VirtUELog4VPC.DefaultSecurityGroup
-  UTSAICS2IngressRule3:
+  UTSAJamesIngressRule3:
     Type: 'AWS::EC2::SecurityGroupIngress'
     Properties:
       CidrIp: 129.115.2.250/32
-      Description: UTSA - ICS2
+      Description: UTSA - James
       FromPort: '5901'
       ToPort: '5901'
       IpProtocol: 'tcp'
@@ -516,12 +516,12 @@ Resources:
           ToPort: '22'
           IpProtocol: 'tcp'
         - CidrIp: 129.115.2.247/32
-          Description: UTSA - ICS1
+          Description: UTSA - Farhan
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
         - CidrIp: 129.115.2.250/32
-          Description: UTSA - ICS2
+          Description: UTSA - James
           FromPort: '22'
           ToPort: '22'
           IpProtocol: 'tcp'
