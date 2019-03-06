@@ -989,14 +989,15 @@ class ResourceManager:
 
         for appId in appIds:
             try:
-                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                             '-t',
-                                             'sudo mount.cifs {} /home/virtue/{} -o sec=krb5,user=VIRTUE\{}'.format(
-                                                self.resource['unc'], appId, self.username)])
-                assert ret == 0
+                ssh = ssh_tool('virtue', virtue_ip, key_path)
+                ssh.ssh(
+                    ('sudo mount.cifs {} /home/virtue/{}'
+                     ' -o sec=krb5,user=VIRTUE\{}').format(
+                         self.resource['unc'], appId, self.username))
+
             except Exception as e:
                 print("Failed to mount shared drive on virtue with error: {}".format(e))
-    
+
     def printer(self, virtue_ip, key_path, appIds):
         pass
 
@@ -1012,24 +1013,20 @@ class ResourceManager:
                 return
 
         try:
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t', 'sudo', 'mkdir', '/ost'])
-            assert ret == 0
+            ssh = ssh_tool('virtue', virtue_ip, key_path)
 
-            ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                         '-t', 'sudo',
-                                         'mount -t nfs excalibur.galahad.com:/mnt/ost/{} /ost'.format(self.username)])
-            assert ret == 0
+            ssh.ssh('sudo mkdir /ost')
+
+            ssh.ssh(('sudo mount -t nfs excalibur.galahad.com:/mnt/ost/{}'
+                     ' /ost').format(self.username))
         except Exception as e:
             print("Failed to mount ost NFS directory on virtue with error: {}".format(e))
 
     def remove_drive(self, virtue_ip, key_path, appIds):
         for appId in appIds:
             try:
-                ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                             '-t',
-                                             'sudo umount /home/virtue/{}'.format(appId)])
-                assert ret == 0
+                ssh = ssh_tool('virtue', virtue_ip, key_path)
+                ssh.ssh('sudo umount /home/virtue/{}'.format(appId))
             except Exception as e:
                 print("Failed to unmount shared drive on virtue with error: {}".format(e))
 
@@ -1037,12 +1034,6 @@ class ResourceManager:
         pass
 
     def remove_email(self, virtue_ip, key_path, appIds):
-        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                     '-t',
-                                     'sudo umount /ost'])
-        assert ret == 0
-
-        ret = subprocess.check_call(['ssh', '-i', key_path, 'virtue@' + virtue_ip,
-                                     '-t',
-                                     'sudo rm -R /ost'])
-        assert ret == 0
+        ssh = ssh_tool('virtue', virtue_ip, key_path)
+        ssh.ssh('sudo umount /ost')
+        ssh.ssh('sudo rm -r /ost')

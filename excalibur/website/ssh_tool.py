@@ -8,7 +8,7 @@ class ssh_tool():
         self.ip = ip_address
         self.sshkey = sshkey
 
-    def ssh(self, command, test=True, option=None, output=False):
+    def ssh(self, command, test=True, option=None, output=False, silent=False):
 
         if (self.sshkey == None):
             keyls = []
@@ -35,9 +35,11 @@ class ssh_tool():
         ' '.join(call_list)
         print
 
+        kwargs = {}
+
         stdout = ''
         ret = -1
-        if output:
+        if (output or silent):
             try:
                 stdout = subprocess.check_output(call_list, stderr=subprocess.STDOUT)
                 ret = 0

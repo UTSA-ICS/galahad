@@ -2,12 +2,8 @@ import copy
 import json
 import os
 import shlex
-import subprocess
 import time
 import traceback
-
-import paramiko
-from paramiko import SSHClient
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
@@ -269,29 +265,24 @@ class EndPoint():
 
                         time.sleep(30)
 
-                        client = SSHClient()
-
-                        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                        client.load_system_host_keys()
-
-                        client.connect(
-                            virtue['ipAddress'],
-                            username='virtue',
-                            key_filename=os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                        ssh = ssh_tool(
+                            'virtue', virtue['ipAddress'],
+                            os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                        ssh.ssh('Test')
 
                         print('Successfully connected to {}'.format(
-                            virtue['ipAddress'],))
+                            virtue['ipAddress']))
 
                         # KL --- add if resIDs not empty run:
                         # Kerberos tgt setup for resource management
                         if len(virtue['resourceIds']) is not 0:
                             krb5cc_src = '/tmp/krb5cc_{}'.format(username)
                             krb5cc_dest = '/tmp/krb5cc_0'
-                            subprocess.check_call(['scp', '-o', 'StrictHostKeyChecking=no', 
-                                                    '-i',
-                                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
-                                                    krb5cc_src,
-                                                    'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
+                            ssh = ssh_tool('virtue', virtue['ipAddress'],
+                                           os.environ['HOME'] + \
+                                           '/galahad-keys/default-virtue-key.pem')
+
+                            ssh.scp_to(krb5cc_src, krb5cc_dest)
 
                             role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
                             ldap_tools.parse_ldap(role)
@@ -370,12 +361,11 @@ class EndPoint():
                                 os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                 role['applicationIds'])
 
-                        ret = subprocess.check_call(['ssh', '-o', 'StrictHostKeyChecking=no',
-                                               '-i',
-                                               os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
-                                               'virtue@' + virtue['ipAddress'],
-                                               '-t', 'sudo rm /tmp/krb5cc_0'])
-                        assert ret == 0
+                        ssh = ssh_tool('virtue', virtue['ipAddress'],
+                                       os.environ['HOME'] + \
+                                       '/galahad-keys/default-virtue-key.pem')
+
+                        ssh.ssh('sudo rm /tmp/krb5cc_0')
 
                     rdb_manager = RethinkDbManager()
                     rdb_manager.remove_virtue(virtue['id'])
@@ -431,25 +421,21 @@ class EndPoint():
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
             if (use_ssh):
-                start_docker_container = shlex.split((
-                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                    + ' virtue@{2} sudo docker start $(sudo docker ps -af'
-                    + ' name="{3}" -q)').format(
-                        os.environ['HOME'], username, virtue['ipAddress'],
-                        app['id'].lower()))
+                ssh = ssh_tool('virtue', virtue['ipAddress'],
+                               os.environ['HOME'] + '/galahad-keys/' + username)
+
+                start_docker_container = ('sudo docker start $(sudo docker ps' +
+                                          ' -af name="{0}" -q)').format(
+                                              app['id'])
 
                 # Copy the network Rules file.
-                copy_network_rules = shlex.split((
-                     'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                     + ' virtue@{2} sudo docker cp /etc/networkRules $(sudo docker ps -af'
-                     + ' name="{3}" -q):/etc/networkRules').format(os.environ['HOME'], username,
-                       virtue['ipAddress'], app['id'].lower()))
-                subprocess.call(copy_network_rules)
+                copy_network_rules = (
+                    'sudo docker cp /etc/networkRules $(sudo docker ps -af' +
+                    ' name="{0}" -q):/etc/networkRules').format(app['id'])
+                ssh.ssh(copy_network_rules, test=False)
 
-                with open(os.devnull, 'w')  as DEVNULL:
-                    docker_exit = subprocess.call(start_docker_container,
-                                                  stdout=DEVNULL,
-                                                  stderr=subprocess.STDOUT)
+                docker_exit = ssh.ssh(start_docker_container,
+                                      test=False, silent=True)
 
                 if (docker_exit != 0):
                     # This is an issue with docker where if the docker daemon exits
@@ -460,7 +446,7 @@ class EndPoint():
                     # The current workaround is to issue the docker start command
                     # twice. Tne first time it fails with the above error and the
                     # second time it succeeds.
-                    docker_exit = subprocess.call(start_docker_container)
+                    docker_exit = ssh.ssh(start_docker_container, test=False)
                 if (docker_exit != 0):
                     print(
                         "Docker start command for launching application {} Failed".format(
@@ -517,14 +503,13 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['applicationAlreadyStopped'])
 
             if (use_ssh):
-                args = shlex.split((
-                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                    + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
-                    + ' name="{3}" -q)').format(
-                        os.environ['HOME'], username, virtue['ipAddress'],
-                        app['id'].lower()))
+                ssh = ssh_tool('virtue', virtue['ipAddress'],
+                               '{0}/galahad-keys/{1}.pem'.format(
+                                   os.environ['HOME'], username))
 
-                docker_exit = subprocess.call(args)
+                docker_exit = ssh.ssh(('sudo docker stop $(sudo docker ps -af '
+                                       'name="{0}" -q)').format(app['id']),
+                                      test=False)
 
                 if (docker_exit != 0):
                     return json.dumps(ErrorCodes.user['serverStopError'])
