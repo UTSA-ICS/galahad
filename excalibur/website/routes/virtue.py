@@ -199,6 +199,23 @@ def virtue_get():
     return make_response(virtueId)
 
 
+@bp.route('/user/virtue/reload/state', methods=['GET'])
+@require_oauth()
+def virtue_reload_state():
+
+    ret = ''
+
+    try:
+        ep = get_endpoint()
+        ret = ep.virtue_reload_state(get_user(), request.args['virtueId'])
+        log_to_elasticsearch('Reload virtue state', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 @bp.route('/user/virtue/launch', methods=['GET'])
 @require_oauth()
 def virtue_launch():
@@ -468,7 +485,7 @@ def admin_role_create():
         ep = get_admin_endpoint()
 
         # If UnitySize is not provided then set to default of 8GB
-        unitySize = request.args.get('unitySize', '8GB')
+        unitySize = request.args.get('unitySize')
 
         ret = ep.role_create(
             json.loads(request.args['role']),
@@ -754,6 +771,23 @@ def admin_virtue_destroy():
         ret = ep.virtue_destroy(request.args['virtueId'])
         log_to_elasticsearch('Destroy virtue', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
 
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/virtue/reload/state', methods=['GET'])
+@require_oauth()
+def admin_virtue_reload_state():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_reload_state(request.args['virtueId'])
+        log_to_elasticsearch('Reload virtue state', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -1174,7 +1208,7 @@ def admin_auto_migration_start():
         migration_interval = request.args.get('migration_interval', None)
 
         if migration_interval:
-            response = ep.auto_migration_start(migration_interval)
+            response = ep.auto_migration_start(int(migration_interval))
         else:
             response = ep.auto_migration_start()
 

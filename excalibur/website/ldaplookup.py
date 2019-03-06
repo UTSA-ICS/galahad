@@ -42,6 +42,16 @@ class LDAP():
             return False
         return True
 
+    def bind_ad_user_check(self):
+        self.get_ldap_connection()
+        dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (
+            self.email.split("@")[0])
+        try:
+            self.conn.simple_bind_s(dn, self.password)
+        except:
+            return False
+        return True
+
     def bind_ad(self):
         self.get_ad_connection()
         dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (

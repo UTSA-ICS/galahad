@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import shlex
@@ -177,6 +178,39 @@ class EndPoint():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+    def virtue_reload_state(self, username, virtueId):
+
+        try:
+            virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
+            if (virtue == ()):
+                return json.dumps(ErrorCodes.user['invalidId'])
+            ldap_tools.parse_ldap(virtue)
+
+            updated_virtue = copy.deepcopy(virtue)
+
+            if (virtue['username'] != username):
+                return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+            rdb_manager = RethinkDbManager()
+            rdb_virtue = rdb_manager.get_virtue(virtueId)
+            if (rdb_virtue == None):
+                updated_virtue['state'] = 'STOPPED'
+                updated_virtue['ipAddress'] = 'NULL'
+            else:
+                updated_virtue['state'] = 'RUNNING'
+                updated_virtue['ipAddress'] = rdb_virtue['guestnet']
+
+            if (updated_virtue != virtue):
+                ldap_virtue = ldap_tools.to_ldap(updated_virtue, 'OpenLDAPvirtue')
+                self.inst.modify_obj('cid', virtueId, ldap_virtue,
+                                     'OpenLDAPvirtue', True)
+
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
     # Launch the specified virtue, which must have already been created
     def virtue_launch(self, username, virtueId, use_valor=True):
 
@@ -253,10 +287,14 @@ class EndPoint():
                         if len(virtue['resourceIds']) is not 0:
                             krb5cc_src = '/tmp/krb5cc_{}'.format(username)
                             krb5cc_dest = '/tmp/krb5cc_0'
-                            subprocess.check_call(['scp', '-i',
+                            subprocess.check_call(['scp', '-o', 'StrictHostKeyChecking=no', 
+                                                    '-i',
                                                     os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                                     krb5cc_src,
                                                     'virtue@{}:{}'.format(virtue['ipAddress'], krb5cc_dest)])
+
+                            role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                            ldap_tools.parse_ldap(role)
 
                             for res in virtue['resourceIds']:
                                 resource = self.inst.get_obj('cid', res, 'openLDAPresource')
@@ -264,7 +302,8 @@ class EndPoint():
                                 resource_manager = ResourceManager(username, resource)
                                 getattr(resource_manager, resource['type'].lower())(
                                     virtue['ipAddress'],
-                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                    role['applicationIds'])
 
 
                         success = True
@@ -318,6 +357,9 @@ class EndPoint():
                 if (use_valor):
 
                     if len(virtue['resourceIds']) is not 0:
+                        role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                        ldap_tools.parse_ldap(role)
+
                         for res in virtue['resourceIds']:
                             resource = self.inst.get_obj('cid', res, 'openLDAPresource')
                             ldap_tools.parse_ldap(resource)
@@ -325,9 +367,11 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                role['applicationIds'])
 
-                        ret = subprocess.check_call(['ssh', '-i',
+                        ret = subprocess.check_call(['ssh', '-o', 'StrictHostKeyChecking=no',
+                                               '-i',
                                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
                                                'virtue@' + virtue['ipAddress'],
                                                '-t', 'sudo rm /tmp/krb5cc_0'])

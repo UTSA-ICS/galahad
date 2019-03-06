@@ -24,10 +24,10 @@ Parameters:
     Default: "us-east-1b"
   FSRAMI:
     Type: String
-    Default: "ami-aa2ea6d0"
+    Default: "ami-0f9cf087c1f27d9b1"
   FSRInstanceType:
     Type: String
-    Default: "t2.nano"
+    Default: "t3.nano"
   NameSuffix:
     Description: Suffix to add to all 'Name' tags for easy searching and viewing
     Type: String
@@ -489,8 +489,8 @@ Resources:
   DeployServer:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-aa2ea6d0
-      InstanceType: t2.micro
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.micro
       KeyName: !Ref FarSideKeyPair
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"

@@ -200,7 +200,7 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-    def role_create(self, role, use_ssh=True, unity_img_name='8GB'):
+    def role_create(self, role, use_ssh=True, unity_img_name=None):
 
         try:
             role_keys = [
@@ -226,6 +226,8 @@ class EndPoint_Admin():
             if not role['applicationIds']:
                 return json.dumps(ErrorCodes.admin['NoApplicationId'])
 
+            default_unity_size = 3 # Measured in GB.
+
             for a in role['applicationIds']:
                 app_test = self.inst.get_obj(
                     'cid',
@@ -234,6 +236,16 @@ class EndPoint_Admin():
                     throw_error=True)
                 if (app_test == ()):
                     return json.dumps(ErrorCodes.admin['invalidApplicationId'])
+
+                ldap_tools.parse_ldap(app_test)
+
+                if (app_test['os'] == 'WINDOWS'):
+                    if (app_test['name'].startswith('Microsoft Office')):
+                        default_unity_size = default_unity_size + 7
+                    else:
+                        default_unity_size = default_unity_size + 3
+                else:
+                    default_unity_size = default_unity_size + 2
 
             for r in role['startingResourceIds']:
                 res_test = self.inst.get_obj(
@@ -253,6 +265,35 @@ class EndPoint_Admin():
             new_role = copy.deepcopy(role)
 
             new_role['id'] = '{0}{1}'.format(new_role['name'].lower().replace(' ', '_'), int(time.time()))
+
+            if (unity_img_name == None):
+
+                closest_fit = 0
+                for img in os.listdir('/mnt/efs/images/unities'):
+                    img_size = int(img.replace('GB.img', ''))
+                    if (img_size >= default_unity_size
+                        and (closest_fit == 0 or closest_fit > img_size)):
+                        closest_fit = img_size
+
+                if (closest_fit != 0):
+                    unity_img_name = '{}GB'.format(closest_fit)
+                else:
+                    return json.dumps({
+                        'status': 'failed',
+                        'result': [
+                            17, ('Could not automatically find a usable unity'
+                                 ' for this role. Please specify a unity'
+                                 ' image.')
+                        ]})
+
+            if ((unity_img_name + '.img') not in os.listdir(
+                    '/mnt/efs/images/unities')):
+                return json.dumps({
+                    'status': 'failed',
+                    'result': [
+                        17, ('Could not find a unity with the name'
+                             ' ({})').format(unity_img_name)
+                    ]})
 
             try:
                 # Call a controller thread to create and assemble the new image
@@ -564,7 +605,9 @@ class EndPoint_Admin():
 
                 resources.append(resource)
 
-            virtue_id = 'Virtue_{0}_{1}'.format(role['name'], int(time.time()))
+            virtue_id = 'Virtue_{0}_{1}'.format(
+                role['name'].lower().replace(' ', '_'),
+                int(time.time()))
 
             thr = CreateVirtueThread(self.inst.email, self.inst.password,
                                      role['id'], username, virtue_id, role=role)
@@ -626,6 +669,37 @@ class EndPoint_Admin():
             self.rdb_manager.destroy_virtue(virtue['id'])
 
             return json.dumps(ErrorCodes.admin['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+    def virtue_reload_state(self, virtueId):
+
+        try:
+            virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
+            if (virtue == ()):
+                return json.dumps(ErrorCodes.user['invalidId'])
+            ldap_tools.parse_ldap(virtue)
+
+            updated_virtue = copy.deepcopy(virtue)
+
+            rdb_manager = RethinkDbManager()
+            rdb_virtue = rdb_manager.get_virtue(virtueId)
+            if (rdb_virtue == None):
+                updated_virtue['state'] = 'STOPPED'
+                updated_virtue['ipAddress'] = 'NULL'
+            else:
+                updated_virtue['state'] = 'RUNNING'
+                updated_virtue['ipAddress'] = rdb_virtue['guestnet']
+
+            if (updated_virtue != virtue):
+                ldap_virtue = ldap_tools.to_ldap(updated_virtue, 'OpenLDAPvirtue')
+                self.inst.modify_obj('cid', virtueId, ldap_virtue,
+                                     'OpenLDAPvirtue', True)
+
+            return json.dumps(ErrorCodes.user['success'])
 
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -783,6 +857,7 @@ class EndPoint_Admin():
 
             ecr_auth_json = subprocess.check_output([
                 'aws', 'ecr', 'get-authorization-token',
+                '--registry-ids', '703915126451',
                 '--output', 'json',
                 '--region', 'us-east-2'])
 

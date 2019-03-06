@@ -29,7 +29,7 @@ function connectLDAP(callback) {
     ldapClient = ldap.createClient({
         url: 'ldap://excalibur.galahad.com:389'
     });
-    ldapClient.bind('cn=jmitchell,ou=galahad,dc=virtue,dc=gov', 'Test123!', function(err) {
+    ldapClient.bind('cn=slapd,ou=galahad,dc=virtue,dc=gov', 'Test123!', function(err) {
         if (err) {
             console.error("Can't connect to OpenLDAP: " + err);
             return callback(null);
@@ -315,23 +315,21 @@ app.get('/virtues_per_valor', (req, res) => {
                 virtues[element['virtue_id']] = element;
             }
         }
-        query_rethinkdb('commands', function(results_c) {
-            for (var i = 0; i < results_c.length; i++) {
-                var element = results_c[i];
-                if ('valor_ip' in element) {
-                    var valor_ip = element['valor_ip'];
-                    if (valor_ip in valors) {
-                        valors[valor_ip]['virtues'].push(element['virtue_id']);
-                    }
-                }
-            }
-            var num_virtues_per_valor = {}
-            for (valor_id in valors) {
-                var valor = valors[valor_id];
-                num_virtues_per_valor[valor['address']] = valor['virtues'].length;
-            }
-            res.send(num_virtues_per_valor);
-        });
+
+        for (var key in virtues) {
+            var element = virtues[key];
+            console.log(element);
+            valor_ip = element['address'];
+            valors[valor_ip]['virtues'].push(element['guestnet']);
+        }
+
+        var num_virtues_per_valor = {};
+        for (valor_id in valors) {
+            var valor = valors[valor_id];
+            num_virtues_per_valor[valor['address']] = valor['virtues'].length;
+        }
+
+        res.send(num_virtues_per_valor);
     });
 });
 
@@ -386,18 +384,15 @@ function valors_to_virtues(callback) {
                 virtues[element['virtue_id']] = element;
             }
         }
-        query_rethinkdb('commands', function(results_c) {
-            for (var i = 0; i < results_c.length; i++) {
-                var element = results_c[i];
-                if ('valor_ip' in element) {
-                    var valor_ip = element['valor_ip'];
-                    if (valor_ip in valors) {
-                        valors[valor_ip]['virtues'].push(virtues[element['virtue_id']]['guestnet']);
-                    }
-                }
-            }
-            callback(Object.values(valors));
-        });
+
+        for (var key in virtues) {
+            var element = virtues[key];
+            console.log(element);
+            valor_ip = element['address'];
+            valors[valor_ip]['virtues'].push(element['guestnet']);
+        }
+
+        callback(Object.values(valors));
     });
 }
 

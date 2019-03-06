@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from .base import db, Base
 from ..ldaplookup import LDAP
+from .. import ldap_tools
 from ..create_ldap_users import update_ldap_users_from_ad
 from ..kerberos import Kerberos
 
@@ -26,16 +27,36 @@ class User(Base):
     conn = None
 
     def validate_login(self, email, password):
-        self.conn = LDAP(email, password)
-        if not self.conn.bind_ad():
-            return False
+        #self.conn = LDAP(email, password)
+        #if not self.conn.bind_ad_user_check():
+        #    return False
 
         # Update ldap users from AD user list
-        update_ldap_users_from_ad()
+        username = email.split("@")[0]
+        ldap = update_ldap_users_from_ad()
+        user = ldap.get_obj('cusername', username, 'openLDAPuser')
+        ldap_tools.parse_ldap(user)
+        if 'name' in user:
+            cn = user['name']
+        else:
+            cn = username
+
+        self.conn = LDAP(cn, password)
+        if not self.conn.bind_ad_user_check():
+            return False
+
+        Kerberos().generate_tgt(username, password)
 
         # Generate Kerberos tgt for user
-        username = email.split("@")[0]
-        Kerberos().generate_tgt(username, password)
+        #username = email.split("@")[0]
+        '''
+        if self.conn.bind_ad():
+            cn = email.split("@")[0]
+            r = self.conn.query_ad('cn', cn)[0][1]
+            name = r['sAMAccountName'][0]
+            print(name)
+            Kerberos().generate_tgt(name, password)
+        '''
 
         return True
 
@@ -43,8 +64,8 @@ class User(Base):
         self.conn = LDAP(self.email, password)
         if self.conn.bind_ad():
             cn = self.email.split("@")[0]
-            r = self.conn.query_ad('sAMAccountName', cn)[0][1]
-            self.name = r['cn'][0]
+            r = self.conn.query_ad('cn', cn)[0][1]
+            self.name = r['sAMAccountName'][0]
         else:
             print('ERROR: Failed to Bind to AD during call to query_name()')
 
