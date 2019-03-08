@@ -46,6 +46,69 @@ Our valor nodes are much simplier.  The syslog-ng deployment there does not incl
 
 The syslog-ng for valor nodes is set up in excalibur starting (the syslog-ng.conf is fully created then), and installed and deployed in the create valor step.  
 
+
+##  Syslog-ng setup
+
+This covers how to manually set up syslog-ng (not using the scripting found elsewhere in the project). 
+
+### Intall syslog-ng
+
+To install using apt, first add 
+
+	wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | sudo apt-key add -	
+	deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./
+
+To your sources.list to access the latest module.  This setup has been tested on version 3.11 and version 3.13.  
+
+To install:
+	
+	sudo apt install syslog-ng-core=3.14.1-3
+
+### Set up Modules
+
+Install the following:
+	
+	sudo apt install syslog-ng-mod-java=3.14.1-3  syslog-ng-mod-elastic=3.14.1-3 openjdk-8-jdk
+	
+* Add libjvm.so to path 
+
+Navigate to /etc/ld.so.conf.d/ and add this to a file (java.conf, say)
+
+	/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/
+
+and run 
+
+	ldconfig 
+
+* Incorrect class loading
+
+We have found that syslog-ng does not actually load all of the syslog-ng java modules.  A hack to get around this is make sure those are in your 'client-lib-dir' (See elasticsearch config in the syslog-ng config files).  You should copy their java modules to your current dir (apparently there have been issues with syslog-ng not parsing multiple directories in the client lib dir config correctly, so this is the recommended solution)
+
+	cp /path/to/syslog-ng/java-modules/ /path/to/elasticsearch/jars/
+
+Note these modules should be in /usr/lib/syslog-ng/java-modules/
+
+Also note that syslog-ng cannot deal with sub-directories here; all jars must be a single directory.  You will need to copy jars form elasticsearch/lib/, elasticsearch/plugins/search-guard-5, and java-modules to a single directory.  
+
+
+## Install Elasticsearch
+
+This setup is currently tested on elasticsearch version 5.6.3 for both the elastic nodes and for the modules used by syslog-ng.  To install elasticsearch for syslog-ng, just grab the following and tar -zxvf it:
+
+	curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.3.tar.gz
+
+* Install Searchguard Plugin
+
+Go to the elasticsearch dir and run:
+
+	./bin/elasticsearch-plugin install --batch com.floragunn:search-guard-5:5.6.3-16
+
+## Running syslog-ng
+
+Syslog-ng can be run from systemctl, or you can run it manually with 
+	
+	syslog-ng -Fdv
+
 ## Potential Additional Work
 
 Potential new work involving syslog-ng could include:
