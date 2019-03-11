@@ -8,7 +8,7 @@ class ssh_tool():
         self.ip = ip_address
         self.sshkey = sshkey
 
-    def ssh(self, command, test=True, option=None, output=False):
+    def ssh(self, command, test=True, option=None, output=False, silent=False):
 
         if (self.sshkey == None):
             keyls = []
@@ -27,17 +27,11 @@ class ssh_tool():
                 self.rem_username + '@' + self.ip, command
             ]
 
-        print
-        print
-        print
-        "{0}  {1}".format(self.ip, command)
-        print
-        ' '.join(call_list)
-        print
+        print('ssh_tool: ' + ' '.join(call_list))
 
         stdout = ''
         ret = -1
-        if output:
+        if (output or silent):
             try:
                 stdout = subprocess.check_output(call_list, stderr=subprocess.STDOUT)
                 ret = 0
@@ -72,13 +66,7 @@ class ssh_tool():
             self.rem_username + '@' + self.ip + ':' + file_path_remote
         ]
 
-        print
-        print
-        print
-        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
-        print
-        ' '.join(call_list)
-        print
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 
@@ -98,9 +86,9 @@ class ssh_tool():
                 print('Successfully connected to {}'.format(self.ip))
                 return True
         return False
-      
+
     def scp_from(self, file_path_local, file_path_remote='', test=True):
-      
+
         if (self.sshkey == None):
             keyls = []
         else:
@@ -111,10 +99,7 @@ class ssh_tool():
             file_path_local
         ]
 
-        print
-        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
-        print
-        ' '.join(call_list)
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 
