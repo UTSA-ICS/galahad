@@ -10,6 +10,7 @@ from services.errorcodes import ErrorCodes
 from . import ldap_tools
 from aws import AWS
 from valor import ValorManager, RethinkDbManager, ResourceManager
+from ssh_tool import ssh_tool
 
 DEBUG_PERMISSIONS = False
 
@@ -268,7 +269,7 @@ class EndPoint():
                         ssh = ssh_tool(
                             'virtue', virtue['ipAddress'],
                             os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
-                        ssh.ssh('Test')
+                        ssh.ssh('echo test')
 
                         print('Successfully connected to {}'.format(
                             virtue['ipAddress']))

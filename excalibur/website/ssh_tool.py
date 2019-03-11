@@ -35,8 +35,6 @@ class ssh_tool():
         ' '.join(call_list)
         print
 
-        kwargs = {}
-
         stdout = ''
         ret = -1
         if (output or silent):
