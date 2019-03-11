@@ -279,9 +279,6 @@ class EndPoint():
                         if len(virtue['resourceIds']) is not 0:
                             krb5cc_src = '/tmp/krb5cc_{}'.format(username)
                             krb5cc_dest = '/tmp/krb5cc_0'
-                            ssh = ssh_tool('virtue', virtue['ipAddress'],
-                                           os.environ['HOME'] + \
-                                           '/galahad-keys/default-virtue-key.pem')
 
                             ssh.scp_to(krb5cc_src, krb5cc_dest)
 
@@ -423,7 +420,8 @@ class EndPoint():
 
             if (use_ssh):
                 ssh = ssh_tool('virtue', virtue['ipAddress'],
-                               os.environ['HOME'] + '/galahad-keys/' + username)
+                               '{0}/galahad-keys/{1}.pem'.format(
+                                   os.environ['HOME'], username))
 
                 start_docker_container = ('sudo docker start $(sudo docker ps' +
                                           ' -af name="{0}" -q)').format(
@@ -433,7 +431,7 @@ class EndPoint():
                 copy_network_rules = (
                     'sudo docker cp /etc/networkRules $(sudo docker ps -af' +
                     ' name="{0}" -q):/etc/networkRules').format(app['id'])
-                ssh.ssh(copy_network_rules, test=False)
+                ssh.ssh(copy_network_rules)
 
                 docker_exit = ssh.ssh(start_docker_container,
                                       test=False, silent=True)
