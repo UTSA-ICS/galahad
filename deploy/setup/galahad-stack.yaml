@@ -162,8 +162,9 @@ Resources:
   VirtUEValorEFS:
     Type: 'AWS::EFS::FileSystem'
     Properties:
-      ProvisionedThroughputInMibps: 1024
-      ThroughputMode: provisioned
+      #ProvisionedThroughputInMibps: 1024
+      #ThroughputMode: provisioned
+      ThroughputMode: bursting
       FileSystemTags:
         - Key: Project
           Value: Virtue
