@@ -27,7 +27,7 @@ class ssh_tool():
                 self.rem_username + '@' + self.ip, command
             ]
 
-        print(' '.join(call_list))
+        print('ssh_tool: ' + ' '.join(call_list))
 
         stdout = ''
         ret = -1
@@ -66,7 +66,7 @@ class ssh_tool():
             self.rem_username + '@' + self.ip + ':' + file_path_remote
         ]
 
-        print(' '.join(call_list))
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 
@@ -99,7 +99,7 @@ class ssh_tool():
             file_path_local
         ]
 
-        print(' '.join(call_list))
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 
