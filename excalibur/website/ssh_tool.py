@@ -15,17 +15,13 @@ class ssh_tool():
         else:
             keyls = ['-i', self.sshkey]
 
-        if option == None:
-            call_list = ['ssh'] + keyls + [
-                '-o', 'StrictHostKeyChecking=no',
-                self.rem_username + '@' + self.ip, command
-            ]
-        else:
-            call_list = ['ssh'] + keyls + [
-                '-o', 'StrictHostKeyChecking=no',
-                '-o', option,
-                self.rem_username + '@' + self.ip, command
-            ]
+        call_list = ['ssh'] + keyls + ['-o', 'StrictHostKeyChecking=no',
+                                       '-o', 'BatchMode=yes']
+
+        if option:
+            call_list.extend(['-o', option])
+
+        call_list.extend([self.rem_username + '@' + self.ip, command])
 
         print('ssh_tool: ' + ' '.join(call_list))
 
@@ -62,6 +58,8 @@ class ssh_tool():
             keyls = ['-i', self.sshkey]
 
         call_list = ['scp', '-r'] + keyls + [
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'BatchMode=yes',
             file_path_local,
             self.rem_username + '@' + self.ip + ':' + file_path_remote
         ]
@@ -80,11 +78,11 @@ class ssh_tool():
         # Check if the machine is accessible:
         for i in range(60):
             out = self.ssh('uname -a', test=False)
-            if out == 255:
-                time.sleep(5)
-            else:
+            if out == 0:
                 print('Successfully connected to {}'.format(self.ip))
                 return True
+            else:
+                time.sleep(5)
         return False
 
     def scp_from(self, file_path_local, file_path_remote='', test=True):
@@ -95,6 +93,8 @@ class ssh_tool():
             keyls = ['-i', self.sshkey]
 
         call_list = ['scp', '-r'] + keyls + [
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'BatchMode=yes',
             self.rem_username + '@' + self.ip + ':' + file_path_remote,
             file_path_local
         ]
