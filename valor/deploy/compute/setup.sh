@@ -1,8 +1,33 @@
-#!/bin/bash
+#!/bin/bash -xe
 
+# Install Packages required for AWS EFS mount helper
+apt-get update
+apt-get -y install binutils
 
-GUESTNET_IP="${1}"
-ROUTER_IP="${2}"
+# Install the AWS EFS mount helper
+git clone https://github.com/aws/efs-utils
+cd efs-utils/
+./build-deb.sh
+apt-get -y install ./build/amazon-efs-utils*deb
+
+# Create the base mount directory
+mkdir -p /mnt/efs
+
+# Mount the EFS file system
+echo "${1}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+mount -a
+
+# Install System packages
+apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
+
+# Install pip packages
+pip install rethinkdb==2.3.0.post6
+
+GUESTNET_IP="${2}"
+ROUTER_IP="${3}"
+
+# Base directory for the script to operate from
+cd /mnt/efs/valor/deploy/compute
 
 # Directory for storage of Galahad keys
 GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
@@ -28,9 +53,29 @@ echo "  bridge_fd 0" >> /etc/network/interfaces
 echo "  bridge_maxwait 0" >> /etc/network/interfaces
 
 #
-# Call the base setup script
+# Create a openvswitch bridge - hello-br0
 #
-/bin/bash ../base_setup.sh "${GUESTNET_IP}"
+ovs-vsctl add-br hello-br0
+
+#
+# Configure bridge hello-br0
+#
+echo "" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
+echo "#" >> /etc/network/interfaces
+echo "auto hello-br0" >> /etc/network/interfaces
+echo "iface hello-br0 inet static" >> /etc/network/interfaces
+echo "  address ${GUESTNET_IP}/24" >> /etc/network/interfaces
+
+#
+# Set the Network System Variables
+#
+sed -i 's/#net.ipv4.ip_forward/net.ipv4.ip_forward/' /etc/sysctl.conf
+echo "#" >> /etc/sysctl.conf
+echo "# Network variables for Valor Network" >> /etc/sysctl.conf
+echo "net.ipv4.conf.all.rp_filter=0" >> /etc/sysctl.conf
+echo "net.ipv4.conf.gre0.rp_filter=0" >> /etc/sysctl.conf
 
 #
 # Create User Groups for Syslog-Ng unix socket
@@ -41,42 +86,11 @@ adduser root camelot
 #
 # Install necessary System packages
 #
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install -f
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install ./libvmi_0.13-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install ./introspection-monitor_0.2-1.deb
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
-    DPKG_LOCK=$?
-done
-DPKG_LOCK=1
-while (( $DPKG_LOCK -nz )); do
-    sleep 1
-    apt --assume-yes install -f
-    DPKG_LOCK=$?
-done
+# Xen Blanket and Introspection related Debian packages
+apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb ./libvmi_0.13-1.deb ./introspection-monitor_0.2-1.deb
+
+# System packages
+apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
 
 #
 # Set the IP Tables rules
