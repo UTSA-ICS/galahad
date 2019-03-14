@@ -1,7 +1,7 @@
 cluster:
   name: docker-cluster
 network:
-  host: %s
+  host: aggregator.galahad.com
 path:
   home: /etc/syslog-ng
   conf: /etc/syslog-ng

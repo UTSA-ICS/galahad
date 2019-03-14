@@ -1,6 +1,9 @@
 #!/bin/bash
 # Copyright (c) 2018 Raytheon BBN Technologies Corp.
 
+# Base directory for the script to operate from
+cd /mnt/efs/valor
+
 # install latest syslog-ng
 wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
 echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list
@@ -12,14 +15,6 @@ add-apt-repository -y ppa:eugenesan/ppa
 apt-get install syslog-ng-mod-elastic=3.14.1-3 syslog-ng-mod-elastic=3.14.1-3 syslog-ng-mod-java=3.14.1-3 syslog-ng-mod-java-common-lib=3.14.1-3 openjdk-8-jdk -y
 echo /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server >> /etc/ld.so.conf.d/java.conf
 ldconfig
-
-# Install pre-build module (taken from make install step of the transducer script)
-tar xzf /mnt/efs/valor/syslog-ng/transducer-module.tar.gz
-cd transducer-module
-mkdir -p /usr/lib/syslog-ng/3.14
-/bin/bash ./libtool   --mode=install /usr/bin/install -c   modules/transducer-controller/libtransducer-controller.la '/usr/lib/syslog-ng/3.14'
-cd ..
-rm -rf transducer-module/
 
 # Install elasticsearch searchguard dependencies
 curl -L -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.3.tar.gz
@@ -41,5 +36,3 @@ chmod 644 syslog-ng/syslog-ng.service
 cp syslog-ng/syslog-ng.service /lib/systemd/system/
 systemctl daemon-reload
 systemctl enable syslog-ng
-#systemctl restart syslog-ng
-
