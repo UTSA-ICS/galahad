@@ -2,7 +2,7 @@
 # Copyright (c) 2018 Raytheon BBN Technologies Corp.
 
 # Base directory for the script to operate from
-cd /mnt/efs/valor
+cd /mnt/efs/valor/deploy/compute
 
 # install latest syslog-ng
 wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
@@ -30,8 +30,10 @@ rm elasticsearch-5.6.3.tar.gz
 # write config files and keystores
 cp syslog-ng/syslog-ng.conf /etc/syslog-ng/
 cp syslog-ng/elasticsearch.yml /etc/syslog-ng/
+
 cp syslog-ng/kirk-keystore.jks /etc/syslog-ng/
 cp syslog-ng/truststore.jks /etc/syslog-ng/
+
 chmod 644 syslog-ng/syslog-ng.service
 cp syslog-ng/syslog-ng.service /lib/systemd/system/
 systemctl daemon-reload
