@@ -111,13 +111,12 @@ class ValorAPI:
 
 class Valor:
 
-    def __init__(self, valor_id, guestnet_ip=None, router_ip=None):
+    def __init__(self, valor_id):
 
         self.ec2 = boto3.resource('ec2')
         self.aws_instance = self.ec2.Instance(valor_id)
         self.client = None
-        self.guestnet = guestnet_ip
-        self.router_ip = router_ip
+        self.guestnet = None
 
 
     def connect_with_ssh(self):
@@ -136,12 +135,17 @@ class Valor:
                     self.aws_instance.private_ip_address))
 
 
-    def setup(self):
+    def setup(self, router_ip):
 
         check_if_cloud_init_finished = \
             '''while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
                    echo "Cloud init has not finished";sleep 5;done;
                echo "Cloud init has now finished"'''
+
+        execute_setup_ovs_bridge_command = \
+            'cd /mnt/efs/valor/deploy/compute &&' \
+            'sudo /bin/bash setup_ovs_bridge.sh "{0}" "{1}"'.format(
+                self.guestnet, router_ip)
 
         shutdown_node_command = \
             'sudo shutdown -h now'
@@ -149,6 +153,10 @@ class Valor:
         stdout = self.client.ssh(
             check_if_cloud_init_finished, output=True)
         print('[!] check_cloud_init : stdout : ' + stdout)
+
+        stdout = self.client.ssh(
+            execute_setup_ovs_bridge_command, output=True)
+        print('[!] execute_setup_ovs_bridge : stdout : ' + stdout)
 
         try:
             stdout = self.client.ssh(
@@ -337,15 +345,10 @@ class ValorManager:
 
     def create_valor(self, subnet, sec_group):
 
-        router_ip = RethinkDbManager().get_router()['address']
-        guestnet_ip = RethinkDbManager().get_free_guestnet()
-
         # Base Setup
         with open('/mnt/efs/valor/deploy/compute/' + 'setup.sh', 'r') as f:
             base_setup_data = f.read()
         base_setup_data = base_setup_data.replace('${1}', self.get_efs_mount())
-        base_setup_data = base_setup_data.replace('${2}', guestnet_ip)
-        base_setup_data = base_setup_data.replace('${3}', router_ip)
 
         # Gaius Setup
         with open('/mnt/efs/valor/deploy/compute/' + 'setup_gaius.sh', 'r') as f:
@@ -372,31 +375,33 @@ class ValorManager:
 
         instance = self.aws.instance_create(**valor_config)
 
-        valor = Valor(instance.id, guestnet_ip, router_ip)
+        self.setup_valor(instance)
+
+        return instance.id
+
+
+    def setup_valor(self, instance):
+
+        router_ip = self.rethinkdb_manager.get_router()['address']
+
+        valor = Valor(instance.id)
 
         valor.connect_with_ssh()
 
-        # Not using self.rethinkdb_manager variable here as when create_valor
-        # is called using a separate thread in get_empty_valor() the
-        # self.rethinkdb_manager variable is not initialized as the
-        # initialization is done in the ValorManager constructor.
-        RethinkDbManager().add_valor(valor)
+        self.rethinkdb_manager.add_valor(valor)
 
         # Add the valor node to the router
-        RouterManager().add_valor(valor)
+        RouterManager(router_ip).add_valor(valor)
 
-        valor.setup()
+        valor.setup(router_ip)
 
         # valor.verify_setup()
 
         instance.wait_until_stopped()
         instance.reload()
 
-        # Not using self.rethinkdb_manager variable here as when create_valor
-        # is called using a separate thread in get_empty_valor() the
-        # self.rethinkdb_manager variable is not initialized as the
-        # initialization is done in the ValorManager constructor.
-        RethinkDbManager().set_valor(valor.aws_instance.id, 'state', 'STOPPED')
+        self.rethinkdb_manager.set_valor(valor.aws_instance.id, 'state',
+                                         'STOPPED')
 
         return instance.id
 
@@ -562,7 +567,7 @@ class ValorManager:
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function' : 'valor',
-            'address' : virtue['address']}).run().next()
+            'address' : virtue['address']}).run(self.rethinkdb_manager.connection).next()
 
         destination_valor = self.rethinkdb_manager.get_valor(destination_valor_id)
 
@@ -573,7 +578,7 @@ class ValorManager:
 
         virtues_on_dst_valor = rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
-            'address': destination_valor['address']}).run()
+            'address': destination_valor['address']}).run(self.rethinkdb_manager.connection)
 
         dst_virtue_count = len(list(virtues_on_dst_valor))
         if (dst_virtue_count >= MAX_VIRTUES_PER_VALOR):
@@ -585,12 +590,12 @@ class ValorManager:
             .filter({'valor_ip': current_valor['address'],
                      'virtue_id': virtue_id}) \
             .update({'valor_dest': destination_valor['address'],
-                     'enabled': True}).run()
+                     'enabled': True}).run(self.rethinkdb_manager.connection)
 
         rethinkdb.db('transducers').table('commands') \
             .filter({'virtue_id': virtue_id,
                      'transducer_id': 'introspection'}) \
-            .update({"valor_id": destination_valor_id}).run()
+            .update({"valor_id": destination_valor_id}).run(self.rethinkdb_manager.connection)
 
 
     def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
@@ -610,10 +615,10 @@ class ValorManager:
         self.rethinkdb_manager.auto_migration_stop()
 
     def auto_migration_status(self):
-        return RethinkDbManager().auto_migration_status()
+        return self.rethinkdb_manager.auto_migration_status()
 
     def is_auto_migration_on(self):
-        return RethinkDbManager().is_auto_migration_on()
+        return self.rethinkdb_manager.is_auto_migration_on()
 
 class RethinkDbManager:
 
@@ -627,7 +632,7 @@ class RethinkDbManager:
                 port = 28015,
                 ssl = {
                     'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
-                }).repl()
+                })
 
         except Exception as error:
             print(error)
@@ -637,7 +642,7 @@ class RethinkDbManager:
     def get_valor(self, valor_id):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'valor', 'valor_id': valor_id}).run()
+            {'function': 'valor', 'valor_id': valor_id}).run(self.connection)
 
         valor = list(response.items)
 
@@ -653,14 +658,14 @@ class RethinkDbManager:
         valor_query = rethinkdb.db('transducers').table('galahad').filter(
             {'function': 'valor', 'valor_id': valor_id})
 
-        valor_query.update({key: value}).run()
+        valor_query.update({key: value}).run(self.connection)
 
         return self.get_valor(valor_id)
 
     def list_valors(self):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function' : 'valor'}).run()
+            {'function' : 'valor'}).run(self.connection)
 
         valors = list(response.items)
 
@@ -670,7 +675,7 @@ class RethinkDbManager:
     def list_virtues(self):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function' : 'virtue'}).run()
+            {'function' : 'virtue'}).run(self.connection)
 
         virtues = list(response.items)
 
@@ -679,28 +684,38 @@ class RethinkDbManager:
 
     def add_valor(self, valor):
 
-        assert valor.guestnet != None
+        assert valor.guestnet == None
 
-        record = {
-            'function': 'valor',
-            'guestnet': valor.guestnet,
-            'valor_id': valor.aws_instance.id,
-            'address' : valor.aws_instance.private_ip_address,
-            'state'   : 'CREATING'
-        }
+        lock = threading.Lock()
 
-        rethinkdb.db('transducers').table('galahad').insert([record]).run()
+        lock.acquire()
+
+        try:
+            valor.guestnet = self.get_free_guestnet()
+
+            record = {
+                'function': 'valor',
+                'guestnet': valor.guestnet,
+                'valor_id': valor.aws_instance.id,
+                'address' : valor.aws_instance.private_ip_address,
+                'state'   : 'CREATING'
+            }
+
+            rethinkdb.db('transducers').table('galahad').insert([record]).run(
+                self.connection)
+        finally:
+            lock.release()
 
 
     def remove_valor(self, valor_id):
 
-        matching_valors = list(rethinkdb.db('transducers').table('galahad').filter({
-            'function': 'valor',
-            'valor_id': valor_id
-        }).run())
+        matching_valors = list(
+            rethinkdb.db('transducers').table('galahad').filter({
+                'function': 'valor',
+                'valor_id': valor_id}).run(self.connection))
 
         rethinkdb.db('transducers').table('galahad').filter(
-            matching_valors[0]).delete().run()
+            matching_valors[0]).delete().run(self.connection)
 
 
     def get_free_guestnet(self):
@@ -715,7 +730,7 @@ class RethinkDbManager:
             for test_number in range(1, 256):
                 results = rethinkdb.db('transducers').table('galahad').filter({
                     'guestnet': guestnet.format(test_number)
-                }).run()
+                }).run(self.connection)
                 if len(list(results)) == 0:
                     guestnet = guestnet.format(test_number)
                     break
@@ -733,7 +748,7 @@ class RethinkDbManager:
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'virtue_id': virtue_id
-        }).run())
+        }).run(self.connection))
 
         assert len(matching_virtues) == 0
 
@@ -747,20 +762,20 @@ class RethinkDbManager:
             'guestnet'  : guestnet,
             'img_path'  : efs_path
         }
-        rethinkdb.db('transducers').table('galahad').insert([record]).run()
+        rethinkdb.db('transducers').table('galahad').insert([record]).run(self.connection)
 
         if not role_create:
 
             # Calling next() on an empty cursor will error out
             try:
                 trans_migration = rethinkdb.db('transducers').table('commands')\
-                   .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run().next()
+                   .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run(self.connection).next()
             except:
                 trans_migration = {} 
 
             try:
                 trans_introspection = rethinkdb.db('transducers').table('commands')\
-                    .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run().next()
+                    .filter({'virtue_id': virtue_id, 'transducer_id': 'introspection'}).run(self.connection).next()
             except:
                 trans_introspection = {}
 
@@ -768,13 +783,13 @@ class RethinkDbManager:
             trans_migration['valor_dest'] = None
             trans_migration['history'] = []
             rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
-                'transducer_id': 'migration'}).update(trans_migration).run()
+                'transducer_id': 'migration'}).update(trans_migration).run(self.connection)
 
             trans_introspection['valor_id'] = valor_id
             trans_introspection['interval'] = 10
             trans_introspection['comms'] = []
             rethinkdb.db('transducers').table('commands').filter({'virtue_id': virtue_id,
-                'transducer_id': 'introspection'}).update(trans_introspection).run()
+                'transducer_id': 'introspection'}).update(trans_introspection).run(self.connection)
 
         return guestnet
 
@@ -784,7 +799,7 @@ class RethinkDbManager:
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'virtue_id': virtue_id
-        }).run())
+        }).run(self.connection))
 
         if len(matching_virtues) == 0:
             return None
@@ -797,41 +812,43 @@ class RethinkDbManager:
         matching_virtues = list(rethinkdb.db('transducers').table('galahad').filter({
             'function': 'virtue',
             'virtue_id': virtue_id
-        }).run())
+        }).run(self.connection))
 
         assert len(matching_virtues) == 1
 
         rethinkdb.db('transducers').table('galahad').filter(
-            matching_virtues[0]).delete().run()
+            matching_virtues[0]).delete().run(self.connection)
 
     # Run on only virtue destroy
     def destroy_virtue(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter(
-            {'virtue_id', virtue_id}).delete().run()
+            {'virtue_id', virtue_id}).delete().run(self.connection)
+        rethinkdb.db('transducers').table('acks').filter(
+            {'virtue_id', virtue_id}).delete().run(self.connection)
 
     def auto_migration_start(self, migration_interval):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'auto_migration'}).run())
+            {'function': 'auto_migration'}).run(self.connection))
         if len(response) != 0:
             rethinkdb.db('transducers').table('galahad').filter(
                 {'function': 'auto_migration'}).update(
-                {'enabled': True, 'migration_interval': migration_interval}).run()
+                {'enabled': True, 'migration_interval': migration_interval}).run(self.connection)
         else:
             rethinkdb.db('transducers').table('galahad').insert(
                 {'function': 'auto_migration', 'migration_interval': migration_interval,
-                 'enabled': True}).run()
+                 'enabled': True}).run(self.connection)
 
     def auto_migration_stop(self):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'auto_migration'}).run())
+            {'function': 'auto_migration'}).run(self.connection))
         if len(response) != 0:
             rethinkdb.db('transducers').table('galahad').filter(
                 {'function': 'auto_migration'}).update(
-                {'enabled': False, 'migration_interval': None}).run()
+                {'enabled': False, 'migration_interval': None}).run(self.connection)
 
     def auto_migration_status(self):
         response = list(rethinkdb.db('transducers').table('galahad').filter(
-            {'function': 'auto_migration'}).run())
+            {'function': 'auto_migration'}).run(self.connection))
         if len(response) != 0:
             return response[0].get('enabled', False), response[0].get(
                 'migration_interval')
@@ -850,18 +867,18 @@ class RethinkDbManager:
         if interval is not None: update_dict['interval'] = int(interval)
         if modules is not None: update_dict['comms'] = modules.split(',')
 
-        rethink_filter.update(update_dict).run()
+        rethink_filter.update(update_dict).run(self.connection)
 
 
     def introspect_virtue_stop(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter({
-            'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run()
+            'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run(self.connection)
 
 
     def get_router(self):
 
         router = list(rethinkdb.db('transducers').table('galahad').filter({
-            'function': 'router'}).run())
+            'function': 'router'}).run(self.connection))
 
         if (len(router) == 0):
             return None
@@ -871,16 +888,14 @@ class RethinkDbManager:
 
 class RouterManager:
 
-    def __init__(self):
+    def __init__(self, router_ip):
 
-        self.ip_address = None
+        self.ip_address = router_ip
         self.client = None
 
     def add_valor(self, valor):
         # Call into router to add port to ovs bridge for the
         # valor being added to the system
-
-        self.ip_address = valor.router_ip
 
         self.connect_with_ssh()
 
