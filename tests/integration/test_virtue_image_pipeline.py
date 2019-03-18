@@ -77,60 +77,6 @@ def setup_module():
     subprocess.check_call(['sudo', 'mkdir', '-p', '/mnt/efs/images/tests'])
 
 
-def __construct_unity():
-    global ami_id
-
-    aws = AWS()
-    aws_security_group = aws.get_sec_group()
-    aws_subnet_id = aws.get_subnet_id()
-    #
-    build_opts = {
-        'env': 'aws',
-        'aws_image_id': 'ami-759bc50a',  # Ubuntu 16.04 Xenial
-        'aws_instance_type': 't2.micro',
-        'aws_security_group': aws_security_group.id,
-        'aws_subnet_id': aws_subnet_id,
-        'aws_disk_size': 8,
-        'create_ami': True
-    }
-
-    # Change to the galahad directory to correctly reference the path for
-    # various files required during the stages of the constructor.
-    os.chdir(os.environ['HOME'] + '/galahad')
-    assembler = Assembler()
-
-    # Construction Stage - construct a Unity Image
-    construct = assembler.construct_unity(build_opts, clean=True)
-
-    ami_id = construct[0]
-    assert ami_id
-
-    # Now check if the AMI has been successfully created in AWS
-    ec2 = boto3.resource('ec2')
-    image = ec2.Image(ami_id)
-
-    # Ensure that the image is in a usable state
-    image.wait_until_exists(
-        Filters=[
-            {
-                'Name': 'state',
-                'Values': ['available']
-            }]
-    )
-    image.reload()
-    assert image.state == 'available'
-
-    # Setup the private key used to login to the instance
-    private_key = construct[1]
-    subprocess.check_call(shlex.split('mkdir -p {}'.format(WORK_DIR)))
-    # Write out the key to a file
-    with open('{}/id_rsa'.format(WORK_DIR), 'w') as f:
-        f.write(private_key)
-    subprocess.check_call(shlex.split('chmod 600 {}/id_rsa'.format(WORK_DIR)))
-
-    return ami_id
-
-
 def test_constructor():
     # Constructor already ran during stack creation, so it must have succeeded.
 

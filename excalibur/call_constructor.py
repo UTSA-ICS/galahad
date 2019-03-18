@@ -52,13 +52,6 @@ if (__name__ == '__main__'):
 
     args = parse_args()
 
-    build_options = {
-        'env': 'xen',
-        'base_img': args.base_img,
-        'ssh_key': args.ssh_pub_key,
-        'output_path': args.output_path
-    }
-
     kwargs = {}
     if (args.elastic_node != None):
         kwargs['es_node'] = args.elastic_node
@@ -70,5 +63,6 @@ if (__name__ == '__main__'):
         kwargs['work_dir'] = args.work_dir
 
     assembler = Assembler(**kwargs)
-    assembler.construct_unity(build_options,
+    assembler.construct_unity(args.base_img, args.output_path,
+                              args.ssh_pub_key,
                               clean=True)
