@@ -398,7 +398,7 @@ class Excalibur:
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
-        self.setup_aws_instance_info()
+        self.setup_aws_instance_info(key_name)
 
         # Setup the transducer heartbeat Listener and Start it
         _cmd3 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
@@ -445,7 +445,7 @@ class Excalibur:
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd8)
 
-    def setup_aws_instance_info(self):
+    def setup_aws_instance_info(self, key_name):
         aws_instance_info = {}
         aws_instance_info['image_id'] = 'ami-aa2ea6d0'
         aws_instance_info['inst_type'] = 't2.micro'
