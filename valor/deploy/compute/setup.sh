@@ -23,9 +23,6 @@ apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
 # Install pip packages
 pip install rethinkdb==2.3.0.post6
 
-GUESTNET_IP="${2}"
-ROUTER_IP="${3}"
-
 # Base directory for the script to operate from
 cd /mnt/efs/valor/deploy/compute
 
@@ -51,22 +48,6 @@ echo "  bridge_ports br0 eth0" >> /etc/network/interfaces
 echo "  bridge_stp off" >> /etc/network/interfaces
 echo "  bridge_fd 0" >> /etc/network/interfaces
 echo "  bridge_maxwait 0" >> /etc/network/interfaces
-
-#
-# Create a openvswitch bridge - hello-br0
-#
-ovs-vsctl add-br hello-br0
-
-#
-# Configure bridge hello-br0
-#
-echo "" >> /etc/network/interfaces
-echo "#" >> /etc/network/interfaces
-echo "# Bridge hello-br0 for ovs bridge hello-br0" >> /etc/network/interfaces
-echo "#" >> /etc/network/interfaces
-echo "auto hello-br0" >> /etc/network/interfaces
-echo "iface hello-br0 inet static" >> /etc/network/interfaces
-echo "  address ${GUESTNET_IP}/24" >> /etc/network/interfaces
 
 #
 # Set the Network System Variables
@@ -99,15 +80,6 @@ iptables -A FORWARD --in-interface br0 -j ACCEPT
 iptables --table nat -A POSTROUTING --out-interface br0 -j MASQUERADE
 # Now save the iptables rules by installing the persistent package
 DEBIAN_FRONTEND=noninteractive apt-get --assume-yes install iptables-persistent
-
-#
-# Configure a port in the ovs switch with Router's remote IP
-#
-while read line; do
-	IFS='.' read -r -a array <<< "$line"
-	port="vxlan"${array[3]}
-	ovs-vsctl add-port hello-br0 $port -- set interface $port type=vxlan options:remote_ip=$line
-done <<< $ROUTER_IP
 
 #
 # Set the MTU of eth0 to 9001 (Jumbo Frames) to ensure
