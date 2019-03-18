@@ -816,7 +816,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
 
     start_excalibur_time = time.time()
     excalibur = Excalibur(stack_name, sshkey)
-    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
+    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
     logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
         (time.time() - start_excalibur_time) / 60))
 
@@ -925,7 +925,6 @@ def parse_args():
         required=True,
         help="AWS keys to be used for AWS communication")
     parser.add_argument(
-        '-k',
         '--key_name',
         type=str,
         default='starlab-virtue-te',
