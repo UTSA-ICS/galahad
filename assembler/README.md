@@ -47,7 +47,7 @@ work_dir # The work directory
 
 To run the constructor on a PVM image file, the running application will require root privelages so it can mount and modify the image.
 
-This will copy the `base_img` to `self.work_dir/disk.img` and mount it at `/tmp/img_mount`. Then, modified code from the ssh stages will run to write files to the image in-place. This process does not require a hypervisor to be installed, nor does it require access to AWS. The new modified image will be copied to `output_dir/disk.img` and can be launched as a Xen or Xenblanket PVM.
+This will copy the `base_img` to `self.work_dir/disk.img` and mount it at `/tmp/img_mount`. Then, code will run to write files to the image in-place. It will install the modified kernel, the LSM module, transducers, and users' public SSH keys. This process does not require a hypervisor to be installed, nor does it require access to AWS. The new modified image will be copied to `output_dir/disk.img` and can be launched as a Xen or Xenblanket PVM.
 
 Here is an example of how to create a unity from a base Ubuntu 16.04 image:
 ```
@@ -76,7 +76,7 @@ Currently, the only way to assemble a role is to launch a Unity VM and call `Ass
 
 `ssh_host` is the IP address of the running Unity.
 
-This will ssh into the Unity with the key in `key_path` and install all of the specified docker containers.
+This will ssh into the Unity with the key in `key_path`, pull the `docker-virtue` repository, and use it to install all of the specified docker containers.
 
 Here is an example:
 ```
