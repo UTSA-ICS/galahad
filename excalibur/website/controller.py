@@ -378,7 +378,7 @@ class AssembleRoleThread(threading.Thread):
                 valor = valor_manager.get_empty_valor()
                 virtue_ip = valor_manager.add_virtue(
                     valor['address'],
-                    valor['id'],
+                    valor['valor_id'],
                     self.role['id'],
                     virtue_path,
                     True)  # send role_create=True)
