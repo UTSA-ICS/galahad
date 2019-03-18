@@ -18,9 +18,6 @@ from sultan.api import Sultan, SSHConfig
 STACK_TEMPLATE = 'setup/galahad-stack.yaml'
 AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 
-# aws public key name used for the instances
-key_name = 'starlab-virtue-te'
-
 # Directories for key storage
 GALAHAD_KEY_DIR_NAME = 'galahad-keys'
 GALAHAD_KEY_DIR = '~/galahad-keys'
@@ -39,9 +36,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_ssh_cmd(host_server, path_to_key, cmd):
+def run_ssh_cmd(host_server, sshkey, cmd):
     config = SSHConfig(
-        identity_file=path_to_key,
+        identity_file=sshkey,
         option='StrictHostKeyChecking=no')
 
     with Sultan.load(
@@ -65,13 +62,13 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
         return result
 
 
-def check_cloud_init_finished(host_server, path_to_key):
+def check_cloud_init_finished(host_server, sshkey):
     # Check if the file "/var/lib/cloud/instance/boot-finished" exists
     # indicating that boot is complete and cloud init has finished running
     _cmd = '''bash(('-c "while [ ! -f /var/lib/cloud/instance/boot-finished ];'
                        'do echo \\\\\"Cloud init has not finished\\\\\";sleep 5;done;'
                        'echo \\\\\"Cloud init has now finished\\\\\""'))'''
-    run_ssh_cmd(host_server, path_to_key, _cmd)
+    run_ssh_cmd(host_server, sshkey, _cmd)
 
 
 class Stack:
@@ -82,7 +79,8 @@ class Stack:
 
         return file.read()
 
-    def setup_stack(self, stack_template, stack_name, suffix_value, import_stack_name='None'):
+    def setup_stack(self, stack_template, stack_name, suffix_value, key_name,
+                    import_stack_name='None'):
 
         self.stack_template = stack_template
         self.stack_name = stack_name
@@ -365,7 +363,8 @@ class Excalibur:
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                     format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, user_key):
+    def setup(self, branch, github_key, aws_config, aws_keys, user_key,
+              key_name):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.server_ip, self.ssh_key)
@@ -451,7 +450,7 @@ class Excalibur:
         aws_instance_info['image_id'] = 'ami-aa2ea6d0'
         aws_instance_info['inst_type'] = 't2.micro'
         aws_instance_info['subnet_id'] = self.subnet_id
-        aws_instance_info['key_name'] = 'starlab-virtue-te'
+        aws_instance_info['key_name'] = key_name
         aws_instance_info['tag_key'] = 'Project'
         aws_instance_info['tag_value'] = 'Virtue'
         aws_instance_info['sec_group'] = self.default_security_group_id
@@ -747,8 +746,8 @@ class AutomatedVirtueMigration:
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
-    efs = EFS(stack_name, path_to_key)
+def create_and_setup_image_unity_files(stack_name, sshkey, image_size):
+    efs = EFS(stack_name, sshkey)
 
     # Create a base ubuntu image
     start_ubuntu_img_time = time.time()
@@ -765,7 +764,7 @@ def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
             (time.time() - start_unity_time) / 60))
 
     # Create Standby Pool of role image files
-    standby_pools = StandbyPools(stack_name, path_to_key)
+    standby_pools = StandbyPools(stack_name, sshkey)
     start_standby_role_pools_time = time.time()
     standby_pools.initialize_role_image_file_standby_pool(image_size)
     logger.info(
@@ -777,21 +776,22 @@ def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
             image_size, (time.time() - start_ubuntu_img_time) / 60))
 
 
-def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
+def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
           aws_config, aws_keys, branch, image_size, user_key,
-          deactivate_virtue_migration, auto_migration_interval):
+          deactivate_virtue_migration, auto_migration_interval, key_name):
 
     start_stack_time = time.time()
 
     stack = Stack()
-    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
+    stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, key_name,
+                      import_stack_name)
     logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format(
         (time.time() - start_stack_time) / 60))
 
     start_setup_time = time.time()
 
     start_xen_pvm_time = time.time()
-    efs = EFS(stack_name, path_to_key)
+    efs = EFS(stack_name, sshkey)
     efs.setup_xen_pvm_builder()
     logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
         (time.time() - start_xen_pvm_time) / 60))
@@ -802,31 +802,31 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
         create_img_file_start_time = time.time()
         create_img_file_thread = threading.Thread(
             target=create_and_setup_image_unity_files,
-            args=(stack_name, path_to_key, image,))
+            args=(stack_name, sshkey, image,))
         create_img_file_thread.start()
         create_img_file_threads.append(
             {"image_size": image, "start_time": create_img_file_start_time,
                 "thread": create_img_file_thread})
 
     start_aggregator_time = time.time()
-    aggregator = Aggregator(stack_name, path_to_key)
+    aggregator = Aggregator(stack_name, sshkey)
     aggregator_thread = threading.Thread(target=aggregator.setup,
                                          args=(branch, github_key, user_key,))
     aggregator_thread.start()
 
     start_excalibur_time = time.time()
-    excalibur = Excalibur(stack_name, path_to_key)
+    excalibur = Excalibur(stack_name, sshkey)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
     logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
         (time.time() - start_excalibur_time) / 60))
 
-    canvas = Canvas(stack_name, path_to_key)
+    canvas = Canvas(stack_name, sshkey)
     canvas_thread = threading.Thread(target=canvas.setup,
                                      args=(branch, github_key, user_key,))
     canvas_thread.start()
 
     start_rethinkdb_time = time.time()
-    rethinkdb = RethinkDB(stack_name, path_to_key)
+    rethinkdb = RethinkDB(stack_name, sshkey)
     rethinkdb.setup(branch, github_key, user_key)
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
         (time.time() - start_rethinkdb_time) / 60))
@@ -838,7 +838,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
-    standby_pools = StandbyPools(stack_name, path_to_key)
+    standby_pools = StandbyPools(stack_name, sshkey)
     start_standby_valor_pools_time = time.time()
     standby_valor_pools_thread = threading.Thread(
         target=standby_pools.initialize_valor_standby_pool)
@@ -861,7 +861,7 @@ def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
                 time.sleep(10)
 
     if not deactivate_virtue_migration:
-        migration = AutomatedVirtueMigration(stack_name, path_to_key)
+        migration = AutomatedVirtueMigration(stack_name, sshkey)
         migration.activate_automated_virtue_migration(auto_migration_interval)
 
     logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
@@ -876,11 +876,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-k",
-        "--path_to_key",
+        "-i",
+        "--sshkey",
         type=str,
         required=True,
-        help="The path to the public key used for the ec2 instances")
+        help="The path to the SSH key used for the ec2 instances")
     parser.add_argument(
         "-g",
         "--github_repo_key",
@@ -924,6 +924,13 @@ def parse_args():
         type=str,
         required=True,
         help="AWS keys to be used for AWS communication")
+    parser.add_argument(
+        '-k',
+        '--key_name',
+        type=str,
+        default='starlab-virtue-te',
+        help='The key pair name to use, defaults to starlab-virtue-te.')
+
     parser.add_argument(
         "--setup",
         action="store_true",
@@ -973,7 +980,7 @@ def parse_args():
 
 def ensure_required_files_exist(args):
     required_files = '{} {} {} {}'.format(
-        args.path_to_key,
+        args.sshkey,
         args.github_repo_key,
         args.aws_config,
         args.aws_keys)
@@ -991,16 +998,16 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.path_to_key, args.stack_name, args.stack_suffix,
+        setup(args.sshkey, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
               args.aws_keys, args.branch_name, args.image_size,
               args.default_user_key, args.deactivate_virtue_migration,
-              args.auto_migration_interval)
+              args.auto_migration_interval, args.key_name)
 
     if args.setup_stack:
         stack = Stack()
         stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix,
-                          args.import_stack)
+                          args.key_name, args.import_stack)
 
     if args.list_stacks:
         Stack().list_stacks()
@@ -1014,7 +1021,7 @@ def main():
             create_img_file_start_time = time.time()
             create_img_file_thread = threading.Thread(
                 target=create_and_setup_image_unity_files,
-                args=(args.stack_name, args.path_to_key, image,))
+                args=(args.stack_name, args.sshkey, image,))
             create_img_file_thread.start()
             create_img_file_threads.append(
                 {
