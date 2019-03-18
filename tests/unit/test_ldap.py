@@ -3,6 +3,7 @@
 import copy
 import os
 import sys
+import json
 import traceback
 
 file_path = os.path.realpath(__file__)
@@ -16,6 +17,7 @@ from website import ldap_tools
 def setup_module():
 
     global inst
+    global ad_inst
     global ep
 
     inst = LDAP('', '')
@@ -23,58 +25,103 @@ def setup_module():
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
+    ad_inst = LDAP('slapd@virtue.gov', 'Test123!')
+    ad_inst.bind_ad()
+
 
 def test_get_obj():
 
     user = inst.get_obj(
-        'cusername', 'jmitchell', objectClass='OpenLDAPuser', throw_error=True)
+        'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
+
+    slapd_name = ad_inst.query_ad('cn', 'slapd')[0][1]['sAMAccountName'][0]
 
     assert user == {
-        'cusername': ['jmitchell'],
+        'cusername': ['slapd'],
         'cauthRoleIds': ['[]'],
         'ou': ['virtue'],
-        'objectClass': ['OpenLDAPuser']
+        'objectClass': ['OpenLDAPuser'],
+        'name': [json.dumps(slapd_name)]
     }
 
     ldap_tools.parse_ldap(user)
 
-    assert user == {'username': 'jmitchell', 'authorizedRoleIds': []}
+    assert user == {
+        'username': 'slapd',
+        'authorizedRoleIds': [],
+        'name': slapd_name
+    }
 
 
 def test_objs_of_type():
 
     users = inst.get_objs_of_type('OpenLDAPuser')
 
+    slapd_name = ad_inst.query_ad('cn', 'slapd')[0][1]['sAMAccountName'][0]
+    assert (
+        'cusername=slapd,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
+            'cusername': ['slapd'],
+            'cauthRoleIds': ['[]'],
+            'ou': ['virtue'],
+            'objectClass': ['OpenLDAPuser'],
+            'name': [json.dumps(slapd_name)]
+        }) in users
+
+    jmitchell_name = ad_inst.query_ad('cn', 'jmitchell')[0][1]['sAMAccountName'][0]
     assert (
         'cusername=jmitchell,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
             'cusername': ['jmitchell'],
             'cauthRoleIds': ['[]'],
             'ou': ['virtue'],
-            'objectClass': ['OpenLDAPuser']
+            'objectClass': ['OpenLDAPuser'],
+            'name': [json.dumps(jmitchell_name)]
         }) in users
 
-    assert ('cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
-        'cusername': ['fpatwa'],
-        'cauthRoleIds': ['[]'],
-        'ou': ['virtue'],
-        'objectClass': ['OpenLDAPuser']
-    }) in users
+    fpatwa_name = ad_inst.query_ad('cn', 'fpatwa')[0][1]['sAMAccountName'][0]
+    assert (
+        'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
+            'cusername': ['fpatwa'],
+            'cauthRoleIds': ['[]'],
+            'ou': ['virtue'],
+            'objectClass': ['OpenLDAPuser'],
+            'name': [json.dumps(fpatwa_name)]
+        }) in users
 
-    assert ('cusername=klittle,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com',
-            {
-                'cusername': ['klittle'],
-                'cauthRoleIds': ['[]'],
-                'ou': ['virtue'],
-                'objectClass': ['OpenLDAPuser']
-            }) in users
+    klittle_name = ad_inst.query_ad('cn', 'klittle')[0][1]['sAMAccountName'][0]
+    assert (
+        'cusername=klittle,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
+            'cusername': ['klittle'],
+            'cauthRoleIds': ['[]'],
+            'ou': ['virtue'],
+            'objectClass': ['OpenLDAPuser'],
+            'name': [json.dumps(klittle_name)]
+        }) in users
 
     users_parsed = ldap_tools.parse_ldap_list(users)
 
-    assert {'username': 'jmitchell', 'authorizedRoleIds': []} in users_parsed
+    assert {
+        'username': 'slapd',
+        'authorizedRoleIds': [],
+        'name': slapd_name
+    } in users_parsed
 
-    assert {'username': 'fpatwa', 'authorizedRoleIds': []} in users_parsed
+    assert {
+        'username': 'jmitchell',
+        'authorizedRoleIds': [],
+        'name': jmitchell_name
+    } in users_parsed
 
-    assert {'username': 'klittle', 'authorizedRoleIds': []} in users_parsed
+    assert {
+        'username': 'fpatwa',
+        'authorizedRoleIds': [],
+        'name': fpatwa_name
+    } in users_parsed
+
+    assert {
+        'username': 'klittle',
+        'authorizedRoleIds': [],
+        'name': klittle_name
+    } in users_parsed
 
 
 def test_write_to_ldap():
@@ -85,6 +132,7 @@ def test_write_to_ldap():
         'applicationIds': ['firefox', 'xterm'],
         'startingResourceIds': [],
         'startingTransducerIds': [],
+        'networkRules': [],
         'version': '1.0'
     }
 
@@ -94,11 +142,12 @@ def test_write_to_ldap():
         'objectClass': 'OpenLDAProle',
         'ou': 'virtue',
         'cid': 'routeradmin',
-        'name': 'Router Admin',
-        'cversion': '1.0',
-        'cappIds': str(['firefox', 'xterm']),
+        'name': '"Router Admin"',
+        'cversion': '"1.0"',
+        'cappIds': json.dumps(['firefox', 'xterm']),
         'cstartResIds': '[]',
-        'cstartTransIds': '[]'
+        'cstartTransIds': '[]',
+        'cnetRules': '[]'
     }
 
     try:

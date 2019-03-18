@@ -1,7 +1,12 @@
 import copy
+import json
 
 # A static file to make LDAP more usable while implementing the VirtUE API
 
+
+# Due to LDAP constraints (dn cannot contain quotes), these values will not
+# be run through the json formatter:
+always_string_values = ['username', 'id']
 
 def parse_ldap(data):
 
@@ -15,13 +20,9 @@ def parse_ldap(data):
         'cresIds': 'resourceIds',
         'ctransIds': 'transducerIds',
         'cAmiId': 'amiId',
-        'cawsInstId': 'awsInstanceId'
+        'cawsInstId': 'awsInstanceId',
+        'cnetRules': 'networkRules'
     }
-
-    entries_with_lists = [
-        'applicationIds', 'startingResourceIds', 'startingTransducerIds',
-        'requiredAccess', 'authorizedRoleIds', 'resourceIds', 'transducerIds'
-    ]
 
     if ('ou' in data.keys()):
         del data['ou']
@@ -29,18 +30,23 @@ def parse_ldap(data):
         del data['objectClass']
 
     for k in data.keys():
-        if (k in parse_map.keys()):
-            tmp = data.pop(k)[0]
+        tmp = data.pop(k)
 
-            # Lists are formatted to strings in LDAP
-            if (parse_map[k] in entries_with_lists):
-                data[parse_map[k]] = eval(tmp)
-            else:
-                data[parse_map[k]] = tmp
+        if (type(tmp) == list):
+            tmp = tmp[0]
+
+        new_key = None
+        if (k in parse_map.keys()):
+            new_key = parse_map[k]
         elif (k[0] == 'c' and k != 'credentials'):
-            data[k[1:len(k)]] = data.pop(k)[0]
-        elif (type(data[k]) == list and k not in entries_with_lists):
-            data[k] = data[k][0]
+            new_key = k[1:]
+        else:
+            new_key = k
+
+        if (new_key not in always_string_values):
+            tmp = json.loads(tmp)
+
+        data[new_key] = tmp
 
 
 def to_ldap(data, objectClass):
@@ -72,16 +78,19 @@ def to_ldap(data, objectClass):
         'state': 'cstate',
         'ipAddress': 'cipAddress',
         'amiId': 'cAmiId',
-        'awsInstanceId': 'cawsInstId'
+        'awsInstanceId': 'cawsInstId',
+        'networkRules': 'cnetRules'
     }
 
     modified_data = {'objectClass': objectClass, 'ou': 'virtue'}
 
     for k in data.keys():
-        if (k in parse_map.keys()):
-            modified_data[parse_map[k]] = str(data[k])
+        tmp = data[k]
+        if (k in always_string_values):
+            tmp = str(tmp)
         else:
-            modified_data[k] = str(data[k])
+            tmp = json.dumps(tmp)
+        modified_data[parse_map.get(k, k)] = tmp
 
     return modified_data
 

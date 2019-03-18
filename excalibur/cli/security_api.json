@@ -1,0 +1,90 @@
+{
+    "api_name": "security",
+    "base_url": "https://{0}:5002/virtue/security",
+    "commands": [ 
+        {
+            "command" : "security api config",
+            "help": "Load a config file configuration",
+            "url": "/api_config",
+            "parameters": [
+                 { "name": "Configuration File", "url_name": "configuration", "is_file": true }
+            ]
+        },
+        {
+            "command" : "transducer list",
+            "help": "List all transducers",
+            "url": "/transducer/list",
+            "parameters": []
+        },
+        {
+            "command" : "transducer get",
+            "help": "Get configuration information about a transducer",
+            "url": "/transducer/get",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" }
+            ]
+        },
+        {
+            "command" : "transducer enable",
+            "help": "Enable a transducer on a Virtue",
+            "url": "/transducer/enable",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Virtue ID", "url_name": "virtueId" },
+                { "name": "Transducer config (JSON)", "url_name": "configuration", "is_file": true }
+            ]
+        },
+        {
+            "command" : "transducer disable",
+            "help": "Disable a transducer on a Virtue",
+            "url": "/transducer/disable",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        {
+            "command" : "transducer enable all",
+            "help": "Enable a transducer on all Virtues",
+            "url": "/transducer/enable_all_virtues",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Transducer config (JSON)", "url_name": "configuration", "is_file": true }
+            ]
+        },
+        {
+            "command" : "transducer disable all",
+            "help": "Disable a transducer on all Virtues",
+            "url": "/transducer/disable_all_virtues",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" }
+            ]
+        },
+        {
+            "command" : "transducer get enabled",
+            "help": "Get list of enabled transducers on a Virtue",
+            "url": "/transducer/get_enabled",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        {
+            "command" : "transducer get configuration",
+            "help": "Get configuration information about a transducer",
+            "url": "/transducer/get_configuration",
+            "parameters": [
+                { "name": "Transducer ID", "url_name": "transducerId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        {
+            "command" : "transducer list enabled",
+            "help": "List all enabled transducers on a Virtue",
+            "url": "/transducer/list_enabled",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        }
+    ]
+}

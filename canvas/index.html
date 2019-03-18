@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="./assets/css/animate.css">
     <link rel="stylesheet" href="./assets/css/index.css">
   </head>
-  <body style="background-color:rgba(0,0,0,0);">
+  <!-- <body style="background-color:rgba(255,255,255,1);"> -->
+  <body class="appBackground">
 
     <div id="appArea"></div>
 
@@ -27,11 +28,6 @@
       </div>
     -->
       <br>
-      <div class="excaliburIpAddress">
-        <label for="ipAddress">Excalibur Server IP Address: </label>
-        <input type="text" id="excaliburIpAddress" name="excaliburIpAddress" required
-               placeholder="Excalibur Server IP Address" /> 
-      </div>
       <div style="text-align: right; margin: 10px; display: flex;">
         <div id="loginMsg"></div>
         <input class="submit" type="submit" value="Log In" onclick="login(event);">
@@ -97,6 +93,84 @@
             <i class="far fa-eye fa-2x"></i>
             <div id="dock2" style="margin-top: 5px;">Viewer</div>
             <div id="optionsinner2" class="options viewer">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'viewer', '4000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
+              <div id="minimized_viewer_count" class="count"></div>
+              <i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_viewer" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div id="options3" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="far fa-eye fa-2x"></i>
+            <div id="dock3" style="margin-top: 5px;">Viewer</div>
+            <div id="optionsinner3" class="options viewer">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'viewer', '4000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
+              <div id="minimized_viewer_count" class="count"></div>
+              <i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_viewer" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div id="options4" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="far fa-eye fa-2x"></i>
+            <div id="dock4" style="margin-top: 5px;">Viewer</div>
+            <div id="optionsinner4" class="options viewer">
+              <!--
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fas fa-file-word fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('notepad', 'viewer', '4000');">
+                <i class="far fa-file-edit fa-2x"></i>
+              </div>
+              <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
+                <i class="fab fa-firefox fa-2x"></i>
+              </div> -->
+            </div>
+          </li>
+          <div id="minimized_viewer_drawer" class="minimizedWrapper" style="display: none;">
+            <div class="minimizedActuator viewer" onclick="toggleMinimizedDrawer('viewer');">
+              <div id="minimized_viewer_count" class="count"></div>
+              <i id="minimized_viewer_close" class="fas fa-chevron-right" style="display: none;"></i>
+            </div>
+            <div id="minimized_viewer" class="minimized" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div id="options5" class="optionsWrapper" style="display: none;">
+          <li onmouseover="showOptions(this);" onmouseout="hideOptions(this);">
+            <i class="far fa-eye fa-2x"></i>
+            <div id="dock5" style="margin-top: 5px;">Viewer</div>
+            <div id="optionsinner5" class="options viewer">
               <!--
               <div class="icon-pair circle-bg" onclick="openApp('word', 'viewer', '4000');">
                 <i class="fas fa-file-word fa-2x"></i>

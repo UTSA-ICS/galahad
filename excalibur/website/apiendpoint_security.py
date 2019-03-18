@@ -1,38 +1,47 @@
 # Copyright (c) 2018 by Raytheon BBN Technologies Corp.
 
-from ldaplookup import LDAP
-from services.errorcodes import ErrorCodes
-from . import ldap_tools
 import json
 import os.path
 import time
+import traceback
 from copy import deepcopy
 
 import rethinkdb as r
-
-from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+
+from ldaplookup import LDAP
+from services.errorcodes import ErrorCodes
+from valor import RethinkDbManager
+from . import ldap_tools
 
 DEBUG_PERMISSIONS = False
 
 
 class EndPoint_Security:
     def __init__(self, user, password):
-        self.inst = LDAP(user, password)
 
-        self.inst.bind_ldap()
+        self.inst = LDAP(user, password)
+        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
+        self.inst.get_ldap_connection()
+        self.inst.conn.simple_bind_s(dn, 'Test123!')
+
+        self.rdb_manager = RethinkDbManager()
 
         if not hasattr(self.__class__, 'conn'):
             self.__class__.conn = None
+
+        # Set default paths - these are valid for a default excalibur setup
+        self.set_api_config({})
 
     # Not officially part of the API but necessary to set up paths correctly
     def set_api_config(self, config):
         # Default values
         self.__class__.rethinkdb_host = 'rethinkdb.galahad.com'
-        self.__class__.ca_cert = 'rethinkdb_cert.pem'
-        self.__class__.excalibur_key_file = 'excalibur_key.pem'
-        self.__class__.virtue_key_dir = '.'
+        self.__class__.ca_cert = '/var/private/ssl/rethinkdb_cert.pem'
+        self.__class__.excalibur_key_file = '/var/private/ssl/excalibur_private_key.pem'
+        self.__class__.virtue_key_dir = '/var/private/ssl'
         self.__class__.wait_for_ack = 30  # seconds
 
 
@@ -259,6 +268,45 @@ class EndPoint_Security:
 
         return json.dumps(enabled_transducers)
 
+
+
+    def transducer_all_virtues(self, transducerId, configuration, isEnabled):
+        '''
+        Sets the given transducer to true for all running and stopped virtues.
+        Updates roles and starting configuration to match, so additionally created
+        or started virtues will share the same config.
+
+        :param transducerId:
+        :param isEnabled::o
+        :return:
+        '''
+
+        try:
+            ret = self.__update_roles_transducer(transducerId, isEnabled)
+            if ret != True:
+                    return ret
+
+            ret = self.__update_transducer_starting_config(transducerId, configuration)
+            if ret != True:
+                    return ret
+            virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
+            if (virtues_raw == None):
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+            for virtue in virtues_raw:
+                ldap_tools.parse_ldap(virtue[1])
+                ret = self.__enable_disable(transducerId, virtue[1]['id'], configuration, isEnabled)
+                if (ret != True):
+                    return json.dumps(ret)
+
+            return self.__error('success')
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
+
+
+
     def __connect_rethinkdb(self):
         # RethinkDB connection
         # This connection will fail if setup_rethinkdb.py hasn't been run, because
@@ -287,30 +335,51 @@ class EndPoint_Security:
         if transducer is None or transducer == ():
             return self.__error('invalidTransducerId')
 
-        transducerType = transducer['ctype']
+        ldap_tools.parse_ldap(transducer)
 
         # Make sure virtue exists
         virtue = self.inst.get_obj('cid', virtueId, 'openLDAPvirtue', True)
         if virtue is None or virtue == ():
             return self.__error('invalidVirtueId')
+        ldap_tools.parse_ldap(virtue)
+        virtue_running = (virtue['state'] == 'RUNNING')
 
         # Change the ruleset
         ret = self.__change_ruleset(
-            virtueId, transducerId, transducerType, isEnable, config=configuration)
+            virtueId, transducerId, transducer['type'], isEnable, virtue_running, config=configuration)
         if ret != True:
             return ret
 
-        # Update the virtue's list of transducers
-        new_t_list = self.transducer_list_enabled(virtueId)
-        if type(new_t_list) is dict and new_t_list['status'] == 'failed':
-            # Couldn't retrieve new list of transducers
-            return self.__error(
-                'unspecifiedError',
-                details='Unable to update virtue\'s list of transducers')
-            
-        virtue['ctransIds'] = str(new_t_list)
-        ret = self.inst.modify_obj('cid', virtueId, virtue, 'OpenLDAPvirtue',
-                                   True)
+        if virtue_running:
+            # Update the virtue's list of transducers
+            # Call loads because transducer_list_enabled returns a string
+            new_t_list = json.loads(self.transducer_list_enabled(virtueId))
+            if type(new_t_list) is dict and new_t_list['status'] == 'failed':
+                # Couldn't retrieve new list of transducers
+                return self.__error(
+                    'unspecifiedError',
+                    details='Unable to update virtue\'s list of transducers')
+
+            virtue['transducerIds'] = new_t_list
+            ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                'OpenLDAPvirtue', True)
+
+
+        else:
+            # Update list of transducers in LDAP without syncing it with rethink (Non-running virutes are not in rethink)
+            new_t_list = virtue['transducerIds']
+
+            if isEnable:
+                if transducerId not in new_t_list:
+                    new_t_list.append(transducerId)
+            else:
+                if transducerId in new_t_list:
+                    new_t_list.remove(transducerId)
+
+            virtue['transducerIds'] = new_t_list
+            ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
+                                       'OpenLDAPvirtue', True)
+
         if ret != 0:
             return self.__error(
                 'unspecifiedError',
@@ -379,7 +448,7 @@ class EndPoint_Security:
                 'Unable to validate signature of ACK message: ' + \
                 json.dumps(printable_msg, indent=2))
 
-    def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, config=None):
+    def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, virtue_running, config=None):
         if self.__class__.conn is None:
             ret = self.__connect_rethinkdb()
             # Return if error
@@ -420,6 +489,10 @@ class EndPoint_Security:
             return self.__error(
                 'unspecifiedError',
                 details='Failed to insert into commands table: ' + str(e))
+
+        # If the virtue isn't running yet, don't bother waiting for an ACK
+        if not virtue_running:
+            return True
 
         # Wait for ACK from the virtue that the ruleset has been changed
         #try:
@@ -474,3 +547,58 @@ class EndPoint_Security:
             #e['details'] = details
             e['result'].append(details)
         return json.dumps(e)
+
+    def __update_roles_transducer(self, transducerId, isEnabled):
+        # Make sure transducer exists
+        transducer = self.inst.get_obj('cid', transducerId,
+                                       'openLDAPtransducer', True)
+        if transducer is None or transducer == ():
+            return self.__error('invalidTransducerId')
+
+        try:
+            ldap_roles = self.inst.get_objs_of_type('OpenLDAProle')
+            assert ldap_roles != None
+
+            roles = ldap_tools.parse_ldap_list(ldap_roles)
+
+            for role in roles:
+                new_t_list = role['startingTransducerIds']
+
+                if isEnabled:
+                    if transducerId not in new_t_list:
+                        new_t_list.append(transducerId)
+                else:
+                    if transducerId in new_t_list:
+                        new_t_list.remove(transducerId)
+
+                role['startingTransducerIds'] = new_t_list
+                ret = self.inst.modify_obj('cid', role['id'], ldap_tools.to_ldap(role, 'OpenLDAProle'),
+                                           'OpenLDAProle', True)
+                if ret != 0:
+                    return self.__error(
+                        'unspecifiedError',
+                        details='Unable to update virtue\'s list of transducers')
+            return True
+
+        except Exception as e:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.admin['unspecifiedError'])
+
+    def __update_transducer_starting_config(self, transducerId, configuration):
+        transducer = self.inst.get_obj('cid', transducerId,
+                                       'openLDAPtransducer', True)
+        if transducer is None or transducer == ():
+            return self.__error('invalidTransducerId')
+
+
+        ldap_tools.parse_ldap(transducer)
+        transducer['startingConfiguration'] = configuration
+
+        ret = self.inst.modify_obj('cid', transducer['id'], ldap_tools.to_ldap(transducer, 'openLDAPtransducer'),
+                                   'openLDAPtransducer', True)
+        if ret != 0:
+            return self.__error(
+                'unspecifiedError',
+                details='Unable to update virtue\'s list of transducers')
+
+        return True

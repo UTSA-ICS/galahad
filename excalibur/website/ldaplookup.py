@@ -7,7 +7,7 @@ AD_DATABASE_URI = "ldap://ad.galahad.com"
 LDAP_PROTOCOL_VERSION = 3
 LDAP_QUERY_DN = "dc=canvas,dc=virtue,dc=com"
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
-AD_QUERY_DN = "ou=virtue,dc=virtue,dc=com"
+AD_QUERY_DN = "ou=galahad,dc=virtue,dc=gov"
 
 
 class LDAP():
@@ -42,10 +42,22 @@ class LDAP():
             return False
         return True
 
+    def bind_ad_user_check(self):
+        self.get_ldap_connection()
+        dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (
+            self.email.split("@")[0])
+        try:
+            self.conn.simple_bind_s(dn, self.password)
+        except:
+            return False
+        return True
+
     def bind_ad(self):
         self.get_ad_connection()
+        dn = "cn=%s,ou=galahad,dc=virtue,dc=gov" % (
+            self.email.split("@")[0])
         try:
-            self.conn.simple_bind_s(self.email, self.password)
+            self.conn.simple_bind_s(dn, self.password)
         except:
             return False
         return True
@@ -201,17 +213,17 @@ class LDAP():
     def query_ad(self, prop, prop_value):
         try:
             r = self.conn.search_s(AD_QUERY_DN, ldap.SCOPE_SUBTREE,
-                                   '(%s=%s)' % (prop, prop_value), ['cn'])
-            return r[0][1]
+                                   '(%s=%s)' % (prop, prop_value))
+            return r
         except:
             print('Conn Error')
 
 
 if __name__ == "__main__":
-    user = LDAP('klittle@virtue.com', 'Test123!')
+    user = LDAP('klittle@virtue.gov', 'Test123!')
     user.bind_ad()
-    print user.query_ad('userPrincipalName', 'klittle@virtue.com')
+    print user.query_ad('userPrincipalName', 'klittle@virtue.gov')
 
-    user2 = LDAP('jmitchell@virtue.com', 'Test123!')
+    user2 = LDAP('slapd@virtue.gov', 'Test123!')
     user2.bind_ldap()
-    print user2.query_ldap('cn', 'jmitchell')
+    print user2.query_ldap('cn', 'slapd')

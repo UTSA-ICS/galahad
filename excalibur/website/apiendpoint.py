@@ -1,17 +1,16 @@
-import os
-import time
+import copy
 import json
-import traceback
-import subprocess
+import os
 import shlex
-import paramiko
-from paramiko import SSHClient
+import time
+import traceback
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
 from aws import AWS
-from valor import ValorManager, RethinkDbManager
+from valor import ValorManager, RethinkDbManager, ResourceManager
+from ssh_tool import ssh_tool
 
 DEBUG_PERMISSIONS = False
 
@@ -176,6 +175,39 @@ class EndPoint():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
+    def virtue_reload_state(self, username, virtueId):
+
+        try:
+            virtue = self.inst.get_obj('cid', virtueId, 'OpenLDAPvirtue', True)
+            if (virtue == ()):
+                return json.dumps(ErrorCodes.user['invalidId'])
+            ldap_tools.parse_ldap(virtue)
+
+            updated_virtue = copy.deepcopy(virtue)
+
+            if (virtue['username'] != username):
+                return json.dumps(ErrorCodes.user['userNotAuthorized'])
+
+            rdb_manager = RethinkDbManager()
+            rdb_virtue = rdb_manager.get_virtue(virtueId)
+            if (rdb_virtue == None):
+                updated_virtue['state'] = 'STOPPED'
+                updated_virtue['ipAddress'] = 'NULL'
+            else:
+                updated_virtue['state'] = 'RUNNING'
+                updated_virtue['ipAddress'] = rdb_virtue['guestnet']
+
+            if (updated_virtue != virtue):
+                ldap_virtue = ldap_tools.to_ldap(updated_virtue, 'OpenLDAPvirtue')
+                self.inst.modify_obj('cid', virtueId, ldap_virtue,
+                                     'OpenLDAPvirtue', True)
+
+            return json.dumps(ErrorCodes.user['success'])
+
+        except:
+            print('Error:\n{0}'.format(traceback.format_exc()))
+            return json.dumps(ErrorCodes.user['unspecifiedError'])
+
     # Launch the specified virtue, which must have already been created
     def virtue_launch(self, username, virtueId, use_valor=True):
 
@@ -197,12 +229,11 @@ class EndPoint():
 
             if (use_valor):
                 valor_manager = ValorManager()
-                rdb_manager = RethinkDbManager()
 
                 valor = valor_manager.get_empty_valor()
 
                 try:
-                    virtue['ipAddress'] = rdb_manager.add_virtue(
+                    virtue['ipAddress'] = valor_manager.add_virtue(
                         valor['address'],
                         valor['valor_id'],
                         virtue['id'],
@@ -235,18 +266,35 @@ class EndPoint():
 
                         time.sleep(30)
 
-                        client = SSHClient()
-
-                        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                        client.load_system_host_keys()
-
-                        client.connect(
-                            virtue['ipAddress'],
-                            username='virtue',
-                            key_filename=os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                        ssh = ssh_tool(
+                            'virtue', virtue['ipAddress'],
+                            os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                        ssh.ssh('echo test')
 
                         print('Successfully connected to {}'.format(
-                            virtue['ipAddress'],))
+                            virtue['ipAddress']))
+
+                        # KL --- add if resIDs not empty run:
+                        # Kerberos tgt setup for resource management
+                        if len(virtue['resourceIds']) is not 0:
+                            krb5cc_src = '/tmp/krb5cc_{}'.format(username)
+                            krb5cc_dest = '/tmp/krb5cc_0'
+
+                            ssh.scp_to(krb5cc_src, krb5cc_dest)
+
+                            role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                            ldap_tools.parse_ldap(role)
+
+                            for res in virtue['resourceIds']:
+                                resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                                ldap_tools.parse_ldap(resource)
+                                resource_manager = ResourceManager(username, resource)
+                                getattr(resource_manager, resource['type'].lower())(
+                                    virtue['ipAddress'],
+                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                    role['applicationIds'])
+
+
                         success = True
 
                         break
@@ -256,7 +304,7 @@ class EndPoint():
                         print('Attempt {0} failed to connect').format(attempt_number+1)
 
                 if (not success):
-                    rdb_manager.remove_virtue(virtue['id'])
+                    valor_manager.rethinkdb_manager.remove_virtue(virtue['id'])
                     virtue['state'] = 'STOPPED'
                     ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
                     self.inst.modify_obj(
@@ -296,10 +344,34 @@ class EndPoint():
 
             try:
                 if (use_valor):
+
+                    if len(virtue['resourceIds']) is not 0:
+                        role = self.inst.get_obj('cid', virtue['roleId'], 'openLDAProle')
+                        ldap_tools.parse_ldap(role)
+
+                        for res in virtue['resourceIds']:
+                            resource = self.inst.get_obj('cid', res, 'openLDAPresource')
+                            ldap_tools.parse_ldap(resource)
+                            resource_manager = ResourceManager(username, resource)
+                            call = 'remove_' + resource['type'].lower()
+                            getattr(resource_manager, call)(
+                                virtue['ipAddress'],
+                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                role['applicationIds'])
+
+                        ssh = ssh_tool('virtue', virtue['ipAddress'],
+                                       os.environ['HOME'] + \
+                                       '/galahad-keys/default-virtue-key.pem')
+
+                        ssh.ssh('sudo rm /tmp/krb5cc_0')
+
                     rdb_manager = RethinkDbManager()
                     rdb_manager.remove_virtue(virtue['id'])
             except AssertionError:
                 return json.dumps(ErrorCodes.user['serverStopError'])
+            except:
+                print('Error:\n{}'.format(traceback.format_exc()))
+                return json.dumps(ErrorCodes.user['unspecifiedError'])
             else:
                 virtue['state'] = 'STOPPED'
                 ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
@@ -347,16 +419,37 @@ class EndPoint():
                     ErrorCodes.user['applicationAlreadyLaunched'])
 
             if (use_ssh):
-                args = shlex.split((
-                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                    + ' virtue@{2} sudo docker start $(sudo docker ps -af'
-                    + ' name="{3}" -q)').format(
-                        os.environ['HOME'], username, virtue['ipAddress'],
-                        app['name'].lower()))
+                ssh = ssh_tool('virtue', virtue['ipAddress'],
+                               '{0}/galahad-keys/{1}.pem'.format(
+                                   os.environ['HOME'], username))
 
-                docker_exit = subprocess.call(args)
+                start_docker_container = ('sudo docker start $(sudo docker ps' +
+                                          ' -af name="{0}" -q)').format(
+                                              app['id'])
+
+                # Copy the network Rules file.
+                copy_network_rules = (
+                    'sudo docker cp /etc/networkRules $(sudo docker ps -af' +
+                    ' name="{0}" -q):/etc/networkRules').format(app['id'])
+                ssh.ssh(copy_network_rules)
+
+                docker_exit = ssh.ssh(start_docker_container,
+                                      test=False, silent=True)
 
                 if (docker_exit != 0):
+                    # This is an issue with docker where if the docker daemon exits
+                    # uncleanly then a system file is locked and docker start fails
+                    # with the error:
+                    #     Error response from daemon: id already in use
+                    #     Error: failed to start containers:
+                    # The current workaround is to issue the docker start command
+                    # twice. Tne first time it fails with the above error and the
+                    # second time it succeeds.
+                    docker_exit = ssh.ssh(start_docker_container, test=False)
+                if (docker_exit != 0):
+                    print(
+                        "Docker start command for launching application {} Failed".format(
+                            app['id']))
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
 
             virtue['applicationIds'].append(applicationId)
@@ -409,14 +502,13 @@ class EndPoint():
                 return json.dumps(ErrorCodes.user['applicationAlreadyStopped'])
 
             if (use_ssh):
-                args = shlex.split((
-                    'ssh -o StrictHostKeyChecking=no -i {0}/galahad-keys/{1}.pem'
-                    + ' virtue@{2} sudo docker stop $(sudo docker ps -af'
-                    + ' name="{3}" -q)').format(
-                        os.environ['HOME'], username, virtue['ipAddress'],
-                        app['name'].lower()))
+                ssh = ssh_tool('virtue', virtue['ipAddress'],
+                               '{0}/galahad-keys/{1}.pem'.format(
+                                   os.environ['HOME'], username))
 
-                docker_exit = subprocess.call(args)
+                docker_exit = ssh.ssh(('sudo docker stop $(sudo docker ps -af '
+                                       'name="{0}" -q)').format(app['id']),
+                                      test=False)
 
                 if (docker_exit != 0):
                     return json.dumps(ErrorCodes.user['serverStopError'])
@@ -454,12 +546,12 @@ class EndPoint():
 
 if (__name__ == '__main__'):
 
-    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep = EndPoint('slapd@virtue.gov', 'Test123!')
 
-    print(ep.inst.query_ldap('cn', 'jmitchell'))
+    print(ep.inst.query_ldap('cn', 'slapd'))
 
     fake_token = {
-        'username': 'jmitchell',
+        'username': 'slapd',
         'token': 3735928559,
         'expiration': 0
     }

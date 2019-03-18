@@ -17,6 +17,7 @@ import time
 from pprint import pformat
 
 import boto3
+import botocore
 from sultan.api import Sultan, SSHConfig
 
 # File names
@@ -289,10 +290,7 @@ class DeployServer():
         _cmd = "sudo('apt-get install -y python-minimal python-pip python3-dev python3-pip')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
-        _cmd = "sudo('pip install boto3')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-
-        _cmd = "sudo('pip3 install boto3 sultan')"
+        _cmd = "sudo('pip3 install -r galahad/deploy/requirements.txt')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
         # Start the normal deployment process - Run the setup script
@@ -305,6 +303,7 @@ class DeployServer():
                         ' -b {2}'
                         ' -s {3}' 
                         ' -n {4}'
+                        ' --deactivate_virtue_migration'
                         ' --import_stack {5}'
                         ' --setup"'))'''.format(GALAHAD_KEY_DIR, key_name, branch, stack_suffix, self.stack_name,
                                                 self.import_stack_name)

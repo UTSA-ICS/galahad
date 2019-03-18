@@ -1,13 +1,5 @@
 #!/usr/bin/python3
 
-###
-# Test CI Orchestration:
-# - Setup Stack and Virtue Environment
-# - Start to collect system information to be able to run tests
-# -  - Get IP for LDAP/AD
-# - Checkout latest code
-# -
-###
 
 import argparse
 import json
@@ -40,7 +32,7 @@ RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 VALOR_ROUTER_HOSTNAME = 'valor-router.galahad.com'
 XEN_PVM_BUILDER_HOSTNAME = 'xenpvmbuilder.galahad.com'
-
+CANVAS_HOSTNAME = 'canvas.galahad.com'
 
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
@@ -72,6 +64,7 @@ def run_ssh_cmd(host_server, path_to_key, cmd):
 
         return result
 
+
 def check_cloud_init_finished(host_server, path_to_key):
     # Check if the file "/var/lib/cloud/instance/boot-finished" exists
     # indicating that boot is complete and cloud init has finished running
@@ -81,7 +74,7 @@ def check_cloud_init_finished(host_server, path_to_key):
     run_ssh_cmd(host_server, path_to_key, _cmd)
 
 
-class Stack():
+class Stack:
 
     def read_template(self):
 
@@ -199,7 +192,6 @@ class Stack():
             resource.Instance(instance).terminate()
             logger.info('Terminating instance [{}] not created by the stack'.format(instance))
 
-
     def list_stacks(self):
         client = boto3.client('cloudformation')
         response = client.list_stacks()
@@ -211,7 +203,7 @@ class Stack():
                     stack['StackStatus']))
 
 
-class RethinkDB():
+class RethinkDB:
 
     def __init__(self, stack_name, ssh_key):
 
@@ -241,7 +233,7 @@ class RethinkDB():
         result.append(result1.stdout)
         result.append(result2.stdout)
 
-        return (result)
+        return result
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -287,7 +279,7 @@ class RethinkDB():
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
 
-class Excalibur():
+class Excalibur:
 
     def __init__(self, stack_name, ssh_key):
 
@@ -350,7 +342,7 @@ class Excalibur():
         result.append(result2.stdout)
         result.append(result3.stdout)
 
-        return (result)
+        return result
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
@@ -403,6 +395,10 @@ class Excalibur():
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
 
+        # Call the setup_bft.sh script for Blue Force Tracker installation and config.
+        _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+
         self.setup_aws_instance_info()
 
         # Setup the transducer heartbeat Listener and Start it
@@ -450,6 +446,10 @@ class Excalibur():
         _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
 
+        # Start the Blue Force Tracker
+        _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd8)
+
     def setup_aws_instance_info(self):
         aws_instance_info = {}
         aws_instance_info['image_id'] = 'ami-aa2ea6d0'
@@ -475,13 +475,187 @@ class Excalibur():
         return aws_instance_info
 
 
-class Aggregator():
+class Aggregator:
 
     def __init__(self, stack_name, ssh_key):
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
         self.ip_address = AGGREGATOR_HOSTNAME
+
+    def setup_keys(self, github_key, user_key):
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
+                    format(self.ssh_key, github_key, self.ip_address)).run()
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
+                    format(self.ssh_key, user_key, self.ip_address)).run()
+
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Now add the github public key to avoid host key verification prompt
+        result2 = run_ssh_cmd(
+            self.ip_address, self.ssh_key,
+            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
+
+        return result
+
+    def checkout_repo(self, repo, branch='master'):
+        # Cleanup any left over repos
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
+
+        if branch == 'master':
+            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+
+        else:
+            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+                repo, branch)
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
+
+    def setup(self, branch, github_key, user_key):
+
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
+
+        # Transfer the private key to the server to enable
+        # it to access github without being prompted for credentials
+        self.setup_keys(github_key, user_key)
+
+        logger.info(
+            'Now checking out relevant excalibur repos for {} branch'.format(
+                branch))
+        # Check out galahad-config repo required for the certs
+        self.checkout_repo('galahad-config')
+
+        _cmd1 = "cd('docker-virtue/elastic').and_().bash('./elastic_setup.sh')"
+
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+
+class EFS:
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.efs_id = self.get_efs_id()
+
+    def get_efs_id(self):
+        cloudformation = boto3.resource('cloudformation')
+        EFSStack = cloudformation.Stack(self.stack_name)
+
+        for output in EFSStack.outputs:
+            if output['OutputKey'] == 'FileSystemID':
+                efs_id = output['OutputValue']
+
+        efs_id = '{}.efs.us-east-1.amazonaws.com'.format(efs_id)
+        logger.info('EFS File System ID is {}'.format(efs_id))
+
+        return efs_id
+
+    def setup_valor_router(self):
+        # SCP over the setup file to the instance
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
+                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
+
+        # Execute the setup file on the instance
+        _cmd = "bash('./setup_valor_router.sh')"
+        run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
+
+    def setup_valor_keys(self):
+        # Generate private/public keypair for valor nodes to be able to access each other.
+        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f valor-key')".format(GALAHAD_KEY_DIR_NAME)
+        run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
+
+    def setup_xen_pvm_builder(self):
+
+        # Ensure that cloud init has finished
+        check_cloud_init_finished(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key)
+
+        # scp workaround payload to node
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/sources.list ubuntu@{}:~/.').
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+            s.scp(
+                ('-o StrictHostKeyChecking=no -i {} '
+                 'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').
+                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+
+        # Apply workarounds and setup the xen pvm builder server
+        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
+
+    def setup_ubuntu_img(self, image_name):
+        # Create the base ubuntu image
+        ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
+
+    def stop_xen_pvm_builder(self):
+        # TODO Call this method to stop the xenpvmbuilder instance
+        # TODO Another method will need to be added to start the instance
+        # TODO for calls to build a ubuntu + unity image.
+
+        client = boto3.client('ec2')
+
+        server = client.describe_instances(
+            Filters=[{
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': ['XenPVMBuilder']
+            }, {
+                'Name': 'tag:aws:cloudformation:stack-name',
+                'Values': [self.stack_name + '-VPC']
+            }])
+
+        instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
+
+        client.stop_instances(InstanceIds=[instance_id])
+
+    def setup_unity_img(self, constructor_ip, image_name):
+
+        pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
+                                 stdout=subprocess.PIPE).stdout
+
+        pub_key_cmd = '''bash('-c "echo {0} > /tmp/{1}_unity_key.pub"')'''.format(
+            pub_key.decode().strip(), image_name.split('.')[0])
+        run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
+
+        # Construct Unity
+        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
+                                 ' -b /mnt/efs/images/base_ubuntu/{0}'
+                                 ' -p /tmp/{1}_unity_key.pub'
+                                 ' -o /mnt/efs/images/unities/{0}'
+                                 ' -w /mnt/efs/{1}_tmp'))'''.format(
+            image_name,
+            image_name.split('.')[0])
+        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
+
+
+class Canvas():
+
+    def __init__(self, stack_name, ssh_key):
+
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.ip_address = CANVAS_HOSTNAME
 
     def setup_keys(self, github_key, user_key):
 
@@ -530,200 +704,176 @@ class Aggregator():
         self.setup_keys(github_key, user_key)
 
         logger.info(
-            'Now checking out relevant excalibur repos for {} branch'.format(
+            'Now checking out relevant galahad repos for {} branch'.format(
                 branch))
         # Check out galahad-config repo required for the certs
-        self.checkout_repo('galahad-config')
+        self.checkout_repo('galahad', branch)
 
-        _cmd1 = "cd('docker-virtue/elastic').and_().bash('./elastic_setup.sh')"
+        _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_canvas.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
-class EFS():
+
+class StandbyPools:
 
     def __init__(self, stack_name, ssh_key):
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.efs_id = self.get_efs_id()
+        self.server_ip = EXCALIBUR_HOSTNAME
+
+    def initialize_valor_standby_pool(self):
+
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --valors')"
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+    def initialize_role_image_file_standby_pool(self, unity_image_size):
+
+        _cmd = "cd('galahad/deploy/setup').and_().python(" \
+               "'create_standby_pools.py --role_image_files " \
+               "--unity_image_size {}')".format(unity_image_size)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-    def get_efs_id(self):
-        cloudformation = boto3.resource('cloudformation')
-        EFSStack = cloudformation.Stack(self.stack_name)
+class AutomatedVirtueMigration:
 
-        for output in EFSStack.outputs:
-            if output['OutputKey'] == 'FileSystemID':
-                efs_id = output['OutputValue']
+    def __init__(self, stack_name, ssh_key):
+        self.stack_name = stack_name
+        self.ssh_key = ssh_key
+        self.server_ip = EXCALIBUR_HOSTNAME
 
-        efs_id = '{}.efs.us-east-1.amazonaws.com'.format(efs_id)
-        logger.info('EFS File System ID is {}'.format(efs_id))
-
-        return efs_id
-
-
-    def setup_valor_router(self):
-        # SCP over the setup file to the instance
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
-
-        # Execute the setup file on the instance
-        _cmd = "bash('./setup_valor_router.sh')"
-        run_ssh_cmd(VALOR_ROUTER_HOSTNAME, self.ssh_key, _cmd)
+    def activate_automated_virtue_migration(self, migration_interval):
+        username = "slapd@virtue.gov"
+        password = "Test123!"
+        _cmd = "cd('galahad/deploy/setup').and_().bash('./automated_virtue_migration.sh " \
+               "{0} {1} {2}')".format(username, password, migration_interval)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-    def setup_valor_keys(self):
-        # Generate private/public keypair for valor nodes to be able to access each other.
-        _cmd = "cd('/mnt/efs/{}').and_().ssh__keygen('-P \"\" -f valor-key')".format(GALAHAD_KEY_DIR_NAME)
-        run_ssh_cmd(EXCALIBUR_HOSTNAME, self.ssh_key, _cmd)
+def create_and_setup_image_unity_files(stack_name, path_to_key, image_size):
+    efs = EFS(stack_name, path_to_key)
+
+    # Create a base ubuntu image
+    start_ubuntu_img_time = time.time()
+    efs.setup_ubuntu_img(image_size)
+    logger.info(
+        '\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size,
+            (time.time() - start_ubuntu_img_time) / 60))
+
+    # Build a unity from the base ubuntu image
+    start_unity_time = time.time()
+    efs.setup_unity_img(EXCALIBUR_HOSTNAME, image_size + '.img')
+    logger.info(
+        '\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size,
+            (time.time() - start_unity_time) / 60))
+
+    # Create Standby Pool of role image files
+    standby_pools = StandbyPools(stack_name, path_to_key)
+    start_standby_role_pools_time = time.time()
+    standby_pools.initialize_role_image_file_standby_pool(image_size)
+    logger.info(
+        '\n*** Time taken for Standby Pool for image {0} is [{1}] ***\n'.format(
+            image_size, (time.time() - start_standby_role_pools_time) / 60))
+
+    logger.info(
+        '\n*** Total Time taken for image {0} is [{1}] ***\n'.format(
+            image_size, (time.time() - start_ubuntu_img_time) / 60))
 
 
-    def setup_xen_pvm_builder(self):
+def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key,
+          aws_config, aws_keys, branch, image_size, user_key,
+          deactivate_virtue_migration, auto_migration_interval):
 
-        # Ensure that cloud init has finished
-        check_cloud_init_finished(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key)
-
-        # scp workaround payload to node
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/sources.list ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-            s.scp(
-                ('-o StrictHostKeyChecking=no -i {} '
-                 'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
-
-        # Apply workarounds and setup the xen pvm builder server
-        ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
-        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
-
-
-    def setup_ubuntu_img(self, image_name):
-        # Create the base ubuntu image
-        ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
-        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
-
-    def stop_xen_pvm_builder(self):
-        # TODO Call this method to stop the xenpvmbuilder instance
-        # TODO Another method will need to be added to start the instance
-        # TODO for calls to build a ubuntu + unity image.
-
-        client = boto3.client('ec2')
-
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['XenPVMBuilder']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name + '-VPC']
-            }])
-
-        instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
-
-        client.stop_instances(InstanceIds=[instance_id])
-
-    def setup_unity_img(self, constructor_ip, image_name):
-
-        pub_key = subprocess.run(['ssh-keygen', '-y', '-f', self.ssh_key],
-                                 stdout=subprocess.PIPE).stdout
-
-        pub_key_cmd = '''bash('-c "echo {0} > /tmp/{1}_unity_key.pub"')'''.format(
-            pub_key.decode().strip(), image_name.split('.')[0])
-        run_ssh_cmd(constructor_ip, self.ssh_key, pub_key_cmd)
-
-        # Construct Unity
-        construct_cmd = '''sudo(('python galahad/excalibur/call_constructor.py'
-                                 ' -b /mnt/efs/images/base_ubuntu/{0}'
-                                 ' -p /tmp/{1}_unity_key.pub'
-                                 ' -o /mnt/efs/images/unities/{0}'
-                                 ' -w /mnt/efs/{1}_tmp'))'''.format(image_name, image_name.split('.')[0])
-        run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
-
-
-def setup(path_to_key, stack_name, stack_suffix, import_stack_name, github_key, aws_config,
-          aws_keys, branch, image_size, user_key):
     start_stack_time = time.time()
 
     stack = Stack()
     stack.setup_stack(STACK_TEMPLATE, stack_name, stack_suffix, import_stack_name)
-
-    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+    logger.info('\n*** Time taken for Stack Creation is [{}] ***\n'.format(
+        (time.time() - start_stack_time) / 60))
 
     start_setup_time = time.time()
 
-    efs = EFS(stack_name, path_to_key)
-
     start_xen_pvm_time = time.time()
-
+    efs = EFS(stack_name, path_to_key)
     efs.setup_xen_pvm_builder()
+    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
+        (time.time() - start_xen_pvm_time) / 60))
 
-    logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format((time.time() - start_xen_pvm_time) / 60))
-
-    start_ubuntu_img_time = time.time()
-
-    setup_ubuntu_img_thread = threading.Thread(target=efs.setup_ubuntu_img,
-                                               args=(image_size,))
-    setup_ubuntu_img_thread.start()
+    # Start Creation of base ubuntu, Unity and Standby role image files
+    create_img_file_threads = []
+    for image in image_size:
+        create_img_file_start_time = time.time()
+        create_img_file_thread = threading.Thread(
+            target=create_and_setup_image_unity_files,
+            args=(stack_name, path_to_key, image,))
+        create_img_file_thread.start()
+        create_img_file_threads.append(
+            {"image_size": image, "start_time": create_img_file_start_time,
+                "thread": create_img_file_thread})
 
     start_aggregator_time = time.time()
-
     aggregator = Aggregator(stack_name, path_to_key)
     aggregator_thread = threading.Thread(target=aggregator.setup,
                                          args=(branch, github_key, user_key,))
     aggregator_thread.start()
 
     start_excalibur_time = time.time()
-
     excalibur = Excalibur(stack_name, path_to_key)
     excalibur.setup(branch, github_key, aws_config, aws_keys, user_key)
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
 
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format((time.time() - start_excalibur_time) / 60))
+    canvas = Canvas(stack_name, path_to_key)
+    canvas_thread = threading.Thread(target=canvas.setup,
+                                     args=(branch, github_key, user_key,))
+    canvas_thread.start()
 
     start_rethinkdb_time = time.time()
-
     rethinkdb = RethinkDB(stack_name, path_to_key)
     rethinkdb.setup(branch, github_key, user_key)
-
-    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format((time.time() - start_rethinkdb_time) / 60))
+    logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
+        (time.time() - start_rethinkdb_time) / 60))
 
     aggregator_thread.join()
-    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format((time.time() -
-                                                                              start_aggregator_time) / 60))
-
-    setup_ubuntu_img_thread.join()
-
-    logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                         start_ubuntu_img_time) / 60))
-
-    start_unity_time = time.time()
-
-    setup_unity_thread = threading.Thread(target=efs.setup_unity_img,
-                                          args=(excalibur.server_ip, image_size + '.img',))
-    setup_unity_thread.start()
+    logger.info('\n*** Time taken for aggregator setup is [{}] ***\n'.format(
+        (time.time() - start_aggregator_time) / 60))
 
     efs.setup_valor_keys()
     efs.setup_valor_router()
 
-    setup_unity_thread.join()
+    standby_pools = StandbyPools(stack_name, path_to_key)
+    start_standby_valor_pools_time = time.time()
+    standby_valor_pools_thread = threading.Thread(
+        target=standby_pools.initialize_valor_standby_pool)
+    standby_valor_pools_thread.start()
 
-    logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size, (time.time() -
-                                                                                    start_unity_time) / 60))
+    standby_valor_pools_thread.join()
+    logger.info(
+        '\n*** Time taken for Standby Pools of Valor is [{0}] ***\n'.format(
+            (time.time() - start_standby_valor_pools_time) / 60))
 
-    logger.info('\n*** Time taken for Setup is [{}] ***\n'.format((time.time() - start_setup_time) / 60))
+    # Wait for creation of base ubuntu, unity and standby role image files
+    threads_pending = True
+    while threads_pending:
+        threads_pending = False
+        for thread in create_img_file_threads:
+            threads_pending = True
+            if not thread["thread"].is_alive():
+                create_img_file_threads.remove(thread)
+            else:
+                time.sleep(10)
+
+    if not deactivate_virtue_migration:
+        migration = AutomatedVirtueMigration(stack_name, path_to_key)
+        migration.activate_automated_virtue_migration(auto_migration_interval)
+
+    logger.info('\n*** Time taken for Setup is [{}] ***\n'.format(
+        (time.time() - start_setup_time) / 60))
 
     logger.info(
-        '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format((time.time() - start_stack_time) / 60))
+        '*** Total Time taken for Galahad Deployment is [{}] ***\n'.format(
+            (time.time() - start_stack_time) / 60))
 
 
 def parse_args():
@@ -796,13 +946,22 @@ def parse_args():
         help="delete the specified stack")
     parser.add_argument(
         "--image_size",
-        default="4GB",
-        choices=["4GB", "8GB", "16GB"],
+        nargs="+",
+        default=["8GB", "16GB", "32GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
         action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
+    parser.add_argument("-d",
+        "--deactivate_virtue_migration",
+        action="store_true",
+        help="Deactivate automated migration of Virtues")
+    parser.add_argument(
+        "--auto_migration_interval",
+        default=300,
+        type=int,
+        help="Specify the interval at which Virtues are automatically migrated")
 
     # Temporary:
     parser.add_argument(
@@ -838,11 +997,14 @@ def main():
     if args.setup:
         setup(args.path_to_key, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size, args.default_user_key)
+              args.aws_keys, args.branch_name, args.image_size,
+              args.default_user_key, args.deactivate_virtue_migration,
+              args.auto_migration_interval)
 
     if args.setup_stack:
         stack = Stack()
-        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix, args.import_stack)
+        stack.setup_stack(STACK_TEMPLATE, args.stack_name, args.stack_suffix,
+                          args.import_stack)
 
     if args.list_stacks:
         Stack().list_stacks()
@@ -851,21 +1013,29 @@ def main():
         Stack().delete_stack(args.stack_name)
 
     if args.build_image_only:
-        # Build a base ubuntu and unity image only - Assume that the stack is already deployed.
-        efs = EFS(args.stack_name, args.path_to_key)
+        create_img_file_threads = []
+        for image in args.image_size:
+            create_img_file_start_time = time.time()
+            create_img_file_thread = threading.Thread(
+                target=create_and_setup_image_unity_files,
+                args=(args.stack_name, args.path_to_key, image,))
+            create_img_file_thread.start()
+            create_img_file_threads.append(
+                {
+                    "image_size": image,
+                    "start_time": create_img_file_start_time,
+                    "thread": create_img_file_thread
+                })
 
-        start_ubuntu_img_time = time.time()
-
-        efs.setup_ubuntu_img(args.image_size)
-
-        logger.info('\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(args.image_size,
-                                                                                (time.time()-start_ubuntu_img_time)/60))
-        start_unity_time = time.time()
-
-        efs.setup_unity_img(EXCALIBUR_HOSTNAME, args.image_size + '.img')
-
-        logger.info('\n*** Time taken for {0} unity is [{1}] ***\n'.format(args.image_size,
-                                                                           (time.time()-start_unity_time)/60))
+        threads_pending = True
+        while threads_pending:
+            threads_pending = False
+            for thread in create_img_file_threads:
+                threads_pending = True
+                if not thread["thread"].is_alive():
+                    create_img_file_threads.remove(thread)
+                else:
+                    time.sleep(10)
 
 
 if __name__ == '__main__':

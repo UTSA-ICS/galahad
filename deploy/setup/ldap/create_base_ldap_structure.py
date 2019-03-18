@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
+import json
 import os
 import sys
-import shutil
+
 import ldap
 import ldap.modlist
 
@@ -10,8 +11,11 @@ file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(
     os.path.dirname(file_path)) + '/../../excalibur'
 sys.path.insert(0, base_excalibur_dir)
+
 from website.ldaplookup import LDAP
 from website.ldap_tools import to_ldap
+from website.create_ldap_users import update_ldap_users_from_ad
+
 
 LDAP_VIRTUE_DN = "ou=virtue,dc=canvas,dc=virtue,dc=com"
 
@@ -49,14 +53,17 @@ def add_application(
     name,
     version,
     os,
-    port=''):
+    port=None):
 
     app = {
+        'id': id,
         'name': name,
         'version': version,
-        'os': os,
-        'id': id,
-        'port': str(port)}
+        'os': os
+    }
+
+    if (port != None):
+        app['port'] = int(port)
 
     ldap_app = to_ldap(app, 'OpenLDAPapplication')
 
@@ -72,17 +79,27 @@ def add_resource(id, type, unc, credentials):
     inst.add_obj(ldap_res, 'resources', 'cid', throw_error=True)
 
 
-def add_role(id, name, version, appIds, resIds, transIds, state='CREATED'):
+def add_role(id, name, version, appIds, resIds, transIds, networkRules, state='CREATED'):
 
     role = {
         'id': id,
         'name': name,
         'version': version,
-        'applicationIds': str(appIds),
-        'startingResourceIds': str(resIds),
-        'startingTransducerIds': str(transIds),
+        'applicationIds': appIds,
+        'startingResourceIds': resIds,
+        'startingTransducerIds': transIds,
+        'networkRules': networkRules,
         'state': state
     }
+
+    if (type(appIds) == str):
+        role['applicationIds'] = json.loads(appIds)
+
+    if (type(resIds) == str):
+        role['startingResourceIds'] = json.loads(resIds)
+
+    if (type(transIds) == str):
+        role['startingTransducerIds'] = json.loads(transIds)
 
     ldap_role = to_ldap(role, 'OpenLDAProle')
 
@@ -96,55 +113,20 @@ def add_transducer(id_, name, type_, startEnabled, startingConfiguration,
         'id': id_,
         'name': name,
         'type': type_,
-        'startEnabled': str(startEnabled),
-        'startingConfiguration': str(startingConfiguration),
-        'requiredAccess': str(requiredAccess)
+        'startEnabled': startEnabled,
+        'startingConfiguration': startingConfiguration,
+        'requiredAccess': requiredAccess
     }
+
+    if (type(startingConfiguration) == str):
+        transducer['startingConfiguration'] = json.loads(startingConfiguration)
+
+    if (type(requiredAccess) == str):
+        transducer['requiredAccess'] = json.loads(requiredAccess)
 
     ldap_transducer = to_ldap(transducer, 'OpenLDAPtransducer')
 
     inst.add_obj(ldap_transducer, 'transducers', 'cid', throw_error=True)
-
-
-def add_user(username, authRoleIds):
-
-    user = {'username': username, 'authorizedRoleIds': str(authRoleIds)}
-
-    ldap_user = to_ldap(user, 'OpenLDAPuser')
-
-    inst.add_obj(ldap_user, 'users', 'cusername', throw_error=True)
-
-    if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
-        os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
-
-    # Temporary code:
-    shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
-                '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], username))
-
-    # Future code will look like this:
-    '''subprocess.run(
-        ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(username),
-         '-C', '"For Virtue user {0}"'.format(username), '-N', '""'],
-        check=True
-    )'''
-
-
-def add_virtue(id, username, roleid, appIds, resIds, transIds, state, ipAddr):
-
-    virtue = {
-        'id': id,
-        'username': username,
-        'roleId': roleid,
-        'applicationIds': str(appIds),
-        'resourceIds': str(resIds),
-        'transducerIds': str(transIds),
-        'state': state,
-        'ipAddress': ipAddr
-    }
-
-    ldap_virtue = to_ldap(virtue, 'OpenLDAPvirtue')
-
-    inst.add_obj(ldap_virtue, 'virtues', 'cid', throw_error=True)
 
 
 if (__name__ == '__main__'):
@@ -183,19 +165,22 @@ if (__name__ == '__main__'):
     add_application('firefox', 'Firefox', '1.0', 'LINUX', port=6768)
     add_application('terminal', 'XTerm', '1.0', 'LINUX', port=6766)
     add_application('thunderbird', 'Thunderbird', '1.0', 'LINUX', port=6765)
+    add_application('gedit', 'Editor', '1.0', 'LINUX', port=6767)
+    add_application('chrome', 'Chrome', '1.0', 'LINUX', port=6764)
+    add_application('powershell', 'PowerShell', '1.0', 'LINUX', port=6761)
+    add_application('wincmd', 'Windows Command Line', '1.0', 'WINDOWS', port=6762)
+    add_application('skype', 'Skype', '1.0', 'LINUX', port=6763)
+    add_application('office-word', 'Microsoft Office Word', '1.0', 'WINDOWS', port=6769)
+    add_application('office-outlook', 'Microsoft Office Outlook', '1.0', 'WINDOWS', port=6771)
+    add_application('putty', 'PuTTY', '1.0', 'WINDOWS', port=6770)
 
     add_resource('fileshare1', 'DRIVE', '//ad.galahad.com/VirtueFileShare',
                  'token')
 
-    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]')
+    add_role('emptyrole', 'EmptyRole', '1.0', '[]', '[]', '[]', '[]')
 
-    add_user('jmitchell', '[]')
-    add_user('fpatwa', '[]')
-    add_user('klittle', '[]')
-
-    add_person('jmitchell', 'Mitchell', 'Test123!')
-    add_person('klittle', 'Little', 'Test123!')
-    add_person('jmartin', 'Martin', 'Test123!')
+    # Update the ldap user list with users from Active Directory
+    update_ldap_users_from_ad()
 
     add_transducer('path_mkdir', 'Directory Creation', 'SENSOR', True, '{}',
                    [])
@@ -216,5 +201,7 @@ if (__name__ == '__main__'):
                    [])
     add_transducer('open_fd', 'File Open', 'SENSOR', True, '{}', [])
 
-    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, '{processes:[]}', [])
+    add_transducer('kill_proc', 'Kill Process', 'ACTUATOR', False, {'processes': []}, [])
     add_transducer('block_net', 'Block Network', 'ACTUATOR', False, '{}', [])
+    add_transducer('migration', 'Migration', 'ACTUATOR', False, '{}', [])
+    add_transducer('introspection', 'Introspection', 'ACTUATOR', False, '{}', [])

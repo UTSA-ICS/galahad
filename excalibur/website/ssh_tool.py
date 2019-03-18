@@ -8,36 +8,26 @@ class ssh_tool():
         self.ip = ip_address
         self.sshkey = sshkey
 
-    def ssh(self, command, test=True, option=None, output=False):
+    def ssh(self, command, test=True, option=None, output=False, silent=False):
 
         if (self.sshkey == None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]
 
-        if option == None:
-            call_list = ['ssh'] + keyls + [
-                '-o', 'StrictHostKeyChecking=no',
-                self.rem_username + '@' + self.ip, command
-            ]
-        else:
-            call_list = ['ssh'] + keyls + [
-                '-o', 'StrictHostKeyChecking=no',
-                '-o', option,
-                self.rem_username + '@' + self.ip, command
-            ]
+        call_list = ['ssh'] + keyls + ['-o', 'StrictHostKeyChecking=no',
+                                       '-o', 'BatchMode=yes']
 
-        print
-        print
-        print
-        "{0}  {1}".format(self.ip, command)
-        print
-        ' '.join(call_list)
-        print
+        if option:
+            call_list.extend(['-o', option])
+
+        call_list.extend([self.rem_username + '@' + self.ip, command])
+
+        print('ssh_tool: ' + ' '.join(call_list))
 
         stdout = ''
         ret = -1
-        if output:
+        if (output or silent):
             try:
                 stdout = subprocess.check_output(call_list, stderr=subprocess.STDOUT)
                 ret = 0
@@ -68,17 +58,13 @@ class ssh_tool():
             keyls = ['-i', self.sshkey]
 
         call_list = ['scp', '-r'] + keyls + [
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'BatchMode=yes',
             file_path_local,
             self.rem_username + '@' + self.ip + ':' + file_path_remote
         ]
 
-        print
-        print
-        print
-        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
-        print
-        ' '.join(call_list)
-        print
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 
@@ -90,31 +76,30 @@ class ssh_tool():
 
     def check_access(self):
         # Check if the machine is accessible:
-        for i in range(10):
+        for i in range(60):
             out = self.ssh('uname -a', test=False)
-            if out == 255:
-                time.sleep(30)
-            else:
+            if out == 0:
                 print('Successfully connected to {}'.format(self.ip))
                 return True
+            else:
+                time.sleep(5)
         return False
-      
+
     def scp_from(self, file_path_local, file_path_remote='', test=True):
-      
+
         if (self.sshkey == None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]
 
         call_list = ['scp', '-r'] + keyls + [
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'BatchMode=yes',
             self.rem_username + '@' + self.ip + ':' + file_path_remote,
             file_path_local
         ]
 
-        print
-        "{0}  {1}  {2}".format(self.ip, file_path_local, file_path_remote)
-        print
-        ' '.join(call_list)
+        print('ssh_tool: ' + ' '.join(call_list))
 
         ret = subprocess.call(call_list)
 

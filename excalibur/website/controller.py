@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -6,80 +8,201 @@ import time
 import traceback
 
 import ldap_tools
-from aws import AWS
-from ldaplookup import LDAP
-
-from valor import ValorManager
+from apiendpoint_security import EndPoint_Security
 from assembler.assembler import Assembler
+from ldaplookup import LDAP
+from valor import ValorManager
 
 # Keep X virtues waiting to be assigned to users. The time
 # overhead of creating them dynamically would be too long.
 BACKUP_VIRTUE_COUNT = 2
+
+NUM_STANDBY_ROLES = 3
+
+NUM_STANDBY_VIRTUES = 2
 
 # Time between AWS polls in seconds
 POLL_TIME = 300
 
 thread_list = []
 
+# PATH of unity and role image files
+UNITY_PATH = '/mnt/efs/images/unities/'
+ROLE_PATH = '/mnt/efs/images/non_provisioned_virtues/'
+VIRTUE_PATH = '/mnt/efs/images/provisioned_virtues/'
 
-class BackgroundThread(threading.Thread):
-    def __init__(self, ldap_user, ldap_password):
-        super(BackgroundThread, self).__init__()
+# AWS Account under which the Docker ECR is being hosted
+AWS_ECR_ACCOUNT_NUMBER = "703915126451"
 
-        self.inst = LDAP(ldap_user, ldap_password)
-        # Going to need to write to LDAP
-        #self.inst.bind_ldap()
+class StandbyVirtues:
 
-        dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
-        self.inst.get_ldap_connection()
-        self.inst.conn.simple_bind_s(dn, 'Test123!')
+    def __init__(self, role_id):
+        self.role_id = role_id
 
-        self.exit_requested = False
+    def create_virtue_image_file(self, virtue_id):
+        virtue_num = self.get_standby_virtue_image_files()
 
-    def run(self):
+        if virtue_num:
+            timeout = 0
+            while not os.path.isfile(VIRTUE_PATH + self.role_id +
+                                     '_STANDBY_VIRTUE_' + str(virtue_num[0]) +
+                                     '.img'):
+                time.sleep(30)
+                timeout = timeout + 1
+                # Check if timing out for standby file to complete copy.
+                # 30 equates to 15 minutes timeout
+                if timeout > 30:
+                    # If timeout then give up on standby file and copy a new one
+                    subprocess.check_call(['sudo', 'rsync', '-W',
+                                           ROLE_PATH + self.role_id + '.img',
+                                           VIRTUE_PATH + virtue_id + '.img'])
+                    self.create_standby_virtues()
+                    return
+            subprocess.check_call(['sudo', 'mv',
+                                   VIRTUE_PATH + self.role_id +
+                                   '_STANDBY_VIRTUE_' + str(
+                                       virtue_num[0]) + '.img',
+                                   VIRTUE_PATH + virtue_id + '.img'])
+        # If there are no standby roles
+        else:
+            subprocess.check_call(['sudo', 'rsync', '-W',
+                                   ROLE_PATH + self.role_id + '.img',
+                                   VIRTUE_PATH + virtue_id + '.img'])
 
-        while (not self.exit_requested):
+        self.create_standby_virtues()
 
-            # List all AWS instances
+    def get_standby_virtue_image_files(self):
+        # All files in the role directory
+        virtue_files = os.listdir(VIRTUE_PATH)
 
-            roles = self.inst.get_objs_of_type('OpenLDAProle')
-            roles = ldap_tools.parse_ldap_list(roles)
+        # Store the role image file count suffix
+        virtue_num = []
 
-            for r in roles:
-                backup_virtue_counts[r['id']] = 0
+        # Check number of standby role image files
+        num_standby_virtue_img_files = sum(
+            self.role_id + '_STANDBY_VIRTUE' in file for file in virtue_files)
 
-            virtues = self.inst.get_objs_of_type('OpenLDAPvirtue')
-            virtues = ldap_tools.parse_ldap_list(virtues)
+        if num_standby_virtue_img_files:
+            # Figure out the count suffix for the standby files.
+            for file in virtue_files:
+                if (self.role_id + '_STANDBY_VIRTUE' in file):
+                    virtue_num.append(int(re.sub(r'^\.??' +
+                                                 self.role_id +
+                                                 '_STANDBY_VIRTUE_' +
+                                                 '|\.??img\.??.*', '',
+                                                 file)))
+            virtue_num.sort()
 
-            aws = AWS()
+        return virtue_num
 
-            for v in virtues:
+    def create_standby_virtues(self):
 
-                if (v['roleId'] in roles_dict and v['username'] == 'NULL'):
-                    roles_dict[v['roleId']] += 1
+        virtue_num = self.get_standby_virtue_image_files()
 
-                v = aws.populate_virtue_dict(v)
-                if (v['state'] == 'NULL' and v['awsInstanceId'] != 'NULL'):
-                    # Delete the LDAP entry
-                    print('Virtue was not found on AWS: {0}.'.format(
-                        v['awsInstanceId']))
-                    #self.inst.del_obj( 'cid', v['id'], objectClass='OpenLDAPvirtue' )
+        if virtue_num:
+            virtue_count = virtue_num[len(virtue_num) - 1] + 1
+        else:
+            virtue_count = 1
 
-            for t in thread_list:
-                if (not t.is_alive()):
-                    del t
-                    continue
+        # Create Standby role image files so they do not have to be created
+        # when a role create is called
+        if len(virtue_num) <= NUM_STANDBY_VIRTUES:
+            # Create the standby roles
+            for i in range(NUM_STANDBY_VIRTUES - len(virtue_num)):
+                standby_virtues_thread = threading.Thread(
+                    target=self.create_standby_virtue_image_files,
+                    args=(virtue_count, i,))
+                standby_virtues_thread.start()
 
-                if (t.role_id in backup_virtue_counts):
-                    backup_virtue_counts[t.role_id] += 1
+        return virtue_count
 
-            for r in roles:
-                if (roles_dict[r['id']] < BACKUP_VIRTUE_COUNT):
-                    thr = CreateVirtueThread(
-                        self.inst.email, self.inst.password, r['id'], role=r)
-                    thr.start()
+    def create_standby_virtue_image_files(self, virtue_count, index):
+        print(VIRTUE_PATH + self.role_id + '_STANDBY_VIRTUE_' + str(
+            virtue_count + index))
+        subprocess.check_call(['sudo', 'rsync', '-W',
+                               ROLE_PATH + self.role_id + '.img',
+                               VIRTUE_PATH + self.role_id +
+                               '_STANDBY_VIRTUE_' + str(
+                                   virtue_count + index) + '.img'])
 
-            time.sleep(POLL_TIME)
+
+class StandbyRoles:
+
+    def __init__(self, base_img_name, role):
+        self.base_img_name = base_img_name
+        self.role = role
+
+    def create_role_image_file(self):
+        role_num = self.get_standby_role_image_files()
+
+        if role_num and os.path.isfile(ROLE_PATH + self.base_img_name +
+                                       '_STANDBY_ROLE_' + str(role_num[0]) +
+                                       '.img'):
+            subprocess.check_call(['sudo', 'mv',
+                                   ROLE_PATH + self.base_img_name +
+                                   '_STANDBY_ROLE_' + str(
+                                       role_num[0]) + '.img',
+                                   ROLE_PATH + self.role['id'] + '.img'])
+        # If there are no standby roles
+        else:
+            subprocess.check_call(['sudo', 'rsync', '-W',
+                                   UNITY_PATH + self.base_img_name + '.img',
+                                   ROLE_PATH + self.role['id'] + '.img'])
+
+        self.create_standby_roles()
+
+    def get_standby_role_image_files(self):
+        # All files in the role directory
+        role_files = os.listdir(ROLE_PATH)
+
+        # Store the role image file count suffix
+        role_num = []
+
+        # Check number of standby role image files
+        num_standby_role_img_files = sum(
+            self.base_img_name + '_STANDBY_ROLE' in file for file in role_files)
+
+        if num_standby_role_img_files:
+            # Figure out the count suffix for the standby files.
+            for file in role_files:
+                if (self.base_img_name + '_STANDBY_ROLE' in file):
+                    role_num.append(int(re.sub(r'^\.??' +
+                                               self.base_img_name +
+                                               '_STANDBY_ROLE_' +
+                                               '|\.??img\.??.*', '',
+                                               file)))
+            role_num.sort()
+
+        return role_num
+
+    def create_standby_roles(self):
+        role_num = self.get_standby_role_image_files()
+
+        if role_num:
+            role_count = role_num[len(role_num) - 1] + 1
+        else:
+            role_count = 1
+
+        # Create Standby role image files so they do not have to be created
+        # when a role create is called
+        if len(role_num) <= NUM_STANDBY_ROLES:
+            # Create the standby roles
+            for i in range(NUM_STANDBY_ROLES - len(role_num)):
+                standby_roles_thread = threading.Thread(
+                    target=self.create_standby_role_image_files,
+                    args=(role_count, i,))
+                standby_roles_thread.start()
+
+        return role_count
+
+    def create_standby_role_image_files(self, role_count, index):
+        print(ROLE_PATH + self.base_img_name + '_STANDBY_ROLE_' + str(
+            role_count + index))
+        subprocess.check_call(['sudo', 'rsync', '-W',
+                               UNITY_PATH + self.base_img_name + '.img',
+                               ROLE_PATH + self.base_img_name +
+                               '_STANDBY_ROLE_' + str(
+                                   role_count + index) + '.img'])
 
 
 class CreateVirtueThread(threading.Thread):
@@ -97,13 +220,14 @@ class CreateVirtueThread(threading.Thread):
 
     def run(self):
 
-        # Local Dir for storing of keys, this will be replaced when key management is implemented
+        # Local Dir for storing of keys, this will be replaced when key
+        # management is implemented
         key_dir = '{0}/galahad-keys'.format(os.environ['HOME'])
 
         thread_list.append(self)
 
         # Going to need to write to LDAP
-        #self.inst.bind_ldap()
+        # self.inst.bind_ldap()
         dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
         self.inst.get_ldap_connection()
         self.inst.conn.simple_bind_s(dn, 'Test123!')
@@ -124,6 +248,7 @@ class CreateVirtueThread(threading.Thread):
             'applicationIds': [],
             'resourceIds': role['startingResourceIds'],
             'transducerIds': role['startingTransducerIds'],
+            'networkRules': role['networkRules'],
             'state': 'CREATING',
             'ipAddress': 'NULL'
         }
@@ -149,16 +274,49 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
+            with open('/tmp/networkRules-' + virtue['id'],'w+') as iprules_file:
+                for rule in role['networkRules']:
+                    iprules_file.write(rule + '\n')
+
+            # Create the virtue standby image files
+            standby_virtues = StandbyVirtues(self.role_id)
+            standby_virtues.create_virtue_image_file(self.virtue_id)
+
             subprocess.check_call(['sudo', 'python',
-                                   os.environ['HOME'] + '/galahad/excalibur/' + \
+                                   os.environ['HOME'] + '/galahad/excalibur/'
+                                   + \
                                    'call_provisioner.py',
+                                   '-u', self.username,
                                    '-i', virtue['id'],
-                                   '-b', '/mnt/efs/images/non_provisioned_virtues/' +
+                                   '-n', '/tmp/networkRules-' + virtue['id'],
+                                   '-b',
+                                   '/mnt/efs/images/non_provisioned_virtues/' +
                                    role['id'] + '.img',
                                    '-o', '/mnt/efs/' + virtue_path,
                                    '-v', virtue_key,
                                    '-e', excalibur_key,
                                    '-r', rdb_cert])
+
+            # Enable/disable sensors as specified by the role
+            transducers = {}
+            for tid in role['startingTransducerIds']:
+                transducer = self.inst.get_obj('cid', tid, 'OpenLDAPtransducer',
+                                               True)
+                if (transducer == ()):
+                    continue
+                ldap_tools.parse_ldap(transducer)
+                transducers[tid] = transducer
+
+            eps = EndPoint_Security(self.inst.email, self.inst.password)
+            all_transducers = json.loads(eps.transducer_list())
+            for transducer in all_transducers:
+                if transducer['id'] in transducers:
+                    config = transducer['startingConfiguration']
+                    ret = eps.transducer_enable(transducer['id'],
+                                                self.virtue_id, config)
+                else:
+                    ret = eps.transducer_disable(transducer['id'],
+                                                 self.virtue_id)
 
             virtue['state'] = 'STOPPED'
             ldap_virtue = ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue')
@@ -173,24 +331,25 @@ class CreateVirtueThread(threading.Thread):
             os.remove('{0}/{1}.pem.pub'.format(key_dir, virtue['id']))
             os.remove('/mnt/efs/' + virtue_path)
 
+
 class AssembleRoleThread(threading.Thread):
 
     def __init__(self, ldap_user, ldap_password, role,
-                 base_img_path,
+                 base_img_name,
                  use_ssh=True):
         super(AssembleRoleThread, self).__init__()
 
         self.inst = LDAP(ldap_user, ldap_password)
 
         # Going to need to write to LDAP
-        #self.inst.bind_ldap()
+        # self.inst.bind_ldap()
         dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
         self.inst.get_ldap_connection()
         self.inst.conn.simple_bind_s(dn, 'Test123!')
 
         self.role = role
 
-        self.base_img_path = base_img_path
+        self.base_img_name = base_img_name
         self.use_ssh = use_ssh
 
     def run(self):
@@ -202,30 +361,36 @@ class AssembleRoleThread(threading.Thread):
 
         assert ret == 0
 
-        virtue_path = 'images/non_provisioned_virtues/' + self.role['id'] + '.img'
+        virtue_path = 'images/non_provisioned_virtues/' + self.role[
+            'id'] + '.img'
         key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
 
         valor_manager = ValorManager()
 
         try:
-            subprocess.check_call(['sudo', 'rsync',
-                                   '/mnt/efs/' + self.base_img_path,
-                                   '/mnt/efs/' + virtue_path])
+
+            # Create the role standby image files
+            standby_roles = StandbyRoles(self.base_img_name, self.role)
+            standby_roles.create_role_image_file()
 
             if (self.use_ssh):
                 # Launch by adding a 'virtue' to RethinkDB
                 valor = valor_manager.get_empty_valor()
-                virtue_ip = valor_manager.rethinkdb_manager.add_virtue(
+                virtue_ip = valor_manager.add_virtue(
                     valor['address'],
-                    valor['id'],
+                    valor['valor_id'],
                     self.role['id'],
-                    virtue_path)
+                    virtue_path,
+                    True)  # send role_create=True)
 
                 time.sleep(5)
 
                 # Get Docker login command
+                # Use the AWS Account ID of the Account which has the docker registry,
+                # currently this is in the StarLab account.
                 docker_cmd = subprocess.check_output(shlex.split(
-                    'aws ecr get-login --no-include-email --region us-east-2'))
+                    'aws ecr get-login --registry-ids {} --no-include-email '
+                    '--region us-east-2'.format(AWS_ECR_ACCOUNT_NUMBER)))
 
                 print('docker_cmd: ' + docker_cmd)
 
@@ -237,6 +402,10 @@ class AssembleRoleThread(threading.Thread):
                                               docker_cmd,
                                               key_path,
                                               virtue_ip)
+
+            # Create the virtue standby image files
+            standby_virtues = StandbyVirtues(self.role['id'])
+            standby_virtues.create_standby_virtues()
 
             self.role['state'] = 'CREATED'
             ldap_role = ldap_tools.to_ldap(self.role, 'OpenLDAProle')

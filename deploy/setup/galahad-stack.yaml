@@ -162,6 +162,9 @@ Resources:
   VirtUEValorEFS:
     Type: 'AWS::EFS::FileSystem'
     Properties:
+      #ProvisionedThroughputInMibps: 1024
+      #ThroughputMode: provisioned
+      ThroughputMode: bursting
       FileSystemTags:
         - Key: Project
           Value: Virtue
@@ -184,8 +187,8 @@ Resources:
   ExcaliburServer:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.xlarge
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
@@ -231,8 +234,8 @@ Resources:
   CanvasInstance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0abd33cde76960d90
-      InstanceType: t2.small
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
@@ -243,6 +246,60 @@ Resources:
           PrivateIpAddress: 172.30.1.50
           SubnetId:
             "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          # Install Packages required for AWS EFS mount helper
+          apt-get update
+          apt-get -y install binutils
+
+          # Install the AWS EFS mount helper
+          git clone https://github.com/aws/efs-utils
+          cd efs-utils/
+          ./build-deb.sh
+          apt-get -y install ./build/amazon-efs-utils*deb
+
+          # Create the base mount directory
+          mkdir -p /mnt/efs
+
+          # Mount the EFS file system
+          echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
+          mount -a
+
+          # Install the desktop
+          apt-get install -y --no-install-recommends ubuntu-desktop gnome-panel gnome-settings-daemon metacity gnome-terminal
+          apt-get install -y nautilus
+
+          # Install needed library for nwjs
+          apt-get install -y npm libxss1
+
+          # Install nss library for certtificate management
+          apt-get install -y libnss3-tools
+
+          # Packages for pip3 and firefox
+          apt-get install -y firefox python3-pip
+
+          # Python module for CLI
+          pip3 install prompt_toolkit
+
+          # Python modules for updating Unity Image
+          pip3 install sultan==0.8.1 boto3
+
+          # Install VNC server
+          apt-get install -y vnc4server
+
+          # Add DNS for canvas.com for canvas to work
+          echo "127.0.0.1 canvas.com" >> /etc/hosts
+
+          # Configure the VNC server
+          su - ubuntu -c "mkdir .vnc"
+          su - ubuntu -c "(echo canvas4U;echo canvas4U) | vncpasswd"
+          su - ubuntu -c "vncserver"
+          su - ubuntu -c "vncserver -kill :1"
+          su - ubuntu -c "echo -e \"\ngnome-panel &\ngnome-settings-daemon &\nmetacity &\nnautilus &\" >> .vnc/xstartup"
+          su - ubuntu -c "vncserver -geometry 1600x1200"
+
       Tags:
         - Key: Project
           Value: Virtue
@@ -252,10 +309,12 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-Canvas'
+    DependsOn:
+      - VirtUEValorEFSTarget
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-001116e564201bcb4
+      ImageId: ami-06768f803661facc2
       InstanceType: t2.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
@@ -276,11 +335,36 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AD'
+  Exchange:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0af5bd73e925f9853
+      InstanceType: t2.large
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            DeleteOnTermination: "true"
+            VolumeSize: 60
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          PrivateIpAddress: 172.30.1.249
+          SubnetId:
+            "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-Exchange'
   RethinkDB:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.medium
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
@@ -305,13 +389,14 @@ Resources:
   GalahadAggregator:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.large
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
           Ebs:
             DeleteOnTermination: "true"
+            VolumeSize: 64
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.46
@@ -368,18 +453,32 @@ Resources:
               - '-Aggregator'
     DependsOn:
       - VirtUEValorEFSTarget
+  ValorRouterENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: "Valor Router Interface"
+      PrivateIpAddress: 172.30.1.53
+      SubnetId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
+      SourceDestCheck: False
+      Tags:
+        - Key: Project
+          Value: Virtue
+        - Key: Name
+          Value: !Join
+            - ''
+            - - VirtUE-
+              - !Ref NameSuffix
+              - '-ValorRouterENI'
   ValorRouter:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.medium
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: '0'
-          PrivateIpAddress: 172.30.1.53
-          SubnetId:
-            "Fn::ImportValue": !Sub "${ImportStackName}--ADMIN-SUBNETID"
-      SourceDestCheck: False
+          NetworkInterfaceId: !Ref ValorRouterENI
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
@@ -405,7 +504,7 @@ Resources:
           apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
 
           # Install pip packages
-          pip install rethinkdb
+          pip install rethinkdb==2.3.0.post6
           pip install boto
       Tags:
         - Key: Project
@@ -417,18 +516,20 @@ Resources:
               - !Ref NameSuffix
               - '-ValorRouter'
     DependsOn:
+      - ValorRouterENI
       - VirtUEValorEFSTarget
       - RethinkDB
   XenPVMBuilder:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-a4dc46db
-      InstanceType: t2.medium
+      ImageId: ami-0f9cf087c1f27d9b1
+      InstanceType: t3.large
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
           Ebs:
             DeleteOnTermination: "true"
+            VolumeSize: 48
       NetworkInterfaces:
         - DeviceIndex: '0'
           PrivateIpAddress: 172.30.1.47
@@ -571,6 +672,41 @@ Resources:
     DependsOn:
         - VirtueHostedZone
         - XenPVMBuilder
+  CanvasInstanceDNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneId: !Ref VirtueHostedZone
+      Name: !Join
+          - ''
+          - - 'canvas.'
+            - 'galahad.'
+            - 'com'
+            - '.'
+      Type: A
+      TTL: '900'
+      ResourceRecords:
+        - !GetAtt CanvasInstance.PrivateIp
+    DependsOn:
+        - VirtueHostedZone
+        - CanvasInstance
+  PublicSubnetVirtueRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - ValorRouterENI
+    Properties:
+      RouteTableId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--PUBLIC-RT"
+      DestinationCidrBlock: "10.91.0.0/16"
+      NetworkInterfaceId: !Ref ValorRouterENI
+  PrivateSubnetVirtueRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - ValorRouterENI
+    Properties:
+      RouteTableId:
+        "Fn::ImportValue": !Sub "${ImportStackName}--PRIVATE-RT"
+      DestinationCidrBlock: "10.91.0.0/16"
+      NetworkInterfaceId: !Ref ValorRouterENI
 Outputs:
   MountTargetID:
     Description: Mount target ID

@@ -1,5 +1,5 @@
 -r ../../excalibur/requirements.txt
-pytest
+pytest==3.10.1
 pytest-html
 pytest-profiling
 pytest-progress

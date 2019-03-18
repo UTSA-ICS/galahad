@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import time
+import json
 
 import pytest
 import rethinkdb
@@ -26,9 +27,14 @@ def setup_module():
 
     global virtue
     global role
+    global session
+    global admin_url
 
     virtue = None
     role = None
+
+    session, admin_url, security_url, user_url = \
+        integration_common.create_session()
 
 
 def get_rethinkdb_connection():
@@ -40,11 +46,10 @@ def get_rethinkdb_connection():
             ssl = {
                 'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
             }).repl()
+        return connection
 
     except Exception as error:
         print(error)
-
-    return connection
 
 
 def is_valor_in_rethinkdb(valor_id):
@@ -104,7 +109,7 @@ def virtue_launch():
     # Create a new role
     role = integration_common.create_new_role('ValorTestMigrateVirtueRole')
 
-    virtue = integration_common.create_new_virtue('jmitchell', role['id'])
+    virtue = integration_common.create_new_virtue('slapd', role['id'])
 
     try:
         rethinkdb_manager = RethinkDbManager()
@@ -135,27 +140,27 @@ def virtue_launch():
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
-        assert xl_list.count('\n') == 3
+        assert virtue['id'] in xl_list
     except:
         # Cleanup the new virtue created
-        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        integration_common.cleanup_virtue('slapd', virtue['id'])
 
         # Cleanup the new role created
-        integration_common.cleanup_role('jmitchell', role['id'])
+        integration_common.cleanup_role('slapd', role['id'])
 
         raise
 
     return (rethinkdb_virtue['virtue_id'], rethinkdb_valor['address'])
 
 
-def is_virtue_running(ip_address):
+def is_virtue_running(ip_address, virtue_id):
 
         xl_list = subprocess.check_output(
             ['ssh', '-i', key_path, 'ubuntu@' + ip_address,
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
-        return xl_list.count('\n') == 3
+        return virtue_id in xl_list
 
 
 def get_valor_ip(valor_id):
@@ -169,8 +174,6 @@ def get_valor_ip(valor_id):
 
     return valor['address']
     
-
-
 
 @pytest.mark.usefixtures('initialize_valor_api')
 class Test_ValorAPI:
@@ -193,8 +196,6 @@ class Test_ValorAPI:
         valor_id = Test_ValorAPI.valor_id
 
         self.valor_api.valor_launch(valor_id)
-
-        time.sleep(120)
 
         assert is_valor_in_rethinkdb(valor_id)
         assert is_valor_pingable(valor_id)
@@ -236,31 +237,44 @@ class Test_ValorAPI:
 
     def test_valor_migrate_virtue(self):
 
+        global virtue
+        global role
+
         virtue_id, valor_ip_address = virtue_launch()
 
-        destination_valor_id = self.valor_api.valor_create()
+        print("\nSource Valor IP Is {}\n".format(valor_ip_address))
 
-        self.valor_api.valor_launch(destination_valor_id)
+        destination_valor_id = json.loads(
+            session.get(admin_url + '/valor/migrate_virtue',
+                        params={'virtue_id': virtue_id}).text)
 
-        time.sleep(180)
         destination_valor_ip_address = get_valor_ip(
-            destination_valor_id)
+            destination_valor_id['valor_id'])
 
-        self.valor_api.valor_migrate_virtue(virtue_id, destination_valor_id)
+        print("\nTarget valor IP is {}\n".format(destination_valor_ip_address))
 
-        time.sleep(30) 
-        assert not is_virtue_running(valor_ip_address) 
-        assert is_virtue_running(destination_valor_ip_address)
+        time.sleep(60)
 
-        self.valor_api.valor_destroy(destination_valor_id)
+        assert not is_virtue_running(valor_ip_address, virtue_id)
+        assert is_virtue_running(destination_valor_ip_address, virtue_id)
+
+        # Cleanup the new virtue created
+        integration_common.cleanup_virtue('slapd', virtue['id'])
+        virtue = None
+
+        # Cleanup the new role created
+        integration_common.cleanup_role('slapd', role['id'])
+        role = None
 
 
 def teardown_module():
 
+    global virtue
+
     if virtue:
 
         # Cleanup the new virtue created
-        integration_common.cleanup_virtue('jmitchell', virtue['id'])
+        integration_common.cleanup_virtue('slapd', virtue['id'])
 
         # Cleanup the new role created
-        integration_common.cleanup_role('jmitchell', role['id'])
+        integration_common.cleanup_role('slapd', role['id'])

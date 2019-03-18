@@ -1,26 +1,20 @@
-import sys
-import logging
 import inspect
+import json
+import logging
+import sys
+
+from authlib.flask.oauth2 import current_token
+from flask import Blueprint
 from flask import request, Response
 
-from flask import Blueprint, url_for
-from flask import abort, redirect, render_template
-from authlib.flask.oauth2 import current_token
-from ..auth import require_login
-from ..models import OAuth2Client, User
-from ..forms.client import (Client2Form, OAuth2ClientWrapper)
-from ..ldaplookup import LDAP
 from ..apiendpoint import EndPoint
 from ..apiendpoint_admin import EndPoint_Admin
 from ..apiendpoint_security import EndPoint_Security
-from ..services.oauth2 import require_oauth
+from ..auth import require_login
+from ..ldaplookup import LDAP
+from ..models import User
 from ..services.errorcodes import ErrorCodes
-import json
-import time
-
 from ..services.oauth2 import require_oauth
-from ..services.errorcodes import ErrorCodes
-from authlib.flask.oauth2 import current_token
 
 bp = Blueprint('virtue', __name__)
 
@@ -34,7 +28,7 @@ def get_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    ep = EndPoint('jmitchell@virtue.com', 'Test123!')
+    ep = EndPoint('slapd@virtue.gov', 'Test123!')
     ep.inst = inst
 
     return ep
@@ -48,7 +42,7 @@ def get_admin_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    epa = EndPoint_Admin('jmitchell@virtue.com', 'Test123!')
+    epa = EndPoint_Admin('slapd@virtue.gov', 'Test123!')
     epa.inst = inst
 
     return epa
@@ -62,7 +56,7 @@ def get_security_endpoint():
     inst.conn.simple_bind_s( dn, 'Test123!' )
 
     #TODO: Remove hardcoded credentials
-    eps = EndPoint_Security('jmitchell@virtue.com', 'Test123!')
+    eps = EndPoint_Security('slapd@virtue.gov', 'Test123!')
     eps.inst = inst
 
     return eps
@@ -95,7 +89,7 @@ def make_response(message):
 def get_user():
 
     user = User.query.filter_by(id=current_token.user_id).first()
-    user = user.email.replace('@virtue.com', '')
+    user = user.email.split("@")[0]
 
     return user
 
@@ -203,6 +197,23 @@ def virtue_get():
         print("Unexpected error:", sys.exc_info())
 
     return make_response(virtueId)
+
+
+@bp.route('/user/virtue/reload/state', methods=['GET'])
+@require_oauth()
+def virtue_reload_state():
+
+    ret = ''
+
+    try:
+        ep = get_endpoint()
+        ret = ep.virtue_reload_state(get_user(), request.args['virtueId'])
+        log_to_elasticsearch('Reload virtue state', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
 
 
 @bp.route('/user/virtue/launch', methods=['GET'])
@@ -343,6 +354,39 @@ def admin_application_list():
     return make_response(ret)
 
 
+@bp.route('/admin/resource/create', methods=['GET'])
+@require_oauth()
+def admin_resource_create():
+    ret = ''
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.resource_create(
+            json.loads(request.args['resource']))
+        log_to_elasticsearch('Create admin resource',
+                             extra={'user': get_user(), 'resource_id': request.args['resource']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+@bp.route('/admin/resource/destroy', methods=['GET'])
+@require_oauth()
+def admin_resource_destroy():
+    ret = ''
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.resource_destroy(request.args['resourceId'])
+        log_to_elasticsearch('Destroy resource', 
+                extra={'user': get_user(), 'resource_id': request.args['resourceId']}, 
+                ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 @bp.route('/admin/resource/get', methods=['GET'])
 @require_oauth()
 def admin_resource_get():
@@ -439,10 +483,35 @@ def admin_role_create():
     try:
         # Creates a new Role with the given parameters.
         ep = get_admin_endpoint()
-        ret = ep.role_create(json.loads(request.args['role']))
+
+        # If UnitySize is not provided then set to default of 8GB
+        unitySize = request.args.get('unitySize')
+
+        ret = ep.role_create(
+            json.loads(request.args['role']),
+            unity_img_name=unitySize)
         log_to_elasticsearch('Create admin role',
                              extra={'user': get_user(), 'role_id': request.args['role']}, ret=ret,
                              func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+@bp.route('/admin/role/destroy', methods=['GET'])
+@require_oauth()
+def admin_role_destroy():
+
+    ret = ''
+
+    try:
+        # Destroys a role. Releases all resources.
+        ep = get_admin_endpoint()
+        ret = ep.role_destroy(request.args['roleId'])
+        log_to_elasticsearch('Destroy role', extra={'user': get_user(), 'role_id': request.args['roleId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+
 
     except:
         print("Unexpected error:", sys.exc_info())
@@ -709,6 +778,59 @@ def admin_virtue_destroy():
     return make_response(ret)
 
 
+@bp.route('/admin/virtue/reload/state', methods=['GET'])
+@require_oauth()
+def admin_virtue_reload_state():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_reload_state(request.args['virtueId'])
+        log_to_elasticsearch('Reload virtue state', extra={'user': get_user(), 'virtue_id': request.args['virtueId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/galahad/get/id', methods=['GET'])
+@require_oauth()
+def admin_galahad_get_id():
+
+    ret = ''
+
+    try:
+        # Outputs this Galahad system's ID
+        ep = get_admin_endpoint()
+        ret = ep.galahad_get_id()
+        log_to_elasticsearch('Get Galahad ID', extra={'user': get_user()}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error: " + sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/application/add', methods=['GET'])
+@require_oauth()
+def admin_application_add():
+
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.application_add(json.loads(request.args['application']))
+        log_to_elasticsearch('Application add', extra={'user': get_user(), 'username': request.args['username'], 'application': request.args['application']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
 ################ Security API ##################
 
 
@@ -902,6 +1024,55 @@ def transducer_list_enabled():
             json.dumps(ErrorCodes.security['unspecifiedError']))
 
 
+@bp.route('/security/transducer/enable_all_virtues', methods=['GET'])
+@require_oauth()
+def enable_all_virtues():
+
+    ep = get_security_endpoint()
+
+    if 'transducerId' not in request.args:
+        return make_response(
+            'ERROR: Required arguments: transducerId, configuration')
+
+    try:
+        if 'configuration' in request.args:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], request.args['configuration'], True)
+        else:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], None, True)
+
+        log_to_elasticsearch('Transducer enable all', extra={'transducer_id': request.args['transducerId']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
+        return make_response(ret)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
+
+@bp.route('/security/transducer/disable_all_virtues', methods=['GET'])
+@require_oauth()
+def disable_all_virtues():
+    ep = get_security_endpoint()
+
+    if 'transducerId' not in request.args:
+        return make_response(
+            'ERROR: Required arguments: transducerId, configuration')
+
+    try:
+        if 'configuration' in request.args:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], request.args['configuration'], False)
+        else:
+            ret = ep.transducer_all_virtues(request.args['transducerId'], None, False)
+
+        log_to_elasticsearch('Transducer enable all', extra={'transducer_id': request.args['transducerId']}, ret=ret,
+                             func_name=inspect.currentframe().f_code.co_name)
+        return make_response(ret)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+        return make_response(
+            json.dumps(ErrorCodes.security['unspecifiedError']))
+
 @bp.route('/admin/valor/list', methods=['GET'])
 @require_oauth()
 def admin_valor_list():
@@ -1013,11 +1184,136 @@ def admin_valor_migrate_virtue():
     try:
 
         ep = get_admin_endpoint()
+
+        # destination_valor_id is an optional parm, set to None by default
+        destination_valor_id = request.args.get('destination_valor_id', None)
+
         valor_id = ep.valor_migrate_virtue(
             request.args['virtue_id'],
-            request.args['destination_valor_id'])
+            destination_valor_id)
 
     except:
         print("Unexpected error:", sys.exc_info())
 
     return make_response(valor_id)
+
+
+@bp.route('/admin/valor/auto_migration_start', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_start():
+    try:
+
+        ep = get_admin_endpoint()
+
+        migration_interval = request.args.get('migration_interval', None)
+
+        if migration_interval:
+            response = ep.auto_migration_start(int(migration_interval))
+        else:
+            response = ep.auto_migration_start()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_stop', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_stop():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_stop()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/valor/auto_migration_status', methods=['GET'])
+@require_oauth()
+def admin_auto_migration_status():
+
+    try:
+
+        ep = get_admin_endpoint()
+
+        response = ep.auto_migration_status()
+
+        return make_response(response)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+        return make_response(json.dumps(ErrorCodes.admin['unspecifiedError']))
+
+
+@bp.route('/admin/virtue/introspect_start', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_start():
+    
+    virtue_id = ''
+
+    try:
+        ep = get_admin_endpoint()
+        virtue_id = ep.virtue_introspect_start(
+            request.args['virtueId'],
+            request.args['interval'],
+            request.args['modules'])
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(virtue_id)
+
+@bp.route('/admin/virtue/introspect_stop', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_stop():
+    virtue_id = ''
+
+    try:
+        ep = get_admin_endpoint()
+        virtue_id = ep.virtue_introspect_stop(
+            request.args['virtueId'])
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(virtue_id)
+
+
+@bp.route('/admin/virtue/introspect_start_all', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_start_all():
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_introspect_start_all(
+            request.args['interval'],
+            request.args['modules'])
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)
+
+
+@bp.route('/admin/virtue/introspect_stop_all', methods=['GET'])
+@require_oauth()
+def admin_virtue_introspect_stop_all():
+    ret = ''
+
+    try:
+        ep = get_admin_endpoint()
+        ret = ep.virtue_introspect_stop_all()
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(ret)

@@ -25,20 +25,21 @@ EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 TIMEOUT = 1200
 
 
-def create_new_role(role_name, hard_code_path=None):
+def create_new_role(role_name, unity_img_name=None):
     admin_api, user_api = create_apiendpoints()
 
-    role_data = {
-        'name': role_name,
-        'version': '1.0',
-        'applicationIds': ['firefox'],
+    role_data = {'name': role_name, 'version': '1.0', 'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': []
-    }
+        'startingTransducerIds': ['path_mkdir', 'bprm_set_creds', 'task_create',
+                                  'task_alloc', 'inode_create', 'socket_connect',
+                                  'socket_bind', 'socket_accept', 'socket_listen',
+                                  'create_process', 'process_start', 'process_died',
+                                  'srv_create_proc', 'open_fd'],
+        'networkRules': []}
 
-    if (hard_code_path != None):
-        new_role = json.loads(admin_api.role_create(role_data,
-                                                    hard_code_path=hard_code_path))
+    if (unity_img_name != None):
+        new_role = json.loads(
+            admin_api.role_create(role_data, unity_img_name=unity_img_name))
     else:
         new_role = json.loads(admin_api.role_create(role_data))
 
@@ -58,7 +59,8 @@ def create_new_role(role_name, hard_code_path=None):
         time_elapsed = time_elapsed + 5
         if (time_elapsed >= TIMEOUT):
             raise Exception(
-                'Timed out waiting for role [{}] to be created in [{}] seconds'.format(role['name'], time_elapsed))
+                'Timed out waiting for role [{}] to be created in [{}] seconds'.format(
+                    role['name'], time_elapsed))
 
     print('New Role <{0}> created in [{1}] seconds'.format(role, time_elapsed))
 
@@ -73,7 +75,8 @@ def create_new_virtue(user, role_id):
 
     # Check if the role exists
     if not role:
-        raise Exception('Failed to retrieve role [{0}] from the role ID [{1}]'.format(role, role_id))
+        raise Exception(
+            'Failed to retrieve role [{0}] from the role ID [{1}]'.format(role, role_id))
 
     # user_role_authorize(). It's ok if the user is already authorized.
     admin_api.user_role_authorize(user, role['id'])
@@ -85,12 +88,15 @@ def create_new_virtue(user, role_id):
             user_api.virtue_stop(user, virtue['id'])  # It's ok if it's already stopped
             res = json.loads(admin_api.virtue_destroy(virtue['id']))
             if res != ErrorCodes.admin['success']:
-                raise Exception('Failed to destroy virtue [{0}] with error [{1}]'.format(virtue['id'], res))
+                raise Exception(
+                    'Failed to destroy virtue [{0}] with error [{1}]'.format(virtue['id'],
+                                                                             res))
 
     # virtue_create()
     new_virtue = json.loads(admin_api.virtue_create(user, role['id']))
     if set(new_virtue.keys()) != set(['id', 'ipAddress']):
-        raise Exception('Error in return value for virtue_create [{}]'.format(set(new_virtue.keys())))
+        raise Exception(
+            'Error in return value for virtue_create [{}]'.format(set(new_virtue.keys())))
 
     print('New Virtue is {}'.format(new_virtue))
 
@@ -104,8 +110,9 @@ def create_new_virtue(user, role_id):
         virtue = virtue_get(admin_api, user, new_virtue['id'])
         time_elapsed = time_elapsed + 5
         if (time_elapsed >= TIMEOUT):
-            raise Exception('Timed out waiting for virtue [{}] to be created in [{}] seconds'.format(virtue['id'],
-                                                                                                     time_elapsed))
+            raise Exception(
+                'Timed out waiting for virtue [{}] to be created in [{}] seconds'.format(
+                    virtue['id'], time_elapsed))
 
     print('New Virtue <{0}> created in [{1}] seconds'.format(virtue, time_elapsed))
 
@@ -144,10 +151,10 @@ def create_apiendpoints():
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
-    admin_api = EndPoint_Admin('jmitchell', 'Test123!')
+    admin_api = EndPoint_Admin('slapd', 'Test123!')
     admin_api.inst = inst
 
-    user_api = EndPoint('jmitchell', 'Test123!')
+    user_api = EndPoint('slapd', 'Test123!')
     user_api.inst = inst
 
     return admin_api, user_api
@@ -181,9 +188,7 @@ def create_session():
         raise Exception('Failed to get access token from oauth token [{}]'.format(token))
 
     session = requests.Session()
-    session.headers = {
-        'Authorization': 'Bearer {0}'.format(token['access_token'])
-    }
+    session.headers = {'Authorization': 'Bearer {0}'.format(token['access_token'])}
     session.verify = settings['verify']
 
     admin_url = 'https://{0}/virtue/admin'.format(excalibur_url)
@@ -202,7 +207,8 @@ def cleanup_virtue(user, virtue_id):
 
     res = json.loads(admin_api.virtue_destroy(virtue_id))
     if res != ErrorCodes.admin['success']:
-        raise Exception('Failed to destroy virtue [{0}] with error [{1}]'.format(virtue_id, res))
+        raise Exception(
+            'Failed to destroy virtue [{0}] with error [{1}]'.format(virtue_id, res))
 
 
 def cleanup_role(user, role_id):
@@ -216,8 +222,8 @@ def cleanup_role(user, role_id):
     inst.get_ldap_connection()
     inst.conn.simple_bind_s(dn, 'Test123!')
 
-    inst.del_obj(
-        'cid', role_id, objectClass='OpenLDAProle', throw_error=True)
+    inst.del_obj('cid', role_id, objectClass='OpenLDAProle', throw_error=True)
 
     # Delete the role img file
-    subprocess.check_call(['sudo', 'rm', '/mnt/efs/images/non_provisioned_virtues/' + role_id + '.img'])
+    subprocess.check_call(
+        ['sudo', 'rm', '/mnt/efs/images/non_provisioned_virtues/' + role_id + '.img'])

@@ -6,6 +6,11 @@ from assembler.assembler import Assembler
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-u',
+                        '--username',
+                        type=str,
+                        required=True,
+                        help='Username of virtue owner')
     parser.add_argument('-i',
                         '--virtue_id',
                         type=str,
@@ -37,6 +42,11 @@ def parse_args():
                         '--rethinkdb_cert',
                         type=str,
                         required=True)
+    parser.add_argument('-n',
+                        '--network_rules',
+                        type=str,
+                        required=True,
+                        help='file containing network rules for the virtue')
 
     args = parser.parse_args()
 
@@ -47,9 +57,11 @@ if (__name__ == '__main__'):
     args = parse_args()
 
     assembler = Assembler()
-    assembler.provision_virtue(args.virtue_id,
+    assembler.provision_virtue(args.username,
+                               args.virtue_id,
                                args.base_img,
                                args.output_path,
                                args.virtue_key,
                                args.excalibur_key,
-                               args.rethinkdb_cert)
+                               args.rethinkdb_cert,
+                               args.network_rules)

@@ -1,0 +1,308 @@
+{
+    "api_name": "admin",
+    "base_url": "https://{0}:5002/virtue/admin",
+    "commands": [
+        {
+            "command": "application list",
+            "help": "List available applications",
+            "url": "/application/list",
+            "parameters": []
+        },
+        {
+            "command": "resource create",
+            "help": "Creates a Resource with the given parameters",
+            "url": "/resource/create",
+            "parameters": [
+                { "name": "Resource (as JSON)", "url_name": "resource", "is_file": true }
+            ]
+        },
+        {
+            "command": "resource destroy",
+            "help": "Destroys a resource",
+            "url": "/resource/destroy",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" }
+            ]
+        },
+        {
+            "command": "resource get",
+            "help": "Get information about indicated resource",
+            "url": "/resource/get",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" }
+            ] 
+        },
+        {
+            "command": "resource list",
+            "help": "List available resources",
+            "url": "/resource/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "resource attach",
+            "help": "Attach the indicated resource to the indicated Virtue",
+            "url": "/resource/attach",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        { 
+            "command": "resource detach",
+            "help": "Detaches indicated resource from the indicated Virtue",
+            "url": "/resource/detach",
+            "parameters": [
+                { "name": "Resource ID", "url_name": "resourceId" },
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        { 
+            "command": "role create",
+            "help": "Creates a Role with the given parameters",
+            "url": "/role/create",
+            "parameters": [
+                { "name": "Role (as JSON)", "url_name": "role", "is_file": true },
+                { "name": "Unity Image Size (e.g 8GB)", "url_name": "unitySize" }
+            ]
+        },
+        {
+            "command": "role destroy",
+            "help": "Destroys a role",
+            "url": "/role/destroy",
+            "parameters": [
+                { "name": "Role ID", "url_name": "roleId" }
+            ]
+        },
+        { 
+            "command": "role list",
+            "help": "List available roles",
+            "url": "/role/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "system export",
+            "help": "Export the Virtue system to a file",
+            "url": "/system/export",
+            "parameters": [] 
+        },
+        { 
+            "command": "system import",
+            "help": "Import the Virtue system from an input JSON file",
+            "url": "/system/import",
+            "parameters": [
+                { "name": "Import Data (as JSON)", "url_name": "data", "is_file": true }
+            ] 
+        },
+        { 
+            "command": "test import user",
+            "help": "Imports a pre-defined User that is used during testing",
+            "url": "/test/import/user",
+            "parameters": [
+                { "name": "Which user", "url_name": "which" }
+            ] 
+        },
+        { 
+            "command": "test import application",
+            "help": "Imports a pre-defined Application that is used during testing",
+            "url": "/test/import/app",
+            "parameters": [
+                { "name": "Which application", "url_name": "which" }
+            ] 
+        },
+        { 
+            "command": "test import role",
+            "help": "Imports a pre-defined Role that is used during testing",
+            "url": "/test/import/role",
+            "parameters": [
+                { "name": "Which application", "url_name": "which" }  
+            ] 
+        },
+        { 
+            "command": "user list",
+            "help": "List all Users currently present in the system",
+            "url": "/user/list",
+            "parameters": [] 
+        },
+        { 
+            "command": "user get",
+            "help": "Gets information about the indicated user",
+            "url": "/user/get",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }
+            ] 
+        },
+        {   
+            "command": "user virtue list",
+            "help": "Lists the current Virtue instances for a given User",
+            "url": "/user/virtue/list",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }  
+            ] 
+        },
+        { 
+            "command": "user logout",
+            "help": "Force the logout of the indicated User and revoke UserTokens",
+            "url": "/user/logout",
+            "parameters": [
+                { "name": "Username", "url_name": "username" }  
+            ] 
+        },
+        { 
+            "command": "user role authorize",
+            "help": "Authorizes the indicated Role for the given User",
+            "url": "/user/role/authorize",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "user role unauthorize",
+            "help": "Removes authorization for a Role for a User",
+            "url": "/user/role/unauthorize",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "virtue create",
+            "help": "Create a Virtue instance for a User/Role combination",
+            "url": "/virtue/create",
+            "parameters": [
+                { "name": "Username", "url_name": "username" },
+                { "name": "Role ID", "url_name": "roleId" }
+            ] 
+        },
+        { 
+            "command": "virtue destroy",
+            "help": "Destroy a Virtue",
+            "url": "/virtue/destroy",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ] 
+        },
+        {
+            "command": "virtue reload state",
+            "help": "Reload the virtue's state and IP address",
+            "url": "/virtue/reload/state",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        { 
+            "command": "valor list",
+            "help": "List available Valor instances",
+            "url": "/valor/list",
+            "parameters": [] 
+        }, 
+        { 
+            "command": "valor create",
+            "help": "Create a new Valor instance",
+            "url": "/valor/create",
+            "parameters": [] 
+        },
+        { 
+            "command": "valor create pool",
+            "help": "Create a pool of Valors that can be used",
+            "url": "/valor/create_pool",
+            "parameters": [
+                { "name": "Number of Valors", "url_name": "number_of_valors" }
+            ] 
+        },
+        { 
+            "command": "valor launch",
+            "help": "Launch a Valor",
+            "url": "/valor/launch",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor stop",
+            "help": "Stop a Valor",
+            "url": "/valor/stop",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor destroy",
+            "help": "Stop and remove a Valor",
+            "url": "/valor/destroy",
+            "parameters": [
+                { "name": "Valor ID", "url_name": "valor_id" }
+            ] 
+        },
+        { 
+            "command": "valor migrate virtue",
+            "help": "Migrate a Virtue to a specific Valor",
+            "url": "/valor/migrate_virtue",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtue_id" },
+                { "name": "Destination Valor ID", "url_name": "destination_valor_id" }
+            ] 
+        },
+        {
+            "command": "auto migrate start",
+            "help": "Start Automated Migration",
+            "url": "/valor/auto_migration_start",
+            "parameters": [
+                { "name": "The Automated virtue migration time interval in seconds", "url_name": "migration_interval" }
+            ]
+        },
+        {
+            "command": "auto migrate stop",
+            "help": "Stop Automated Migration",
+            "url": "/valor/auto_migration_stop",
+            "parameters": []
+        },
+        {
+            "command": "auto migrate status",
+            "help": "Get Status of Automated Migration",
+            "url": "/valor/auto_migration_status",
+            "parameters": []
+        },
+        {
+            "command": "virtue introspect start",
+            "help": "Start introspection on a specific Virtue",
+            "url": "/virtue/introspect_start",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" },
+                { "name": "Interval", "url_name": "interval" },
+                { "name": "Modules", "url_name": "modules" }
+            ]
+        },
+        {
+            "command": "virtue introspect stop",
+            "help": "Stop introspection on a specific Virtue",
+            "url": "/virtue/introspect_stop",
+            "parameters": [
+                { "name": "Virtue ID", "url_name": "virtueId" }
+            ]
+        },
+        {
+            "command": "virtue introspect start all",
+            "help": "Start introspection on a specific Virtue",
+            "url": "/virtue/introspect_start_all",
+            "parameters": [
+                { "name": "Interval", "url_name": "interval" },
+                { "name": "Modules", "url_name": "modules" }
+            ]
+        },
+        {
+            "command": "virtue introspect stop all",
+            "help": "Stop introspection on a specific Virtue",
+            "url": "/virtue/introspect_stop_all",
+            "parameters": []
+        },
+        {
+            "command": "application add",
+            "help": "Add an application to the system",
+            "url": "/application/add",
+            "parameters": [
+                { "name": "Application (as JSON)", "url_name": "application", "is_file": true }
+            ]
+        }
+    ]
+}

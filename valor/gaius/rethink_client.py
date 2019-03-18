@@ -1,13 +1,13 @@
-import rethinkdb as r
-import socket
-import datetime
-import time
-import threading
-import base64
 import logging
+import socket
+import threading
+import time
 
-from __init__ import RT_CONN, RT_DB, RT_IP, RT_PORT, RT_CERT
-from __init__ import RT_VALOR_TB, RT_COMM_TB, RT_ACK_TB, RT_ARC_TB
+import rethinkdb as r
+
+from __init__ import RT_DB, RT_IP, RT_PORT, RT_CERT
+from __init__ import RT_VALOR_TB, RT_COMM_TB
+from introspect_client import Introspect
 from virtue_client import Virtue
 
 RETHINKDB_LOGFILE = "/var/log/gaius-rethink.log"
@@ -18,118 +18,197 @@ rethinkdb_client_logger.addHandler(rethinkdb_client_handler)
 
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
-        rethinkdb_client_logger.debug("Starting Gaius Service to monitor rethinkDB for changes")
+        rethinkdb_client_logger.debug(
+            "Starting Gaius Service to monitor rethinkDB for changes")
 
         threading.Thread.__init__(self)
         self.feed = feed
         self.ip = socket.gethostbyname(socket.gethostname())
         self.name = name
         self.rt = rt
+        valor = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "valor", "address": self.ip}).run(self.rt).next()
+        self.valor_id = valor["valor_id"]
+        self.valor_guestnet = valor["guestnet"]
+        self.introspection_threads = []
 
     def run(self):
         if self.name == "valor":
-            self.valor()    
+            self.valor()
         elif self.name == "migration":
             self.migration()
+        elif self.name == "introspection":
+            self.introspection()
 
     def valor(self):
         for change in self.feed:
-            if change["type"] == "add":
+            # For an change feed type of 'add'
+            if change["type"] == "add" and change['new_val']['address'] == self.ip:
                 self.add(change["new_val"])
-            elif change["type"] == "remove":
+            # For an change feed type of 'remove'
+            elif change["type"] == "remove" and change['old_val']['address'] == self.ip:
                 self.remove(change["old_val"])
 
-    def getid(self, table, search):
-        doc = r.db(RT_DB).table(table).filter(search).run(self.rt)
-        return doc.next()["id"]
-
     def add(self, change):
-        if change["function"] == "virtue":
-            valor = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": self.ip}).run(self.rt).next()
-
-            virtue = Virtue(change)
-            try:
-                r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).update({"enabled":"False"}).run(self.rt).next()
-                return
-            except Exception as e:
-                pass
-
-            rethinkdb_client_logger.debug("Continuing...")
-            virtue.create_cfg(valor["guestnet"])
-            virtue.createDomU()
-            comm = {
-                "transducer_id": virtue.img_path,
-                "virtue_id": virtue.virtue_id,
-                "valor_ip": self.ip,
-                "valor_dest": None,
-                "enabled": False,
-                "type": "MIGRATION",
-                "history": [{
-                    "valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})}]
-            }
-            r.db(RT_DB).table(RT_COMM_TB).insert(comm).run(self.rt)
+        rethinkdb_client_logger.debug(
+            'Detected ADD change feed in Valor: \n{}\n'.format(change))
+        virtue = Virtue(change)
+        virtue.create_cfg(self.valor_guestnet)
+        virtue.createDomU()
 
     def remove(self, change):
-        if change["function"] == "virtue":
-            rethinkdb_client_logger.debug("Valor remove change = {}".format(change))
-            virtue = Virtue(change)
-            r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": virtue.virtue_id}).delete().run(self.rt)
-            virtue.destroyDomU()
+        rethinkdb_client_logger.debug(
+            'Detected REMOVE change feed in Valor: \n{}\n'.format(change))
+        virtue = Virtue(change)
+        virtue.destroyDomU()
 
     def migrate(self, change):
         rethinkdb_client_logger.debug("MIGRATION - change = {}".format(change))
-        rethinkdb_client_logger.debug("MIGRATION - table = {}".format(r.db(RT_DB).table(RT_VALOR_TB).run(self.rt)))
-        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter({"virtue_id": change["virtue_id"]}).run(self.rt).next()
+
+        virtue_dict = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"virtue_id": change["virtue_id"]}).run(self.rt).next()
         virtue = Virtue(virtue_dict)
         virtue.migrateDomU(change["valor_dest"])
-        valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor", "address": change["valor_dest"]}).run(self.rt).next()
-        history = r.db(RT_DB).table(RT_COMM_TB).filter({"virtue_id": change["virtue_id"]}).run(self.rt).next()["history"]
-        history.append({"valor": self.getid(RT_VALOR_TB, {"function": "valor", "address": self.ip})})
 
-        ### RethinkDB updating with dict causes inconsistencies. This updates transducer object. Need to cleanup
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"enabled": False}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"valor_ip": change["valor_dest"]}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"valor_dest": None}).run(self.rt)
-        r.db(RT_DB).table(RT_COMM_TB).filter({"transducer_id": change["transducer_id"]}).update({"history": history}).run(self.rt)
+        valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor",
+            "address": change["valor_dest"]}).run(self.rt).next()
+
+        history = change['history']
+        history.append({"valor_id": self.valor_id})
+
+        ### RethinkDB updating with dict causes inconsistencies. This updates
+        # transducer object. Need to cleanup
+        comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"transducer_id": change["transducer_id"], "virtue_id": virtue.virtue_id})
+        record = comm_tb_filter.run(self.rt).next()
+        record["enabled"] = False
+        record["history"] = history
+        record["valor_dest"] = None
+        record["valor_ip"] = change["valor_dest"]
+        comm_tb_filter.update(record).run(self.rt)
 
         ### Updates Virtue object with new Valor IP
-        r.db(RT_DB).table(RT_VALOR_TB).filter({"id": change["virtue_id"]}).update({"address": change["valor_dest"]}).run(self.rt)
+        valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"virtue_id": change["virtue_id"], "function": "virtue"})
+        valor_tb_filter.update(
+            {"address": change["valor_dest"],
+             "valor_id": valor_dest["valor_id"]}).run(self.rt)
 
     def migration(self):
         for change in self.feed:
-            if (change["type"] == "change") and change["new_val"]["enabled"]:
+            if (change["type"] == "change") and change["new_val"]["enabled"] == True:
                 rethinkdb_client_logger.debug("Migration changefeed, change =")
                 rethinkdb_client_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
 
+    def introspection(self):
+        for change in self.feed:
+            rethinkdb_client_logger.debug(
+                "Introspection change feed detected: {}".format(change))
+            if change["type"] == "add":
+                if change["new_val"]["enabled"] == True:
+                    self.introspection_add(change["new_val"])
+                else:
+                    # Do nothing as this is the initial virtue entry in rethinkdb with
+                    # introspection disabled.
+                    pass
+            elif change["type"] == "remove":
+                self.introspection_remove(change)
+            elif change["type"] == "change":
+                self.introspection_change(change)
+
+    def get_virtue_introspection_thread(self, virtue_id):
+        for thread in self.introspection_threads:
+            if thread.virtue_id == virtue_id:
+                return thread
+        return
+
+    def introspection_add(self, change):
+        introspection_thread = Introspect(change["virtue_id"],
+                                          change["comms"],
+                                          change["interval"])
+        introspection_thread.start()
+        self.introspection_threads.append(introspection_thread)
+
+    def introspection_remove(self, change):
+        introspection_thread = self.get_virtue_introspection_thread(change["virtue_id"])
+        if introspection_thread:
+            introspection_thread.stop_introspect()
+            self.introspection_threads.remove(introspection_thread)
+
+    def introspection_change(self, change):
+        # Update if introspection is enabled
+        if change["old_val"]["enabled"] == False and change["new_val"]["enabled"] == True:
+            self.introspection_add(change["new_val"])
+
+        # Update if introspection is disabled
+        elif change["old_val"]["enabled"] == True and change["new_val"][
+            "enabled"] == False:
+            self.introspection_remove(change["new_val"])
+
+        # Update if introspection was enabled but its parameters changed.
+        elif change["old_val"]["enabled"] == True and change["new_val"][
+            "enabled"] == True:
+            introspection_thread = self.get_virtue_introspection_thread(
+                change["new_val"]["virtue_id"])
+            if introspection_thread:
+                # Update if interval changes
+                if change["old_val"]["interval"] is not change["new_val"]["interval"]:
+                    introspection_thread.set_interval(change["new_val"]["interval"])
+                # Update if the list of modules changes
+                if change["old_val"]["comms"] is not change["new_val"]["comms"]:
+                    introspection_thread.set_comms(change["new_val"]["comms"])
+
 class Rethink():
     def __init__(self):
         rethinkdb_client_logger.debug("Starting to monitor changes in rethinkDB...")
+        self.valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        self.migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
+        self.introspection_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
 
         self.ip = socket.gethostbyname(socket.gethostname())
+        self.valor_id = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "valor", "address": self.ip}).run(self.valor_rt).next()["valor_id"]
 
     def changes(self):
+        # Virtue updates
+        # Handle changes related to the galahad table for the virtue
+        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter(
+            {"function": "virtue"}).changes(include_types=True).run(self.valor_rt)
 
-        valor_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
-        valor_feed = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "virtue", "address": self.ip}).changes(include_types=True).run(valor_rt)
-
-        migration_rt = r.connect(RT_IP, RT_PORT, ssl=RT_CERT)
-        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter({"valor_ip": self.ip, "type": "MIGRATION"}).changes(include_types=True).run(migration_rt)
-
-        valor_thread = Changes("valor", valor_feed, valor_rt)
+        valor_thread = Changes("valor", valor_feed, self.valor_rt)
         valor_thread.daemon = True
         valor_thread.start()
         rethinkdb_client_logger.debug("Valor thread starting...")
 
-        migration_thread = Changes("migration", migration_feed, migration_rt)
+        # Migration updates
+        # Handle changes related to the transducer table for migration
+        migration_feed = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"valor_ip": self.ip, "transducer_id": "migration"}).changes(
+            include_types=True).run(self.migration_rt)
+
+        migration_thread = Changes("migration", migration_feed, self.migration_rt)
         migration_thread.daemon = True
         migration_thread.start()
         rethinkdb_client_logger.debug("Migration thread starting...")
+
+        # Introspection updates
+        # Handle changes related to the transducer table for introspection
+        introspection_feed = r.db(RT_DB).table(RT_COMM_TB).filter(
+            {"valor_id": self.valor_id, "transducer_id": "introspection"}).changes(
+            include_types=True).run(self.introspection_rt)
+
+        introspection_thread = Changes("introspection", introspection_feed,
+                                       self.introspection_rt)
+        introspection_thread.daemon = True
+        introspection_thread.start()
+        rethinkdb_client_logger.debug("Introspection thread starting...")
+
 
 if __name__ == "__main__":
     rt = Rethink()
     rt.changes()
 
-    # super hacky but it works for now
+    # while loop to keep the program alive/running
     while True:
         time.sleep(3600)
