@@ -11,12 +11,18 @@ from boto.utils import get_instance_metadata
 from aws import AWS
 from ssh_tool import ssh_tool
 
+# Number of MAX standby valors to keep provisioned
 NUM_STANDBY_VALORS = 2
 
+# number of max virtues per valor
 MAX_VIRTUES_PER_VALOR = 3
 
 # Default of 5 minutes interval between migration runs
 AUTO_MIGRATION_INTERVAL = 300
+
+# Global lock variable to prevent more than 1 thread from accessing
+# get_free_guestnet()
+lock = threading.Lock()
 
 
 class ValorAPI:
@@ -669,6 +675,10 @@ class RethinkDbManager:
 
         valors = list(response.items)
 
+        # Remove the rethinkdb generated "id" field as it is not relevant.
+        for valor in valors:
+            valor.pop('id', None)
+
         return valors
 
 
@@ -685,8 +695,6 @@ class RethinkDbManager:
     def add_valor(self, valor):
 
         assert valor.guestnet == None
-
-        lock = threading.Lock()
 
         lock.acquire()
 
@@ -720,25 +728,17 @@ class RethinkDbManager:
 
     def get_free_guestnet(self):
 
-        lock = threading.Lock()
+        guestnet = '10.91.0.{0}'
 
-        lock.acquire()
+        for test_number in range(1, 256):
+            results = rethinkdb.db('transducers').table('galahad').filter({
+                'guestnet': guestnet.format(test_number)}).run(self.connection)
+            if len(list(results)) == 0:
+                guestnet = guestnet.format(test_number)
+                break
 
-        try:
-            guestnet = '10.91.0.{0}'
-
-            for test_number in range(1, 256):
-                results = rethinkdb.db('transducers').table('galahad').filter({
-                    'guestnet': guestnet.format(test_number)
-                }).run(self.connection)
-                if len(list(results)) == 0:
-                    guestnet = guestnet.format(test_number)
-                    break
-
-            # If this fails, then there was no available guestnet
-            assert '{0}' not in guestnet
-        finally:
-            lock.release()
+        # If this fails, then there was no available guestnet
+        assert '{0}' not in guestnet
 
         return guestnet
 
@@ -752,17 +752,23 @@ class RethinkDbManager:
 
         assert len(matching_virtues) == 0
 
-        guestnet = self.get_free_guestnet()
+        lock.acquire()
 
-        record = {
-            'function'  : 'virtue',
-            'virtue_id' : virtue_id,
-            'valor_id'  : valor_id,
-            'address'   : valor_address,
-            'guestnet'  : guestnet,
-            'img_path'  : efs_path
-        }
-        rethinkdb.db('transducers').table('galahad').insert([record]).run(self.connection)
+        try:
+            guestnet = self.get_free_guestnet()
+
+            record = {
+                'function' : 'virtue',
+                'virtue_id': virtue_id,
+                'valor_id' : valor_id,
+                'address'  : valor_address,
+                'guestnet' : guestnet,
+                'img_path' : efs_path
+            }
+            rethinkdb.db('transducers').table('galahad').insert([record]).run(
+                self.connection)
+        finally:
+            lock.release()
 
         if not role_create:
 
