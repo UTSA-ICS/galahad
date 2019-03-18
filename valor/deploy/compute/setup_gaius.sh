@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
+# Base directory for the script to operate from
+cd /mnt/efs/valor/deploy/compute
+
 #
 # Copy Gaius Code to appropriate location
 #
-cp -R ../valor /usr/share/valor
+mkdir -p /usr/share/valor/
+cp -R /mnt/efs/valor/gaius /usr/share/valor/gaius
 mkdir /usr/share/valor/gaius/cfg
 chmod 755 /usr/share/valor/gaius/*
-pip install /usr/share/valor
 
 #
 # Copy over service definition file
