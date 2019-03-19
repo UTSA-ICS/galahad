@@ -37,7 +37,7 @@ try:
     sock.bind(socket_address)
 
     os.chown(socket_address, os.getuid(), grp.getgrnam('camelot').gr_gid)
-    os.chmod(socket_address, 0770)
+    os.chmod(socket_address, 0o770)
 
     sock.listen(1)
 except Exception as e:
@@ -49,7 +49,7 @@ log.info('Successfully connected to socket')
 while True:
     connection, client_address = sock.accept()
     try:
-	all_data = ''
+        all_data = ''
         while True:
             data = connection.recv(256)
             if data:
