@@ -4,6 +4,9 @@
 # Base directory for the script to operate from
 cd /mnt/efs/valor/deploy/compute
 
+# Directory for certs and Keys
+GALAHAD_KEYS="/mnt/efs/galahad-keys"
+
 # install latest syslog-ng
 wget -qO - http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04/Release.key | apt-key add -
 echo deb http://download.opensuse.org/repositories/home:/laszlo_budai:/syslog-ng/xUbuntu_16.04 ./ >> /etc/apt/sources.list.d/syslog-ng-obs.list
@@ -27,12 +30,13 @@ cd ..
 rm -rf elasticsearch-5.6.3/
 rm elasticsearch-5.6.3.tar.gz
 
-# write config files and keystores
+# Copy over configuration files for syslog and elasticsearch plugin
 cp syslog-ng/syslog-ng.conf /etc/syslog-ng/
 cp syslog-ng/elasticsearch.yml /etc/syslog-ng/
 
-cp syslog-ng/kirk-keystore.jks /etc/syslog-ng/
-cp syslog-ng/truststore.jks /etc/syslog-ng/
+# Copy over certs needed to communicate with elasticsearch
+cp $GALAHAD_KEYS/kirk-keystore.jks /etc/syslog-ng/
+cp $GALAHAD_KEYS/truststore.jks /etc/syslog-ng/
 
 chmod 644 syslog-ng/syslog-ng.service
 cp syslog-ng/syslog-ng.service /lib/systemd/system/
