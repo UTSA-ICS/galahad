@@ -209,18 +209,16 @@ class Assembler(object):
             # Copy the certs required for connection to elasticsearch
             # These certs will be used by syslog-ng service
             # Copy the certs from galahad-keys dir.
-            shutil.copy(os.path.join(real_HOME,'galahad-keys') + '/kirk-keystore.jks',
-                        virtue_home)
-            shutil.copy(os.path.join(real_HOME,'galahad-keys') + '/truststore.jks',
-                        virtue_home)
+            shutil.copy(
+                os.path.join(real_HOME, 'galahad-keys') + '/kirk-keystore.jks',
+                virtue_home)
+            shutil.copy(
+                os.path.join(real_HOME, 'galahad-keys') + '/truststore.jks',
+                virtue_home)
 
             # Install Transducers
-            # Copy payload/* to mount_path + '/home/virtue'
+            # Copy files from payload dir to mount_path + '/home/virtue'
             shutil.copy(payload_dir + '/transducer-module.tar.gz',
-                        virtue_home)
-            shutil.copy(payload_dir + '/kirk-keystore.jks',
-                        virtue_home)
-            shutil.copy(payload_dir + '/truststore.jks',
                         virtue_home)
             shutil.copy(payload_dir + '/sshd_config',
                         virtue_home)
@@ -342,6 +340,9 @@ class Assembler(object):
         # Build the merlin deb file
         subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
                                            'transducers', 'build_merlin.sh'))
+        # Build the processkiller deb file
+        subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
+                                           'transducers', 'build_processkiller.sh'))
 
         self.construct_img(base_img, WORK_DIR,
                            os.path.join(os.environ['HOME'],
