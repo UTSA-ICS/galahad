@@ -1,5 +1,7 @@
 #!/usr/bin/env python3 
 
+# Copyright (c) 2019 by Star Lab Corp.
+
 # https://python-prompt-toolkit.readthedocs.io/en/stable/pages/tutorials/repl.html
 
 from __future__ import unicode_literals

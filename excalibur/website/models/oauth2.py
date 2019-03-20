@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 import time
 from sqlalchemy import Column
 from sqlalchemy import (Integer, String, Text, Boolean)

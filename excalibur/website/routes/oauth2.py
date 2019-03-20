@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from flask import Blueprint, request
 from flask import jsonify, render_template
 from authlib.specs.rfc6749 import OAuth2Error

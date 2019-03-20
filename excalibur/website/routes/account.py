@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from flask import Blueprint
 from flask import url_for, redirect, render_template
 from ..auth import current_user, logout as _logout

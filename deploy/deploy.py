@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# Copyright (c) 2019 by Star Lab Corp.
+
 ###
 # Test CI Orchestration:
 # - Setup Stack and Virtue Environment
