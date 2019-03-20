@@ -1,5 +1,6 @@
 # Requirements for galahad flask server
 
+Werkzeug==0.14.1
 flask
 flask_sqlalchemy
 python_ldap == 2.5.2
