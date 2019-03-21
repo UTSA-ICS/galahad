@@ -24,17 +24,14 @@ from sultan.api import Sultan, SSHConfig
 STACK_TEMPLATE = 'setup/galahad-stack.yaml'
 VPC_STACK_TEMPLATE = 'setup/galahad-vpc-stack.yaml'
 
-# aws public key name used for the instances
-key_name = 'starlab-virtue-te'
-
 # Configure the Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_ssh_cmd(host_server, path_to_key, cmd):
+def run_ssh_cmd(host_server, sshkey, cmd):
     config = SSHConfig(
-        identity_file=path_to_key,
+        identity_file=sshkey,
         option='StrictHostKeyChecking=no')
 
     with Sultan.load(
@@ -62,7 +59,7 @@ class VPC_Stack():
 
         return file.read()
 
-    def setup_stack(self, stack_template, stack_name, suffix_value):
+    def setup_stack(self, stack_template, stack_name, suffix_value, key_name):
 
         self.stack_template = stack_template
         self.stack_name = stack_name + '-VPC'
@@ -253,7 +250,8 @@ class DeployServer():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                     format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, user_key, stack_suffix):
+    def setup(self, branch, github_key, aws_config, aws_keys, user_key,
+              stack_suffix, key_name):
 
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
@@ -280,8 +278,9 @@ class DeployServer():
 
         with Sultan.load() as s:
             s.scp(
-                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/starlab-virtue-te.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/{3}.pem'.
+                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR,
+                           key_name)).run()
 
         # Deploy the Pre-requisites
         _cmd = "sudo('apt-get update')"
@@ -295,10 +294,11 @@ class DeployServer():
 
         # Start the normal deployment process - Run the setup script
         _cmd = '''bash(('-c "cd galahad/deploy && python3 deploy_galahad.py'
-                        ' -k {0}/{1}.pem'
+                        ' -i {0}/{1}.pem'
                         ' -g ~/.ssh/id_rsa'
                         ' --aws_config ~/.aws/config'
                         ' --aws_keys ~/.aws/credentials'
+                        ' --key_name {1}'
                         ' --default_user_key {0}/{1}.pem'
                         ' -b {2}'
                         ' -s {3}' 
@@ -310,24 +310,25 @@ class DeployServer():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-def setup(path_to_key, stack_name, stack_suffix, github_key, aws_config,
-          aws_keys, branch, user_key):
+def setup(sshkey, stack_name, stack_suffix, github_key, aws_config,
+          aws_keys, branch, user_key, key_name):
     stack = VPC_Stack()
-    stack.setup_stack(VPC_STACK_TEMPLATE, stack_name, stack_suffix)
+    stack.setup_stack(VPC_STACK_TEMPLATE, stack_name, stack_suffix, key_name)
 
-    deploy = DeployServer(stack_name, path_to_key)
-    deploy.setup(branch, github_key, aws_config, aws_keys, user_key, stack_suffix)
+    deploy = DeployServer(stack_name, sshkey)
+    deploy.setup(branch, github_key, aws_config, aws_keys, user_key,
+                 stack_suffix, key_name)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-k",
-        "--path_to_key",
+        "-i",
+        "--sshkey",
         type=str,
         required=True,
-        help="The path to the public key used for the ec2 instances")
+        help="The path to the SSH key used for the ec2 instances")
     parser.add_argument(
         "-g",
         "--github_repo_key",
@@ -365,6 +366,12 @@ def parse_args():
         required=True,
         help="AWS keys to be used for AWS communication")
     parser.add_argument(
+        '--key_name',
+        type=str,
+        default='starlab-virtue-te',
+        help='The key pair name to use, defaults to starlab-virtue-te.')
+
+    parser.add_argument(
         "--setup",
         action="store_true",
         help="setup the galahad/virtue test environment")
@@ -395,7 +402,7 @@ def parse_args():
 
 def ensure_required_files_exist(args):
     required_files = '{} {} {} {}'.format(
-        args.path_to_key,
+        args.sshkey,
         args.github_repo_key,
         args.aws_config,
         args.aws_keys)
@@ -413,8 +420,9 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.path_to_key, args.stack_name, args.stack_suffix, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.default_user_key)
+        setup(args.sshkey, args.stack_name, args.stack_suffix,
+              args.github_repo_key, args.aws_config, args.aws_keys,
+              args.branch_name, args.default_user_key, args.key_name)
 
     if args.list_stacks:
         VPC_Stack().list_stacks()

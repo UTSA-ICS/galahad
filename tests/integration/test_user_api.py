@@ -87,32 +87,10 @@ def setup_module():
     subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
                            '/mnt/efs/images/tests/8GB.img'])
 
-    #  TODO: look back into when virtue_launch is fixed
-    """
-    response = session.get('https://{0}/virtue/admin/valor/create'.format(ip))
-
-    test_valor_id = response.json()['valor_id']
-
-    response = session.get('https://{0}/virtue/admin/valor/launch'.format(ip),
-                           params={'valor_id': test_valor_id})
-    assert (response.json() == {'valor_id': test_valor_id})
-    """
-
     aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
-
 
 def teardown_module():
     pass
-
-    """
-    response = session.get('https://{0}/virtue/admin/valor/destroy'.format(ip),
-                           params={'valor_id': test_valor_id})
-    assert (response.json() == ErrorCodes.admin['success'] or
-            response.json() == {'valor_id': None})
-    """
-
-
-
 
 def __get_excalibur_index():
     # A new index is created every day
@@ -222,7 +200,6 @@ def test_virtue_get():
     assert 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0
 
 
-@pytest.mark.xfail(run=False)
 def test_virtue_launch():
 
     response = session.get(base_url + '/virtue/launch')
@@ -314,7 +291,6 @@ def test_virtue_launch():
                                '/mnt/efs/images/tests/8GB.img'])
         rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
 
-@pytest.mark.xfail(run=False)
 def test_virtue_stop():
 
     response = session.get(base_url + '/virtue/stop')
@@ -368,7 +344,7 @@ def test_virtue_stop():
 
         assert real_virtue['state'] == 'STOPPED'
 
-        assert rethink_manager.get_virtue('TEST_VIRTUE_STOP') == []
+        assert rethink_manager.get_virtue('TEST_VIRTUE_STOP') == None
 
         sysctl_stat = subprocess.call(
             ['ssh', '-i', key_path, 'ubuntu@' + rethink_virtue['address'],
