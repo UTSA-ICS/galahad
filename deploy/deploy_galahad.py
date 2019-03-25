@@ -425,6 +425,10 @@ class Excalibur:
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
         _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+        _cmd5 = "cp('{0}/elasticsearch_keys/kirk-keystore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+        _cmd5 = "cp('{0}/elasticsearch_keys/truststore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
 
         # Now populate the /var/private/ssl dir for excalibur
         EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'

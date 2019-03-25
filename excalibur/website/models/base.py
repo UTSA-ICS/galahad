@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from flask import g, current_app
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
 from werkzeug.local import LocalProxy
-from werkzeug.contrib.cache import FileSystemCache
+from cachelib.file import FileSystemCache
 
 
 class SQLAlchemy(_SQLAlchemy):
