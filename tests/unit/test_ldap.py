@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# Copyright (c) 2019 by Star Lab Corp.
+
 import copy
 import os
 import sys

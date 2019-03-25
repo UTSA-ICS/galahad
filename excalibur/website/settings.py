@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 import os
 ROOT = os.path.abspath(os.path.dirname(__file__))
 

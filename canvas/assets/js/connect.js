@@ -1,3 +1,5 @@
+// Copyright (c) 2019 by Star Lab Corp.
+
 'use strict';
 
 var exec = require('child_process').exec;

@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 # coding: utf-8
 
 from contextlib import contextmanager

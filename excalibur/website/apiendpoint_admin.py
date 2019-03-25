@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 import copy
 import json
 import os

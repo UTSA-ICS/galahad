@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2019 by Star Lab Corp.
+
 import rethinkdb as r
 from boto.utils import get_instance_metadata
 

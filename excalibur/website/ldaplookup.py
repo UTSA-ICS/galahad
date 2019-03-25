@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 import ldap
 import ldap.modlist
 
