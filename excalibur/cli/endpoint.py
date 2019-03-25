@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+
+# Copyright (c) 2019 by Star Lab Corp.
+
 from enum import Enum
 from sso_login import sso_tool
 

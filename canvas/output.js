@@ -1,3 +1,5 @@
+// Copyright (c) 2019 by Star Lab Corp.
+
 'udatase strict';
 
 const exec = require('child_process').exec;

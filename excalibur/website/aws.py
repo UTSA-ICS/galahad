@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from boto.utils import get_instance_metadata
 import boto3
 import botocore

@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from wtforms.fields import StringField, PasswordField
 from wtforms.fields.html5 import EmailField
 from wtforms.validators import DataRequired

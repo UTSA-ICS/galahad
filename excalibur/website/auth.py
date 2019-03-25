@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from functools import wraps
 from authlib.flask.client import OAuth
 from werkzeug.local import LocalProxy

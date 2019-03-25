@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from wtforms.fields import (StringField, TextAreaField, BooleanField,
                             SelectMultipleField)
 from wtforms.fields.html5 import URLField

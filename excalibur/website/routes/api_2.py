@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from flask import Blueprint
 from flask import jsonify
 from authlib.flask.oauth2 import current_token

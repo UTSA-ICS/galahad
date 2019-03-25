@@ -1,3 +1,5 @@
+// Copyright (c) 2019 by Star Lab Corp.
+
 var gulp = require('gulp');
 var ts = require('gulp-typescript');
 

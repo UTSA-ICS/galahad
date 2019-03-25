@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from flask_wtf import FlaskForm
 from flask_wtf._compat import string_types
 from wtforms.widgets import HiddenInput

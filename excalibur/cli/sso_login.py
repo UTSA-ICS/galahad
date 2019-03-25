@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 import json
 import requests
 # To disable showing of insecure warnings for HTTPS without a certificate

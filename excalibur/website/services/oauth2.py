@@ -1,3 +1,5 @@
+# Copyright (c) 2019 by Star Lab Corp.
+
 from authlib.flask.oauth2 import (
     AuthorizationServer,
     ResourceProtector,
