@@ -67,13 +67,22 @@ class Endpoint(object):
         if params is None:
             params = {}
             for param in cmd['parameters']:
-                params[param["url_name"]] = input(param['name'] + ": ")
+
+                if param.get('optional'):
+                    prompt_text = param['name'] + ' (Optional): '
+                else:
+                    prompt_text = param['name'] + ': '
+
+                param_value = input(prompt_text)
+                if (param_value):
+                    params[param['url_name']] = param_value
 
         # Check for missing parameters
         missing_params = []
         for param in cmd['parameters']:
-            if not param['url_name'] in params:
+            if not param['url_name'] in params and not param.get('optional'):
                 missing_params.append(param['url_name'])
+
         if len(missing_params) != 0:
             return '{\n    "missing_parameters": [ %s ] \n}' % (', '.join(['"%s"' % s for s in missing_params]))
 
@@ -148,8 +157,8 @@ class Endpoint(object):
 
     def get_token(self, app_name):
 
-        redirect = 'https://{}/virtue/test'.format(self.ip)
-        redirect_canvas = 'https://{}/virtue/test\n' \
+        redirect = 'https://{}:5002/virtue/test'.format(self.ip)
+        redirect_canvas = 'https://{}:5002/virtue/test\n' \
                           'http://canvas.com:3000/connect/excalibur/callback'.format(self.ip)
 
         client_id = self.sso.get_app_client_id(app_name)
