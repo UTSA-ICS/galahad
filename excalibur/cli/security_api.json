@@ -1,15 +1,7 @@
 {
     "api_name": "security",
     "base_url": "https://{0}:5002/virtue/security",
-    "commands": [ 
-        {
-            "command" : "security api config",
-            "help": "Load a config file configuration",
-            "url": "/api_config",
-            "parameters": [
-                 { "name": "Configuration File", "url_name": "configuration", "is_file": true }
-            ]
-        },
+    "commands": [
         {
             "command" : "transducer list",
             "help": "List all transducers",
