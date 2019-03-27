@@ -5,21 +5,18 @@ die() {
 	exit 1
 }
 
-HOST=${1:-localhost}
-PORT=${2:-5555}
-
 LSM=${LSM:-$(pwd)/lsm}
 export LSM
 
 LSM_REPO=${LSM_REPO:-git@github.com:starlab-io/galahad-lsm}
 
-echo "Getting the kernel release from the running cloud-image at ${HOST}:${PORT}"
-VERSION=$(ssh -o "ControlMaster=yes" -p ${PORT} ubuntu@${HOST} uname -r)
+echo "Getting the kernel release form environment variables"
+export VERSION=${1:-4.13.0-46-generic}
 export VERSION
 echo "Found kernel release '${VERSION}'"
 
-echo "Getting the distro codename from the running cloud-image at ${HOST}:${PORT}"
-CODENAME=$(ssh -o "ControlMaster=yes" -p ${PORT} ubuntu@${HOST} "source /etc/lsb-release && echo \${DISTRIB_CODENAME}")
+echo "Getting the distro codename from environment variables"
+export CODENAME=${2:-artful}
 export CODENAME
 echo "Found distro codename '${CODENAME}'"
 
@@ -28,14 +25,32 @@ if [[ ! -d ${LSM} ]]; then
 	git clone ${LSM_REPO} ${LSM} || die "Failed to clone LSM from ${LSM_REPO} into ${LSM}"
 fi
 
-echo "Firing up a docker container to build the kernel..."
-./containerize.sh ./helpers/build-kernel || die "Failed to build the kernel"
+echo "Adding security-related config options to the kernel config"
+echo "CONFIG_SECURITY_VIRTUE=y" > ${LSM}/lsm.config
 
-scp -P${PORT} kernel-source/linux-image-[0-9].*.deb ubuntu@${HOST}:
-scp -P${PORT} kernel-source/linux-headers-*.deb ubuntu@${HOST}:
-
-ssh -p ${PORT} ubuntu@${HOST} <<  END
-sudo dpkg -i --force *.deb
-rm *.deb
-sudo reboot
-END
+echo "Setup a screen session to run the docker container to build the kernel"
+NL=`echo -ne '\015'`
+BUILD_CMD="./containerize.sh ./helpers/build-kernel || die \"Failed to build the kernel\""
+BUILD_LOGFILE="build-kernel.log"
+SCREEN=$(which screen)
+if [[ -n "$SCREEN" ]]; then
+    SESSION=$(screen -ls | awk '/[0-9]\.Build-kernel/ { print $1 }')
+    echo "Current Screens are [$SESSION]"
+    if [[ ! -n "$SESSION" ]]; then
+        screen -S Build-kernel -t build-kernel -d -m bash
+        sleep 1
+        CURRENT_SESSION=$(screen -ls | awk '/[0-9]\.Build-kernel/ { print $1 }')
+        echo "Current Session is [$CURRENT_SESSION]"
+        screen -S $CURRENT_SESSION -p build-kernel -X logfile $BUILD_LOGFILE
+        screen -S $CURRENT_SESSION -p build-kernel -X log on
+        echo "Firing up a docker container to build the kernel..."
+        screen -S $CURRENT_SESSION -p build-kernel -X stuff "$BUILD_CMD $NL"
+    else
+        echo "Screen Session [$SESSION] already exists, skipping kernel build"
+        echo "To rebuild the kernel either:"
+        echo "    - Enter existing screen session and rerun the last command:"
+        echo "      [./containerize.sh ./helpers/build-kernel || die \"Failed to build the kernel\"]"
+        echo "    OR"
+        echo "    - Kill existing screen session and re-run this script"
+    fi
+fi
