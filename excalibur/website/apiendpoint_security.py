@@ -21,6 +21,13 @@ DEBUG_PERMISSIONS = False
 
 
 class EndPoint_Security:
+
+    rethinkdb_host = 'rethinkdb.galahad.com'
+    ca_cert = '/var/private/ssl/rethinkdb_cert.pem'
+    excalibur_key_file = '/var/private/ssl/excalibur_private_key.pem'
+    virtue_key_dir = '/var/private/ssl'
+    wait_for_ack = 30  # seconds
+
     def __init__(self, user, password):
 
         self.inst = LDAP(user, password)
@@ -30,59 +37,7 @@ class EndPoint_Security:
 
         self.rdb_manager = RethinkDbManager()
 
-        if not hasattr(self.__class__, 'conn'):
-            self.__class__.conn = None
-
-        # Set default paths - these are valid for a default excalibur setup
-        self.set_api_config({})
-
-    # Not officially part of the API but necessary to set up paths correctly
-    def set_api_config(self, config):
-        # Default values
-        self.__class__.rethinkdb_host = 'rethinkdb.galahad.com'
-        self.__class__.ca_cert = '/var/private/ssl/rethinkdb_cert.pem'
-        self.__class__.excalibur_key_file = '/var/private/ssl/excalibur_private_key.pem'
-        self.__class__.virtue_key_dir = '/var/private/ssl'
-        self.__class__.wait_for_ack = 30  # seconds
-
-
-        if 'transducer' in config:
-            c = config['transducer']
-            if 'rethinkdb_host' in c:
-                self.__class__.rethinkdb_host = c['rethinkdb_host']
-            if 'rethinkdb_ca_cert' in c:
-                self.__class__.ca_cert = c['rethinkdb_ca_cert']
-            if 'excalibur_private_key' in c:
-                self.__class__.excalibur_key_file = c['excalibur_private_key']
-            if 'virtue_public_key_dir' in c:
-                self.__class__.virtue_key_dir = c['virtue_public_key_dir']
-            if 'wait_for_ack' in c:
-                try:
-                    self.__class__.wait_for_ack = int(c['wait_for_ack'])
-                except:
-                    return self.__error(
-                        'unspecifiedError',
-                        details=
-                        'Invalid number for seconds to wait for Transducer control ACK: {}; using default: {} seconds'.
-                        format(c['wait_for_ack'], self.__class__.wait_for_ack))
-
-        # Check that files exist
-        if not os.path.isfile(self.__class__.ca_cert):
-            return self.__error(
-                'invalidOrMissingParameters',
-                details='File not found for RethinkDB CA cert: ' +
-                self.__class__.ca_cert)
-        if not os.path.isfile(self.__class__.excalibur_key_file):
-            return self.__error(
-                'invalidOrMissingParameters',
-                details='File not found for Excalibur private key: ' +
-                self.__class__.excalibur_key_file)
-        if not os.path.isdir(self.__class__.virtue_key_dir):
-            return self.__error(
-                'invalidOrMissingParameters',
-                details='Directory not found for Virtue public keys: ' +
-                self.__class__.virtue_key_dir)
-        return self.__error('success')
+        self.conn = None
 
     def transducer_list(self):
         '''
@@ -192,11 +147,11 @@ class EndPoint_Security:
 
         '''
 
-        if self.__class__.conn is None:
+        if self.conn is None:
             self.__connect_rethinkdb()
         try:
             row = r.db('transducers').table('acks')\
-                .get([virtueId, transducerId]).run(self.__class__.conn)
+                .get([virtueId, transducerId]).run(self.conn)
         except r.ReqlError as e:
             return self.__error(
                 'unspecifiedError',
@@ -221,11 +176,11 @@ class EndPoint_Security:
             TransducerConfig: Configuration information for the indicated Transducer in the indicated Virtue
         '''
 
-        if self.__class__.conn is None:
+        if self.conn is None:
             self.__connect_rethinkdb()
         try:
             row = r.db('transducers').table('acks')\
-                .get([virtueId, transducerId]).run(self.__class__.conn)
+                .get([virtueId, transducerId]).run(self.conn)
         except r.ReqlError as e:
             return self.__error(
                 'unspecifiedError',
@@ -252,11 +207,11 @@ class EndPoint_Security:
 
         enabled_transducers = []
 
-        if self.__class__.conn is None:
+        if self.conn is None:
             self.__connect_rethinkdb()
         try:
             for row in r.db('transducers').table('acks')\
-                .filter( { 'virtue_id': virtueId } ).run(self.__class__.conn):
+                .filter( { 'virtue_id': virtueId } ).run(self.conn):
 
                 self.__verify_message(row)
                 if ('enabled' in row) and row['enabled']:
@@ -285,11 +240,12 @@ class EndPoint_Security:
         try:
             ret = self.__update_roles_transducer(transducerId, isEnabled)
             if ret != True:
-                    return ret
+                return ret
 
             ret = self.__update_transducer_starting_config(transducerId, configuration)
             if ret != True:
-                    return ret
+                return ret
+
             virtues_raw = self.inst.get_objs_of_type('OpenLDAPvirtue')
             if (virtues_raw == None):
                 return json.dumps(ErrorCodes.user['unspecifiedError'])
@@ -305,26 +261,23 @@ class EndPoint_Security:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
-
-
     def __connect_rethinkdb(self):
         # RethinkDB connection
         # This connection will fail if setup_rethinkdb.py hasn't been run, because
         # there won't be an excalibur user and it won't have the specified password.
-        with open(self.__class__.excalibur_key_file, 'r') as f:
+        with open(self.excalibur_key_file, 'r') as f:
             key = f.read()
-            self.__class__.excalibur_key = RSA.importKey(key)
+            self.excalibur_key = RSA.importKey(key)
             try:
-                self.__class__.conn = r.connect(
-                    host=self.__class__.rethinkdb_host,
+                self.conn = r.connect(
+                    host=self.rethinkdb_host,
                     user='excalibur',
                     password=key,
-                    ssl={'ca_certs': self.__class__.ca_cert})
+                    ssl={'ca_certs': self.ca_cert})
             except r.ReqlDriverError as e:
                 return self.__error('unspecifiedError', details=\
                     'Failed to connect to RethinkDB at host: ' + \
-                    self.__class__.rethinkdb_host + ' because: ' + str(e))
+                    self.rethinkdb_host + ' because: ' + str(e))
         return True
 
     def __enable_disable(self, transducerId, virtueId, configuration,
@@ -405,7 +358,7 @@ class EndPoint_Security:
             str(row['timestamp'])
         ])
         h = SHA.new(str(message))
-        signer = PKCS1_v1_5.new(self.__class__.excalibur_key)
+        signer = PKCS1_v1_5.new(self.excalibur_key)
         signature = signer.sign(h)
         return (True, signature)
 
@@ -430,7 +383,7 @@ class EndPoint_Security:
         ])
 
         virtue_public_key = os.path.join(
-            self.__class__.virtue_key_dir,
+            self.virtue_key_dir,
             'virtue_' + row['virtue_id'] + '_pub.pem')
         if not os.path.isfile(virtue_public_key):
             return self.__error('invalidOrMissingParameters', details=\
@@ -450,7 +403,7 @@ class EndPoint_Security:
                 json.dumps(printable_msg, indent=2))
 
     def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, virtue_running, config=None):
-        if self.__class__.conn is None:
+        if self.conn is None:
             ret = self.__connect_rethinkdb()
             # Return if error
             if ret != True:
@@ -480,7 +433,7 @@ class EndPoint_Security:
         # Send command to change ruleset
         try:
             res = r.db('transducers').table('commands')\
-                .insert(row, conflict='replace').run(self.__class__.conn)
+                .insert(row, conflict='replace').run(self.conn)
             if res['errors'] > 0:
                 return self.__error(
                     'unspecifiedError',
@@ -499,7 +452,7 @@ class EndPoint_Security:
         #try:
         cursor = r.db('transducers').table('acks')\
             .get([virtue_id, trans_id])\
-            .changes(squash=False).run(self.__class__.conn)
+            .changes(squash=False).run(self.conn)
         #except r.ReqlError as e:
         #       print 'ERROR: Failed to read from the ACKs table because:', e
         #       return False
@@ -511,7 +464,7 @@ class EndPoint_Security:
                 # Wait max 30 seconds - if we miss the real ACK, hopefully
                 # at least the next heartbeat will suffice
                 print 'INFO: Waiting for ACK'
-                change = cursor.next(wait=self.__class__.wait_for_ack)
+                change = cursor.next(wait=self.wait_for_ack)
                 row = change['new_val']
                 self.__verify_message(row)
                 if row['timestamp'] >= timestamp:

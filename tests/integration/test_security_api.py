@@ -38,10 +38,6 @@ def setup_module():
 
     aggregator_ssh = ssh_tool('ubuntu', AGGREGATOR_HOSTNAME, sshkey='~/default-user-key.pem')
 
-    with open('../../excalibur/cli/excalibur_config.json', 'r') as f:
-        config = json.load(f)
-        session.get(security_url + '/api_config', params={'configuration': json.dumps(config)})
-
 # This is a separate method that is NOT called from setup_module because pytest likes to run
 # setup_module when, for example, listing tests instead of running them.
 def __setup_virtue():

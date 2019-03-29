@@ -836,26 +836,6 @@ def admin_application_add():
 ################ Security API ##################
 
 
-@bp.route('/security/api_config', methods=['GET'])
-@require_oauth()
-def security_api_config():
-
-    ep = get_security_endpoint()
-
-    try:
-
-        ret = ep.set_api_config(json.loads(request.args['configuration']))
-        log_to_elasticsearch('Get security config', extra={'user': get_user(), 'configuration': request.args['configuration']}, ret=ret, func_name=inspect.currentframe().f_code.co_name)
-        return make_response(ret)
-
-    except:
-
-        print("Unexpected error:", sys.exc_info())
-
-        return make_response(
-            json.dumps(ErrorCodes.security['unspecifiedError']))
-
-
 @bp.route('/security/transducer/list', methods=['GET'])
 @require_oauth()
 def transducer_list():
