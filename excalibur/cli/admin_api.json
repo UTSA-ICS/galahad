@@ -56,13 +56,13 @@
                 { "name": "Virtue ID", "url_name": "virtueId" }
             ] 
         },
-        { 
+        {
             "command": "role create",
             "help": "Creates a Role with the given parameters",
             "url": "/role/create",
             "parameters": [
                 { "name": "Role (as JSON)", "url_name": "role", "is_file": true },
-                { "name": "Unity Image Size (e.g 8GB)", "url_name": "unitySize" }
+                { "name": "Unity Image Size (e.g 8GB)", "url_name": "unitySize", "optional": true }
             ]
         },
         {
