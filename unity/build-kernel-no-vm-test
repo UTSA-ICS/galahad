@@ -1,8 +1,8 @@
 #!/bin/bash
 
 die() {
-	echo "$*" 1>&2
-	exit 1
+    echo "$*" 1>&2
+    exit 1
 }
 
 LSM=${LSM:-$(pwd)/lsm}
@@ -10,19 +10,41 @@ export LSM
 
 LSM_REPO=${LSM_REPO:-git@github.com:starlab-io/galahad-lsm}
 
-echo "Getting the kernel release form environment variables"
-export VERSION=${1:-4.13.0-46-generic}
-export VERSION
-echo "Found kernel release '${VERSION}'"
+usage() {
+    echo ""
+    echo "ERROR: No Valid kernel release specified"
+    echo "  The following kernels are supported: (Please specify one of them)"
+    echo "    4.13"
+    echo "    4.15"
+    echo ""
+    exit 0
+}
 
-echo "Getting the distro codename from environment variables"
-export CODENAME=${2:-artful}
-export CODENAME
-echo "Found distro codename '${CODENAME}'"
+if [[ $# != 1 ]];
+then
+    usage
+fi
+
+if [[ ${1} == "4.13" ]];
+then
+    export CODENAME="artful"
+    export VERSION="4.13.0-46-generic"
+elif [[ ${1} == "4.15" ]];
+then
+    export CODENAME="bionic"
+    export VERSION="4.15.0"
+else
+    usage
+fi
+
+echo ""
+echo "Setting distro codename '${CODENAME}'"
+echo "Setting kernel release '${VERSION}'"
+echo ""
 
 echo "Fetching down the latest LSM"
 if [[ ! -d ${LSM} ]]; then
-	git clone ${LSM_REPO} ${LSM} || die "Failed to clone LSM from ${LSM_REPO} into ${LSM}"
+    git clone ${LSM_REPO} ${LSM} || die "Failed to clone LSM from ${LSM_REPO} into ${LSM}"
 fi
 
 echo "Adding security-related config options to the kernel config"
