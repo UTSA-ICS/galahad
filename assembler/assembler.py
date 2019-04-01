@@ -99,10 +99,15 @@ class Assembler(object):
                                             'transducers')
             processkiller_file_path = os.path.join(real_HOME, 'galahad',
                                             'transducers')
+            ossensor_file_path = os.path.join(real_HOME, 'galahad',
+                                            'transducers')
             kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
+
             merlin_files = ['merlin.deb']
             processkiller_files = ['processkiller.deb']
+            ossensor_files = ['ossensor.deb']
+
             kernel_files = [
                 'linux-headers-4.13.0-46_4.13.0-46.51+unity1_all.deb',
                 'linux-headers-4.13.0-46-generic_4.13.0-46.51+unity1_amd64.deb',
@@ -115,6 +120,9 @@ class Assembler(object):
                 files.append(f)
             for f in processkiller_files:
                 f = os.path.join(processkiller_file_path, f)
+                files.append(f)
+            for f in ossensor_files:
+                f = os.path.join(ossensor_file_path, f)
                 files.append(f)
             for f in kernel_files:
                 f = os.path.join(kernel_file_path, f)
@@ -149,6 +157,10 @@ class Assembler(object):
             # Enable processkiller
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'processkiller'])
+
+            # Enable ossensor
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'ossensor'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -253,19 +265,9 @@ class Assembler(object):
             # Install Actuators
             actuator_file_path = os.path.join(payload_dir, 'actuators')
             actuator_files = ['netblock_actuator.deb']
-            processkiller_files = ['processkiller.deb']
-            ossensor_files = ['ossensor.deb']
-
-
             files = []
             for f in actuator_files:
                 f = os.path.join(actuator_file_path, f)
-                files.append(f)
-            for f in processkiller_files:
-                f = os.path.join(payload_dir, f)
-                files.append(f)
-            for f in ossensor_files:
-                f = os.path.join(payload_dir, f)
                 files.append(f)
 
             dpkg_cmd = ['dpkg', '-i', '--force-all', '--root=' + mount_path]
@@ -290,9 +292,6 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
-
-            subprocess.check_call(['chroot', mount_path,
-                                   'systemctl', 'enable', 'ossensor'])
 
             # Install the unity-net service for Valor networking
             shutil.copy(payload_dir + '/unity-net.service',
@@ -356,7 +355,7 @@ class Assembler(object):
         # Build the processkiller deb file
         subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
                                            'transducers', 'build_processkiller.sh'))
-
+        # Build the ossensor deb file
         subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
                                            'transducers', 'build_ossensor.sh'))
 
@@ -366,56 +365,6 @@ class Assembler(object):
                                         'assembler',
                                         'payload'),
                            ssh_key=ssh_key)
-
-
-        vm = None
-        instance = ''
-        vmname = self.NAME
-
-        if (build_options['env'] == 'aws'):
-            # Deprecated
-            ssh_data = self.setup_aws(build_options, WORK_DIR, vmname)
-            instance = ssh_data[0]
-            ssh_host = ssh_data[1]
-            ssh_port = ssh_data[2]
-        elif (build_options['env'] == 'xen'):
-            self.construct_img(build_options, WORK_DIR,
-                               os.path.join(os.environ['HOME'],
-                                            'galahad',
-                                            'assembler',
-                                            'payload'))
-
-        if (build_options['env'] != 'xen'):
-
-            stage_dict[KernelStage.NAME] = KernelStage(ssh_host, ssh_port,
-                                                       WORK_DIR)
-            stage_dict[TransducerStage.NAME] = TransducerStage(
-                self.elastic_search_host,
-                self.elastic_search_node,
-                self.syslog_server,
-                ssh_host,
-                ssh_port,
-                WORK_DIR)
-            stage_dict[MerlinStage.NAME] = MerlinStage(ssh_host, ssh_port,
-                                                       WORK_DIR)
-            stage_dict[ActuatorStage.NAME] = ActuatorStage(ssh_host, ssh_port,
-                                                           WORK_DIR)
-            stage_dict[ProcessKillerStage.NAME] = ProcessKillerStage(ssh_host,
-                                                                     ssh_port,
-                                                                     WORK_DIR)
-
-            # We have a shutdown stage to bring the VM down. Of course if you're
-            # trying to debug it's worth commenting this out to keep the vm
-            # running after the assembly is complete
-            stage_dict[ShutdownStage.NAME] = ShutdownStage(ssh_host,
-                                                           ssh_port,
-                                                           WORK_DIR)
-
-            for stage in stage_dict:
-                if isinstance(stage_dict[stage], SSHStage):
-                    self.run_stage(stage_dict, stage)#'''
-
-        return_data = ''
 
         print("Constructor is done")
 
