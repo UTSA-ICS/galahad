@@ -13,7 +13,7 @@ if [ $1 != "merlin" ] && [ $1 != "listener" ] && [ $1 != "processkiller" ] && [ 
 fi
 
 
-if [ $1 == "merlin" ]; then
+if [ $1 == "merlin" ] || [ $1 == "ossensor" ]; then
     HANDLER_COPY_TO="$1/opt/$1/"
     cp ../elastic_log_handler/handlers.py $HANDLER_COPY_TO
 fi
