@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# For building OS Sensor Transducer
+
 set -e
 
 TRANSDUCERS_HOME=$HOME/galahad/transducers
