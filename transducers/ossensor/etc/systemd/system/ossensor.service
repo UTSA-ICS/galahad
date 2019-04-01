@@ -1,0 +1,10 @@
+[Unit]
+After=network.target
+
+[Service]
+ExecStart=/etc/init.d/ossensor start
+ExecStop=/etc/init.d/ossensor stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

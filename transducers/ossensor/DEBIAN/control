@@ -1,0 +1,8 @@
+Source: ossensor
+Section: devel
+Maintainer: Zachary Ratliff
+Version: 1.0
+Package: ossensor
+Architecture: all
+Depends: python
+Description: VirtUE OS Sensor
