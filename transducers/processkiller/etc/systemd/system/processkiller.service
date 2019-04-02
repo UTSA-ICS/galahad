@@ -1,10 +1,10 @@
 [Unit]
+Description=processkiller service
 After=network.target
 
 [Service]
-ExecStart=/etc/init.d/processkiller start
-ExecStop=/etc/init.d/processkiller stop
-RemainAfterExit=yes
+User=root
+ExecStart=/usr/bin/python opt/processkiller/processkiller.py > /opt/processkiller/processkiller-initd.log 2>&1
 
 [Install]
 WantedBy=multi-user.target
