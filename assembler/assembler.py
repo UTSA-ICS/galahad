@@ -311,6 +311,12 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 501)
 
+            # Mount the virtuefs filesystem
+            subprocess.check_call(['chroot', mount_path,
+                                   'echo',
+                                   '"virtuefs /sys/fs/virtuefs virtuefs defaults 0 0"',
+                                   '>>', mount_path + '/etc/fstab'])
+
         except:
             raise
         finally:
@@ -392,7 +398,16 @@ class Assembler(object):
         ssh = ssh_tool('virtue', ssh_host, key_path)
         assert ssh.check_access()
 
+        # Turn off inode_create and path_mkdir logging
+        # This fails docker pull of large container images
+        ssh.ssh('sudo su - root -c "echo \"0\" > /sys/fs/virtuefs/loginode"')
+        ssh.ssh('sudo su - root -c "echo \"0\" > /sys/fs/virtuefs/logmkdir"')
+
         ssh.ssh(USER_SCRIPT.format(' '.join(containers), docker_login))
+
+        # Turn on inode_create and path_mkdir logging
+        ssh.ssh('sudo su - root -c "echo \"1\" > /sys/fs/virtuefs/loginode"')
+        ssh.ssh('sudo su - root -c "echo \"1\" > /sys/fs/virtuefs/logmkdir"')
 
 
     def provision_virtue(self,
