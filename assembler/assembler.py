@@ -320,6 +320,8 @@ class Assembler(object):
             shutil.copy(os.path.join(real_HOME, 'galahad', 'transducers') +
                         '/set_kernel_sensor_logging.sh',
                         mount_path + '/root/')
+            # Make sure file has exec permissions
+            os.chmod(mount_path + '/root/set_kernel_sensor_logging.sh', 0o755)
         except:
             raise
         finally:
