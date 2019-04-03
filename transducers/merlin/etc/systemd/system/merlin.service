@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 User=merlin
-ExecStart=/opt/merlin/merlin_start.sh
+ExecStart=/opt/merlin/start_merlin.sh
 PermissionsStartOnly=true
 ExecStartPre=/bin/chown root:camelot /dev/netblockchar
 ExecStartPre=/bin/chmod 660 /dev/netblockchar
