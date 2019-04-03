@@ -321,7 +321,7 @@ class Assembler(object):
                         '/set_kernel_sensor_logging.sh',
                         mount_path + '/root/')
             # Make sure file has exec permissions
-            os.chmod(mount_path + '/root/set_kernel_sensor_logging.sh', 0o755)
+            os.chmod(mount_path + '/root/set_kernel_sensor_logging.sh', 0o700)
         except:
             raise
         finally:
