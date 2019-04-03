@@ -311,16 +311,13 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 501)
 
-            # Mount the virtuefs filesystem
-            subprocess.check_call(['chroot', mount_path,
-                                   'echo',
-                                   '"virtuefs /sys/fs/virtuefs virtuefs defaults 0 0"',
-                                   '>>', mount_path + '/etc/fstab'])
-
+            # Ad the mount point for the virtuefs filesystem
+            # used to control logging of inode_create and path_mkdir
+            with open(mount_path + '/etc/fstab', 'a') as myfile:
+                myfile.write('virtuefs /sys/fs/virtuefs virtuefs defaults 0 0\n')
         except:
             raise
         finally:
-
             os.environ['HOME'] = real_HOME
 
             subprocess.call(['umount', mount_path + '/proc'])
