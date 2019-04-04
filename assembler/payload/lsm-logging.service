@@ -1,0 +1,12 @@
+[Unit]
+Description=Service to activate LSM Logging
+After=default.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/root/set_kernel_log_sensor.sh inode on
+ExecStart=/root/set_kernel_log_sensor.sh mkdir on
+
+[Install]
+WantedBy=multi-user.target

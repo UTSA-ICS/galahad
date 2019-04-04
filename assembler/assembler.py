@@ -315,13 +315,15 @@ class Assembler(object):
             # used to control logging of inode_create and path_mkdir
             with open(mount_path + '/etc/fstab', 'a') as myfile:
                 myfile.write('virtuefs /sys/fs/virtuefs virtuefs defaults 0 0\n')
-            # Copy over file that will toggle logging of the
-            # inode and mkdir sensors
-            shutil.copy(os.path.join(real_HOME, 'galahad', 'transducers') +
-                        '/set_kernel_sensor_logging.sh',
-                        mount_path + '/root/')
+
+            # Copy the service file for enabling the inode and mkdir sensor
+            # logging
+            shutil.copy(payload_dir + '/lsm-logging.service',
+                        mount_path + '/etc/systemd/system')
+            # Copy over shell script that will enable the logging
+            shutil.copy(payload_dir + '/lsm-logging.sh', mount_path + '/root/')
             # Make sure file has exec permissions
-            os.chmod(mount_path + '/root/set_kernel_sensor_logging.sh', 0o700)
+            os.chmod(mount_path + '/root/lsm-logging.sh', 0o700)
         except:
             raise
         finally:
@@ -402,16 +404,7 @@ class Assembler(object):
         ssh = ssh_tool('virtue', ssh_host, key_path)
         assert ssh.check_access()
 
-        # Turn off inode_create and path_mkdir logging
-        # This fails docker pull of large container images
-        ssh.ssh('sudo /root/set_kernel_log_sensor.sh inode off')
-        ssh.ssh('sudo /root/set_kernel_log_sensor.sh mkdir off')
-
         ssh.ssh(USER_SCRIPT.format(' '.join(containers), docker_login))
-
-        # Turn on inode_create and path_mkdir logging
-        ssh.ssh('sudo /root/set_kernel_log_sensor.sh inode on')
-        ssh.ssh('sudo /root/set_kernel_log_sensor.sh mkdir on')
 
 
     def provision_virtue(self,
@@ -442,6 +435,11 @@ class Assembler(object):
             # Enable merlin since virtue-id is now available
             subprocess.check_call(['chroot', image_mount,
                                    'systemctl', 'enable', 'merlin'])
+
+            # Enable LSM sensor logging
+            # This turns on inode_create and path_mkdir logging
+            subprocess.check_call(['chroot', image_mount,
+                                   'systemctl', 'enable', 'lsm-logging'])
 
             # read network rules
             rules = ""
