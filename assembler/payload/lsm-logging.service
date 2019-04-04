@@ -1,6 +1,6 @@
 [Unit]
 Description=Service to activate LSM Logging
-After=default.target
+After=sysinit.target
 
 [Service]
 Type=oneshot
