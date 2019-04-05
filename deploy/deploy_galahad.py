@@ -860,7 +860,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
                 time.sleep(10)
 
     # Done with XenPVMBuilder - shutdown the node
-    EFS.shutdown_xen_pvm_builder()
+    efs.shutdown_xen_pvm_builder()
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, sshkey)
