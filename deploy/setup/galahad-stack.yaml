@@ -308,6 +308,7 @@ Resources:
           su - ubuntu -c "vncserver"
           su - ubuntu -c "vncserver -kill :1"
           su - ubuntu -c "echo -e \"\ngnome-panel &\ngnome-settings-daemon &\nmetacity &\nnautilus &\" >> .vnc/xstartup"
+          su - ubuntu -c "vncserver -geometry 1600x1200"
           sed -i '/^exit 0/i \
           \
           #\
