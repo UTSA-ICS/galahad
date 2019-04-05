@@ -613,7 +613,7 @@ class EFS:
     def shutdown_xen_pvm_builder(self):
         # TODO Another method will need to be added to start the instance
 
-        _shutdown_cmd = "sudo('shutdown -h now')"
+        _shutdown_cmd = "sudo('shutdown -h 1')"
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, _shutdown_cmd)
 
     def setup_unity_img(self, constructor_ip, image_name):
@@ -704,7 +704,7 @@ class Canvas():
         self.shutdown()
 
     def shutdown(self):
-        _cmd = "sudo('shutdown -h now')"
+        _cmd = "sudo('shutdown -h 1')"
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
 
