@@ -610,25 +610,11 @@ class EFS:
         ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
-    def stop_xen_pvm_builder(self):
-        # TODO Call this method to stop the xenpvmbuilder instance
+    def shutdown_xen_pvm_builder(self):
         # TODO Another method will need to be added to start the instance
-        # TODO for calls to build a ubuntu + unity image.
 
-        client = boto3.client('ec2')
-
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['XenPVMBuilder']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name + '-VPC']
-            }])
-
-        instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
-
-        client.stop_instances(InstanceIds=[instance_id])
+        _shutdown_cmd = "sudo('shutdown -h now')"
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, _shutdown_cmd)
 
     def setup_unity_img(self, constructor_ip, image_name):
 
@@ -713,6 +699,13 @@ class Canvas():
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_canvas.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Shutdown the node to reduce cost. It can be started up for testing.
+        self.shutdown()
+
+    def shutdown(self):
+        _cmd = "sudo('shutdown -h now')"
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
 
 class StandbyPools:
@@ -865,6 +858,9 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
                 create_img_file_threads.remove(thread)
             else:
                 time.sleep(10)
+
+    # Done with XenPVMBuilder - shutdown the node
+    EFS.shutdown_xen_pvm_builder()
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, sshkey)
