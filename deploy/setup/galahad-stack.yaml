@@ -220,6 +220,16 @@ Resources:
           # Mount the EFS file system
           echo "${VirtUEValorEFS}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
           mount -a
+
+          # Install docker
+          apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+          apt-get update
+          apt-get install -y docker-ce
+
+          # Enable docker for ubuntu user
+          usermod -aG docker ubuntu
       Tags:
         - Key: Project
           Value: Virtue

@@ -1,10 +1,13 @@
 [Unit]
-After=network.target
+Description=merlin service
+After=multi-user.target
 
 [Service]
-ExecStart=/etc/init.d/merlin start
-ExecStop=/etc/init.d/merlin stop
-RemainAfterExit=yes
+User=merlin
+ExecStart=/opt/merlin/start_merlin.sh
+PermissionsStartOnly=true
+ExecStartPre=/bin/chown root:camelot /dev/netblockchar
+ExecStartPre=/bin/chmod 660 /dev/netblockchar
 
 [Install]
 WantedBy=multi-user.target

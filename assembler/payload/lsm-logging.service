@@ -1,0 +1,12 @@
+[Unit]
+Description=Service to activate LSM Logging
+After=sysinit.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/root/lsm-logging.sh inode on
+ExecStart=/root/lsm-logging.sh mkdir on
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+die() {
+    echo "$*" 1>&2
+    exit 1
+}
+
+LSM=${LSM:-$(pwd)/lsm}
+export LSM
+
+LSM_REPO=${LSM_REPO:-git@github.com:starlab-io/galahad-lsm}
+
+usage() {
+    echo ""
+    echo "ERROR: No Valid kernel release specified"
+    echo "  The following kernels are supported: (Please specify one of them)"
+    echo "    4.13"
+    echo "    4.15"
+    echo ""
+    exit 0
+}
+
+if [[ $# != 1 ]];
+then
+    usage
+fi
+
+if [[ ${1} == "4.13" ]];
+then
+    export CODENAME="artful"
+    export VERSION="4.13.0-46-generic"
+elif [[ ${1} == "4.15" ]];
+then
+    export CODENAME="bionic"
+    export VERSION="4.15.0"
+else
+    usage
+fi
+
+echo ""
+echo "Setting distro codename '${CODENAME}'"
+echo "Setting kernel release '${VERSION}'"
+echo ""
+
+echo "Fetching down the latest LSM"
+if [[ ! -d ${LSM} ]]; then
+    git clone ${LSM_REPO} ${LSM} || die "Failed to clone LSM from ${LSM_REPO} into ${LSM}"
+fi
+
+echo "Adding security-related config options to the kernel config"
+echo "CONFIG_SECURITY_VIRTUE=y" > ${LSM}/lsm.config
+
+echo "Setup a screen session to run the docker container to build the kernel"
+NL=`echo -ne '\015'`
+BUILD_CMD="./containerize.sh ./helpers/build-kernel || die \"Failed to build the kernel\""
+BUILD_LOGFILE="build-kernel.log"
+SCREEN=$(which screen)
+if [[ -n "$SCREEN" ]]; then
+    SESSION=$(screen -ls | awk '/[0-9]\.Build-kernel/ { print $1 }')
+    echo "Current Screens are [$SESSION]"
+    if [[ ! -n "$SESSION" ]]; then
+        screen -S Build-kernel -t build-kernel -d -m bash
+        sleep 1
+        CURRENT_SESSION=$(screen -ls | awk '/[0-9]\.Build-kernel/ { print $1 }')
+        echo "Current Session is [$CURRENT_SESSION]"
+        screen -S $CURRENT_SESSION -p build-kernel -X logfile $BUILD_LOGFILE
+        screen -S $CURRENT_SESSION -p build-kernel -X log on
+        echo "Firing up a docker container to build the kernel..."
+        screen -S $CURRENT_SESSION -p build-kernel -X stuff "$BUILD_CMD $NL"
+    else
+        echo "Screen Session [$SESSION] already exists, skipping kernel build"
+        echo "To rebuild the kernel either:"
+        echo "    - Enter existing screen session and rerun the last command:"
+        echo "      [./containerize.sh ./helpers/build-kernel || die \"Failed to build the kernel\"]"
+        echo "    OR"
+        echo "    - Kill existing screen session and re-run this script"
+    fi
+fi

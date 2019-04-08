@@ -14,7 +14,7 @@ from aws import AWS
 from ssh_tool import ssh_tool
 
 # Number of MAX standby valors to keep provisioned
-NUM_STANDBY_VALORS = 2
+NUM_STANDBY_VALORS = 1
 
 # number of max virtues per valor
 MAX_VIRTUES_PER_VALOR = 3

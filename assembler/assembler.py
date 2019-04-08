@@ -311,10 +311,22 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 501)
 
+            # Ad the mount point for the virtuefs filesystem
+            # used to control logging of inode_create and path_mkdir
+            with open(mount_path + '/etc/fstab', 'a') as myfile:
+                myfile.write('virtuefs /sys/fs/virtuefs virtuefs defaults 0 0\n')
+
+            # Copy the service file for enabling the inode and mkdir sensor
+            # logging
+            shutil.copy(payload_dir + '/lsm-logging.service',
+                        mount_path + '/etc/systemd/system')
+            # Copy over shell script that will enable the logging
+            shutil.copy(payload_dir + '/lsm-logging.sh', mount_path + '/root/')
+            # Make sure file has exec permissions
+            os.chmod(mount_path + '/root/lsm-logging.sh', 0o700)
         except:
             raise
         finally:
-
             os.environ['HOME'] = real_HOME
 
             subprocess.call(['umount', mount_path + '/proc'])
@@ -423,6 +435,11 @@ class Assembler(object):
             # Enable merlin since virtue-id is now available
             subprocess.check_call(['chroot', image_mount,
                                    'systemctl', 'enable', 'merlin'])
+
+            # Enable LSM sensor logging
+            # This turns on inode_create and path_mkdir logging
+            subprocess.check_call(['chroot', image_mount,
+                                   'systemctl', 'enable', 'lsm-logging'])
 
             # read network rules
             rules = ""
