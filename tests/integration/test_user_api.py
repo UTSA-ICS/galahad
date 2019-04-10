@@ -26,7 +26,7 @@ from sso_login import sso_tool
 sys.path.insert(0, '..')
 from ssh_tool import ssh_tool
 
-key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+key_path = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'

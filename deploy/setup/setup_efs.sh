@@ -9,8 +9,7 @@ VALOR_DIR="galahad/valor"
 # Copy over valor related files to EFS
 sudo cp -Rp $HOME/$VALOR_DIR /mnt/efs
 
-# Copy over the galahad-keys to EFS mount
-sudo cp -Rp $HOME/galahad-keys /mnt/efs
+sudo mkdir -p /mnt/efs/galahad-keys
 
 # Create necessary directories for construction, assembly and provisioning.
 sudo mkdir -p /mnt/efs/images/base_ubuntu

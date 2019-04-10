@@ -210,10 +210,10 @@ class Assembler(object):
             # These certs will be used by syslog-ng service
             # Copy the certs from galahad-keys dir.
             shutil.copy(
-                os.path.join(real_HOME, 'galahad-keys') + '/kirk-keystore.jks',
+                '/mnt/efs/galahad-keys/kirk-keystore.jks',
                 virtue_home)
             shutil.copy(
-                os.path.join(real_HOME, 'galahad-keys') + '/truststore.jks',
+                '/mnt/efs/galahad-keys/truststore.jks',
                 virtue_home)
 
             # Install Transducers
