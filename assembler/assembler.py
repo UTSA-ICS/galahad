@@ -414,6 +414,7 @@ class Assembler(object):
                          output_path,
                          virtue_key, # The Virtue's private key
                          excalibur_key, # Excalibur's public key
+                         user_key, # The user's public key
                          rethinkdb_cert, #RethinkDB's SSL cert
                          networkRules):
 
@@ -462,6 +463,9 @@ class Assembler(object):
             with open(image_mount + '/var/private/ssl/excalibur_pub.pem',
                       'w') as excalibur_pub:
                 excalibur_pub.write(excalibur_key)
+            with open(image_mount + '/home/virtue/.ssh/authorized_keys',
+                      'a') as authorized_keys:
+                authorized_keys.write(user_key)
             with open(image_mount + '/var/private/ssl/rethinkdb_cert.pem',
                       'w') as rethinkdb_cert_file:
                 rethinkdb_cert_file.write(rethinkdb_cert)

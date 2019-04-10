@@ -271,6 +271,11 @@ class CreateVirtueThread(threading.Thread):
             with open(gl_key_dir + '/excalibur_pub.pem',
                       'r') as excalibur_key_file:
                 excalibur_key = excalibur_key_file.read().strip()
+
+            user_key = subprocess.check_output(
+                ['ssh-keygen', '-y', '-f',
+                 '{0}/{1}.pem'.format(user_key_dir, self.username)])
+
             with open(gl_key_dir + '/rethinkdb_cert.pem',
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
@@ -296,6 +301,7 @@ class CreateVirtueThread(threading.Thread):
                                    '-o', '/mnt/efs/' + virtue_path,
                                    '-v', virtue_key,
                                    '-e', excalibur_key,
+                                   '--user_key', user_key,
                                    '-r', rdb_cert])
 
             # Enable/disable sensors as specified by the role
