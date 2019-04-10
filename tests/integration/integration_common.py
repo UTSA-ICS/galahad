@@ -32,11 +32,7 @@ def create_new_role(role_name, unity_img_name=None):
 
     role_data = {'name': role_name, 'version': '1.0', 'applicationIds': ['firefox'],
         'startingResourceIds': [],
-        'startingTransducerIds': ['path_mkdir', 'bprm_set_creds', 'task_create',
-                                  'task_alloc', 'inode_create', 'socket_connect',
-                                  'socket_bind', 'socket_accept', 'socket_listen',
-                                  'create_process', 'process_start', 'process_died',
-                                  'srv_create_proc', 'open_fd'],
+        'startingTransducerIds': [],
         'networkRules': []}
 
     if (unity_img_name != None):
