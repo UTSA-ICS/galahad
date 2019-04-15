@@ -436,14 +436,6 @@ class Excalibur:
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
                     format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
 
-        # Copy over various other keys required for virtues
-        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/kirk-keystore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/truststore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
         _cmd5 = ("ln('-s {0}/default-virtue-key.pem {1}/default-virtue-key.pem')"
                  ).format(GALAHAD_KEY_DIR, USER_KEY_DIR)
