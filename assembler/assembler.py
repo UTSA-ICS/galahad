@@ -142,6 +142,12 @@ class Assembler(object):
                     os.chown(os.path.join(path, d), 501, 1000)
 
             os.chmod(mount_path + '/opt/merlin', 0o777)
+            
+            # Make Merlin own the OS Sensor config file
+            with open('/opt/ossensor/ossensor-config.json', 'w+') as f:
+                f.write("{}")
+                
+            os.chown(mount_path + '/opt/ossensor/ossensor-config.json', 501, 1000)
 
             os.chown(mount_path + '/var/private/ssl', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/var/private/ssl'):
