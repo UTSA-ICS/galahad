@@ -55,8 +55,9 @@ def update_ldap_users_from_ad():
 
             # Create/Add keys for each user
             subprocess.check_call(
-                ['ssh-keygen', '-t', 'rsa', '-f', '~/user-keys/{0}.pem'.format(ad_username),
-                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '""']
+                ['ssh-keygen', '-t', 'rsa', '-f', '{}/user-keys/{}.pem'.format(
+                    os.environ['HOME'], ad_username),
+                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '']
             )
 
             # Create a dummy kerberos file for the user.
