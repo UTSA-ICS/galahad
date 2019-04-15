@@ -25,7 +25,7 @@ class EndPoint_Security:
     rethinkdb_host = 'rethinkdb.galahad.com'
     ca_cert = '/var/private/ssl/rethinkdb_cert.pem'
     excalibur_key_file = '/var/private/ssl/excalibur_private_key.pem'
-    virtue_key_dir = '/var/private/ssl'
+    virtue_key_dir = os.environ['HOME'] + '/user-keys'
     wait_for_ack = 30  # seconds
 
     def __init__(self, user, password):
@@ -161,7 +161,10 @@ class EndPoint_Security:
         if row is None:
             return json.dumps( { 'enabled': True } )
 
-        self.__verify_message(row)
+        verified = self.__verify_message(row)
+        if (verified != True):
+            return verified
+
         return json.dumps( { 'enabled': row['enabled'] } )
 
     def transducer_get_configuration(self, transducerId, virtueId):
@@ -190,7 +193,10 @@ class EndPoint_Security:
         if row is None:
             return json.dumps( None )
 
-        self.__verify_message(row)
+        verified = self.__verify_message(row)
+        if (verified != True):
+            return verified
+
         # By definition, the configuration is a JSON object
         return row['configuration']
 
@@ -213,7 +219,10 @@ class EndPoint_Security:
             for row in r.db('transducers').table('acks')\
                 .filter( { 'virtue_id': virtueId } ).run(self.conn):
 
-                self.__verify_message(row)
+                verified = self.__verify_message(row)
+                if (verified != True):
+                    return verified
+
                 if ('enabled' in row) and row['enabled']:
                     enabled_transducers.append(row['transducer_id'])
 
@@ -384,7 +393,7 @@ class EndPoint_Security:
 
         virtue_public_key = os.path.join(
             self.virtue_key_dir,
-            'virtue_' + row['virtue_id'] + '_pub.pem')
+            row['virtue_id'] + '.pem.pub')
         if not os.path.isfile(virtue_public_key):
             return self.__error('invalidOrMissingParameters', details=\
                 'No file found for Virtue public key at: ' + \
@@ -401,6 +410,8 @@ class EndPoint_Security:
             return self.__error('unspecifiedError', details=\
                 'Unable to validate signature of ACK message: ' + \
                 json.dumps(printable_msg, indent=2))
+
+        return True
 
     def __change_ruleset(self, virtue_id, trans_id, transducer_type, enable, virtue_running, config=None):
         if self.conn is None:
@@ -466,7 +477,11 @@ class EndPoint_Security:
                 print 'INFO: Waiting for ACK'
                 change = cursor.next(wait=self.wait_for_ack)
                 row = change['new_val']
-                self.__verify_message(row)
+
+                verified = self.__verify_message(row)
+                if (verified != True):
+                    return verified
+
                 if row['timestamp'] >= timestamp:
                     if row['enabled'] == enable:
                         print 'INFO: ACK received!'
