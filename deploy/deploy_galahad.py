@@ -425,8 +425,6 @@ class Excalibur:
         _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
 
-        # Initialize the EFS class
-        efs = EFS(self.stack_name, self.ssh_key)
         # Setup the EFS mount and populate Valor config files
         _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
@@ -799,6 +797,12 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
         (time.time() - start_xen_pvm_time) / 60))
 
+    start_excalibur_time = time.time()
+    excalibur = Excalibur(stack_name, sshkey)
+    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
+
     # Start Creation of base ubuntu, Unity and Standby role image files
     create_img_file_threads = []
     for image in image_size:
@@ -816,12 +820,6 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     aggregator_thread = threading.Thread(target=aggregator.setup,
                                          args=(branch, github_key, user_key,))
     aggregator_thread.start()
-
-    start_excalibur_time = time.time()
-    excalibur = Excalibur(stack_name, sshkey)
-    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
-        (time.time() - start_excalibur_time) / 60))
 
     canvas = Canvas(stack_name, sshkey)
     canvas_thread = threading.Thread(target=canvas.setup,
