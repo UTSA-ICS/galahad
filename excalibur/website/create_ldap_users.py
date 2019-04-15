@@ -4,6 +4,8 @@
 
 import os
 import shutil
+import subprocess
+
 import ldap_tools
 from ldaplookup import LDAP
 
