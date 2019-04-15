@@ -589,8 +589,18 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host,
             send_ack(virtue_id, transducer_id, transducer_type, config, enabled,
                      timestamp, virtue_key, conn)
 
-            continue
 
+        if transducer_id == 'ossensor':
+            if enabled == True:
+                with open("/opt/ossensor/ossensor-config.json", "w") as f:
+                    log.info("Enabling OS Sensor\n")
+                    f.write(config)
+            else:
+                with open("/opt/ossensor/ossensor-config.json", "w") as f:
+                     log.info("Disabling OS Sensor\n")
+                     f.write("")
+                    
+                    
         # TODO ideally the giant block below would live in a separate
         # function and this would be a tidy little if/else
         with lock:
