@@ -91,7 +91,8 @@ class Assembler(object):
                             'krb5-user',
                             'cifs-utils',
                             'smbclient',
-                            'nfs-common'])
+                            'nfs-common',
+                            'nethogs'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
@@ -402,6 +403,7 @@ class Assembler(object):
         cd /home/virtue
         mkdir {0}
         pip3 install --user docker pyyaml
+        pip install psutil
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         sudo {1}
