@@ -462,6 +462,12 @@ class EndPoint():
                             app['id']))
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
 
+                docker_chown_cmd = (
+                    'sudo docker exec $(sudo docker ps -af name="{0}" -q)'
+                    ' $(which chown) virtue:virtue {1}').format(
+                        app['id'], auth_keys_path)
+                ssh.ssh(docker_chown_cmd)
+
             virtue['applicationIds'].append(applicationId)
 
             del virtue['state']
