@@ -133,7 +133,7 @@ class Valor:
             'ubuntu',
             self.aws_instance.private_ip_address,
             sshkey=os.environ['HOME'] +
-                   '/galahad-keys/default-virtue-key.pem')
+                   '/user-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
             print('Failed to connect to valor with IP {} using SSH'.format(
@@ -922,7 +922,7 @@ class RouterManager:
             'ubuntu',
             self.ip_address,
             sshkey=os.environ['HOME'] +
-                   '/galahad-keys/default-virtue-key.pem')
+                   '/user-keys/default-virtue-key.pem')
 
         if not self.client.check_access():
             print('ERROR: Failed to connect to valor with IP {} using SSH'.format(

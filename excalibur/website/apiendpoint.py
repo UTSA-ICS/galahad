@@ -270,7 +270,7 @@ class EndPoint():
 
                         ssh = ssh_tool(
                             'virtue', virtue['ipAddress'],
-                            os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem')
+                            os.environ['HOME'] + '/user-keys/default-virtue-key.pem')
                         ssh.ssh('echo test')
 
                         print('Successfully connected to {}'.format(
@@ -293,7 +293,7 @@ class EndPoint():
                                 resource_manager = ResourceManager(username, resource)
                                 getattr(resource_manager, resource['type'].lower())(
                                     virtue['ipAddress'],
-                                    os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                    os.environ['HOME'] + '/user-keys/default-virtue-key.pem',
                                     role['applicationIds'])
 
 
@@ -358,12 +358,12 @@ class EndPoint():
                             call = 'remove_' + resource['type'].lower()
                             getattr(resource_manager, call)(
                                 virtue['ipAddress'],
-                                os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem',
+                                os.environ['HOME'] + '/user-keys/default-virtue-key.pem',
                                 role['applicationIds'])
 
                         ssh = ssh_tool('virtue', virtue['ipAddress'],
                                        os.environ['HOME'] + \
-                                       '/galahad-keys/default-virtue-key.pem')
+                                       '/user-keys/default-virtue-key.pem')
 
                         ssh.ssh('sudo rm /tmp/krb5cc_0')
 
@@ -422,7 +422,7 @@ class EndPoint():
 
             if (use_ssh):
                 ssh = ssh_tool('virtue', virtue['ipAddress'],
-                               '{0}/galahad-keys/{1}.pem'.format(
+                               '{0}/user-keys/{1}.pem'.format(
                                    os.environ['HOME'], username))
 
                 start_docker_container = ('sudo docker start $(sudo docker ps' +
@@ -434,6 +434,14 @@ class EndPoint():
                     'sudo docker cp /etc/networkRules $(sudo docker ps -af' +
                     ' name="{0}" -q):/etc/networkRules').format(app['id'])
                 ssh.ssh(copy_network_rules)
+
+                # Copy the authorized keys file
+                auth_keys_path = '/home/virtue/.ssh/authorized_keys'
+                copy_authorized_keys_cmd = (
+                    'sudo docker cp {0}'
+                    ' $(sudo docker ps -af name="{1}" -q):'
+                    '{0}').format(auth_keys_path, app['id'])
+                ssh.ssh(copy_authorized_keys_cmd)
 
                 docker_exit = ssh.ssh(start_docker_container,
                                       test=False, silent=True)
@@ -453,6 +461,12 @@ class EndPoint():
                         "Docker start command for launching application {} Failed".format(
                             app['id']))
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
+
+                docker_chown_cmd = (
+                    'sudo docker exec $(sudo docker ps -af name="{0}" -q)'
+                    ' $(which chown) virtue:virtue {1}').format(
+                        app['id'], auth_keys_path)
+                ssh.ssh(docker_chown_cmd)
 
             virtue['applicationIds'].append(applicationId)
 
@@ -505,7 +519,7 @@ class EndPoint():
 
             if (use_ssh):
                 ssh = ssh_tool('virtue', virtue['ipAddress'],
-                               '{0}/galahad-keys/{1}.pem'.format(
+                               '{0}/user-keys/{1}.pem'.format(
                                    os.environ['HOME'], username))
 
                 docker_exit = ssh.ssh(('sudo docker stop $(sudo docker ps -af '
@@ -535,8 +549,8 @@ class EndPoint():
     def key_get(self, username):
 
         try:
-            with open('{0}/galahad-keys/{1}.pem'.format(
-                    os.environ['HOME'],username), 'r') as keyfile:
+            with open('{0}/user-keys/{1}.pem'.format(
+                    os.environ['HOME'], username), 'r') as keyfile:
                 data = keyfile.read()
 
             return json.dumps(data)

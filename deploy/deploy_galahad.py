@@ -22,8 +22,9 @@ AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 
 # Directories for key storage
 GALAHAD_KEY_DIR_NAME = 'galahad-keys'
-GALAHAD_KEY_DIR = '~/galahad-keys'
+GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
 GALAHAD_CONFIG_DIR = '~/galahad-config'
+USER_KEY_DIR = '~/user-keys'
 
 # Node addresses
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
@@ -413,23 +414,6 @@ class Excalibur:
         # Wait a min to Ensure that Excalibur setup is complete
         time.sleep(60)
 
-        # Setup the Default key to be able to login to the virtues
-        # This private key's corresponding public key will be used for the virtues
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
-
-        # Copy over various other keys required for virtues
-        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/kirk-keystore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/truststore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-
         # Now populate the /var/private/ssl dir for excalibur
         EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
         _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
@@ -441,11 +425,20 @@ class Excalibur:
         _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
 
-        # Initialize the EFS class
-        efs = EFS(self.stack_name, self.ssh_key)
         # Setup the EFS mount and populate Valor config files
         _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
+
+        # Setup the Default key to be able to login to the virtues
+        # This private key's corresponding public key will be used for the virtues
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
+                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+
+        _cmd5 = ("ln('-s {0}/default-virtue-key.pem {1}/default-virtue-key.pem')"
+                 ).format(GALAHAD_KEY_DIR, USER_KEY_DIR)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
@@ -795,6 +788,12 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
         (time.time() - start_xen_pvm_time) / 60))
 
+    start_excalibur_time = time.time()
+    excalibur = Excalibur(stack_name, sshkey)
+    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
+
     # Start Creation of base ubuntu, Unity and Standby role image files
     create_img_file_threads = []
     for image in image_size:
@@ -812,12 +811,6 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     aggregator_thread = threading.Thread(target=aggregator.setup,
                                          args=(branch, github_key, user_key,))
     aggregator_thread.start()
-
-    start_excalibur_time = time.time()
-    excalibur = Excalibur(stack_name, sshkey)
-    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
-        (time.time() - start_excalibur_time) / 60))
 
     canvas = Canvas(stack_name, sshkey)
     canvas_thread = threading.Thread(target=canvas.setup,

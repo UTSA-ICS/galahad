@@ -273,7 +273,7 @@ class DeployServer():
         self.setup_aws_access(aws_config, aws_keys)
 
         # Setup the Default key to be able to login to the install nodes
-        GALAHAD_KEY_DIR = '~/galahad-keys'
+        GALAHAD_KEY_DIR = '~/user-keys'
 
         _cmd = "mkdir('-p {}')".format(GALAHAD_KEY_DIR)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)

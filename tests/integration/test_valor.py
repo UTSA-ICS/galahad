@@ -22,7 +22,7 @@ from website import valor
 from website.valor import RethinkDbManager
 
 
-key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+key_path = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
 
 
 def setup_module():
