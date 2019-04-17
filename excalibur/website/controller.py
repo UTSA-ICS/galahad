@@ -33,6 +33,9 @@ UNITY_PATH = '/mnt/efs/images/unities/'
 ROLE_PATH = '/mnt/efs/images/non_provisioned_virtues/'
 VIRTUE_PATH = '/mnt/efs/images/provisioned_virtues/'
 
+GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
+USER_KEY_DIR = os.environ['HOME'] + '/user-keys'
+
 # AWS Account under which the Docker ECR is being hosted
 AWS_ECR_ACCOUNT_NUMBER = "703915126451"
 
@@ -222,9 +225,6 @@ class CreateVirtueThread(threading.Thread):
 
     def run(self):
 
-        gl_key_dir = '/mnt/efs/galahad-keys'
-        user_key_dir = '{0}/user-keys'.format(os.environ['HOME'])
-
         thread_list.append(self)
 
         # Going to need to write to LDAP
@@ -263,20 +263,20 @@ class CreateVirtueThread(threading.Thread):
             # For now generate keys and store in local dir
             subprocess.check_output(shlex.split(
                 ('ssh-keygen -t rsa -f {0}/{1}.pem -C'
-                 ' "Virtue Key for {1}" -N ""').format(user_key_dir, virtue['id'])))
+                 ' "Virtue Key for {1}" -N ""').format(USER_KEY_DIR, virtue['id'])))
 
-            with open(user_key_dir + '/' + virtue['id'] + '.pem',
+            with open(USER_KEY_DIR + '/' + virtue['id'] + '.pem',
                       'r') as virtue_key_file:
                 virtue_key = virtue_key_file.read().strip()
-            with open(gl_key_dir + '/excalibur_pub.pem',
+            with open(GALAHAD_KEY_DIR + '/excalibur_pub.pem',
                       'r') as excalibur_key_file:
                 excalibur_key = excalibur_key_file.read().strip()
 
             user_key = subprocess.check_output(
                 ['ssh-keygen', '-y', '-f',
-                 '{0}/{1}.pem'.format(user_key_dir, self.username)])
+                 '{0}/{1}.pem'.format(USER_KEY_DIR, self.username)])
 
-            with open(gl_key_dir + '/rethinkdb_cert.pem',
+            with open(GALAHAD_KEY_DIR + '/rethinkdb_cert.pem',
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
@@ -334,8 +334,8 @@ class CreateVirtueThread(threading.Thread):
             assert self.inst.del_obj('cid', virtue['id'],
                                      objectClass='OpenLDAPvirtue',
                                      throw_error=True) == 0
-            os.remove('{0}/{1}.pem'.format(user_key_dir, virtue['id']))
-            os.remove('{0}/{1}.pem.pub'.format(user_key_dir, virtue['id']))
+            os.remove('{0}/{1}.pem'.format(USER_KEY_DIR, virtue['id']))
+            os.remove('{0}/{1}.pem.pub'.format(USER_KEY_DIR, virtue['id']))
             os.remove('/mnt/efs/' + virtue_path)
 
 
@@ -370,7 +370,7 @@ class AssembleRoleThread(threading.Thread):
 
         virtue_path = 'images/non_provisioned_virtues/' + self.role[
             'id'] + '.img'
-        key_path = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
+        key_path = USER_KEY_DIR + '/default-virtue-key.pem'
 
         valor_manager = ValorManager()
 

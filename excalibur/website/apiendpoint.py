@@ -436,10 +436,11 @@ class EndPoint():
                 ssh.ssh(copy_network_rules)
 
                 # Copy the authorized keys file
+                auth_keys_path = '/home/virtue/.ssh/authorized_keys'
                 copy_authorized_keys_cmd = (
-                    'sudo docker cp /home/virtue/.ssh/authorized_keys'
-                    ' $(sudo docker ps -af name="{0}" -q):'
-                    '/etc/networkRules').format(app['id'])
+                    'sudo docker cp {0}'
+                    ' $(sudo docker ps -af name="{1}" -q):'
+                    '{0}').format(auth_keys_path, app['id'])
                 ssh.ssh(copy_authorized_keys_cmd)
 
                 docker_exit = ssh.ssh(start_docker_container,

@@ -12,6 +12,8 @@ from .ssh_tool import ssh_tool
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 
+GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
+
 class Assembler(object):
 
     def __init__(self,
@@ -210,10 +212,10 @@ class Assembler(object):
             # These certs will be used by syslog-ng service
             # Copy the certs from galahad-keys dir.
             shutil.copy(
-                '/mnt/efs/galahad-keys/kirk-keystore.jks',
+                GALAHAD_KEY_DIR + '/kirk-keystore.jks',
                 virtue_home)
             shutil.copy(
-                '/mnt/efs/galahad-keys/truststore.jks',
+                GALAHAD_KEY_DIR + '/truststore.jks',
                 virtue_home)
 
             # Install Transducers
