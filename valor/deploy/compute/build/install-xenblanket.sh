@@ -93,3 +93,48 @@ sudo ldconfig /usr/local/lib
 
 # System packages
 sudo apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
+
+########################################################
+# Workaround for vm not being able to find boot device
+# This needs to be fixed!
+# During the installation of xen-tools the boot loader
+# is updated somehow without which the VM will not boot
+# The packages installed by xen-tools are not really
+# needed and can be removed.
+# Need to figure out what is configured/updated during
+# the installation of xen-tools packages.
+########################################################
+# Remove the xen package for version 4.8
+sudo apt -y purge xen-upstream
+
+# Install xen-tools which will install
+# xen packages for version 4.6
+sudo apt -y install xen-tools
+# Following xen related packages will be installed
+#---------------------------
+# grub-xen-bin
+# grub-xen-host
+# libxen-4.6:amd64
+# libxenstore3.0:amd64
+# xen-hypervisor-4.6-amd64
+# xen-tools
+# xen-utils-4.6
+# xen-utils-common
+# xenstore-utils
+#---------------------------
+# Now go ahead and remove the packages as they are not needed.
+sudo apt -y purge \
+     grub-xen-bin \
+     grub-xen-host \
+     libxen-4.6:amd64 \
+     libxenstore3.0:amd64 \
+     xen-hypervisor-4.6-amd64 \
+     xen-tools \
+     xenstore-utils \
+     xen-utils-4.6 \
+     xen-utils-common
+# Remove packages not being used (stale)
+sudo apt -y autoremove
+
+# Install back the xenblanket version 4.8 based xen packages.
+sudo apt -y install ./xen-upstream-4.8.2-16.04.deb
