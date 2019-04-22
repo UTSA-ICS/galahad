@@ -82,18 +82,18 @@ class Instance:
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.server_ip)).run()
+                    format(self.ssh_key, github_key, self.ip_address)).run()
 
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
                               "rm('-f ~/.ssh/id_rsa.pub')")
 
         # Now add the github public key to avoid host key verification prompt
         result3 = run_ssh_cmd(
-            self.server_ip, self.ssh_key,
+            self.ip_address, self.ssh_key,
             "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
 
         result = list()
@@ -105,14 +105,14 @@ class Instance:
 
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
-        run_ssh_cmd(self.server_ip, self.ssh_key, "rm('-rf {}')".format(repo))
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
         #
         if branch == 'master':
             _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
         else:
             _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
                 repo, branch)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
     def shutdown(self):
         _cmd = "sudo('shutdown -h 1')"
@@ -294,7 +294,7 @@ class Excalibur(Instance):
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.server_ip = EXCALIBUR_HOSTNAME
+        self.ip_address = EXCALIBUR_HOSTNAME
         self.vpc_id = None
         self.subnet_id = None
         self.default_security_group_id = None
@@ -325,19 +325,19 @@ class Excalibur(Instance):
                 self.default_security_group_id = group['GroupId']
 
     def setup_aws_access(self, aws_config, aws_keys):
-        run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
+        run_ssh_cmd(self.ip_address, self.ssh_key, "mkdir('~/.aws')")
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.
-                    format(self.ssh_key, aws_config, self.server_ip)).run()
+                    format(self.ssh_key, aws_config, self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
-                    format(self.ssh_key, aws_keys, self.server_ip)).run()
+                    format(self.ssh_key, aws_keys, self.ip_address)).run()
 
     def setup(self, branch, github_key, aws_config, aws_keys, key_name):
 
         # Ensure that cloud init has finished
-        check_cloud_init_finished(self.server_ip, self.ssh_key)
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
 
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
@@ -358,25 +358,25 @@ class Excalibur(Instance):
 
         # Call the setup_excalibur.sh script for system and pip packages.
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_excalibur.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Call the setup_ldap.sh script for openldap installation and config.
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd2)
 
         # Call the setup_bft.sh script for Blue Force Tracker installation and config.
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd2)
 
         self.setup_aws_instance_info(key_name)
 
         # Setup the transducer heartbeat Listener and Start it
         _cmd3 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd3)
 
         # Start the flask-server (excalibur)
         _cmd4 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd4)
 
         # Wait a min to Ensure that Excalibur setup is complete
         time.sleep(60)
@@ -384,32 +384,32 @@ class Excalibur(Instance):
         # Now populate the /var/private/ssl dir for excalibur
         EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
         _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
         _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
         _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
         _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
 
         # Setup the EFS mount and populate Valor config files
         _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd7)
 
         # Setup the Default key to be able to login to the virtues
         # This private key's corresponding public key will be used for the virtues
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+                    format(self.ssh_key, self.ip_address, GALAHAD_KEY_DIR)).run()
 
         _cmd5 = ("ln('-s {0}/default-virtue-key.pem {1}/default-virtue-key.pem')"
                  ).format(GALAHAD_KEY_DIR, USER_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd5)
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd8)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd8)
 
     def setup_aws_instance_info(self, key_name):
         aws_instance_info = {}
@@ -431,7 +431,7 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.
-                    format(self.ssh_key, filename, self.server_ip, AWS_INSTANCE_INFO)).run()
+                    format(self.ssh_key, filename, self.ip_address, AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info
 
