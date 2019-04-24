@@ -1,50 +1,34 @@
-# Canvas usage instructores
+# Canvas usage instructions
 
-VNC into the Canvas instance on your stack.  VNC Viewer (https://www.realvnc.com/en/connect/download/viewer/) works fine.
+VNC into the Canvas instance on your stack. VNC Viewer (https://www.realvnc.com/en/connect/download/viewer/) works fine.
 
-In your VNC client, set up a connection to the Canvas instance on your stack.  VNC is broadcasting on port 1, so you'll set your connection address as
+In your VNC client, set up a connection to the Canvas instance on your stack. VNC is broadcasting on port 1, so you'll set your connection address as
 
 	xxx.xxx.xxx.xxx:1
 
-and connect.  It should alert you it's an unencrypted connection; this is fine for now.  It will prompt you for a password, the password is 
+It should alert you it's an unencrypted connection; this is fine for now. It will prompt you for a password, which is `canvas4U`.
 
-	canvas4U
+Open a terminal and go to `~/galahad/canvas/`
+Setup the oauth app ID and private key, as well as some dependencies, with `setup_canvas.sh`. (Part of this needs to be built into canvas at some point)
 
-Once you have connected to the instance, confirm canvas will start by running 
+	./setup_canvas.sh jmitchell@virtue.gov Test123!
 
-	./start_canvas.sh
-
-If it does, great!  Close it and let's set up some configuration.
-
-Open firefox (on the Canvas VNC), and navigate to 
-
-	excalibur.galahad.com:5002
-
-This will fail.  
-
-There is now an output.js, in that file go in and find a commented out line
-
-	// window.open("http://canvas.com:3000/connect/excalibur")
-
-Uncomment this out. Rerun canvas with 
-
-	./start_canvas.sh
-
+Then run canvas with `start_canvas.sh`.
 Log in with the account
-	
+
 	jmitchell@virtue.gov
 	Test123!
 
-Open the firefox app (if availabile).  This should open an XPRA session for the firefox virtue
+Open the firefox app (if availabile). This should open an XPRA session for the firefox virtue.
 
-If this is a blank orange screen, something may be wrong with the Virtue or Docker container.  Using the admin CLI, run 
+If this is a blank orange screen, something may be wrong with the Virtue or Docker container. Using the user CLI, run
 
-	ubuntu@ip-172-30-1-44:~/galahad/excalibur/cli$ ./virtue-admin user virtue list --username=jmitchell
+	ubuntu@ip-172-30-1-44:~/galahad/excalibur/cli$ ./virtue user virtue list
 	[
 	    {
 	        "applicationIds": [],
 	        "id": "Virtue_firefox123_1546984484",
-	        "ipAddress": "10.91.0.2",
+	        "ipAddress": "10.91.0.xyz",
 	        "resourceIds": [],
 	        "roleId": "firefox1231546885862",
 	        "state": "RUNNING",
@@ -53,18 +37,18 @@ If this is a blank orange screen, something may be wrong with the Virtue or Dock
 	    }
 	]
 
-SSH into the IP given in the above output for firefox123 from excalibur, then pull up a shell in the docker container
+SSH into the virtue given in the above output, then open a shell in the docker container
 
 	sudo docker exec -ti firefox bash
 
-Then, ps for the xpra session
+Then, kill the xpra session. You can find the pid with
 
 	ps aux | grep xpra
 
-And kill this session.  Then run
+Then run
 
 	./kickoff.sh
 
-To restart the service.  You can safely ignore warnings about the .xpra directory already existing. 
+To restart xpra. You can safely ignore warnings about the .xpra directory already existing.
 
-Ideally this should work!  If it doesnt, ask Mark or Farhan or Jon, and update the guide to reflect corrects.  Good luck.  
+If this doesnt work, ask Mark, Farhan, or Jon, and please update this guide to reflect changes.

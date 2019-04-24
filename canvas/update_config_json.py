@@ -1,5 +1,6 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
+import os
 import argparse
 import json
 import sys
@@ -65,3 +66,4 @@ if (__name__ == '__main__'):
 
     with open('key.pem', 'w') as key_file:
         key_file.write(key)
+        os.fchmod(key_file.fileno(), 0o600)
