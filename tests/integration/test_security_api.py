@@ -20,6 +20,8 @@ sys.path.insert(0, base_excalibur_dir)
 
 from website.services.errorcodes import ErrorCodes
 
+KEY_PATH = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
+
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
@@ -36,7 +38,7 @@ def setup_module():
     virtue_id = None
     virtue_ssh = None
 
-    aggregator_ssh = ssh_tool('ubuntu', AGGREGATOR_HOSTNAME, sshkey='~/default-user-key.pem')
+    aggregator_ssh = ssh_tool('ubuntu', AGGREGATOR_HOSTNAME, sshkey=KEY_PATH)
 
 # This is a separate method that is NOT called from setup_module because pytest likes to run
 # setup_module when, for example, listing tests instead of running them.
@@ -65,7 +67,7 @@ def __setup_virtue():
 
     assert virtue_ip is not None
 
-    virtue_ssh = ssh_tool('virtue', virtue_ip, sshkey='~/default-user-key.pem')
+    virtue_ssh = ssh_tool('virtue', virtue_ip, sshkey=KEY_PATH)
 
     # Check that the virtue is ready and reachable via ssh
     assert virtue_ssh.check_access()
