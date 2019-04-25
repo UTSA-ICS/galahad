@@ -529,7 +529,7 @@ def main():
 
     # Wait for changes to ossensor-config file to update thread collection rates
     while True:
-        with open('ossensor-config.json','r') as f:
+        with open('/opt/ossensor/ossensor-config.json','r') as f:
             # Acquire file lock
             while True:
                 try:
