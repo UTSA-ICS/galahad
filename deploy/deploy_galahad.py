@@ -22,8 +22,9 @@ AWS_INSTANCE_INFO = '../tests/aws_instance_info.json'
 
 # Directories for key storage
 GALAHAD_KEY_DIR_NAME = 'galahad-keys'
-GALAHAD_KEY_DIR = '~/galahad-keys'
+GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
 GALAHAD_CONFIG_DIR = '~/galahad-config'
+USER_KEY_DIR = '~/user-keys'
 
 # Node addresses
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
@@ -71,6 +72,51 @@ def check_cloud_init_finished(host_server, sshkey):
                        'do echo \\\\\"Cloud init has not finished\\\\\";sleep 5;done;'
                        'echo \\\\\"Cloud init has now finished\\\\\""'))'''
     run_ssh_cmd(host_server, sshkey, _cmd)
+
+
+# This should be subclassed. It is not meant to be used on its own.
+class Instance:
+
+    def setup_keys(self, github_key):
+
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
+                    format(self.ssh_key, github_key, self.ip_address)).run()
+
+        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
+        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Now remove any existing public keys as they will conflict with the private key
+        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
+                              "rm('-f ~/.ssh/id_rsa.pub')")
+
+        # Now add the github public key to avoid host key verification prompt
+        result3 = run_ssh_cmd(
+            self.ip_address, self.ssh_key,
+            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
+
+        result = list()
+        result.append(result1.stdout)
+        result.append(result2.stdout)
+        result.append(result3.stdout)
+
+        return result
+
+    def checkout_repo(self, repo, branch='master'):
+        # Cleanup any left over repos
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
+        #
+        if branch == 'master':
+            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+        else:
+            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+                repo, branch)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
+
+    def shutdown(self):
+        _cmd = "sudo('shutdown -h 1')"
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
 
 
 class Stack:
@@ -203,7 +249,7 @@ class Stack:
                     stack['StackStatus']))
 
 
-class RethinkDB:
+class RethinkDB(Instance):
 
     def __init__(self, stack_name, ssh_key):
 
@@ -211,51 +257,14 @@ class RethinkDB:
         self.ssh_key = ssh_key
         self.ip_address = RETHINKDB_HOSTNAME
 
-    def setup_keys(self, github_key, user_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
-
-        # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-
-        return result
-
-    def checkout_repo(self, repo, branch='master'):
-        # Cleanup any left over repos
-        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
-
-        if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
-
-        else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
-                repo, branch)
-
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
-
-    def setup(self, branch, github_key, user_key):
+    def setup(self, branch, github_key):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
 
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key, user_key)
+        self.setup_keys(github_key)
 
         with Sultan.load() as s:
             s.scp(
@@ -279,13 +288,13 @@ class RethinkDB:
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
 
-class Excalibur:
+class Excalibur(Instance):
 
     def __init__(self, stack_name, ssh_key):
 
         self.stack_name = stack_name
         self.ssh_key = ssh_key
-        self.server_ip = EXCALIBUR_HOSTNAME
+        self.ip_address = EXCALIBUR_HOSTNAME
         self.vpc_id = None
         self.subnet_id = None
         self.default_security_group_id = None
@@ -315,66 +324,25 @@ class Excalibur:
             if group['GroupName'] == 'default':
                 self.default_security_group_id = group['GroupId']
 
-    def setup_keys(self, github_key, user_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.server_ip)).run()
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.server_ip)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
-
-        # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
-                              "rm('-f ~/.ssh/id_rsa.pub')")
-
-        # Now add the github public key to avoid host key verification prompt
-        result3 = run_ssh_cmd(
-            self.server_ip, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-        result.append(result3.stdout)
-
-        return result
-
-    def checkout_repo(self, repo, branch='master'):
-        # Cleanup any left over repos
-        run_ssh_cmd(self.server_ip, self.ssh_key, "rm('-rf {}')".format(repo))
-        #
-        if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
-        else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
-                repo, branch)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
-
     def setup_aws_access(self, aws_config, aws_keys):
-        run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('~/.aws')")
+        run_ssh_cmd(self.ip_address, self.ssh_key, "mkdir('~/.aws')")
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.
-                    format(self.ssh_key, aws_config, self.server_ip)).run()
+                    format(self.ssh_key, aws_config, self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
-                    format(self.ssh_key, aws_keys, self.server_ip)).run()
+                    format(self.ssh_key, aws_keys, self.ip_address)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, user_key,
-              key_name):
+    def setup(self, branch, github_key, aws_config, aws_keys, key_name):
 
         # Ensure that cloud init has finished
-        check_cloud_init_finished(self.server_ip, self.ssh_key)
+        check_cloud_init_finished(self.ip_address, self.ssh_key)
 
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key, user_key)
+        self.setup_keys(github_key)
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
@@ -390,66 +358,58 @@ class Excalibur:
 
         # Call the setup_excalibur.sh script for system and pip packages.
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_excalibur.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
 
         # Call the setup_ldap.sh script for openldap installation and config.
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_ldap.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd2)
 
         # Call the setup_bft.sh script for Blue Force Tracker installation and config.
         _cmd2 = "cd('galahad/deploy/setup').and_().bash('./setup_bft.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd2)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd2)
 
         self.setup_aws_instance_info(key_name)
 
         # Setup the transducer heartbeat Listener and Start it
         _cmd3 = "cd('galahad/transducers').and_().bash('./install_heartbeatlistener.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd3)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd3)
 
         # Start the flask-server (excalibur)
         _cmd4 = "cd('galahad/excalibur').and_().bash('./start-screen.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd4)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd4)
 
         # Wait a min to Ensure that Excalibur setup is complete
         time.sleep(60)
+
+        # Now populate the /var/private/ssl dir for excalibur
+        EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
+        _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
+        _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
+        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd6)
+
+        # Setup the EFS mount and populate Valor config files
+        _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd7)
 
         # Setup the Default key to be able to login to the virtues
         # This private key's corresponding public key will be used for the virtues
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR)).run()
+                    format(self.ssh_key, self.ip_address, GALAHAD_KEY_DIR)).run()
 
-        # Copy over various other keys required for virtues
-        _cmd5 = "cp('{0}/excalibur_pub.pem {1}/excalibur_pub.pem')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/kirk-keystore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-        _cmd5 = "cp('{0}/elasticsearch_keys/truststore.jks {1}/')".format(GALAHAD_CONFIG_DIR, GALAHAD_KEY_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd5)
-
-        # Now populate the /var/private/ssl dir for excalibur
-        EXCALIBUR_PRIVATE_DIR = '/var/private/ssl'
-        _cmd6 = "sudo('mkdir -p {0}').and_().sudo('chown -R ubuntu.ubuntu /var/private')".format(EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('{0}/excalibur_private_key.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('{0}/rethinkdb_keys/rethinkdb_cert.pem {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-        _cmd6 = "cp('-r {0}/elasticsearch_keys {1}/')".format(GALAHAD_CONFIG_DIR, EXCALIBUR_PRIVATE_DIR)
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd6)
-
-        # Initialize the EFS class
-        efs = EFS(self.stack_name, self.ssh_key)
-        # Setup the EFS mount and populate Valor config files
-        _cmd7 = "cd('galahad/deploy/setup').and_().bash('./setup_efs.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd7)
+        _cmd5 = ("ln('-s {0}/default-virtue-key.pem {1}/default-virtue-key.pem')"
+                 ).format(GALAHAD_KEY_DIR, USER_KEY_DIR)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd5)
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
-        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd8)
+        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd8)
 
     def setup_aws_instance_info(self, key_name):
         aws_instance_info = {}
@@ -471,12 +431,12 @@ class Excalibur:
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.
-                    format(self.ssh_key, filename, self.server_ip, AWS_INSTANCE_INFO)).run()
+                    format(self.ssh_key, filename, self.ip_address, AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info
 
 
-class Aggregator:
+class Aggregator(Instance):
 
     def __init__(self, stack_name, ssh_key):
 
@@ -484,51 +444,14 @@ class Aggregator:
         self.ssh_key = ssh_key
         self.ip_address = AGGREGATOR_HOSTNAME
 
-    def setup_keys(self, github_key, user_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
-
-        # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-
-        return result
-
-    def checkout_repo(self, repo, branch='master'):
-        # Cleanup any left over repos
-        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
-
-        if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
-
-        else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
-                repo, branch)
-
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
-
-    def setup(self, branch, github_key, user_key):
+    def setup(self, branch, github_key):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
 
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key, user_key)
+        self.setup_keys(github_key)
 
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
@@ -610,25 +533,11 @@ class EFS:
         ssh_cmd = "bash('setup_ubuntu_image.sh {0}')".format(image_name)
         run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, ssh_cmd)
 
-    def stop_xen_pvm_builder(self):
-        # TODO Call this method to stop the xenpvmbuilder instance
+    def shutdown_xen_pvm_builder(self):
         # TODO Another method will need to be added to start the instance
-        # TODO for calls to build a ubuntu + unity image.
 
-        client = boto3.client('ec2')
-
-        server = client.describe_instances(
-            Filters=[{
-                'Name': 'tag:aws:cloudformation:logical-id',
-                'Values': ['XenPVMBuilder']
-            }, {
-                'Name': 'tag:aws:cloudformation:stack-name',
-                'Values': [self.stack_name + '-VPC']
-            }])
-
-        instance_id = server['Reservations'][0]['Instances'][0]['InstanceId']
-
-        client.stop_instances(InstanceIds=[instance_id])
+        _shutdown_cmd = "sudo('shutdown -h 1')"
+        run_ssh_cmd(XEN_PVM_BUILDER_HOSTNAME, self.ssh_key, _shutdown_cmd)
 
     def setup_unity_img(self, constructor_ip, image_name):
 
@@ -650,7 +559,7 @@ class EFS:
         run_ssh_cmd(constructor_ip, self.ssh_key, construct_cmd)
 
 
-class Canvas():
+class Canvas(Instance):
 
     def __init__(self, stack_name, ssh_key):
 
@@ -658,51 +567,14 @@ class Canvas():
         self.ssh_key = ssh_key
         self.ip_address = CANVAS_HOSTNAME
 
-    def setup_keys(self, github_key, user_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.ip_address)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
-
-        # Now add the github public key to avoid host key verification prompt
-        result2 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-
-        return (result)
-
-    def checkout_repo(self, repo, branch='master'):
-        # Cleanup any left over repos
-        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
-
-        if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
-
-        else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
-                repo, branch)
-
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
-
-    def setup(self, branch, github_key, user_key):
+    def setup(self, branch, github_key):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
 
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key, user_key)
+        self.setup_keys(github_key)
 
         logger.info(
             'Now checking out relevant galahad repos for {} branch'.format(
@@ -713,6 +585,9 @@ class Canvas():
         _cmd1 = "cd('galahad/deploy/setup').and_().bash('./setup_canvas.sh')"
 
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
+
+        # Shutdown the node to reduce cost. It can be started up for testing.
+        self.shutdown()
 
 
 class StandbyPools:
@@ -783,7 +658,7 @@ def create_and_setup_image_unity_files(stack_name, sshkey, image_size):
 
 
 def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
-          aws_config, aws_keys, branch, image_size, user_key,
+          aws_config, aws_keys, branch, image_size,
           deactivate_virtue_migration, auto_migration_interval, key_name):
 
     start_stack_time = time.time()
@@ -802,6 +677,12 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     logger.info('\n*** Time taken for Xen PVM Setup is [{}] ***\n'.format(
         (time.time() - start_xen_pvm_time) / 60))
 
+    start_excalibur_time = time.time()
+    excalibur = Excalibur(stack_name, sshkey)
+    excalibur.setup(branch, github_key, aws_config, aws_keys, key_name)
+    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
+        (time.time() - start_excalibur_time) / 60))
+
     # Start Creation of base ubuntu, Unity and Standby role image files
     create_img_file_threads = []
     for image in image_size:
@@ -817,23 +698,17 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     start_aggregator_time = time.time()
     aggregator = Aggregator(stack_name, sshkey)
     aggregator_thread = threading.Thread(target=aggregator.setup,
-                                         args=(branch, github_key, user_key,))
+                                         args=(branch, github_key))
     aggregator_thread.start()
-
-    start_excalibur_time = time.time()
-    excalibur = Excalibur(stack_name, sshkey)
-    excalibur.setup(branch, github_key, aws_config, aws_keys, user_key, key_name)
-    logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
-        (time.time() - start_excalibur_time) / 60))
 
     canvas = Canvas(stack_name, sshkey)
     canvas_thread = threading.Thread(target=canvas.setup,
-                                     args=(branch, github_key, user_key,))
+                                     args=(branch, github_key))
     canvas_thread.start()
 
     start_rethinkdb_time = time.time()
     rethinkdb = RethinkDB(stack_name, sshkey)
-    rethinkdb.setup(branch, github_key, user_key)
+    rethinkdb.setup(branch, github_key)
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
         (time.time() - start_rethinkdb_time) / 60))
 
@@ -865,6 +740,9 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
                 create_img_file_threads.remove(thread)
             else:
                 time.sleep(10)
+
+    # Done with XenPVMBuilder - shutdown the node
+    efs.shutdown_xen_pvm_builder()
 
     if not deactivate_virtue_migration:
         migration = AutomatedVirtueMigration(stack_name, sshkey)
@@ -955,7 +833,7 @@ def parse_args():
     parser.add_argument(
         "--image_size",
         nargs="+",
-        default=["8GB", "16GB", "32GB"],
+        default=["8GB"],
         help="Indicate size of initial ubuntu image to be created (default: %(default)s)")
     parser.add_argument(
         "--build_image_only",
@@ -970,13 +848,6 @@ def parse_args():
         default=300,
         type=int,
         help="Specify the interval at which Virtues are automatically migrated")
-
-    # Temporary:
-    parser.add_argument(
-        "--default_user_key",
-        type=str,
-        required=True,
-        help="Default private key for users to get (Will be replaced with generated keys)")
 
     args = parser.parse_args()
 
@@ -1006,7 +877,7 @@ def main():
         setup(args.sshkey, args.stack_name, args.stack_suffix,
               args.import_stack, args.github_repo_key, args.aws_config,
               args.aws_keys, args.branch_name, args.image_size,
-              args.default_user_key, args.deactivate_virtue_migration,
+              args.deactivate_virtue_migration,
               args.auto_migration_interval, args.key_name)
 
     if args.setup_stack:

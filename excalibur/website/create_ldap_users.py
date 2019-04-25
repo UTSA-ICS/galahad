@@ -4,6 +4,8 @@
 
 import os
 import shutil
+import subprocess
+
 import ldap_tools
 from ldaplookup import LDAP
 
@@ -48,19 +50,15 @@ def update_ldap_users_from_ad():
             ldap.add_obj(new_ldap_user, 'users', 'cusername', throw_error=True)
 
             # Check to make sure the key directory exists
-            if (not os.path.exists('{0}/galahad-keys'.format(os.environ['HOME']))):
-                os.mkdir('{0}/galahad-keys'.format(os.environ['HOME']))
+            if (not os.path.exists('{0}/user-keys'.format(os.environ['HOME']))):
+                os.mkdir('{0}/user-keys'.format(os.environ['HOME']))
 
             # Create/Add keys for each user
-            # Temporary code:
-            shutil.copy('{0}/default-user-key.pem'.format(os.environ['HOME']),
-                        '{0}/galahad-keys/{1}.pem'.format(os.environ['HOME'], ad_username))
-            # TODO: Future code will look like this:
-            '''subprocess.run(
-                ['ssh-keygen', '-t', 'rsa', '-f', '~/galahad-keys/{0}.pem'.format(ad_username),
-                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '""'],
-                check=True
-            )'''
+            subprocess.check_call(
+                ['ssh-keygen', '-t', 'rsa', '-f', '{}/user-keys/{}.pem'.format(
+                    os.environ['HOME'], ad_username),
+                 '-C', '"For Virtue user {0}"'.format(ad_username), '-N', '']
+            )
 
             # Create a dummy kerberos file for the user.
             # It'll be regenerated as soon as the user logs in.

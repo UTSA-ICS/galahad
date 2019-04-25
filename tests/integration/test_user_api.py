@@ -26,7 +26,7 @@ from sso_login import sso_tool
 sys.path.insert(0, '..')
 from ssh_tool import ssh_tool
 
-key_path = os.environ['HOME'] + '/galahad-keys/default-virtue-key.pem'
+key_path = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
@@ -89,7 +89,7 @@ def setup_module():
     subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
                            '/mnt/efs/images/tests/8GB.img'])
 
-    aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey='~/default-user-key.pem')
+    aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey=key_path)
 
 def teardown_module():
     pass

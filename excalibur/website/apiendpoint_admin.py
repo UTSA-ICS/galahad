@@ -255,16 +255,21 @@ class EndPoint_Admin():
                 if (res_test == ()):
                     return json.dumps(ErrorCodes.admin['invalidResourceId'])
 
+            ldap_transducers = self.inst.get_objs_of_type('OpenLDAPtransducer')
+            assert ldap_transducers != None
+
+            all_transducers = ldap_tools.parse_ldap_list(ldap_transducers)
+
             for t in role['startingTransducerIds']:
-                tr_test = self.inst.get_obj(
-                    'cid',
-                    t,
-                    objectClass='OpenLDAPtransducer',
-                    throw_error=True)
-                if (tr_test == ()):
+                if (t not in [tr['id'] for tr in all_transducers]):
                     return json.dumps(ErrorCodes.admin['invalidTransducerId'])
 
             new_role = copy.deepcopy(role)
+
+            for t in all_transducers:
+                if (t['startEnabled'] and
+                    t['id'] not in role['startingTransducerIds']):
+                    new_role['startingTransducerIds'].append(t['id'])
 
             new_role['id'] = '{0}{1}'.format(new_role['name'].lower().replace(' ', '_'), int(time.time()))
 

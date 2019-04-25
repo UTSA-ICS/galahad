@@ -40,6 +40,10 @@ def parse_args():
                         type=str,
                         required=True,
                         help="Excalibur's public key")
+    parser.add_argument('--user_key',
+                        type=str,
+                        required=True,
+                        help="The user's public SSH key")
     parser.add_argument('-r',
                         '--rethinkdb_cert',
                         type=str,
@@ -65,5 +69,6 @@ if (__name__ == '__main__'):
                                args.output_path,
                                args.virtue_key,
                                args.excalibur_key,
+                               args.user_key,
                                args.rethinkdb_cert,
                                args.network_rules)

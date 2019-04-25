@@ -122,14 +122,14 @@ if (__name__ == '__main__'):
     try:
         if args.list_tests:
             ssh_inst.ssh(
-                'cd galahad/tests && python {0}.py -i ~/galahad-keys/starlab-virtue-te.pem --list_tests'.format(
+                'cd galahad/tests && python {0}.py -i ~/user-keys/starlab-virtue-te.pem --list_tests'.format(
                     args.test_type))
         if args.run_test:
             ssh_inst.ssh(
-                'cd galahad/tests && python {0}.py -i ~/galahad-keys/starlab-virtue-te.pem --run_test {1}'.format(
+                'cd galahad/tests && python {0}.py -i ~/user-keys/starlab-virtue-te.pem --run_test {1}'.format(
                     args.test_type, args.run_test))
         if args.run_all_tests:
-            ssh_inst.ssh('cd galahad/tests && python {0}.py -i ~/galahad-keys/starlab-virtue-te.pem '
+            ssh_inst.ssh('cd galahad/tests && python {0}.py -i ~/user-keys/starlab-virtue-te.pem '
                          '--run_all_tests'.format(args.test_type))
 
     except:

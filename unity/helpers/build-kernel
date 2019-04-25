@@ -20,7 +20,12 @@ rm -r /etc/apt/sources.list.d/*
 apt update
 
 echo "Fetching the kernel source for ${VERSION}"
-apt source linux-image-${VERSION} || die "Could not download kernel source"
+if [[ ${CODENAME} == "bionic" ]];
+then
+    apt source linux-source-${VERSION} || die "Could not download kernel source"
+else
+    apt source linux-image-${VERSION} || die "Could not download kernel source"
+fi
 
 apt build-dep --yes linux-image-${VERSION}
 

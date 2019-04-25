@@ -12,6 +12,8 @@ from .ssh_tool import ssh_tool
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 
+GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
+
 class Assembler(object):
 
     def __init__(self,
@@ -229,10 +231,10 @@ class Assembler(object):
             # These certs will be used by syslog-ng service
             # Copy the certs from galahad-keys dir.
             shutil.copy(
-                os.path.join(real_HOME, 'galahad-keys') + '/kirk-keystore.jks',
+                GALAHAD_KEY_DIR + '/kirk-keystore.jks',
                 virtue_home)
             shutil.copy(
-                os.path.join(real_HOME, 'galahad-keys') + '/truststore.jks',
+                GALAHAD_KEY_DIR + '/truststore.jks',
                 virtue_home)
 
             # Install Transducers
@@ -330,10 +332,22 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 501)
 
+            # Ad the mount point for the virtuefs filesystem
+            # used to control logging of inode_create and path_mkdir
+            with open(mount_path + '/etc/fstab', 'a') as myfile:
+                myfile.write('virtuefs /sys/fs/virtuefs virtuefs defaults 0 0\n')
+
+            # Copy the service file for enabling the inode and mkdir sensor
+            # logging
+            shutil.copy(payload_dir + '/lsm-logging.service',
+                        mount_path + '/etc/systemd/system')
+            # Copy over shell script that will enable the logging
+            shutil.copy(payload_dir + '/lsm-logging.sh', mount_path + '/root/')
+            # Make sure file has exec permissions
+            os.chmod(mount_path + '/root/lsm-logging.sh', 0o700)
         except:
             raise
         finally:
-
             os.environ['HOME'] = real_HOME
 
             subprocess.call(['umount', mount_path + '/proc'])
@@ -425,6 +439,7 @@ class Assembler(object):
                          output_path,
                          virtue_key, # The Virtue's private key
                          excalibur_key, # Excalibur's public key
+                         user_key, # The user's public key
                          rethinkdb_cert, #RethinkDB's SSL cert
                          networkRules):
 
@@ -447,6 +462,11 @@ class Assembler(object):
             subprocess.check_call(['chroot', image_mount,
                                    'systemctl', 'enable', 'merlin'])
 
+            # Enable LSM sensor logging
+            # This turns on inode_create and path_mkdir logging
+            subprocess.check_call(['chroot', image_mount,
+                                   'systemctl', 'enable', 'lsm-logging'])
+
             # read network rules
             rules = ""
             with open(networkRules, 'r') as networkRulesFile:
@@ -468,6 +488,9 @@ class Assembler(object):
             with open(image_mount + '/var/private/ssl/excalibur_pub.pem',
                       'w') as excalibur_pub:
                 excalibur_pub.write(excalibur_key)
+            with open(image_mount + '/home/virtue/.ssh/authorized_keys',
+                      'a') as authorized_keys:
+                authorized_keys.write(user_key)
             with open(image_mount + '/var/private/ssl/rethinkdb_cert.pem',
                       'w') as rethinkdb_cert_file:
                 rethinkdb_cert_file.write(rethinkdb_cert)
