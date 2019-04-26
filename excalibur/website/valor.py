@@ -358,15 +358,23 @@ class ValorManager:
             base_setup_data = f.read()
         base_setup_data = base_setup_data.replace('${1}', self.get_efs_mount())
 
+        # Xenblanket Setup
+        with open('/mnt/efs/valor/deploy/compute/' + 'setup_xenblanket.sh',
+                  'r') as f:
+            xenblanket_setup_data = f.read()
+
         # Gaius Setup
-        with open('/mnt/efs/valor/deploy/compute/' + 'setup_gaius.sh', 'r') as f:
+        with open('/mnt/efs/valor/deploy/compute/' + 'setup_gaius.sh',
+                  'r') as f:
             gaius_setup_data = f.read()
 
         # Syslog-ng Setup
-        with open('/mnt/efs/valor/deploy/compute/' + 'setup_syslog_ng.sh', 'r') as f:
+        with open('/mnt/efs/valor/deploy/compute/' + 'setup_syslog_ng.sh',
+                  'r') as f:
             syslog_ng_setup_data = f.read()
 
-        user_data = base_setup_data + gaius_setup_data + syslog_ng_setup_data
+        user_data = base_setup_data + xenblanket_setup_data + \
+                    gaius_setup_data + syslog_ng_setup_data
 
         valor_config = {
             'image_id' : 'ami-01c5d8354c604b662',
