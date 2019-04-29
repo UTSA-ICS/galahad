@@ -6,7 +6,7 @@ set -u # error on unbounded variables
 #
 # Parameters
 #
-SOURCE_MATERIAL="valor-sources"
+SOURCE_MATERIAL="boot"
 KERNEL_VERSION="4.15.5-xenblanket"
 XEN_VERSION="blanket-4.8.2-irq-vcpu0"
 DOM0_MEMORY="2048M"
