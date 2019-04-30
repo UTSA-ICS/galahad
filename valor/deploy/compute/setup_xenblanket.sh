@@ -100,6 +100,7 @@ sudo update-grub
 sudo tee <<EOF "/etc/fstab"
 LABEL=cloudimg-rootfs / ext4 defaults,discard 0 0
 none /proc/xen xenfs defaults 0 0
+${1}:/ /mnt/efs efs defaults,_netdev 0 0
 EOF
 
 #
