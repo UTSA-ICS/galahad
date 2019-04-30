@@ -545,52 +545,24 @@ def main():
             config = json.load(f)
             fcntl.flock(f, fcntl.LOCK_UN)
 
-            if "rates" not in config:
-                collection_rates[CPU_RATE] = 0.0
-                collection_rates[CTX_RATE] = 0.0
-                collection_rates[GID_RATE] = 0.0
-                collection_rates[IOCOUNT_RATE] = 0.0
-                collection_rates[IONICE_RATE] = 0.0
-                collection_rates[MEM_RATE] = 0.0
-                collection_rates[NET_RATE] = 0.0
-                time.sleep(5)
-                continue
+        if "rates" not in config:
+            collection_rates[CPU_RATE] = 0.0
+            collection_rates[CTX_RATE] = 0.0
+            collection_rates[GID_RATE] = 0.0
+            collection_rates[IOCOUNT_RATE] = 0.0
+            collection_rates[IONICE_RATE] = 0.0
+            collection_rates[MEM_RATE] = 0.0
+            collection_rates[NET_RATE] = 0.0
+            time.sleep(5)
+            continue
 
-
-            if CPU_RATE in config["rates"]:
-                collection_rates[CPU_RATE] = config["rates"][CPU_RATE]
-            else:
-                collection_rates[CPU_RATE] = 0.0
-
-            if CTX_RATE in config["rates"]:
-                collection_rates[CTX_RATE] = config["rates"][CTX_RATE]
-            else:
-                collection_rates[CTX_RATE] = 0.0
-
-            if GID_RATE in config["rates"]:
-                collection_rates[GID_RATE] = config["rates"][GID_RATE]
-            else:
-                collection_rates[GID_RATE] = 0.0
-
-            if IOCOUNT_RATE in config["rates"]:
-                collection_rates[IOCOUNT_RATE] = config["rates"][IOCOUNT_RATE]
-            else:
-                collection_rates[IOCOUNT_RATE] = 0.0
-
-            if IONICE_RATE in config["rates"]:
-                collection_rates[IONICE_RATE] = config["rates"][IONICE_RATE]
-            else:
-                collection_rates[IONICE_RATE] = 0.0
-
-            if MEM_RATE in config["rates"]:
-                collection_rates[MEM_RATE] = config["rates"][MEM_RATE]
-            else:
-                collection_rates[MEM_RATE] = 0.0
-
-            if NET_RATE in config["rates"]:
-                collection_rates[NET_RATE] = config["rates"][NET_RATE]
-            else:
-                collection_rates[NET_RATE] = 0.0
+        collection_rates[CPU_RATE] = config['rates'].get(CPU_RATE, 0.0)
+        collection_rates[CTX_RATE] = config['rates'].get(CTX_RATE, 0.0)
+        collection_rates[GID_RATE] = config['rates'].get(GID_RATE, 0.0)
+        collection_rates[IOCOUNT_RATE] = config['rates'].get(IOCOUNT_RATE, 0.0)
+        collection_rates[IONICE_RATE] = config['rates'].get(IONICE_RATE, 0.0)
+        collection_rates[MEM_RATE] = config['rates'].get(MEM_RATE, 0.0)
+        collection_rates[NET_RATE] = config['rates'].get(NET_RATE, 0.0)
 
         time.sleep(5)
 
