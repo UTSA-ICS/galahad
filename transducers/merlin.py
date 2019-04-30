@@ -588,6 +588,7 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host,
 
             send_ack(virtue_id, transducer_id, transducer_type, config, enabled,
                      timestamp, virtue_key, conn)
+            continue
 
 
         if transducer_id == 'ossensor':
