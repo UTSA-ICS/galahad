@@ -396,8 +396,6 @@ def get_nethogs_data(args=None):
 
         elasticLog.info(str(procs))
 
-        time.sleep(collection_rates[NET_RATE])
-
 
 #Get data about all processes
 def get_procs_data(coll_rate):
