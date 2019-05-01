@@ -40,5 +40,6 @@ sudo apt-get install -y git-lfs
 
 # Now checkout the LFS files
 cd galahad
+git lfs install
 git lfs fetch
 git lfs checkout
