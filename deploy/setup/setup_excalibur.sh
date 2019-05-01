@@ -39,7 +39,7 @@ curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.s
 sudo apt-get install -y git-lfs
 
 # Now checkout the LFS files
-cd galahad
+cd $HOME/galahad
 git lfs install
 git lfs fetch
 git lfs checkout
