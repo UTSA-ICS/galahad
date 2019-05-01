@@ -379,7 +379,7 @@ class ValorManager:
                     gaius_setup_data + syslog_ng_setup_data
 
         valor_config = {
-            'image_id' : 'ami-01c5d8354c604b662',
+            'image_id' : 'ami-0f9cf087c1f27d9b1',
             'inst_type' : 't2.xlarge',
             'subnet_id' : subnet,
             'key_name' : 'starlab-virtue-te',
