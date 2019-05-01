@@ -362,6 +362,8 @@ class ValorManager:
         with open('/mnt/efs/valor/deploy/compute/' + 'setup_xenblanket.sh',
                   'r') as f:
             xenblanket_setup_data = f.read()
+        xenblanket_setup_data = xenblanket_setup_data.replace('${1}',
+                                                              self.get_efs_mount())
 
         # Gaius Setup
         with open('/mnt/efs/valor/deploy/compute/' + 'setup_gaius.sh',
