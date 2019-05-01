@@ -202,15 +202,12 @@ class DeployServer():
 
         self.server_ip = instance.public_ip_address
 
-    def setup_keys(self, github_key, user_key):
+    def setup_keys(self, github_key):
 
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
                     format(self.ssh_key, github_key, self.server_ip)).run()
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/default-user-key.pem '.
-                    format(self.ssh_key, user_key, self.server_ip)).run()
 
         _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
         result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
@@ -252,13 +249,13 @@ class DeployServer():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                     format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, user_key,
-              stack_suffix, key_name):
+    def setup(self, branch, github_key, aws_config, aws_keys, stack_suffix,
+              key_name):
 
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key, user_key)
+        self.setup_keys(github_key)
         logger.info(
             'Now checking out relevant galahad repos for {} branch'.format(
                 branch))
@@ -301,7 +298,6 @@ class DeployServer():
                         ' --aws_config ~/.aws/config'
                         ' --aws_keys ~/.aws/credentials'
                         ' --key_name {1}'
-                        ' --default_user_key {0}/{1}.pem'
                         ' -b {2}'
                         ' -s {3}' 
                         ' -n {4}'
@@ -313,13 +309,13 @@ class DeployServer():
 
 
 def setup(sshkey, stack_name, stack_suffix, github_key, aws_config,
-          aws_keys, branch, user_key, key_name):
+          aws_keys, branch, key_name):
     stack = VPC_Stack()
     stack.setup_stack(VPC_STACK_TEMPLATE, stack_name, stack_suffix, key_name)
 
     deploy = DeployServer(stack_name, sshkey)
-    deploy.setup(branch, github_key, aws_config, aws_keys, user_key,
-                 stack_suffix, key_name)
+    deploy.setup(branch, github_key, aws_config, aws_keys, stack_suffix,
+                 key_name)
 
 
 def parse_args():
@@ -390,13 +386,6 @@ def parse_args():
         action="store_true",
         help="delete the specified stack")
 
-    # Temporary:
-    parser.add_argument(
-        "--default_user_key",
-        type=str,
-        required=True,
-        help="Default private key for users to get (Will be replaced with generated keys)")
-
     args = parser.parse_args()
 
     return args
@@ -424,7 +413,7 @@ def main():
     if args.setup:
         setup(args.sshkey, args.stack_name, args.stack_suffix,
               args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name, args.default_user_key, args.key_name)
+              args.branch_name, args.key_name)
 
     if args.list_stacks:
         VPC_Stack().list_stacks()
