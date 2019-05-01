@@ -1,9 +1,4 @@
 #!/bin/sh
 
-pip install psutil
-apt -y install nethogs
+echo "OS Sensor installed"
 
-ln -s /etc/init.d/ossensor /etc/rc2.d/S10ossensor
-ln -s /etc/init.d/ossensor /etc/rc3.d/S10ossensor
-ln -s /etc/init.d/ossensor /etc/rc4.d/S10ossensor
-ln -s /etc/init.d/ossensor /etc/rc5.d/S10ossensor
