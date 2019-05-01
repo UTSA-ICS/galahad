@@ -33,3 +33,12 @@ echo "172.30.1.250 camelot.virtue.gov camelot" | sudo tee -a /etc/hosts
 # nfs ost setup
 sudo mkdir /mnt/ost
 echo "/mnt/ost excalibur.galahad.com(rw,sync,no_subtree_check)" | sudo tee -a /etc/exports
+
+# Install Git LFS for Large files
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install -y git-lfs
+
+# Now checkout the LFS files
+cd galahad
+git lfs fetch
+git lfs checkout
