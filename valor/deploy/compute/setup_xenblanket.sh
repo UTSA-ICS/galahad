@@ -28,7 +28,7 @@ PACKAGES=" \
     libsdl1.2debian \
     libyajl2 \
 "
-sudo apt -yq install ${PACKAGES}
+apt -yq install ${PACKAGES}
 
 #
 # Install XenBlanket and Introspection related packages
@@ -38,8 +38,8 @@ XEN_PACKAGES=" \
     ./libvmi_0.13-1.deb \
     ./introspection-monitor_0.2-1.deb \
 "
-sudo apt-get -yq install ${XEN_PACKAGES}
-sudo ldconfig /usr/local/lib
+apt-get -yq install ${XEN_PACKAGES}
+ldconfig /usr/local/lib
 
 #
 # Install XenBlanket Kernel and binaries
@@ -51,23 +51,23 @@ for BINARY in \
     "initrd.img-${KERNEL_VERSION}" \
     "config-${KERNEL_VERSION}"
 do
-    sudo cp --preserve=mode,timestamps "${SOURCE_MATERIAL}/${BINARY}" /boot/
+    cp --preserve=mode,timestamps "${SOURCE_MATERIAL}/${BINARY}" /boot/
 done
 
 #
 # Install Linux kernel modules for the XenBlanket kernel
 #
-sudo tar zxf "${SOURCE_MATERIAL}/modules-${KERNEL_VERSION}.tgz" -C /lib/modules
+tar zxf "${SOURCE_MATERIAL}/modules-${KERNEL_VERSION}.tgz" -C /lib/modules
 
 #
 # Create a device map for GRUB
 #
-echo "(hd0) /dev/xvda" | sudo tee "/boot/grub/device.map"
+echo "(hd0) /dev/xvda" | tee "/boot/grub/device.map"
 
 #
 # Write the Valor GRUB partial config entry
 #
-sudo tee /etc/grub.d/45_valor <<EOF
+tee /etc/grub.d/45_valor <<EOF
 #!/bin/sh
 exec tail -n +3 \$0
 
@@ -86,18 +86,18 @@ menuentry 'Valor' --class ubuntu --class gnu-linux --class gnu --class os \$menu
         module /boot/initrd.img-${KERNEL_VERSION}
 }
 EOF
-sudo chmod 755 /etc/grub.d/45_valor
+chmod 755 /etc/grub.d/45_valor
 
 #
 # Make Valor the default boot entry
 #
-sudo sed -i 's/^\(GRUB_DEFAULT=\).*$/\1"Valor"/' -i "/etc/default/grub"
-sudo update-grub
+sed -i 's/^\(GRUB_DEFAULT=\).*$/\1"Valor"/' -i "/etc/default/grub"
+update-grub
 
 #
 # Write fstab
 #
-sudo tee <<EOF "/etc/fstab"
+tee <<EOF "/etc/fstab"
 LABEL=cloudimg-rootfs / ext4 defaults,discard 0 0
 none /proc/xen xenfs defaults 0 0
 ${1}:/ /mnt/efs efs defaults,_netdev 0 0
