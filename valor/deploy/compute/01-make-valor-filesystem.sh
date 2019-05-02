@@ -2,7 +2,7 @@
 
 # Parameters
 ROOTFS_DIR="build"
-SOURCE_MATERIAL="valor-sources"
+SOURCE_MATERIAL="boot"
 KERNEL_VERSION="4.15.5-xenblanket"
 XEN_VERSION="blanket-4.8.2-irq-vcpu0"
 

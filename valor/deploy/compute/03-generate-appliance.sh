@@ -5,10 +5,9 @@
 XEN_VERSION="blanket-4.8.2-irq-vcpu0"
 LINUX_VERSION="4.15.5-xenblanket"
 DOM0_MEMORY="2048M"
-#DISK_SIZE_IN_BYTES="21474836480"
 DISK_SIZE_IN_BYTES="5368709120"
 PATH_TO_FILESYSTEM_DIR="build"
-OVF_TEMPLATE="valor-template.ovf.in"
+OVF_TEMPLATE="config/valor-template.ovf.in"
 WORKDIR="workdir"
 
 #-------------
