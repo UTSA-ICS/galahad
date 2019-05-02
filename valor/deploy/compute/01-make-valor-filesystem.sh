@@ -27,7 +27,7 @@ if ! which wget ; then HOST_TOOLS_NEEDED="${HOST_TOOLS_NEEDED} wget"; fi
 if ! which debootstrap ; then HOST_TOOLS_NEEDED="${HOST_TOOLS_NEEDED} debootstrap"; fi
 if ! which qemu-img ; then HOST_TOOLS_NEEDED="${HOST_TOOLS_NEEDED} qemu-utils"; fi
 
-[ -z ${HOST_TOOLS_NEEDED} ] || sudo apt install ${HOST_TOOLS_NEEDED}
+[[ -z ${HOST_TOOLS_NEEDED} ]] || sudo apt-get -y install ${HOST_TOOLS_NEEDED}
 
 #---------------
 # Install base distro into build directory
