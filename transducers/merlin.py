@@ -25,12 +25,12 @@ from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from handlers import CMRESHandler
+import fcntl
 
 log = logging.getLogger('merlin')
 elasticLog = logging.getLogger('elasticMerlin')
 
 virtue_id = None
-
 
 def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
     logfile = logging.FileHandler(filename)
@@ -588,8 +588,43 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host,
 
             send_ack(virtue_id, transducer_id, transducer_type, config, enabled,
                      timestamp, virtue_key, conn)
-
             continue
+
+
+        if transducer_id == 'ossensor':
+            if enabled == True:
+                with open("/opt/ossensor/ossensor-config.json", "w") as f:
+                    while True:
+                        try:
+                            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                            break
+                        except IOError as e:
+                            # raise on unrelated IOErrors
+                            if e.errno != errno.EAGAIN:
+                                raise
+                            else:
+                                time.sleep(0.1)
+
+                    log.info("Enabling OS Sensor\n")
+                    f.write(config)
+                    fcntl.flock(f, fcntl.LOCK_UN)
+            else:
+                with open("/opt/ossensor/ossensor-config.json", "w") as f:
+                    # Acquire lock first
+                    while True:
+                        try:
+                            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                            break
+                        except IOError as e:
+                            # raise on unrelated IOErrors
+                            if e.errno != errno.EAGAIN:
+                                raise
+                            else:
+                                time.sleep(0.1)
+
+                    log.info("Disabling OS Sensor\n")
+                    f.write("{}")
+                    fcntl.flock(f, fcntl.LOCK_UN)
 
         # TODO ideally the giant block below would live in a separate
         # function and this would be a tidy little if/else

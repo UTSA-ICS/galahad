@@ -1,0 +1,10 @@
+[Unit]
+Description=ossensor service
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/bin/python opt/ossensor/ossensor.py > /opt/ossensor/ossensor-initd.log 2>&1
+
+[Install]
+WantedBy=multi-user.target

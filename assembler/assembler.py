@@ -93,7 +93,8 @@ class Assembler(object):
                             'krb5-user',
                             'cifs-utils',
                             'smbclient',
-                            'nfs-common'])
+                            'nfs-common',
+                            'nethogs'])
             subprocess.check_call(apt_cmd)
 
             # Install all .deb packages with dpkg --root
@@ -101,10 +102,15 @@ class Assembler(object):
                                             'transducers')
             processkiller_file_path = os.path.join(real_HOME, 'galahad',
                                             'transducers')
+            ossensor_file_path = os.path.join(real_HOME, 'galahad',
+                                            'transducers')
             kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
+
             merlin_files = ['merlin.deb']
             processkiller_files = ['processkiller.deb']
+            ossensor_files = ['ossensor.deb']
+
             kernel_files = [
                 'linux-headers-4.13.0-46_4.13.0-46.51+unity1_all.deb',
                 'linux-headers-4.13.0-46-generic_4.13.0-46.51+unity1_amd64.deb',
@@ -117,6 +123,9 @@ class Assembler(object):
                 files.append(f)
             for f in processkiller_files:
                 f = os.path.join(processkiller_file_path, f)
+                files.append(f)
+            for f in ossensor_files:
+                f = os.path.join(ossensor_file_path, f)
                 files.append(f)
             for f in kernel_files:
                 f = os.path.join(kernel_file_path, f)
@@ -136,6 +145,12 @@ class Assembler(object):
                     os.chown(os.path.join(path, d), 501, 1000)
 
             os.chmod(mount_path + '/opt/merlin', 0o777)
+            
+            # Make Merlin own the OS Sensor config file
+            with open(mount_path + '/opt/ossensor/ossensor-config.json', 'w+') as f:
+                f.write("{}")
+                
+            os.chown(mount_path + '/opt/ossensor/ossensor-config.json', 501, 1000)
 
             os.chown(mount_path + '/var/private/ssl', 501, 1000)
             for path, dirs, files in os.walk(mount_path + '/var/private/ssl'):
@@ -151,6 +166,10 @@ class Assembler(object):
             # Enable processkiller
             subprocess.check_call(['chroot', mount_path,
                                    'systemctl', 'enable', 'processkiller'])
+
+            # Enable ossensor
+            subprocess.check_call(['chroot', mount_path,
+                                   'systemctl', 'enable', 'ossensor'])
 
             # Add users
             #     adduser virtue --system --group --shell /bin/bash
@@ -357,6 +376,9 @@ class Assembler(object):
         # Build the processkiller deb file
         subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
                                            'transducers', 'build_processkiller.sh'))
+        # Build the ossensor deb file
+        subprocess.check_call(os.path.join(os.environ['HOME'], 'galahad',
+                                           'transducers', 'build_ossensor.sh'))
 
         self.construct_img(base_img, WORK_DIR,
                            os.path.join(os.environ['HOME'],
@@ -395,6 +417,7 @@ class Assembler(object):
         cd /home/virtue
         mkdir {0}
         pip3 install --user docker pyyaml
+        pip install psutil
         git clone https://github.com/starlab-io/docker-virtue.git
         cd docker-virtue/virtue
         sudo {1}
