@@ -17,17 +17,14 @@ mkdir -p /mnt/efs
 echo "${1}:/ /mnt/efs efs defaults,_netdev 0 0" >> /etc/fstab
 mount -a
 
-# Install System packages
-apt-get -y install python-pip openvswitch-common openvswitch-switch bridge-utils
-
-# Install pip packages
-pip install rethinkdb==2.3.0.post6
-
 # Base directory for the script to operate from
 cd /mnt/efs/valor/deploy/compute
 
-# Directory for storage of Galahad keys
-GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
+# Install System packages
+apt-get -y install nfs-common python2.7 python-pip openvswitch-common openvswitch-switch bridge-utils
+
+# Install pip packages
+pip install rethinkdb==2.3.0.post6
 
 #
 # Disable cloud init networking which sets eth0 to default settings.
@@ -65,15 +62,6 @@ addgroup camelot
 adduser root camelot
 
 #
-# Install necessary System packages
-#
-# Xen Blanket and Introspection related Debian packages
-apt --assume-yes install ./xen-upstream-4.8.2-16.04.deb ./libvmi_0.13-1.deb ./introspection-monitor_0.2-1.deb
-
-# System packages
-apt --assume-yes install libaio-dev libpixman-1-dev libyajl-dev libjpeg-dev libsdl-dev libcurl4-openssl-dev
-
-#
 # Set the IP Tables rules
 #
 iptables -A FORWARD --in-interface br0 -j ACCEPT
@@ -94,42 +82,10 @@ echo "#" >> /etc/network/interfaces
 echo "post-up ip link set dev eth0 mtu 9001" >> /etc/network/interfaces
 
 #
-# Append entry in fstab for xen file system
-#
-echo "none /proc/xen xenfs defaults 0 0" >> /etc/fstab
-
-#
-# Configure XEN system files
-#
-cp config/vif-bridge /etc/xen/scripts/vif-bridge
-cp config/xen-network-common.sh /etc/xen/scripts/xen-network-common.sh
-cp config/xl.conf /etc/xen/xl.conf
-systemctl restart xencommons
-
-# Configure introspection files
-cp config/libvmi/libvmi.conf /etc/libvmi.conf
-mkdir -p /usr/share/libvmi/kernel-data
-cp config/libvmi/kernel-data/System.map-4.13.0-46-generic /usr/share/libvmi/kernel-data/System.map-4.13.0-46-generic
-
-#
-# Configure tty
-#
-cp config/hvc0.conf /etc/init/
-rm -f /etc/init/ttyS0.conf
-
-#
-# Update rc.local for system commands
-#
-sed -i '/^exit 0/i \
-\
-#\
-# Restart xencommons service\
-#\
-systemctl restart xencommons\
-' /etc/rc.local
-
-#
 # Configure ssh keys for valor nodes to be able to access each other
 #
+# Directory for storage of Galahad keys
+GALAHAD_KEY_DIR="/mnt/efs/galahad-keys"
+
 cp $GALAHAD_KEY_DIR/valor-key /root/.ssh/id_rsa
 cat $GALAHAD_KEY_DIR/valor-key.pub >> /root/.ssh/authorized_keys

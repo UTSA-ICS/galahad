@@ -1,0 +1,2 @@
+valor/deploy/compute/boot/modules-4.15.5-xenblanket.tgz filter=lfs diff=lfs merge=lfs -text
+valor/deploy/compute/boot/initrd.img-4.15.5-xenblanket filter=lfs diff=lfs merge=lfs -text
