@@ -324,6 +324,24 @@ def virtue_application_stop():
     return make_response(ret)
 
 
+@bp.route('/user/key/get', methods=['GET'])
+@require_oauth()
+def user_key_get():
+
+    key = ''
+
+    try:
+        # A set of Virtues for the given User. Type: set of Virtue.
+        ep = get_endpoint()
+        key = ep.key_get(get_user())
+        log_to_elasticsearch('Get user key', extra={'user': get_user()}, ret=key, func_name=inspect.currentframe().f_code.co_name)
+
+    except:
+        print("Unexpected error:", sys.exc_info())
+
+    return make_response(key)
+
+
 @bp.route('/test', methods=['GET'])
 @require_login
 def virtue_test():

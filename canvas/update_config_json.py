@@ -1,8 +1,10 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
+import os
 import argparse
 import json
 import sys
+import requests
 from collections import OrderedDict
 
 from sso_login import sso_tool
@@ -51,3 +53,17 @@ if (__name__ == '__main__'):
     with open('config.json', 'w') as outfile:
         json.dump(config, outfile, indent=4)
         outfile.write('\n')
+
+    code = sso.get_oauth_code(client_id, redirect)
+
+    token_data = sso.get_oauth_token(client_id, code, redirect)
+
+    key = requests.get(sso.url + '/virtue/user/key/get',
+                       headers={
+                           'Authorization': 'Bearer {0}'.format(token_data['access_token'])
+                       },
+                       verify=False).json()
+
+    with open('key.pem', 'w') as key_file:
+        key_file.write(key)
+        os.fchmod(key_file.fileno(), 0o600)

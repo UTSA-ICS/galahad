@@ -439,8 +439,7 @@ class EndPoint():
                 auth_keys_path = '/home/virtue/.ssh/authorized_keys'
                 copy_authorized_keys_cmd = (
                     'sudo docker cp {0}'
-                    ' $(sudo docker ps -af name="{1}" -q):'
-                    '{0}').format(auth_keys_path, app['id'])
+                    ' {1}:{0}').format(auth_keys_path, app['id'])
                 ssh.ssh(copy_authorized_keys_cmd)
 
                 docker_exit = ssh.ssh(start_docker_container,
@@ -463,10 +462,15 @@ class EndPoint():
                     return json.dumps(ErrorCodes.user['serverLaunchError'])
 
                 docker_chown_cmd = (
-                    'sudo docker exec $(sudo docker ps -af name="{0}" -q)'
-                    ' $(which chown) virtue:virtue {1}').format(
+                    'sudo docker exec {0}'
+                    ' chown virtue:virtue {1}').format(
                         app['id'], auth_keys_path)
                 ssh.ssh(docker_chown_cmd)
+
+                docker_chmod_cmd = (
+                    'sudo docker exec {0}'
+                    ' which chmod 600 {1}').format(app['id'], auth_keys_path)
+                ssh.ssh(docker_chmod_cmd)
 
             virtue['applicationIds'].append(applicationId)
 

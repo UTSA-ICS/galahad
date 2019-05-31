@@ -401,11 +401,7 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.ip_address, GALAHAD_KEY_DIR)).run()
-
-        _cmd5 = ("ln('-s {0}/default-virtue-key.pem {1}/default-virtue-key.pem')"
-                 ).format(GALAHAD_KEY_DIR, USER_KEY_DIR)
-        run_ssh_cmd(self.ip_address, self.ssh_key, _cmd5)
+                    format(self.ssh_key, self.server_ip, USER_KEY_DIR)).run()
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
