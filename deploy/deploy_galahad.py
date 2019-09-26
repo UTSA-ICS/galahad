@@ -55,6 +55,7 @@ def run_ssh_cmd(host_server, sshkey, cmd):
             logger.info('success: {}'.format(result.is_success))
 
         else:
+            print(result.stderr)
             logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
                 pformat(result.stdout),
                 pformat(result.stderr),
@@ -77,42 +78,23 @@ def check_cloud_init_finished(host_server, sshkey):
 # This should be subclassed. It is not meant to be used on its own.
 class Instance:
 
-    def setup_keys(self, github_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.ip_address)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.ip_address, self.ssh_key, _cmd1)
-
-        # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(self.ip_address, self.ssh_key,
-                              "rm('-f ~/.ssh/id_rsa.pub')")
-
-        # Now add the github public key to avoid host key verification prompt
-        result3 = run_ssh_cmd(
-            self.ip_address, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-        result.append(result3.stdout)
-
-        return result
-
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
         run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(repo))
         #
         if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+            _cmd = "git('clone https://gitlab.com/utsa-ics/galahad/{}.git')".format(repo)
         else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+            _cmd = "git('clone https://gitlab.com/utsa-ics/galahad/{}.git -b {}')".format(
                 repo, branch)
         run_ssh_cmd(self.ip_address, self.ssh_key, _cmd)
+
+    def copy_config(self, config_path):
+        run_ssh_cmd(self.ip_address, self.ssh_key, "rm('-rf {}')".format(config_path))
+        with Sultan.load() as s:
+            s.scp(
+                '-r -o StrictHostKeyChecking=no -i {} {} ubuntu@{}:{} '.
+                    format(self.ssh_key, config_path, self.ip_address, config_path)).run()
 
     def shutdown(self):
         _cmd = "sudo('shutdown -h 1')"
@@ -257,14 +239,10 @@ class RethinkDB(Instance):
         self.ssh_key = ssh_key
         self.ip_address = RETHINKDB_HOSTNAME
 
-    def setup(self, branch, github_key):
+    def setup(self, branch):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
-
-        # Transfer the private key to the server to enable
-        # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
 
         with Sultan.load() as s:
             s.scp(
@@ -281,7 +259,7 @@ class RethinkDB(Instance):
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
         # Check out galahad repos required for rethinkdb
-        self.checkout_repo('galahad-config')
+        self.copy_config('~/galahad-config')
 
         _cmd1 = "bash('./setup_rethinkdb.sh')"
 
@@ -303,7 +281,6 @@ class Excalibur(Instance):
     def update_aws_info(self):
 
         client = boto3.client('ec2')
-
         server = client.describe_instances(
             Filters=[{
                 'Name': 'tag:aws:cloudformation:logical-id',
@@ -334,7 +311,7 @@ class Excalibur(Instance):
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                     format(self.ssh_key, aws_keys, self.ip_address)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, key_name):
+    def setup(self, branch, aws_config, aws_keys, key_name):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
@@ -342,12 +319,11 @@ class Excalibur(Instance):
         logger.info('Setting up key for github access')
         # Transfer the private key to the server to enable
         # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
         # Check out galahad repos required for excalibur
-        self.checkout_repo('galahad-config')
+        self.copy_config('~/galahad-config')
         self.checkout_repo('galahad', branch)
 
         # Sleep for 10 seconds to ensure that both repos are completely checked out
@@ -401,7 +377,7 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.server_ip, USER_KEY_DIR)).run()
+                    format(self.ssh_key, self.ip_address, USER_KEY_DIR)).run()
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
@@ -440,20 +416,16 @@ class Aggregator(Instance):
         self.ssh_key = ssh_key
         self.ip_address = AGGREGATOR_HOSTNAME
 
-    def setup(self, branch, github_key):
+    def setup(self, branch):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
-
-        # Transfer the private key to the server to enable
-        # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
 
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
                 branch))
         # Check out galahad-config repo required for the certs
-        self.checkout_repo('galahad-config')
+        self.copy_config('~/galahad-config')
 
         _cmd1 = "cd('docker-virtue/elastic').and_().bash('./elastic_setup.sh')"
 
@@ -563,14 +535,10 @@ class Canvas(Instance):
         self.ssh_key = ssh_key
         self.ip_address = CANVAS_HOSTNAME
 
-    def setup(self, branch, github_key):
+    def setup(self, branch):
 
         # Ensure that cloud init has finished
         check_cloud_init_finished(self.ip_address, self.ssh_key)
-
-        # Transfer the private key to the server to enable
-        # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
 
         logger.info(
             'Now checking out relevant galahad repos for {} branch'.format(
@@ -653,9 +621,7 @@ def create_and_setup_image_unity_files(stack_name, sshkey, image_size):
             image_size, (time.time() - start_ubuntu_img_time) / 60))
 
 
-def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
-          aws_config, aws_keys, branch, image_size,
-          deactivate_virtue_migration, auto_migration_interval, key_name):
+def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config, aws_keys, branch, image_size, deactivate_virtue_migration, auto_migration_interval, key_name):
 
     start_stack_time = time.time()
 
@@ -675,7 +641,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
 
     start_excalibur_time = time.time()
     excalibur = Excalibur(stack_name, sshkey)
-    excalibur.setup(branch, github_key, aws_config, aws_keys, key_name)
+    excalibur.setup(branch, aws_config, aws_keys, key_name)
     logger.info('\n*** Time taken for excalibur is [{}] ***\n'.format(
         (time.time() - start_excalibur_time) / 60))
 
@@ -684,7 +650,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     for image in image_size:
         create_img_file_start_time = time.time()
         create_img_file_thread = threading.Thread(
-            target=create_and_setup_image_unity_files,
+            target=create_and_setup_image_unity_files,name=image,
             args=(stack_name, sshkey, image,))
         create_img_file_thread.start()
         create_img_file_threads.append(
@@ -693,18 +659,18 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
 
     start_aggregator_time = time.time()
     aggregator = Aggregator(stack_name, sshkey)
-    aggregator_thread = threading.Thread(target=aggregator.setup,
-                                         args=(branch, github_key))
+    aggregator_thread = threading.Thread(target=aggregator.setup,name="aggregator",
+                                         args=(branch,))
     aggregator_thread.start()
 
     canvas = Canvas(stack_name, sshkey)
-    canvas_thread = threading.Thread(target=canvas.setup,
-                                     args=(branch, github_key))
+    canvas_thread = threading.Thread(target=canvas.setup,name="canvas",
+                                     args=(branch,))
     canvas_thread.start()
 
     start_rethinkdb_time = time.time()
     rethinkdb = RethinkDB(stack_name, sshkey)
-    rethinkdb.setup(branch, github_key)
+    rethinkdb.setup(branch)
     logger.info('\n*** Time taken for rethinkdb is [{}] ***\n'.format(
         (time.time() - start_rethinkdb_time) / 60))
 
@@ -718,7 +684,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, github_key,
     standby_pools = StandbyPools(stack_name, sshkey)
     start_standby_valor_pools_time = time.time()
     standby_valor_pools_thread = threading.Thread(
-        target=standby_pools.initialize_valor_standby_pool)
+        target=standby_pools.initialize_valor_standby_pool,name="valorpool")
     standby_valor_pools_thread.start()
 
     standby_valor_pools_thread.join()
@@ -761,12 +727,6 @@ def parse_args():
         type=str,
         required=True,
         help="The path to the SSH key used for the ec2 instances")
-    parser.add_argument(
-        "-g",
-        "--github_repo_key",
-        type=str,
-        required=True,
-        help="The path to the key to be able to access github repos")
     parser.add_argument(
         "-n",
         "--stack_name",
@@ -851,9 +811,8 @@ def parse_args():
 
 
 def ensure_required_files_exist(args):
-    required_files = '{} {} {} {}'.format(
+    required_files = '{} {} {}'.format(
         args.sshkey,
-        args.github_repo_key,
         args.aws_config,
         args.aws_keys)
 
@@ -870,11 +829,7 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.sshkey, args.stack_name, args.stack_suffix,
-              args.import_stack, args.github_repo_key, args.aws_config,
-              args.aws_keys, args.branch_name, args.image_size,
-              args.deactivate_virtue_migration,
-              args.auto_migration_interval, args.key_name)
+        setup(args.sshkey, args.stack_name, args.stack_suffix, args.import_stack, args.aws_config, args.aws_keys, args.branch_name, args.image_size, args.deactivate_virtue_migration, args.auto_migration_interval, args.key_name)
 
     if args.setup_stack:
         stack = Stack()

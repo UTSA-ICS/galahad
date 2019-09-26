@@ -2,15 +2,14 @@
 
 Werkzeug==0.14.1
 cachelib
-flask
+flask==1.0.3
 flask_sqlalchemy
 python_ldap == 2.5.2
-authlib
 wtforms
 flask_wtf
 boto
 boto3
-Authlib
+Authlib==0.11
 configparser==3.5.0
 gnureadline==6.3.8
 pycryptodome==3.5.1

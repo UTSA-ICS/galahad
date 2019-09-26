@@ -125,7 +125,7 @@ if (__name__ == '__main__'):
                 '\n!!!!!!!!!\nRunning Tests on excalibur server [{}]\n!!!!!!!!!!'.
                     format(EXCALIBUR_HOSTNAME))
             ssh_inst.ssh(
-                'cd galahad/tests/integration && pytest {} {} --setup-show --html=integration-test-report.html '
+                'cd galahad/tests/integration && pytest {} {} --durations=0 --setup-show --html=integration-test-report.html '
                 '--self-contained-html --junit-xml=integration-test-report.xml {}'.format(verbose_tag, profile_tag, args.run_test))
 
         if args.run_all_tests:
@@ -135,7 +135,7 @@ if (__name__ == '__main__'):
                     format(EXCALIBUR_HOSTNAME))
 
             ssh_inst.ssh(
-                'cd galahad/tests/integration && pytest {} {} --setup-show --html=integration-test-report.html '
+                'cd galahad/tests/integration && pytest {} {} --durations=0 --setup-show --html=integration-test-report.html '
                 '--self-contained-html --junit-xml=integration-test-report.xml'.format(verbose_tag, profile_tag))
 
         ssh_inst.scp_from('.',
