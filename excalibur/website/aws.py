@@ -5,6 +5,7 @@ import boto3
 import botocore
 import copy
 import json
+import time
 
 
 class AWS:
@@ -94,7 +95,6 @@ class AWS:
             'Name': 'ip-address',
             'Values': [ip_address]
         }])
-
         if (len(res['Reservations'][0]['Instances']) == 0):
             return None
 
@@ -163,6 +163,7 @@ class AWS:
         instance = res[0]
         self.id = instance.id
 
+        time.sleep(0.5)
         if (block):
             instance.wait_until_running()
 
@@ -185,6 +186,7 @@ class AWS:
 
         instance.start()
 
+        time.sleep(0.5)
         if (block):
             instance.wait_until_running()
 
@@ -203,6 +205,7 @@ class AWS:
 
         instance.stop()
 
+        time.sleep(0.5)
         if (block):
             instance.wait_until_stopped()
 
@@ -221,6 +224,7 @@ class AWS:
 
         instance.terminate()
 
+        time.sleep(0.5)
         if (block):
             instance.wait_until_terminated()
 

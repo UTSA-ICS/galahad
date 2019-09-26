@@ -23,4 +23,4 @@ sudo su - root -c "echo \"  # Routes to be able to reach the virtue guestnet sub
 sudo su - root -c "echo \"  #\"                                                                        >> /etc/network/interfaces.d/50-cloud-init.cfg"
 sudo su - root -c "echo \"  post-up route add -net 10.91.0.0/16 gw 172.30.1.53\"                       >> /etc/network/interfaces.d/50-cloud-init.cfg"
 # Added the routes temporarily so to take affect without a reboot
-sudo route add -net 10.91.0.0/16 gw 172.30.1.53 dev eth0
+sudo route add -net 10.91.0.0/16 gw 172.30.1.53 dev ens5

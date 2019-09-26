@@ -69,16 +69,6 @@ def test_objs_of_type():
             'name': [json.dumps(slapd_name)]
         }) in users
 
-    jmitchell_name = ad_inst.query_ad('cn', 'jmitchell')[0][1]['sAMAccountName'][0]
-    assert (
-        'cusername=jmitchell,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
-            'cusername': ['jmitchell'],
-            'cauthRoleIds': ['[]'],
-            'ou': ['virtue'],
-            'objectClass': ['OpenLDAPuser'],
-            'name': [json.dumps(jmitchell_name)]
-        }) in users
-
     fpatwa_name = ad_inst.query_ad('cn', 'fpatwa')[0][1]['sAMAccountName'][0]
     assert (
         'cusername=fpatwa,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
@@ -89,14 +79,14 @@ def test_objs_of_type():
             'name': [json.dumps(fpatwa_name)]
         }) in users
 
-    klittle_name = ad_inst.query_ad('cn', 'klittle')[0][1]['sAMAccountName'][0]
+    jbenson_name = ad_inst.query_ad('cn', 'jbenson')[0][1]['sAMAccountName'][0]
     assert (
-        'cusername=klittle,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
-            'cusername': ['klittle'],
+        'cusername=jbenson,cn=users,ou=virtue,dc=canvas,dc=virtue,dc=com', {
+            'cusername': ['jbenson'],
             'cauthRoleIds': ['[]'],
             'ou': ['virtue'],
             'objectClass': ['OpenLDAPuser'],
-            'name': [json.dumps(klittle_name)]
+            'name': [json.dumps(jbenson_name)]
         }) in users
 
     users_parsed = ldap_tools.parse_ldap_list(users)
@@ -108,21 +98,15 @@ def test_objs_of_type():
     } in users_parsed
 
     assert {
-        'username': 'jmitchell',
-        'authorizedRoleIds': [],
-        'name': jmitchell_name
-    } in users_parsed
-
-    assert {
         'username': 'fpatwa',
         'authorizedRoleIds': [],
         'name': fpatwa_name
     } in users_parsed
 
     assert {
-        'username': 'klittle',
+        'username': 'jbenson',
         'authorizedRoleIds': [],
-        'name': klittle_name
+        'name': jbenson_name
     } in users_parsed
 
 

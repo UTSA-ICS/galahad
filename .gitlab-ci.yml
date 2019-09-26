@@ -1,0 +1,120 @@
+stages:
+    - deploy
+    - test
+    - cleanup
+
+before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+
+deploy:deploy_stack:
+    stage: deploy
+    except:
+        variables:
+            - $DEPLOY_STACK == "false"
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s DP1 -n "DEPLOY-STACK-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --setup
+    tags:
+        - galahad
+
+deploy:unit_tests:
+    stage: deploy
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s CI1 -n "CI-unit-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --setup
+    tags:
+        - galahad
+
+deploy:integration_tests:
+    stage: deploy
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s CI1 -n "CI-integration-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --setup
+    tags:
+        - galahad 
+
+test:unit_tests:
+    stage: test
+    when: on_success
+    needs: ["deploy:unit_tests"]
+    script:
+        - cd tests
+        - python test.py -i "$EC2_PRIVATE_KEY" -n "CI-unit-$CI_PIPELINE_ID" -t unit --run_all_tests
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    tags:
+        - galahad
+    artifacts:
+        expire_in: 1 week
+        paths: 
+            - log/*
+
+test:integration_tests:
+    stage: test
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    when: on_success
+    needs: ["deploy:integration_tests"]
+    script:
+        - cd tests
+        - python test.py -i "$EC2_PRIVATE_KEY" -n "CI-integration-$CI_PIPELINE_ID" -t integration --run_all_tests
+    tags:
+        - galahad
+    artifacts:
+        expire_in: 1 week
+        paths: 
+            - log/*
+
+cleanup:deploy_stack:
+    stage: cleanup
+    except:
+        variables:
+            - $DEPLOY_STACK == "false"
+    when: manual
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s DP1 -n "DEPLOY-STACK-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --delete
+    tags:
+        - galahad
+
+cleanup:unit_tests:
+    stage: cleanup
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    when: always
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s CI1 -n "CI-unit-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --delete
+    tags:
+        - galahad
+
+cleanup:integration_tests:
+    stage: cleanup
+    except:
+        variables:
+            - $DEPLOY_STACK == "true"
+    when: always
+    script:
+        - pip3 install -r deploy/requirements.txt
+        - cd deploy
+        - python3 deploy.py -i "$EC2_PRIVATE_KEY" --aws_config "$AWS_CONFIG" --aws_keys "$AWS_CREDENTIALS" --key_name starlab-virtue-te -b "$CI_COMMIT_REF_NAME" -s CI1 -n "CI-integration-$CI_PIPELINE_ID" --config_tarfile "$GALAHAD_CONFIG_TAR" --delete
+    tags:
+        - galahad

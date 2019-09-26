@@ -16,7 +16,38 @@ Parameters:
     Type: String
     Default: None
     ConstraintDescription: Specify Name of Stack that creates a VPC and other network resources.
+  DomainDNSName:
+    Description: >-
+      Fully qualified domain name (FQDN) of the forest root domain e.g.
+      corp.example.com
+    Type: String
+    MinLength: '3'
+    MaxLength: '25'
+    Default: virtue.gov
+    AllowedPattern: '[a-zA-Z0-9]+\..+'
+  DomainNetBIOSName:
+    Description: >-
+      NetBIOS name of the domain (upto 15 characters) for users of earlier
+      versions of Windows e.g. CORP
+    Type: String
+    MinLength: '1'
+    MaxLength: '15'
+    Default: VIRTUE
+    AllowedPattern: '[a-zA-Z0-9]+'
+  RestoreModePassword:
+    Description: >-
+      Password for a separate Administrator account when the domain controller
+      is in Restore Mode. Must be at least 8 characters containing letters,
+      numbers and symbols
+    Type: String
+    MinLength: '8'
+    MaxLength: '32'
+    AllowedPattern: >-
+      (?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*
+    Default: Galahad4ever!
 Resources:
+  GalahadADWaitHandle:
+    Type: 'AWS::CloudFormation::WaitConditionHandle'
   VirtueHostedZone:
     Type: 'AWS::Route53::HostedZone'
     Properties:
@@ -331,9 +362,21 @@ Resources:
   GalahadAD:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-06768f803661facc2
-      InstanceType: t3.medium
+      ImageId: ami-067ff23da8261d1c7
+      InstanceType: t3.micro
       KeyName: !Ref KeyName
+      UserData: !Base64
+        'Fn::Join':
+          - ''
+          - - |
+              <script>
+            - 'cfn-init.exe -v -s '
+            - !Ref 'AWS::StackId'
+            - ' -r GalahadAD '
+            - ' --region '
+            - !Ref 'AWS::Region'
+            - |+
+            - </script>
       BlockDeviceMappings:
         - DeviceName: "/dev/sda1"
           Ebs:
@@ -352,6 +395,134 @@ Resources:
             - - VirtUE-
               - !Ref NameSuffix
               - '-AD'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        config:
+          files:
+            'c:\cfn\cfn-hup.conf':
+              content: !Join
+                - ''
+                - - |
+                    [main]
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - |+
+
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - |+
+
+            'c:\cfn\hooks.d\cfn-auto-reloader.conf':
+              content: !Join
+                - ''
+                - - |
+                    [cfn-auto-reloader-hook]
+                  - |
+                    triggers=post.update
+                  - >
+                    path=Resources.GalahadAD.Metadata.AWS::CloudFormation::Init
+                  - 'action=cfn-init.exe -v -s '
+                  - !Ref "AWS::StackId"
+                  - ' -r GalahadAD'
+                  - ' --region '
+                  - !Ref "AWS::Region"
+                  - |+
+
+            'C:\cfn\RunCommand.bat':
+              content: |-
+                %~1
+                IF %ERRORLEVEL% GTR 10 ( exit /b 1 ) else ( exit /b 0 )
+
+            'C:\Windows\Temp\ad_ldap.crt':
+              content: !Join
+                - ''
+                - - |
+                  - '-----BEGIN CERTIFICATE-----'
+                  - '      MIIDtzCCAp+gAwIBAgIJAJQMoYcrQhZ0MA0GCSqGSIb3DQEBCwUAMHIxCzAJBgNVBAYTAlVTMRAwDgYDVQQIDAdBbGFiYW1hMRMwEQYDVQQHDApIdW50c3ZpbGxlMREwDwYDVQQKDAhTdGFyIExhYjEQMA4GA1UECwwHR2FsYWhhZDEXMBUGA1UEAwwOYWQuZ2FsYWhhZC5jb20wHhcNMTgxMTAxMjEzMTQ5WhcNMTkxMTAxMjEzMTQ5WjByMQswCQYDVQQGEwJVUzEQMA4GA1UECAwHQWxhYmFtYTETMBEGA1UEBwwKSHVudHN2aWxsZTERMA8GA1UECgwIU3RhciBMYWIxEDAOBgNVBAsMB0dhbGFoYWQxFzAVBgNVBAMMDmFkLmdhbGFoYWQuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq0VlKZ6V6+vlauyorZMVUvjrFcBH1FnVkajW5BDKYrfOGah6zQiiK7bnYcUxzcIqtBRhg/nlrJCaAbPzoYPnYP7FpJxf8hmJ1i9pgZTIQ2dOdOwngv9qZiauIR8UZ3mlJX26CKG478hs/3tPGUQ/tcfjuzkdef2KtV5+EBZdAOmJcng5EDQYPNFh/j98jM7trvVnpWAePfm8FVv5GdxNPH+HgFEgfq4WwGW9fa+rIrPJohc+71wrrBd5+QBDc64I8429j9+SsI5fNeHj2PZLGPYMhr2K2a42zuJUJQuUUABMO/nrx+htwv5EQjvTqukRLP40V7Z2Y5CQ2wkaRd1jzQIDAQABo1AwTjAdBgNVHQ4EFgQUeQwfwGP+sVP8iSOBxfxKtApheM4wHwYDVR0jBBgwFoAUeQwfwGP+sVP8iSOBxfxKtApheM4wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAcApMIBPhX9S9R0M38/LvNbTUKR9u9GPnKSl+lG2PP4sEi1zFFGpAtN6zUQBO3daENJIWa/U8y0iLnqx3jlYSp37O+3GjHQPOPmDdztBl0D4Vntt++mOTOk2QUbRqvj5SZPXIZaZRI2EBITOvfn4aR0YtTfd9GH699VY2KWo0lCFYwEo9VLGQ8UajyjMqptxcp2fLoz4Yta+HSzU9lQqj/ERhudFhFvidl2tcfkfoR7szUTNbRTHEauHrjDPkHPO1QO/dP80eKjk8K3aEvj8JPvStIcXhcX63alj/qQvO3G3NWcDuoi+mfOy7gRwW5wiPAEr1gxANtN4lBxGn4dbKkg==
+'
+                  - '-----END CERTIFICATE-----'
+                  - |+
+
+          commands:
+            1-run-dcpromo:
+              command: !Join
+                - ''
+                - - >-
+                    C:\cfn\RunCommand.bat "dcpromo /unattend
+                    /ReplicaOrNewDomain:Domain  /NewDomain:Forest
+                    /NewDomainDNSName:
+                  - !Ref DomainDNSName
+                  - '  /ForestLevel:4 /DomainNetbiosName:'
+                  - !Ref DomainNetBIOSName
+                  - ' /DomainLevel:4  /InstallDNS:Yes  /ConfirmGc:Yes  /CreateDNSDelegation:No  /DatabasePath:"C:\Windows\NTDS"  /LogPath:"C:\Windows\NTDS"  /SYSVOLPath:"C:\Windows\SYSVOL" /SafeModeAdminPassword='
+                  - !Ref RestoreModePassword
+                  - ' /RebootOnCompletion:Yes"'
+              waitAfterCompletion: forever
+            2-signal-success:
+              command: !Join
+                - ''
+                - - cfn-signal.exe -e 0 "
+                  - !Base64
+                    Ref: GalahadADWaitHandle
+                  - '"'
+            3-add-ou:
+              command: !Sub >-
+                powershell.exe -Command dsadd ou 'ou=galahad,dc=virtue,dc=gov'
+              waitAfterCompletion: 2
+            4-Add-user-slapd:
+              command: !Sub >-
+                powershell.exe -Command New-ADUser -Name slapd
+                -UserPrincipalName slapd@virtue.gov -AccountPassword
+                (ConvertTo-SecureString Test123! -AsPlainText -Force)
+                -Enabled:$true -PasswordNeverExpires:$true
+                -DisplayName slapd-ldap -GivenName slapd-ldap
+                -SamAccountName slapd  -Path 'ou=galahad,dc=virtue,dc=gov'
+              waitAfterCompletion: 1
+            5-Add-user-jbenson:
+              command: !Sub >-
+                powershell.exe -Command New-ADUser -Name jbenson
+                -UserPrincipalName jbenson@virtue.gov -AccountPassword
+                (ConvertTo-SecureString Test123! -AsPlainText -Force)
+                -Enabled:$true -PasswordNeverExpires:$true
+                -DisplayName 'James Benson' -GivenName James
+                -SamAccountName jbenson -Path 'ou=galahad,dc=virtue,dc=gov'
+              waitAfterCompletion: 1
+            6-Add-user-fpatwa:
+              command: !Sub >-
+                powershell.exe -Command New-ADUser -Name fpatwa
+                -UserPrincipalName fpatwa@virtue.gov -AccountPassword
+                (ConvertTo-SecureString Test123! -AsPlainText -Force)
+                -Enabled:$true -PasswordNeverExpires:$true
+                -DisplayName 'Farhan Patwa' -GivenName Farhan
+                -SamAccountName fpatwa -Path 'ou=galahad,dc=virtue,dc=gov'
+              waitAfterCompletion: 1
+            7-Install-certificates-1:
+              command: !Sub >-
+                powershell.exe -Command Import-Certificate -FilePath
+                C:\Windows\Temp\ad_ldap.crt -CertStoreLocation
+                Cert:\LocalMachine\My
+              waitAfterCompletion: 1
+            8-Install-certificates-2:
+              command: !Sub >-
+                powershell.exe -Command Import-Certificate -FilePath
+                C:\Windows\Temp\ad_ldap.crt -CertStoreLocation
+                Cert:\LocalMachine\Root
+              waitAfterCompletion: 1
+            9-signal-success:
+              command: !Join
+                - ''
+                - - cfn-signal.exe -e 0 "
+                  - !Base64
+                    Ref: GalahadADWaitHandle
+                  - '"'
+          services:
+            windows:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - 'c:\cfn\cfn-hup.conf'
+                  - 'c:\cfn\hooks.d\cfn-auto-reloader.conf'
  ##########################################################
  # The Exchange node was to test email support in Virtues
  # It is not needed at the moment.
@@ -459,7 +630,7 @@ Resources:
           chmod +x /usr/local/bin/docker-compose
 
           # Clone the docker-virtue dir which has the aggregator setup files
-          su - ubuntu -c "git clone https://github.com/starlab-io/docker-virtue.git"
+          su - ubuntu -c "git clone https://gitlab.com/utsa-ics/galahad/docker-virtue.git"
 
           # Download the docker images
           bash /home/ubuntu/docker-virtue/elastic/image_pull.sh

@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 import time
+import tarfile
 from pprint import pformat
 
 import boto3
@@ -41,9 +42,13 @@ def run_ssh_cmd(host_server, sshkey, cmd):
             hostname=host_server,
             ssh_config=config) as s:
         result = eval('s.{}.run()'.format(cmd))
-
         if 'deploy_galahad' in str(cmd):
             logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
+                pformat(result.stdout),
+                pformat(result.stderr),
+                pformat(result.is_success)))
+
+        logger.info('\nstdout: {}\nstderr: {}\nsuccess: {}'.format(
                 pformat(result.stdout),
                 pformat(result.stderr),
                 pformat(result.is_success)))
@@ -202,42 +207,26 @@ class DeployServer():
 
         self.server_ip = instance.public_ip_address
 
-    def setup_keys(self, github_key):
-
-        with Sultan.load() as s:
-            s.scp(
-                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/github_key '.
-                    format(self.ssh_key, github_key, self.server_ip)).run()
-
-        _cmd1 = "mv('github_key ~/.ssh/id_rsa').and_().chmod('600 ~/.ssh/id_rsa')"
-        result1 = run_ssh_cmd(self.server_ip, self.ssh_key, _cmd1)
-
-        # Now remove any existing public keys as they will conflict with the private key
-        result2 = run_ssh_cmd(self.server_ip, self.ssh_key,
-                              "rm('-f ~/.ssh/id_rsa.pub')")
-
-        # Now add the github public key to avoid host key verification prompt
-        result3 = run_ssh_cmd(
-            self.server_ip, self.ssh_key,
-            "ssh__keyscan('github.com >> ~/.ssh/known_hosts')")
-
-        result = list()
-        result.append(result1.stdout)
-        result.append(result2.stdout)
-        result.append(result3.stdout)
-
-        return (result)
-
     def checkout_repo(self, repo, branch='master'):
         # Cleanup any left over repos
         run_ssh_cmd(self.server_ip, self.ssh_key, "rm('-rf {}')".format(repo))
         #
         if branch == 'master':
-            _cmd = "git('clone git@github.com:starlab-io/{}.git')".format(repo)
+            _cmd = "git('clone https://gitlab.com/utsa-ics/galahad/{}.git')".format(repo)
         else:
-            _cmd = "git('clone git@github.com:starlab-io/{}.git -b {}')".format(
+            _cmd = "git('clone https://gitlab.com/utsa-ics/galahad/{}.git -b {}')".format(
                 repo, branch)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
+    def copy_config(self, config_path):
+        run_ssh_cmd(self.server_ip, self.ssh_key, "rm('-rf ~/galahad-config')")
+
+        config_filename = config_path.split('/')[-1]
+        with Sultan.load() as s:
+            s.scp(
+                '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:{} '.
+                    format(self.ssh_key, config_path, self.server_ip, config_filename)).run()
+        run_ssh_cmd(self.server_ip, self.ssh_key, "tar('-xf ~/{}')".format(config_filename))
 
     def setup_aws_access(self, aws_config, aws_keys):
         run_ssh_cmd(self.server_ip, self.ssh_key, "mkdir('-p ~/.aws')")
@@ -249,18 +238,15 @@ class DeployServer():
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
                     format(self.ssh_key, aws_keys, self.server_ip)).run()
 
-    def setup(self, branch, github_key, aws_config, aws_keys, stack_suffix,
-              key_name):
+    def setup(self, branch, aws_config, aws_keys, stack_suffix, key_name, config_tarfile):
 
-        logger.info('Setting up key for github access')
-        # Transfer the private key to the server to enable
-        # it to access github without being prompted for credentials
-        self.setup_keys(github_key)
         logger.info(
             'Now checking out relevant galahad repos for {} branch'.format(
                 branch))
+
+        time.sleep(10)
         # Check out galahad repos required for galahad
-        self.checkout_repo('galahad-config')
+        self.copy_config(config_tarfile)
         self.checkout_repo('galahad', branch)
 
         # Sleep for 10 seconds to ensure that both repos are completely checked out
@@ -281,6 +267,9 @@ class DeployServer():
                     format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR,
                            key_name)).run()
 
+        _cmd = "sudo('chmod 600 {0}/{1}.pem')".format(GALAHAD_KEY_DIR, key_name)
+        run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
+
         # Deploy the Pre-requisites
         _cmd = "sudo('apt-get update')"
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
@@ -294,7 +283,6 @@ class DeployServer():
         # Start the normal deployment process - Run the setup script
         _cmd = '''bash(('-c "cd galahad/deploy && python3 deploy_galahad.py'
                         ' -i {0}/{1}.pem'
-                        ' -g ~/.ssh/id_rsa'
                         ' --aws_config ~/.aws/config'
                         ' --aws_keys ~/.aws/credentials'
                         ' --key_name {1}'
@@ -308,14 +296,13 @@ class DeployServer():
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
 
 
-def setup(sshkey, stack_name, stack_suffix, github_key, aws_config,
-          aws_keys, branch, key_name):
+def setup(sshkey, stack_name, stack_suffix, aws_config, aws_keys, branch, key_name, config_tarfile):
+
     stack = VPC_Stack()
     stack.setup_stack(VPC_STACK_TEMPLATE, stack_name, stack_suffix, key_name)
 
     deploy = DeployServer(stack_name, sshkey)
-    deploy.setup(branch, github_key, aws_config, aws_keys, stack_suffix,
-                 key_name)
+    deploy.setup(branch, aws_config, aws_keys, stack_suffix, key_name, config_tarfile)
 
 
 def parse_args():
@@ -327,12 +314,6 @@ def parse_args():
         type=str,
         required=True,
         help="The path to the SSH key used for the ec2 instances")
-    parser.add_argument(
-        "-g",
-        "--github_repo_key",
-        type=str,
-        required=True,
-        help="The path to the key to be able to access github repos")
     parser.add_argument(
         "-n",
         "--stack_name",
@@ -368,6 +349,11 @@ def parse_args():
         type=str,
         default='starlab-virtue-te',
         help='The key pair name to use, defaults to starlab-virtue-te.')
+    parser.add_argument(
+        '--config_tarfile',
+        type=str,
+        required=True,
+        help='The tarred galahad-config file to use for the deployment (with certs and keys for galahad components).')
 
     parser.add_argument(
         "--setup",
@@ -387,23 +373,29 @@ def parse_args():
         help="delete the specified stack")
 
     args = parser.parse_args()
+    print(args)
 
     return args
 
 
 def ensure_required_files_exist(args):
-    required_files = '{} {} {} {}'.format(
+    required_files = '{} {} {}'.format(
         args.sshkey,
-        args.github_repo_key,
         args.aws_config,
-        args.aws_keys)
+        args.aws_keys,
+        args.config_tarfile)
 
     for file in required_files.split():
 
         if not os.path.isfile(file):
             logger.error('Specified file [{}] does not exit!\n'.format(file))
             sys.exit()
-
+        if file == args.config_tarfile:
+            tarcontents = tarfile.TarFile(file, 'r')
+            if tarcontents.getnames()[0] != 'galahad-config':
+                logger.error('Specified config file tar, {}, does not have the correct directory name.\n'.format(tarcontents.getnames()[0]))
+                logger.error('The correct name of the directory should be [galahad-config].\n')
+                sys.exit()
 
 def main():
     args = parse_args()
@@ -411,9 +403,7 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.sshkey, args.stack_name, args.stack_suffix,
-              args.github_repo_key, args.aws_config, args.aws_keys,
-              args.branch_name, args.key_name)
+        setup(args.sshkey, args.stack_name, args.stack_suffix, args.aws_config, args.aws_keys, args.branch_name, args.key_name, args.config_tarfile)
 
     if args.list_stacks:
         VPC_Stack().list_stacks()
