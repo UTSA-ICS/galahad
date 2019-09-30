@@ -15,14 +15,16 @@ if test "x$1" = "x-HEAD" ; then
     echo "Running flake8 on ${files}"
     diff -u --from-file /dev/null ${files} | flake8 --max-line-length=120 --diff "$@"
     echo
-    for file in ${files}
-    do
-        if [[ $file == *.sh ]]; then
-           echo "Shellcheck ${file}"
-           shellcheck "${file}"
-        fi
-    done
 else
     echo "Running flake8 on all files"
     exec flake8 --max-line-length=120 "$@"
 fi
+
+files=$(git diff --name-only HEAD~1 | tr '\n' ' ')
+for file in ${files}
+    do
+        if [[ $file == *.sh ]]; then
+           echo "Running Shellcheck on ${file}"
+           shellcheck "${file}"
+        fi
+done
