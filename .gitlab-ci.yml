@@ -1,4 +1,5 @@
 stages:
+    - static analysis
     - deploy
     - test
     - cleanup
@@ -9,6 +10,13 @@ before_script:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - files=(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
+
+flake8:
+    stage: static analysis
+    script:
+        - pip3 install flake8
+        - flake8 --max-line-length=120 "$files"
 
 deploy:deploy_stack:
     stage: deploy
