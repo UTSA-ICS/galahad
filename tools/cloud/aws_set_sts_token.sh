@@ -8,7 +8,7 @@
 #           using MFA authentication. The Session Token is valid for 12 hours by default.
 #           This script creates a new session token everytime it is called.
 #           It will also set the following environment variables to use with AWS cli and
-#           boto3 client. 
+#           boto3 client.
 #           AWS_ACCESS_KEY_ID
 #           AWS_SECRET_ACCESS_KEY
 #           AWS_SESSION_TOKEN
