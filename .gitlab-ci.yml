@@ -15,6 +15,8 @@ deploy:flake8:
     script:
         - pip3 install flake8 --quiet
         - flake8 --max-line-length=120 .
+    tags:
+        - galahad
 
 deploy:deploy_stack:
     stage: deploy
