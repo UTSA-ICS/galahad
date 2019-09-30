@@ -9,12 +9,17 @@ before_script:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - FILES=(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
 
 deploy:flake8:
     stage: deploy
+    image: docker.io/python3.7
+    before_script: 
+        - echo true
     script:
         - pip3 install flake8 --quiet
-        - flake8 --max-line-length=120 .
+        - bash flake8wrap.sh -HEAD
+        - flake8 --max-line-length=120 $FILES
     tags:
         - galahad
 
