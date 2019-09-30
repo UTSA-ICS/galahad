@@ -123,6 +123,7 @@ cleanup:deploy_stack:
 
 cleanup:unit_tests:
     stage: cleanup
+    needs: ["test:unit_tests"]
     artifacts:
         paths:
             - .cache/pip
@@ -140,6 +141,7 @@ cleanup:unit_tests:
 
 cleanup:integration_tests:
     stage: cleanup
+    needs: ["test:integration_tests"]
     artifacts:
         paths:
             - .cache/pip
