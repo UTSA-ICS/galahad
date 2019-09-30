@@ -1,5 +1,4 @@
 stages:
-    - static analysis
     - deploy
     - test
     - cleanup
@@ -12,8 +11,8 @@ before_script:
     - chmod 700 ~/.ssh
     - files=(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
 
-flake8:
-    stage: static analysis
+deploy:flake8:
+    stage: deploy
     script:
         - pip3 install flake8
         - flake8 --max-line-length=120 "$files"
