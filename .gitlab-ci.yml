@@ -3,15 +3,27 @@ stages:
     - test
     - cleanup
 
+cache:
+    paths:
+        - .cache/pip
+        - venv/
+
 before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
 
 deploy:deploy_stack:
     stage: deploy
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "false"
@@ -24,6 +36,10 @@ deploy:deploy_stack:
 
 deploy:unit_tests:
     stage: deploy
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "true"
@@ -36,6 +52,10 @@ deploy:unit_tests:
 
 deploy:integration_tests:
     stage: deploy
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "true"
@@ -48,6 +68,12 @@ deploy:integration_tests:
 
 test:unit_tests:
     stage: test
+    artifacts:
+        expire_in: 1 week
+        paths:
+            - .cache/pip
+            - ven
+            - log/*
     when: on_success
     needs: ["deploy:unit_tests"]
     script:
@@ -58,13 +84,15 @@ test:unit_tests:
             - $DEPLOY_STACK == "true"
     tags:
         - galahad
-    artifacts:
-        expire_in: 1 week
-        paths: 
-            - log/*
 
 test:integration_tests:
     stage: test
+    artifacts:
+        expire_in: 1 week
+        paths:
+            - .cache/pip
+            - ven
+            - log/*
     except:
         variables:
             - $DEPLOY_STACK == "true"
@@ -75,13 +103,13 @@ test:integration_tests:
         - python test.py -i "$EC2_PRIVATE_KEY" -n "CI-integration-$CI_PIPELINE_ID" -t integration --run_all_tests
     tags:
         - galahad
-    artifacts:
-        expire_in: 1 week
-        paths: 
-            - log/*
 
 cleanup:deploy_stack:
     stage: cleanup
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "false"
@@ -95,6 +123,10 @@ cleanup:deploy_stack:
 
 cleanup:unit_tests:
     stage: cleanup
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "true"
@@ -108,6 +140,10 @@ cleanup:unit_tests:
 
 cleanup:integration_tests:
     stage: cleanup
+    artifacts:
+        paths:
+            - .cache/pip
+            - ven
     except:
         variables:
             - $DEPLOY_STACK == "true"
