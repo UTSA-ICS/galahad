@@ -9,13 +9,12 @@ before_script:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - files=(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
 
 deploy:flake8:
     stage: deploy
     script:
-        - pip3 install flake8
-        - flake8 --max-line-length=120 "$files"
+        - pip3 install flake8 --quiet
+        - flake8 --max-line-length=120 .
 
 deploy:deploy_stack:
     stage: deploy
