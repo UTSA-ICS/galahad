@@ -19,6 +19,7 @@ deploy:flake8:
         - bash flake8wrap.sh -HEAD
     tags:
         - galahad
+    allow_failure: true
 
 deploy:deploy_stack:
     stage: deploy
