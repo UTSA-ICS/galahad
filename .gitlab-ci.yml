@@ -1,4 +1,5 @@
 stages:
+    - static analysis
     - deploy
     - test
     - cleanup
@@ -10,8 +11,8 @@ before_script:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
 
-deploy:flake8:
-    stage: deploy
+static_analysis:
+    stage: static analysis
     before_script:
         - echo true
     script:
