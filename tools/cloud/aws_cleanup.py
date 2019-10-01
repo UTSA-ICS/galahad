@@ -1,7 +1,5 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
-import os
-import sys
 import boto3
 
 def delete_orphaned_snapshots():
