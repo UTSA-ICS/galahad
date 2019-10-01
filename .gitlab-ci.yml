@@ -58,10 +58,6 @@ test:unit_tests:
             - $DEPLOY_STACK == "true"
     tags:
         - galahad
-    artifacts:
-        expire_in: 1 week
-        paths: 
-            - log/*
 
 test:integration_tests:
     stage: test
@@ -75,10 +71,6 @@ test:integration_tests:
         - python test.py -i "$EC2_PRIVATE_KEY" -n "CI-integration-$CI_PIPELINE_ID" -t integration --run_all_tests
     tags:
         - galahad
-    artifacts:
-        expire_in: 1 week
-        paths: 
-            - log/*
 
 cleanup:deploy_stack:
     stage: cleanup
@@ -95,6 +87,7 @@ cleanup:deploy_stack:
 
 cleanup:unit_tests:
     stage: cleanup
+    needs: ["test:unit_tests"]
     except:
         variables:
             - $DEPLOY_STACK == "true"
@@ -108,6 +101,7 @@ cleanup:unit_tests:
 
 cleanup:integration_tests:
     stage: cleanup
+    needs: ["test:integration_tests"]
     except:
         variables:
             - $DEPLOY_STACK == "true"
