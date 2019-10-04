@@ -70,6 +70,14 @@ test:unit_tests:
             - $DEPLOY_STACK == "true"
     tags:
         - galahad
+    artifacts:
+        expire_in: 1 week
+        reports:
+            junit: tests/unit-test-report.xml
+        paths: 
+            - tests/*.xml
+            - tests/*.html
+    retry: 2
 
 test:integration_tests:
     stage: test
@@ -83,6 +91,13 @@ test:integration_tests:
         - python test.py -i "$EC2_PRIVATE_KEY" -n "CI-integration-$CI_PIPELINE_ID" -t integration --run_all_tests
     tags:
         - galahad
+    artifacts:
+        expire_in: 1 week
+        reports:
+            junit: tests/integration-test-report.xml
+        paths: 
+            - tests/*.xml
+            - tests/*.html
 
 cleanup:deploy_stack:
     stage: cleanup
