@@ -3,7 +3,6 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
 import os
-import sys
 import subprocess
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -33,7 +32,7 @@ for file_name in ls:
         file_path = base_dir + '/ldif_output/cn=config/cn=schema/' + file_name
         break
 
-if (file_path == None):
+if (file_path is None):
     exit(2)
 
 with open(file_path, 'r') as before, open(base_dir + '/cn=canvas.ldif',

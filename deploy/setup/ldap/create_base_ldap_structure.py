@@ -50,12 +50,7 @@ def add_person(cn, sn, password):
     inst.conn.add_s(dn, user)
 
 
-def add_application(
-    id,
-    name,
-    version,
-    os,
-    port=None):
+def add_application(id, name, version, os, port=None):
 
     app = {
         'id': id,
@@ -64,7 +59,7 @@ def add_application(
         'os': os
     }
 
-    if (port != None):
+    if (port is not None):
         app['port'] = int(port)
 
     ldap_app = to_ldap(app, 'OpenLDAPapplication')

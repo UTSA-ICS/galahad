@@ -6,6 +6,7 @@ import argparse
 
 from assembler.assembler import Assembler
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b',
@@ -49,6 +50,7 @@ def parse_args():
     args = parser.parse_args()
 
     return args
+
 
 if (__name__ == '__main__'):
 

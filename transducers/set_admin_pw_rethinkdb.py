@@ -14,19 +14,19 @@ parser.add_argument('-c', '--cert', help='Path to RethinkDB CA cert', default='/
 args = parser.parse_args()
 
 if not os.path.isfile(args.cert):
-	print 'File not found:', args.cert
-	sys.exit(1)
+    print("File not found: {}".format(args.cert))
+    sys.exit(1)
 
 conn = r.connect(host=args.host, ssl={'ca_certs': args.cert})
 
-pw = raw_input('Set rethinkdb admin password to: ').strip()
+pw = input('Set rethinkdb admin password to: ').strip()
 
 r.db('rethinkdb').table('users').update({
-	'id': 'admin', 
-	'password': {
-		'password': pw, 
-		'iterations': 4096
-	}
+     'id': 'admin',
+     'password': {
+         'password': pw,
+         'iterations': 4096
+     }
 }).run(conn)
 
-print 'Finished'
+print("Finished")

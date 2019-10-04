@@ -94,7 +94,7 @@ class Instance:
         with Sultan.load() as s:
             s.scp(
                 '-r -o StrictHostKeyChecking=no -i {} {} ubuntu@{}:{} '.
-                    format(self.ssh_key, config_path, self.ip_address, config_path)).run()
+                format(self.ssh_key, config_path, self.ip_address, config_path)).run()
 
     def shutdown(self):
         _cmd = "sudo('shutdown -h 1')"
@@ -247,13 +247,13 @@ class RethinkDB(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/rethinkdb.conf'.
-                    format(self.ssh_key, 'setup/rethinkdb.conf', self.ip_address)).run()
+                format(self.ssh_key, 'setup/rethinkdb.conf', self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/setup_rethinkdb.sh'.
-                    format(self.ssh_key, 'setup/setup_rethinkdb.sh', self.ip_address)).run()
+                format(self.ssh_key, 'setup/setup_rethinkdb.sh', self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/configure_rethinkdb.py'.
-                    format(self.ssh_key, 'setup/configure_rethinkdb.py', self.ip_address)).run()
+                format(self.ssh_key, 'setup/configure_rethinkdb.py', self.ip_address)).run()
 
         logger.info(
             'Now checking out relevant excalibur repos for {} branch'.format(
@@ -306,10 +306,10 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.
-                    format(self.ssh_key, aws_config, self.ip_address)).run()
+                format(self.ssh_key, aws_config, self.ip_address)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
-                    format(self.ssh_key, aws_keys, self.ip_address)).run()
+                format(self.ssh_key, aws_keys, self.ip_address)).run()
 
     def setup(self, branch, aws_config, aws_keys, key_name):
 
@@ -377,7 +377,7 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/default-virtue-key.pem'.
-                    format(self.ssh_key, self.ip_address, USER_KEY_DIR)).run()
+                format(self.ssh_key, self.ip_address, USER_KEY_DIR)).run()
 
         # Start the Blue Force Tracker
         _cmd8 = "cd('galahad/blue_force_track').and_().bash('./start_bft.sh')"
@@ -403,7 +403,7 @@ class Excalibur(Instance):
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} /tmp/{1} ubuntu@{2}:~/galahad/deploy/{3}'.
-                    format(self.ssh_key, filename, self.ip_address, AWS_INSTANCE_INFO)).run()
+                format(self.ssh_key, filename, self.ip_address, AWS_INSTANCE_INFO)).run()
 
         return aws_instance_info
 
@@ -458,7 +458,7 @@ class EFS:
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} ../valor/{} ubuntu@{}:~/.'.
-                    format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
+                format(self.ssh_key, 'setup_valor_router.sh', VALOR_ROUTER_HOSTNAME)).run()
 
         # Execute the setup file on the instance
         _cmd = "bash('./setup_valor_router.sh')"
@@ -478,19 +478,19 @@ class EFS:
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} setup/xm.tmpl ubuntu@{}:~/.'.
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+                format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/sources.list ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+                format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/setup_base_ubuntu_pvm.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+                format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
             s.scp(
                 ('-o StrictHostKeyChecking=no -i {} '
                  'setup/setup_ubuntu_image.sh ubuntu@{}:~/.').
-                    format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
+                format(self.ssh_key, XEN_PVM_BUILDER_HOSTNAME)).run()
 
         # Apply workarounds and setup the xen pvm builder server
         ssh_cmd = "bash('setup_base_ubuntu_pvm.sh')"
@@ -599,14 +599,14 @@ def create_and_setup_image_unity_files(stack_name, sshkey, image_size):
     efs.setup_ubuntu_img(image_size)
     logger.info(
         '\n*** Time taken for {0} ubuntu img is [{1}] ***\n'.format(image_size,
-            (time.time() - start_ubuntu_img_time) / 60))
+                                                                    (time.time() - start_ubuntu_img_time) / 60))
 
     # Build a unity from the base ubuntu image
     start_unity_time = time.time()
     efs.setup_unity_img(EXCALIBUR_HOSTNAME, image_size + '.img')
     logger.info(
         '\n*** Time taken for {0} unity is [{1}] ***\n'.format(image_size,
-            (time.time() - start_unity_time) / 60))
+                                                               (time.time() - start_unity_time) / 60))
 
     # Create Standby Pool of role image files
     standby_pools = StandbyPools(stack_name, sshkey)
@@ -621,7 +621,9 @@ def create_and_setup_image_unity_files(stack_name, sshkey, image_size):
             image_size, (time.time() - start_ubuntu_img_time) / 60))
 
 
-def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config, aws_keys, branch, image_size, deactivate_virtue_migration, auto_migration_interval, key_name):
+def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config,
+          aws_keys, branch, image_size, deactivate_virtue_migration,
+          auto_migration_interval, key_name):
 
     start_stack_time = time.time()
 
@@ -650,7 +652,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config, aws_k
     for image in image_size:
         create_img_file_start_time = time.time()
         create_img_file_thread = threading.Thread(
-            target=create_and_setup_image_unity_files,name=image,
+            target=create_and_setup_image_unity_files, name=image,
             args=(stack_name, sshkey, image,))
         create_img_file_thread.start()
         create_img_file_threads.append(
@@ -659,12 +661,12 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config, aws_k
 
     start_aggregator_time = time.time()
     aggregator = Aggregator(stack_name, sshkey)
-    aggregator_thread = threading.Thread(target=aggregator.setup,name="aggregator",
+    aggregator_thread = threading.Thread(target=aggregator.setup, name="aggregator",
                                          args=(branch,))
     aggregator_thread.start()
 
     canvas = Canvas(stack_name, sshkey)
-    canvas_thread = threading.Thread(target=canvas.setup,name="canvas",
+    canvas_thread = threading.Thread(target=canvas.setup, name="canvas",
                                      args=(branch,))
     canvas_thread.start()
 
@@ -684,7 +686,7 @@ def setup(sshkey, stack_name, stack_suffix, import_stack_name, aws_config, aws_k
     standby_pools = StandbyPools(stack_name, sshkey)
     start_standby_valor_pools_time = time.time()
     standby_valor_pools_thread = threading.Thread(
-        target=standby_pools.initialize_valor_standby_pool,name="valorpool")
+        target=standby_pools.initialize_valor_standby_pool, name="valorpool")
     standby_valor_pools_thread.start()
 
     standby_valor_pools_thread.join()
@@ -738,15 +740,13 @@ def parse_args():
         "--stack_suffix",
         type=str,
         required=True,
-        help=
-        "The suffix used by the cloudformation stack to append to resource names")
+        help="The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument(
         "--import_stack",
         type=str,
         default='None',
         required=False,
-        help=
-        "The Name of the Stack containing resources that will be imported for use in this stack")
+        help="The Name of the Stack containing resources that will be imported for use in this stack")
     parser.add_argument(
         "-b",
         "--branch_name",
@@ -795,7 +795,8 @@ def parse_args():
         "--build_image_only",
         action="store_true",
         help="Build the ubuntu and unity image only - Assume an existing stack")
-    parser.add_argument("-d",
+    parser.add_argument(
+        "-d",
         "--deactivate_virtue_migration",
         action="store_true",
         help="Deactivate automated migration of Virtues")
@@ -829,7 +830,9 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.sshkey, args.stack_name, args.stack_suffix, args.import_stack, args.aws_config, args.aws_keys, args.branch_name, args.image_size, args.deactivate_virtue_migration, args.auto_migration_interval, args.key_name)
+        setup(args.sshkey, args.stack_name, args.stack_suffix, args.import_stack,
+              args.aws_config, args.aws_keys, args.branch_name, args.image_size,
+              args.deactivate_virtue_migration, args.auto_migration_interval, args.key_name)
 
     if args.setup_stack:
         stack = Stack()

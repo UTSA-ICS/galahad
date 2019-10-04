@@ -11,6 +11,7 @@ import requests
 
 DEBUG = True
 
+
 class Endpoint(object):
 
     class EpType(Enum):
@@ -21,9 +22,9 @@ class Endpoint(object):
     def factory(_type, ip):
         if not isinstance(_type, Endpoint.EpType):
             raise TypeError("Please use an Endpoint.EpType")
-    
+
         ep = Endpoint(ip)
-        
+
         cmdfile = None
         if _type == Endpoint.EpType.ADMIN:
             cmdfile = 'admin_api.json'
@@ -46,8 +47,8 @@ class Endpoint(object):
         self.ip = ip
         self.sso = sso_tool(ip + ':5002')
         self.session = None
-        self.commands = {'help': { "help": "Get help" },
-                         'exit': { "help": "Return to BASE mode or exit" } }
+        self.commands = {'help': {"help": "Get help"},
+                         'exit': {"help": "Return to BASE mode or exit"}}
 
     def handle_command(self, command, _params=None):
         if command == 'help':
@@ -132,7 +133,7 @@ class Endpoint(object):
         self.username = username
         if app_name == '':
             app_name = 'APP_1'
-        
+
         self.logout()
 
         if (not self.sso.login(self.username, password)):
@@ -150,7 +151,7 @@ class Endpoint(object):
         return 'Logged out'
 
     def set_token(self, token):
-        # If you use sso_login.py from a script, you can call set_token directly 
+        # If you use sso_login.py from a script, you can call set_token directly
         # without going through the login process
         self.session = requests.Session()
         self.session.headers = {
@@ -182,8 +183,9 @@ class Endpoint(object):
             return False
 
         self.set_token(token)
-        
+
         return True
+
 
 if __name__ == '__main__':
     ep = Endpoint.factory(Endpoint.EpType.USER, "127.0.0.1")

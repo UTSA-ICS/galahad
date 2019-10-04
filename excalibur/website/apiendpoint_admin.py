@@ -29,7 +29,6 @@ class EndPoint_Admin():
         self.valor_api = ValorAPI()
         self.rdb_manager = RethinkDbManager()
 
-
     def application_list(self):
 
         try:
@@ -142,7 +141,7 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['invalidVirtueId'])
             ldap_tools.parse_ldap(virtue)
 
-            #if (virtue['state'] == 'DELETING'):
+            # if (virtue['state'] == 'DELETING'):
             #    return json.dumps(ErrorCodes.admin['invalidVirtueState'])
             if (virtue['state'] != 'STOPPED'):
                 return json.dumps(ErrorCodes.admin['invalidVirtueState'])
@@ -151,12 +150,12 @@ class EndPoint_Admin():
                 return json.dumps(ErrorCodes.admin['cantAttach'])
 
             virtue['resourceIds'].append(resourceId)
-            self.inst.modify_obj('cid', virtue['id'], 
+            self.inst.modify_obj('cid', virtue['id'],
                 ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
                 objectClass='OpenLDAPvirtue',
                 throw_error=True)
 
-            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            # return json.dumps(ErrorCodes.admin['notImplemented'])
             return json.dumps(ErrorCodes.admin['success'])
 
         except Exception as e:
@@ -196,7 +195,7 @@ class EndPoint_Admin():
                 objectClass='OpenLDAPvirtue',
                 throw_error=True)
 
-            #return json.dumps(ErrorCodes.admin['notImplemented'])
+            # return json.dumps(ErrorCodes.admin['notImplemented'])
             return json.dumps(ErrorCodes.admin['success'])
         except Exception as e:
             print('Error:\n{0}'.format(traceback.format_exc()))
@@ -228,7 +227,7 @@ class EndPoint_Admin():
             if not role['applicationIds']:
                 return json.dumps(ErrorCodes.admin['NoApplicationId'])
 
-            default_unity_size = 3 # Measured in GB.
+            default_unity_size = 3  # Measured in GB.
 
             for a in role['applicationIds']:
                 app_test = self.inst.get_obj(
@@ -349,8 +348,8 @@ class EndPoint_Admin():
                     # destroy role
                     userUsingRoleError = []
                     userUsingRoleError.append({'User authorized for the '
-                                                 'specified role exists':
-                                                     user[1]['username']})
+                                               'specified role exists':
+                                               user[1]['username']})
                     userUsingRoleError.append(
                         ErrorCodes.admin['userUsingRole'])
                     return json.dumps(userUsingRoleError)
@@ -598,7 +597,7 @@ class EndPoint_Admin():
             for v in curr_virtues:
                 ldap_tools.parse_ldap(v[1])
                 if (v[1]['username'] == username
-                      and v[1]['roleId'] == roleId):
+                    and v[1]['roleId'] == roleId):
                     return json.dumps(
                         ErrorCodes.user['virtueAlreadyExistsForRole'])
 
@@ -681,7 +680,6 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def virtue_reload_state(self, virtueId):
 
         try:
@@ -712,21 +710,19 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def valor_create(self):
 
         try:
 
             valor_id = self.valor_api.valor_create()
 
-            return json.dumps({'valor_id' : valor_id})
+            return json.dumps({'valor_id': valor_id})
 
         except:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
-
 
     def valor_launch(self, valor_id):
 
@@ -734,7 +730,7 @@ class EndPoint_Admin():
 
             valor_id = self.valor_api.valor_launch(valor_id)
 
-            return json.dumps({'valor_id' : valor_id})
+            return json.dumps({'valor_id': valor_id})
 
         except:
 
@@ -742,14 +738,13 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def valor_stop(self, valor_id):
 
         try:
 
             valor_id = self.valor_api.valor_stop(valor_id)
 
-            return json.dumps({'valor_id' : valor_id})
+            return json.dumps({'valor_id': valor_id})
 
         except Exception as exception:
 
@@ -758,14 +753,13 @@ class EndPoint_Admin():
             # Virtue/s exists on this valor - Unable to stop valor
             return json.dumps({'status': 'failed', 'result': [11, exception.message]})
 
-
     def valor_destroy(self, valor_id):
 
         try:
 
             valor_id = self.valor_api.valor_destroy(valor_id)
 
-            return json.dumps({'valor_id' : valor_id})
+            return json.dumps({'valor_id': valor_id})
 
         except Exception as exception:
 
@@ -774,7 +768,6 @@ class EndPoint_Admin():
             # Virtue/s exists on this valor - Unable to destroy valor
             return json.dumps(
                 {'status': 'failed', 'result': [11, exception.message]})
-
 
     def valor_list(self):
 
@@ -790,21 +783,19 @@ class EndPoint_Admin():
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def valor_create_pool(self, number_of_valors):
 
         try:
 
             valor_ids = self.valor_api.valor_create_pool(number_of_valors)
 
-            return json.dumps({'valor_ids' : valor_ids})
+            return json.dumps({'valor_ids': valor_ids})
 
         except:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
 
             return json.dumps(ErrorCodes.user['unspecifiedError'])
-
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id):
 
@@ -814,14 +805,13 @@ class EndPoint_Admin():
                 virtue_id,
                 destination_valor_id)
 
-            return json.dumps({'valor_id' : valor_id})
+            return json.dumps({'valor_id': valor_id})
 
         except Exception as exception:
 
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(
                 {'status': 'failed', 'result': [11, exception.message]})
-
 
     def galahad_get_id(self):
 
@@ -834,7 +824,6 @@ class EndPoint_Admin():
 
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
-
 
     def application_add(self, application):
 
@@ -893,7 +882,6 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.admin['unspecifiedError'])
 
-
     def auto_migration_start(self, migration_interval=None):
         try:
             self.valor_api.auto_migration_start(migration_interval)
@@ -902,7 +890,6 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def auto_migration_stop(self):
         try:
             self.valor_api.auto_migration_stop()
@@ -910,7 +897,6 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
-
 
     def auto_migration_status(self):
         try:
@@ -926,7 +912,6 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def virtue_introspect_start(self, virtue_id, interval=None, modules=None):
         try:
             self.rdb_manager.introspect_virtue_start(virtue_id, interval, modules)
@@ -935,7 +920,6 @@ class EndPoint_Admin():
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
 
-
     def virtue_introspect_stop(self, virtue_id):
         try:
             self.rdb_manager.introspect_virtue_stop(virtue_id)
@@ -943,7 +927,6 @@ class EndPoint_Admin():
         except:
             print('Error:\n{0}'.format(traceback.format_exc()))
             return json.dumps(ErrorCodes.user['unspecifiedError'])
-
 
     def virtue_introspect_start_all(self, interval=None, modules=None):
         try:
@@ -982,7 +965,7 @@ class EndPoint_Admin():
     def _set_introspection_ldap(self, virtueId, isEnabled):
         introsection_id = 'introspection'
         virtue = self.inst.get_obj('cid', virtueId,
-                                       'OpenLDAPvirtue', True)
+                                   'OpenLDAPvirtue', True)
         if virtue is None or virtue == ():
             return json.dumps(ErrorCodes.admin['invalidVirtueId'])
 

@@ -32,6 +32,7 @@ elasticLog = logging.getLogger('elasticMerlin')
 
 virtue_id = None
 
+
 def setup_logging(filename, es_host, es_cert, es_key, es_user, es_pass, es_ca):
     logfile = logging.FileHandler(filename)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -589,7 +590,6 @@ def listen_for_commands(virtue_id, excalibur_key, virtue_key, rethinkdb_host,
             send_ack(virtue_id, transducer_id, transducer_type, config, enabled,
                      timestamp, virtue_key, conn)
             continue
-
 
         if transducer_id == 'ossensor':
             if enabled == True:

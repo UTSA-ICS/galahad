@@ -12,6 +12,7 @@ intro_logger = logging.getLogger('introspect-client')
 intro_logger.setLevel(logging.DEBUG)
 intro_logger.addHandler(intro_handler)
 
+
 class Introspect(threading.Thread):
     def __init__(self, virtue_id, comms, interval):
         self.virtue_id = virtue_id

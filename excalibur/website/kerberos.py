@@ -3,6 +3,7 @@
 import pexpect
 import time
 
+
 class Kerberos:
     def generate_tgt(self, username, password):
         child = pexpect.spawn("kinit -c /tmp/krb5cc_" + username + " " + username)
@@ -13,6 +14,7 @@ class Kerberos:
     def destroy_tgt(self, username):
         child = pexpect.spawn("kdestroy -c /tmp/krb5cc_" + username)
         child.expect(pexpect.EOF)
+
 
 if __name__ == "__main__":
     krb = Kerberos()

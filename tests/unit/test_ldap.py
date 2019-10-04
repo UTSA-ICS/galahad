@@ -166,7 +166,7 @@ def test_write_to_ldap():
         assert 0 == inst.del_obj(
             'cid', 'routeradmin', objectClass='OpenLDAProle', throw_error=True)
 
-    except Exception as e:
+    except Exception:
         inst.del_obj('cid', 'routeradmin', objectClass='OpenLDAProle')
         traceback.print_exc()
         pass

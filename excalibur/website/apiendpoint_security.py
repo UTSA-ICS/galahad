@@ -103,9 +103,9 @@ class EndPoint_Security:
         Enables the indicated Transducer in the indicated Virtue.
 
         Args:
-            transducerId (str) : The ID of the Transducer to enable. 
-            virtueId (str)     : The ID of the Virtue in which to enable the Transducer. 
-            configuration (object): The configuration to apply to the Transducer when it is enabled. Format 
+            transducerId (str) : The ID of the Transducer to enable.
+            virtueId (str)     : The ID of the Virtue in which to enable the Transducer.
+            configuration (object): The configuration to apply to the Transducer when it is enabled. Format
                         is Transducer-specific. This overrides any existing configuration with the same keys.
 
         Returns:
@@ -113,7 +113,7 @@ class EndPoint_Security:
 
         '''
         ret = self.__enable_disable(transducerId, virtueId, configuration,
-                                     True)
+                                    True)
         if type(ret) is bool and ret == True:
             return self.__error('success')
         return ret
@@ -124,7 +124,7 @@ class EndPoint_Security:
 
         Args:
             transducerId (str) : The ID of the Transducer to disable
-            virtueId (str)     : The ID of the Virtue in which to enable the Transducer. 
+            virtueId (str)     : The ID of the Virtue in which to enable the Transducer.
 
         Returns:
             bool: True if the transducer was enabled, false otherwise
@@ -140,7 +140,7 @@ class EndPoint_Security:
 
         Args:
             transducerId (str) : The ID of the Transducer
-            virtueId (str)     : The ID of the Virtue in which to enable the Transducer. 
+            virtueId (str)     : The ID of the Virtue in which to enable the Transducer.
 
         Returns:
             bool: True if the Transducer is enabled in the Virtue, false if it is not
@@ -159,13 +159,13 @@ class EndPoint_Security:
 
         # Transducers are enabled by default
         if row is None:
-            return json.dumps( { 'enabled': True } )
+            return json.dumps({'enabled': True})
 
         verified = self.__verify_message(row)
         if (verified != True):
             return verified
 
-        return json.dumps( { 'enabled': row['enabled'] } )
+        return json.dumps({'enabled': row['enabled']})
 
     def transducer_get_configuration(self, transducerId, virtueId):
         '''
@@ -173,7 +173,7 @@ class EndPoint_Security:
 
         Args:
             transducerId (str) : The ID of the Transducer
-            virtueId (str)     : The ID of the Virtue in which to enable the Transducer. 
+            virtueId (str)     : The ID of the Virtue in which to enable the Transducer.
 
         Returns:
             TransducerConfig: Configuration information for the indicated Transducer in the indicated Virtue
@@ -191,7 +191,7 @@ class EndPoint_Security:
 
         # If there's no row, there's no set config
         if row is None:
-            return json.dumps( None )
+            return json.dumps(None)
 
         verified = self.__verify_message(row)
         if (verified != True):
@@ -205,7 +205,7 @@ class EndPoint_Security:
         Lists all Transducers currently that are currently enabled in the indicated Virtue.
 
         Args:
-            virtueId (str)     : The ID of the Virtue in which to enable the Transducer. 
+            virtueId (str)     : The ID of the Virtue in which to enable the Transducer.
 
         Returns:
             list(Transducer): List of enabled transducers within the specified Virtue
@@ -217,7 +217,7 @@ class EndPoint_Security:
             self.__connect_rethinkdb()
         try:
             for row in r.db('transducers').table('acks')\
-                .filter( { 'virtue_id': virtueId } ).run(self.conn):
+                .filter({'virtue_id': virtueId}).run(self.conn):
 
                 verified = self.__verify_message(row)
                 if (verified != True):
@@ -232,8 +232,6 @@ class EndPoint_Security:
                 details='Failed to get enabled transducers: ' + str(e))
 
         return json.dumps(enabled_transducers)
-
-
 
     def transducer_all_virtues(self, transducerId, configuration, isEnabled):
         '''
@@ -325,11 +323,11 @@ class EndPoint_Security:
 
             virtue['transducerIds'] = new_t_list
             ret = self.inst.modify_obj('cid', virtueId, ldap_tools.to_ldap(virtue, 'OpenLDAPvirtue'),
-                'OpenLDAPvirtue', True)
-
+                                       'OpenLDAPvirtue', True)
 
         else:
-            # Update list of transducers in LDAP without syncing it with rethink (Non-running virutes are not in rethink)
+            # Update list of transducers in LDAP without syncing it
+            # with rethink (Non-running virutes are not in rethink)
             new_t_list = virtue['transducerIds']
 
             if isEnable:
@@ -352,13 +350,13 @@ class EndPoint_Security:
 
     def __sign_message(self, row):
         required_keys = [
-            'virtue_id', 'transducer_id', 'type', 'configuration', 
+            'virtue_id', 'transducer_id', 'type', 'configuration',
             'enabled', 'timestamp'
         ]
         if not all([(key in row) for key in required_keys]):
-            return (False, 
+            return (False,
                 self.__error('unspecifiedError', details='Missing required keys in row: ' +\
-                str(filter((lambda key: key not in row),required_keys))))
+                str(filter((lambda key: key not in row), required_keys))))
 
         message = '|'.join([
             row['virtue_id'], row['transducer_id'], row['type'],
@@ -382,7 +380,7 @@ class EndPoint_Security:
         ]
         if not all([(key in row) for key in required_keys]):
             return self.__error('unspecifiedError', details='Missing required keys in row: ' +\
-                str(filter((lambda key: key not in row),required_keys)))
+                str(filter((lambda key: key not in row), required_keys)))
 
         message = '|'.join([
             row['virtue_id'], row['transducer_id'], row['type'],
@@ -436,8 +434,8 @@ class EndPoint_Security:
         }
         (success, signature) = self.__sign_message(row)
         if not success:
-           # Return error code
-           return signature
+            # Return error code
+            return signature
 
         row['signature'] = r.binary(signature)
 
@@ -460,11 +458,11 @@ class EndPoint_Security:
             return True
 
         # Wait for ACK from the virtue that the ruleset has been changed
-        #try:
+        # try:
         cursor = r.db('transducers').table('acks')\
             .get([virtue_id, trans_id])\
             .changes(squash=False).run(self.conn)
-        #except r.ReqlError as e:
+        # except r.ReqlError as e:
         #       print 'ERROR: Failed to read from the ACKs table because:', e
         #       return False
 
@@ -489,8 +487,7 @@ class EndPoint_Security:
                     else:
                         return self.__error(
                             'unspecifiedError',
-                            details=
-                            'Received ACK with incorrect value for enabled: ' +
+                            details='Received ACK with incorrect value for enabled: ' +
                             str(enable) + ' vs ' + str(row['enabled']))
                 else:
                     print 'WARN: Timestamp incorrect:', timestamp, row[
@@ -513,7 +510,7 @@ class EndPoint_Security:
             key = 'unspecifiedError'
         e = deepcopy(ErrorCodes.security[key])
         if details is not None:
-            #e['details'] = details
+            # e['details'] = details
             e['result'].append(details)
         return json.dumps(e)
 
@@ -558,7 +555,6 @@ class EndPoint_Security:
                                        'openLDAPtransducer', True)
         if transducer is None or transducer == ():
             return self.__error('invalidTransducerId')
-
 
         ldap_tools.parse_ldap(transducer)
         transducer['startingConfiguration'] = configuration

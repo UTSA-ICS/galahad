@@ -18,6 +18,7 @@ rethinkdb_client_logger = logging.getLogger('rethinkdb')
 rethinkdb_client_logger.setLevel(logging.DEBUG)
 rethinkdb_client_logger.addHandler(rethinkdb_client_handler)
 
+
 class Changes(threading.Thread):
     def __init__(self, name, feed, rt):
         rethinkdb_client_logger.debug(
@@ -73,12 +74,12 @@ class Changes(threading.Thread):
         virtue.migrateDomU(change["valor_dest"])
 
         valor_dest = r.db(RT_DB).table(RT_VALOR_TB).filter({"function": "valor",
-            "address": change["valor_dest"]}).run(self.rt).next()
+                                                            "address": change["valor_dest"]}).run(self.rt).next()
 
         history = change['history']
         history.append({"valor_id": self.valor_id})
 
-        ### RethinkDB updating with dict causes inconsistencies. This updates
+        # RethinkDB updating with dict causes inconsistencies. This updates
         # transducer object. Need to cleanup
         comm_tb_filter = r.db(RT_DB).table(RT_COMM_TB).filter(
             {"transducer_id": change["transducer_id"], "virtue_id": virtue.virtue_id})
@@ -89,7 +90,7 @@ class Changes(threading.Thread):
         record["valor_ip"] = change["valor_dest"]
         comm_tb_filter.update(record).run(self.rt)
 
-        ### Updates Virtue object with new Valor IP
+        # Updates Virtue object with new Valor IP
         valor_tb_filter = r.db(RT_DB).table(RT_VALOR_TB).filter(
             {"virtue_id": change["virtue_id"], "function": "virtue"})
         valor_tb_filter.update(
@@ -98,7 +99,7 @@ class Changes(threading.Thread):
 
     def migration(self):
         for change in self.feed:
-            if (change["type"] == "change") and change["new_val"]["enabled"] == True:
+            if (change["type"] == "change") and change["new_val"]["enabled"] is True:
                 rethinkdb_client_logger.debug("Migration changefeed, change =")
                 rethinkdb_client_logger.debug("    change = {}".format(change))
                 self.migrate(change["new_val"])
@@ -108,7 +109,7 @@ class Changes(threading.Thread):
             rethinkdb_client_logger.debug(
                 "Introspection change feed detected: {}".format(change))
             if change["type"] == "add":
-                if change["new_val"]["enabled"] == True:
+                if change["new_val"]["enabled"] is True:
                     self.introspection_add(change["new_val"])
                 else:
                     # Do nothing as this is the initial virtue entry in rethinkdb with
@@ -140,17 +141,15 @@ class Changes(threading.Thread):
 
     def introspection_change(self, change):
         # Update if introspection is enabled
-        if change["old_val"]["enabled"] == False and change["new_val"]["enabled"] == True:
+        if change["old_val"]["enabled"] is False and change["new_val"]["enabled"] is True:
             self.introspection_add(change["new_val"])
 
         # Update if introspection is disabled
-        elif change["old_val"]["enabled"] == True and change["new_val"][
-            "enabled"] == False:
+        elif change["old_val"]["enabled"] is True and change["new_val"]["enabled"] is False:
             self.introspection_remove(change["new_val"])
 
         # Update if introspection was enabled but its parameters changed.
-        elif change["old_val"]["enabled"] == True and change["new_val"][
-            "enabled"] == True:
+        elif change["old_val"]["enabled"] is True and change["new_val"]["enabled"] is True:
             introspection_thread = self.get_virtue_introspection_thread(
                 change["new_val"]["virtue_id"])
             if introspection_thread:
@@ -160,6 +159,7 @@ class Changes(threading.Thread):
                 # Update if the list of modules changes
                 if change["old_val"]["comms"] is not change["new_val"]["comms"]:
                     introspection_thread.set_comms(change["new_val"]["comms"])
+
 
 class Rethink():
     def __init__(self):

@@ -21,7 +21,7 @@ class AuthenticateForm(BaseForm):
         email = self.email.data.lower()
         # query for user presence
         user = User.query.filter_by(email=email).first()
-        #if not user or not user.check_password(field.data):
+        # if not user or not user.check_password(field.data):
         #    raise StopValidation('Email or password is invalid.')
         if not User().validate_login(email, field.data):
             raise StopValidation('Unable to validate LDAP.')

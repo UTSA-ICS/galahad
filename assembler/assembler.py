@@ -4,7 +4,6 @@
 import os
 import shutil
 import subprocess
-import time
 from urllib3.util import parse_url
 
 from .ssh_tool import ssh_tool
@@ -13,6 +12,7 @@ AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 RETHINKDB_HOSTNAME = 'rethinkdb.galahad.com'
 
 GALAHAD_KEY_DIR = '/mnt/efs/galahad-keys'
+
 
 class Assembler(object):
 
@@ -25,7 +25,7 @@ class Assembler(object):
         self.elastic_search_host = parse_url(es_node).host
         self.syslog_server = syslog_server
         self.rethinkdb_host = rethinkdb_host
-        self.work_dir = work_dir # where all the generated files will live
+        self.work_dir = work_dir  # where all the generated files will live
 
     def construct_img(self, base_img, work_dir, payload_dir, ssh_key=None):
 
@@ -57,10 +57,10 @@ class Assembler(object):
                               'proc', mount_path + '/proc']
             subprocess.check_call(mount_proc_cmd)
             mount_sys_cmd = ['mount', '-t', 'sysfs',
-                              'sys', mount_path + '/sys']
+                             'sys', mount_path + '/sys']
             subprocess.check_call(mount_sys_cmd)
             mount_dev_cmd = ['mount', '-o', 'bind',
-                              '/dev', mount_path + '/dev']
+                             '/dev', mount_path + '/dev']
             subprocess.check_call(mount_dev_cmd)
 
             # If the Ubuntu image wasn't created on the same network,
@@ -101,9 +101,9 @@ class Assembler(object):
             merlin_file_path = os.path.join(real_HOME, 'galahad',
                                             'transducers')
             processkiller_file_path = os.path.join(real_HOME, 'galahad',
-                                            'transducers')
+                                                   'transducers')
             ossensor_file_path = os.path.join(real_HOME, 'galahad',
-                                            'transducers')
+                                              'transducers')
             kernel_file_path = os.path.join(real_HOME, 'galahad',
                                             'unity', 'latest-debs')
 
@@ -145,11 +145,11 @@ class Assembler(object):
                     os.chown(os.path.join(path, d), 501, 1000)
 
             os.chmod(mount_path + '/opt/merlin', 0o777)
-            
+
             # Make Merlin own the OS Sensor config file
             with open(mount_path + '/opt/ossensor/ossensor-config.json', 'w+') as f:
                 f.write("{}")
-                
+
             os.chown(mount_path + '/opt/ossensor/ossensor-config.json', 501, 1000)
 
             os.chown(mount_path + '/var/private/ssl', 501, 1000)
@@ -301,7 +301,6 @@ class Assembler(object):
                 for d in dirs:
                     os.chown(os.path.join(path, d), 501, 1000)
 
-
             # Install the unity-net service for Valor networking
             shutil.copy(payload_dir + '/unity-net.service',
                         mount_path + '/etc/systemd/system')
@@ -431,16 +430,15 @@ class Assembler(object):
 
         ssh.ssh(USER_SCRIPT.format(' '.join(containers), docker_login))
 
-
     def provision_virtue(self,
                          username,
                          virtue_id,
                          img_path,
                          output_path,
-                         virtue_key, # The Virtue's private key
-                         excalibur_key, # Excalibur's public key
-                         user_key, # The user's public key
-                         rethinkdb_cert, #RethinkDB's SSL cert
+                         virtue_key,  # The Virtue's private key
+                         excalibur_key,  # Excalibur's public key
+                         user_key,  # The user's public key
+                         rethinkdb_cert,  # RethinkDB's SSL cert
                          networkRules):
 
         image_mount = '{0}/{1}'.format(os.environ['HOME'], virtue_id)

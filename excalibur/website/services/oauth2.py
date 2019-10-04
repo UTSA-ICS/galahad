@@ -167,7 +167,7 @@ class MyBearerTokenValidator(BearerTokenValidator):
 
 # protect resource
 query_token = create_query_token_func(db.session, OAuth2Token)
-#require_oauth = ResourceProtector(query_token=query_token)
+# require_oauth = ResourceProtector(query_token=query_token)
 from authlib.flask.oauth2.sqla import create_bearer_token_validator
 BearerTokenValidator = create_bearer_token_validator(db.session, OAuth2Token)
 ResourceProtector.register_token_validator(BearerTokenValidator())

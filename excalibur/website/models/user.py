@@ -29,8 +29,8 @@ class User(Base):
     conn = None
 
     def validate_login(self, email, password):
-        #self.conn = LDAP(email, password)
-        #if not self.conn.bind_ad_user_check():
+        # self.conn = LDAP(email, password)
+        # if not self.conn.bind_ad_user_check():
         #    return False
 
         # Update ldap users from AD user list
@@ -50,7 +50,7 @@ class User(Base):
         Kerberos().generate_tgt(username, password)
 
         # Generate Kerberos tgt for user
-        #username = email.split("@")[0]
+        # username = email.split("@")[0]
         '''
         if self.conn.bind_ad():
             cn = email.split("@")[0]

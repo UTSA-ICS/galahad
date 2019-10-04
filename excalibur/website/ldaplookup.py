@@ -73,10 +73,10 @@ class LDAP():
                 search_str = '(&{0}(objectClass={1}))'.format(
                     search_str, objectClass)
 
-            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
-                    search_str )
+            r = self.conn.search_s(LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str)
 
-            #for k in r[0][1].keys():
+            # for k in r[0][1].keys():
             #    print( "{0}, {1}".format( k, r[0][1][k] ) )
 
             if (len(r) == 0):
@@ -93,8 +93,8 @@ class LDAP():
     def get_objs_of_type(self, objectClass):
 
         try:
-            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
-                    '(objectClass={0})'.format( objectClass ) )
+            r = self.conn.search_s(LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    '(objectClass={0})'.format(objectClass))
 
             return r
         except Exception as e:
@@ -107,8 +107,8 @@ class LDAP():
             if (identifier not in obj):
                 return 22  # EINVAL
 
-            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
-                    '({0}={1})'.format( identifier, obj[identifier] ) )
+            r = self.conn.search_s(LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    '({0}={1})'.format(identifier, obj[identifier]))
 
             for i in r:
                 if (identifier in i[0].split(',')[0]):
@@ -145,8 +145,8 @@ class LDAP():
                 search_str = '(&{0}(objectClass={1}))'.format(
                     search_str, objectClass)
 
-            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
-                    search_str )
+            r = self.conn.search_s(LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str)
 
             if (len(r) != 1):
                 # We only want to change it if there's no
@@ -185,8 +185,8 @@ class LDAP():
                 search_str = '(&{0}(objectClass={1}))'.format(
                     search_str, objectClass)
 
-            r = self.conn.search_s( LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
-                    search_str )
+            r = self.conn.search_s(LDAP_VIRTUE_DN, ldap.SCOPE_SUBTREE, \
+                    search_str)
 
             if (len(r) != 1):
                 # We only want to delete it if there's no

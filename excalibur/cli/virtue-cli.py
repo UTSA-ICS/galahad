@@ -58,7 +58,7 @@ if __name__ == '__main__':
             params[subtok[0].lstrip('--')] = subtok[1]
         else:
             command_toks.append(tok)
-    
+
     command = ' '.join(command_toks)
     res = ep.handle_command(command, params)
     if res is not None:

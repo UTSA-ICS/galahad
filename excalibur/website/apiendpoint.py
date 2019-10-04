@@ -3,14 +3,12 @@
 import copy
 import json
 import os
-import shlex
 import time
 import traceback
 
 from ldaplookup import LDAP
 from services.errorcodes import ErrorCodes
 from . import ldap_tools
-from aws import AWS
 from valor import ValorManager, RethinkDbManager, ResourceManager
 from ssh_tool import ssh_tool
 
@@ -295,7 +293,6 @@ class EndPoint():
                                     virtue['ipAddress'],
                                     os.environ['HOME'] + '/user-keys/default-virtue-key.pem',
                                     role['applicationIds'])
-
 
                         success = True
 

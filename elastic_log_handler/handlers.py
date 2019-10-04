@@ -12,7 +12,6 @@ from elasticsearch.serializer import JSONSerializer
 import urllib3.contrib.pyopenssl
 
 
-
 try:
     from requests_kerberos import HTTPKerberosAuth, DISABLED
     CMR_KERBEROS_SUPPORTED = True
@@ -40,6 +39,7 @@ class CMRESSerializer(JSONSerializer):
             return super(CMRESSerializer, self).default(data)
         except TypeError:
             return str(data)
+
 
 class CMRESHandler(logging.Handler):
     """ Elasticsearch log handler

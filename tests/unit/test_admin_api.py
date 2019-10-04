@@ -64,6 +64,7 @@ def setup_module():
     test_role_id = None
     test_virtue_id = None
 
+
 def teardown_module():
 
     inst.del_obj(
@@ -101,7 +102,6 @@ def teardown_module():
             subprocess.check_call(['sudo', 'rm',
                                    ('/mnt/efs/images/provisioned_virtues/'
                                     '{0}.img').format(test_virtue_id)])
-
 
     user = inst.get_obj(
         'cusername', 'slapd', objectClass='OpenLDAPuser', throw_error=True)
@@ -388,6 +388,7 @@ def test_user_calls():
 
     assert json.loads(virtue_list) == real_virtue_list
 
+
 def test_virtue_create():
 
     subprocess.check_call(['sudo', 'rsync', '/mnt/efs/images/unities/8GB.img',
@@ -440,8 +441,9 @@ def test_virtue_create():
     inst.del_obj('cid', result['id'], objectClass='OpenLDAPvirtue',
                  throw_error=True)
 
+
 def test_virtue_destroy():
-    
+
     virtue = {
         'id': 'admintestvirtue0',
         'username': 'NULL',

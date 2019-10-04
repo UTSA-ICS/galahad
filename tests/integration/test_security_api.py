@@ -25,6 +25,7 @@ KEY_PATH = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
 
+
 def setup_module():
     global virtue_ssh
     global virtue_id
@@ -39,6 +40,7 @@ def setup_module():
     virtue_ssh = None
 
     aggregator_ssh = ssh_tool('ubuntu', AGGREGATOR_HOSTNAME, sshkey=KEY_PATH)
+
 
 # This is a separate method that is NOT called from setup_module because pytest likes to run
 # setup_module when, for example, listing tests instead of running them.
@@ -88,6 +90,7 @@ def test_merlin_running():
         time.sleep(30)
     assert num_retries < max_retries
 
+
 def test_syslog_ng_running():
     if virtue_ssh is None:
         __setup_virtue()
@@ -103,11 +106,13 @@ def test_syslog_ng_running():
         time.sleep(30)
     assert num_retries < max_retries
 
+
 def test_check_merlin_logs():
     if virtue_ssh is None:
         __setup_virtue()
 
     assert virtue_ssh.ssh('! ( tail -5 /opt/merlin/merlin.log | grep ERROR )') == 0
+
 
 def test_list_transducers():
     if virtue_ssh is None:
@@ -115,6 +120,7 @@ def test_list_transducers():
 
     transducers = json.loads(session.get(security_url + '/transducer/list').text)
     assert len(transducers) > 1
+
 
 def test_get():
     if virtue_ssh is None:
@@ -127,11 +133,13 @@ def test_get():
     assert 'id' in transducer
     assert transducer['id'] == 'path_mkdir'
 
+
 def __get_elasticsearch_index():
     # A new index is created every day
     now = datetime.datetime.now()
     index = now.strftime('syslog-%Y.%m.%d')
     return index
+
 
 def __query_elasticsearch(args):
     assert aggregator_ssh.check_access()
@@ -144,11 +152,13 @@ def __query_elasticsearch(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+
 def __get_merlin_index():
     # A new index is created every day
     now = datetime.datetime.now()
     index = now.strftime('merlin-%Y.%m.%d')
     return index
+
 
 def __query_elasticsearch_merlin(args):
     index = __get_merlin_index()
@@ -159,11 +169,13 @@ def __query_elasticsearch_merlin(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+
 def __get_excalibur_index():
     # A new index is created every day
     now = datetime.datetime.now()
     index = now.strftime('excalibur-%Y.%m.%d')
     return index
+
 
 def __query_elasticsearch_excalibur(args):
     index = __get_excalibur_index()
@@ -174,13 +186,14 @@ def __query_elasticsearch_excalibur(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+
 def test_sensor_disable():
     if virtue_ssh is None:
         __setup_virtue()
 
     # Disable a sensor transducer
     response = session.get(security_url + '/transducer/disable', params={
-        'transducerId': 'path_mkdir', 
+        'transducerId': 'path_mkdir',
         'virtueId': virtue_id
     })
     assert response.text == json.dumps(ErrorCodes.security['success'])
@@ -211,13 +224,14 @@ def test_sensor_disable():
     # Cleanup
     virtue_ssh.ssh('rm -r ' + dirname)
 
+
 def test_sensor_enable():
     if virtue_ssh is None:
         __setup_virtue()
 
     # Enable a sensor transducer
     response = session.get(security_url + '/transducer/enable', params={
-        'transducerId': 'path_mkdir', 
+        'transducerId': 'path_mkdir',
         'virtueId': virtue_id,
         'configuration': '{}'
     })
@@ -248,6 +262,7 @@ def test_sensor_enable():
     # Cleanup
     virtue_ssh.ssh('rm -r ' + dirname)
 
+
 # Make sure the get_enabled and get_config tests come after sensor_enable and sensor_disable or else
 # the results won't match.
 def test_get_enabled():
@@ -263,6 +278,7 @@ def test_get_enabled():
     assert 'enabled' in transducer
     assert transducer['enabled'] == True
 
+
 def test_get_config():
     if virtue_ssh is None:
         __setup_virtue()
@@ -273,6 +289,7 @@ def test_get_config():
     }).text
     config = json.loads(result)
     assert len(config) == 0
+
 
 def test_list_enabled():
     if virtue_ssh is None:
@@ -285,6 +302,7 @@ def test_list_enabled():
     assert type(transducers) is list
     assert len(transducers) >= 1
     assert type(transducers[0]) is not int
+
 
 def test_actuator_kill_proc():
     # Start a long-running process
@@ -313,6 +331,7 @@ def test_actuator_kill_proc():
         'virtueId': virtue_id
     })
     assert response.text == json.dumps(ErrorCodes.security['success'])
+
 
 def test_actuator_net_block():
     # Try contacting a server - let's pick 1.1.1.1 (the public DNS resolver) because its IP is easy

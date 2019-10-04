@@ -15,7 +15,6 @@ app = None
 is_dev = bool(os.getenv('FLASK_DEBUG'))
 
 
-
 if is_dev:
     os.environ['AUTHLIB_INSECURE_TRANSPORT'] = 'true'
     conf_file = os.path.abspath('conf/dev.config.py')
@@ -63,7 +62,8 @@ def setup_logging(es_host, es_cert, es_key, es_user, es_pass, es_ca):
                                   auth_type=CMRESHandler.AuthType.HTTPS,
                                   es_index_name="excalibur",
                                   use_ssl=True,
-                                  # This should only be false for development purposes.  Production should have certs that pass ssl verification
+                                  # This should only be false for development purposes.
+                                  # Production should have certs that pass ssl verification
                                   verify_ssl=False,
                                   buffer_size=1,
                                   flush_frequency_in_sec=1000,

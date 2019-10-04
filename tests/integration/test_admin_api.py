@@ -26,8 +26,8 @@ from ssh_tool import ssh_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
-ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
-SLEEP_TIME = 10 # Time to sleep
+ELASTIC_TIMEOUT = 120  # Timeout before assuming elasticsearch query tests are failures
+SLEEP_TIME = 10  # Time to sleep
 
 ##
 # Functionality of these API commands is tested by user/test_admin_api.py.
@@ -55,10 +55,10 @@ def setup_module():
 
     aggregator_ip = AGGREGATOR_HOSTNAME
 
-    inst = LDAP( '', '' )
+    inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
-    inst.conn.simple_bind_s( dn, 'Test123!' )
+    inst.conn.simple_bind_s(dn, 'Test123!')
 
     redirect = settings['redirect'].format(ip)
 
@@ -98,9 +98,10 @@ def __get_excalibur_index():
     index = now.strftime('excalibur-%Y.%m.%d')
     return index
 
+
 def __query_elasticsearch_excalibur(args):
     assert aggregator_ssh.check_access()  # This prevents the result from being "added to know host" result from failing tests
-    time.sleep(SLEEP_TIME) # Sleep to ensure logs make it to elasticsearch
+    time.sleep(SLEEP_TIME)  # Sleep to ensure logs make it to elasticsearch
     index = __get_excalibur_index()
     cmdargs = ''
     for (key, value) in args:
@@ -108,6 +109,7 @@ def __query_elasticsearch_excalibur(args):
     cmd = 'curl -s -X GET --insecure "https://admin:admin@localhost:9200/%s/_search?size=1&pretty%s"' % (index, cmdargs)
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
+
 
 # Elasticsearch is not meant for immediate retrevial of data, so we need to give a long timeout buffer
 # to ensure tests don't fail due to logs not being available yet.  To not cause every test to take
@@ -119,7 +121,8 @@ def query_elasticsearch_with_timeout(args):
         if 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0:
             return result
         elasped_time += SLEEP_TIME
-    return result # Return last result, this will fail tests
+    return result  # Return last result, this will fail tests
+
 
 def test_application_list():
 
@@ -473,7 +476,6 @@ def test_virtue_destroy():
         assert () == inst.get_obj('cid', 'TEST_VIRTUE_DESTROY',
                                   objectClass='OpenLDAPvirtue',
                                   throw_error=True)
-
 
         result = query_elasticsearch_with_timeout(
             [('user', settings['user']), ('real_func_name', 'admin_virtue_destroy'),
