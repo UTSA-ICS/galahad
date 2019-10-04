@@ -278,7 +278,6 @@ def test_virtue_calls():
             ep.virtue_application_stop('slapd', 'usertestvirtue0',
                                        'firefox', use_ssh=False))
 
-
     # virtue_stop
     assert (json.dumps(ErrorCodes.user['invalidId']) ==
             ep.virtue_stop('slapd', 'DoesNotExist', use_valor=False))

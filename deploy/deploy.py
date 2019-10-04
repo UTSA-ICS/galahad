@@ -225,7 +225,7 @@ class DeployServer():
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:{} '.
-                    format(self.ssh_key, config_path, self.server_ip, config_filename)).run()
+                format(self.ssh_key, config_path, self.server_ip, config_filename)).run()
         run_ssh_cmd(self.server_ip, self.ssh_key, "tar('-xf ~/{}')".format(config_filename))
 
     def setup_aws_access(self, aws_config, aws_keys):
@@ -233,10 +233,10 @@ class DeployServer():
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/config '.
-                    format(self.ssh_key, aws_config, self.server_ip)).run()
+                format(self.ssh_key, aws_config, self.server_ip)).run()
             s.scp(
                 '-o StrictHostKeyChecking=no -i {} {} ubuntu@{}:~/.aws/credentials '.
-                    format(self.ssh_key, aws_keys, self.server_ip)).run()
+                format(self.ssh_key, aws_keys, self.server_ip)).run()
 
     def setup(self, branch, aws_config, aws_keys, stack_suffix, key_name, config_tarfile):
 
@@ -264,8 +264,8 @@ class DeployServer():
         with Sultan.load() as s:
             s.scp(
                 '-o StrictHostKeyChecking=no -i {0} {0} ubuntu@{1}:{2}/{3}.pem'.
-                    format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR,
-                           key_name)).run()
+                format(self.ssh_key, self.server_ip, GALAHAD_KEY_DIR,
+                       key_name)).run()
 
         _cmd = "sudo('chmod 600 {0}/{1}.pem')".format(GALAHAD_KEY_DIR, key_name)
         run_ssh_cmd(self.server_ip, self.ssh_key, _cmd)
@@ -287,7 +287,7 @@ class DeployServer():
                         ' --aws_keys ~/.aws/credentials'
                         ' --key_name {1}'
                         ' -b {2}'
-                        ' -s {3}' 
+                        ' -s {3}'
                         ' -n {4}'
                         ' --deactivate_virtue_migration'
                         ' --import_stack {5}'
@@ -325,8 +325,7 @@ def parse_args():
         "--stack_suffix",
         type=str,
         required=True,
-        help=
-        "The suffix used by the cloudformation stack to append to resource names")
+        help="The suffix used by the cloudformation stack to append to resource names")
     parser.add_argument(
         "-b",
         "--branch_name",
@@ -393,9 +392,11 @@ def ensure_required_files_exist(args):
         if file == args.config_tarfile:
             tarcontents = tarfile.TarFile(file, 'r')
             if tarcontents.getnames()[0] != 'galahad-config':
-                logger.error('Specified config file tar, {}, does not have the correct directory name.\n'.format(tarcontents.getnames()[0]))
+                logger.error('Specified config file tar, {}, does not have ',
+                             'the correct directory name.\n'.format(tarcontents.getnames()[0]))
                 logger.error('The correct name of the directory should be [galahad-config].\n')
                 sys.exit()
+
 
 def main():
     args = parse_args()
@@ -403,7 +404,8 @@ def main():
     ensure_required_files_exist(args)
 
     if args.setup:
-        setup(args.sshkey, args.stack_name, args.stack_suffix, args.aws_config, args.aws_keys, args.branch_name, args.key_name, args.config_tarfile)
+        setup(args.sshkey, args.stack_name, args.stack_suffix, args.aws_config,
+              args.aws_keys, args.branch_name, args.key_name, args.config_tarfile)
 
     if args.list_stacks:
         VPC_Stack().list_stacks()

@@ -3,11 +3,11 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
 import os
-import shutil
 import subprocess
 
 import ldap_tools
 from ldaplookup import LDAP
+
 
 def get_ldap_usernames(ldap):
     # Query and get all the usernames from open ldap server

@@ -51,8 +51,8 @@ class sso_tool():
 
         csrf = self.get_csrf(login_prompt.text)
 
-        if (csrf == None):
-            traceback = self.get_flask_traceback(login_prompt.text)
+        if (csrf is None):
+            # traceback = self.get_flask_traceback(login_prompt.text)
             return None
 
         login_payload = {
@@ -88,7 +88,7 @@ class sso_tool():
 
         csrf = self.get_csrf(app_prompt.text)
 
-        if (csrf == None):
+        if (csrf is None):
             self.get_flask_traceback(app_prompt.text)
             return None
 
@@ -124,7 +124,7 @@ class sso_tool():
 
         csrf = self.get_csrf(auth_prompt.text)
 
-        if (csrf == None):
+        if (csrf is None):
             self.get_flask_traceback(auth_prompt.text)
             return None
 
@@ -167,10 +167,11 @@ if (__name__ == '__main__'):
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(description='Log in to Excalibur and save the user token')    
+    parser = argparse.ArgumentParser(description='Log in to Excalibur and save the user token')
     parser.add_argument('-u', '--user', required=True, help='Username to log in with')
     parser.add_argument('-p', '--password', help='Password to use. If not specified, will prompt.')
-    parser.add_argument('-o', '--outfile', default='usertoken.json', help='File to write access token to (default is usertoken.json)')
+    parser.add_argument('-o', '--outfile', default='usertoken.json',
+                                                   help='File to write access token to (default is usertoken.json)')
     parser.add_argument('-A', '--appid', default='APP_1', help='Application ID to use (default is APP_1)')
     parser.add_argument('server', help='Server address e.g: excalibur.galahad.com:5002')
 
@@ -192,19 +193,18 @@ if (__name__ == '__main__'):
     redirect_canvas = 'https://{}/virtue/test\n' \
                       'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
 
-
     client_id = sso.get_app_client_id(args.appid)
-    if (client_id == None):
+    if (client_id is None):
         client_id = sso.create_app(args.appid, redirect_canvas)
         assert client_id
-    
+
     code = sso.get_oauth_code(client_id, redirect)
-    if (code == None):
+    if (code is None):
         print('Could not retrieve access code')
         sys.exit(1)
 
     token = sso.get_oauth_token(client_id, code, redirect)
-    if (token == None):
+    if (token is None):
         print('Could not retrieve token')
         sys.exit(1)
 

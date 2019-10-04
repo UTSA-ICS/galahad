@@ -12,6 +12,7 @@ from cli.sso_login import sso_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
+
 def setup_module():
 
     global settings
@@ -40,11 +41,11 @@ if (__name__ == '__main__'):
     sso = sso_tool(ip)
     assert sso.login(settings['user'], settings['password'])
 
-    assert sso.get_app_client_id('DoesNotExist') == None
+    assert sso.get_app_client_id('DoesNotExist') is None
     client_id = sso.get_app_client_id(settings['app_name'])
 
-    if (client_id == None):
+    if (client_id is None):
         client_id = sso.create_app(settings['app_name'],
                                    settings['redirect'].format(ip))
         assert client_id
-    print client_id
+    print(client_id)

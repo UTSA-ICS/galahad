@@ -21,6 +21,7 @@ redirect = 'https://{0}/virtue/test'.format(ip)
 app_name = 'TEST_APP'
 verify_https = False
 
+
 def login():
 
     global session
@@ -29,7 +30,7 @@ def login():
     assert sso.login('jmitchell@virtue.com', 'Test123!')
 
     client_id = sso.get_app_client_id(app_name)
-    if (client_id == None):
+    if (client_id is None):
         client_id = sso.create_app(app_name, redirect)
         assert client_id
 
@@ -44,6 +45,7 @@ def login():
         'Authorization': 'Bearer {0}'.format(token['access_token'])
     }
     session.verify = verify_https
+
 
 def user_call(path, **kwargs):
 
@@ -61,6 +63,7 @@ def user_call(path, **kwargs):
 
     return response.json()
 
+
 def admin_call(relative_path, **kwargs):
 
     url = 'https://{0}/virtue/admin/{1}'.format(ip, relative_path)
@@ -76,6 +79,7 @@ def admin_call(relative_path, **kwargs):
     assert response.status_code != 404
 
     return response.json()
+
 
 def security_call(relative_path, **kwargs):
 
@@ -93,6 +97,7 @@ def security_call(relative_path, **kwargs):
 
     return response.json()
 
+
 if (__name__ == '__main__'):
 
     starting_roles = []
@@ -101,7 +106,7 @@ if (__name__ == '__main__'):
         'name': 'Document Editor',
         'version': '1.0',
         'applicationIds': [
-            #'office-word',
+            # 'office-word',
             'firefox',
             # TODO: Add Excel app and uncomment office-word when we know it
             #       won't freeze the VM
@@ -115,7 +120,7 @@ if (__name__ == '__main__'):
         'name': 'Windows Corporate Email User',
         'version': '1.0',
         'applicationIds': [
-            #'office-outlook',
+            # 'office-outlook',
             'firefox',
             # TODO: Uncomment office-outlook when we know it won't freeze the VM
         ],

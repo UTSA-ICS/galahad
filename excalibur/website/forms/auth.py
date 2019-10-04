@@ -1,9 +1,6 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
-from wtforms.fields import (
-    PasswordField,
-    BooleanField,
-)
+from wtforms.fields import PasswordField
 from wtforms.fields.html5 import EmailField
 from wtforms.validators import DataRequired
 from wtforms.validators import StopValidation
@@ -12,7 +9,7 @@ from ..models import User
 from ..auth import login
 
 
-## FOR LATER CLEANUP - RELIC OF AUTHORIZE CONFIRMATION FIELD
+# FOR LATER CLEANUP - RELIC OF AUTHORIZE CONFIRMATION FIELD
 class ConfirmForm(BaseForm):
     pass
 

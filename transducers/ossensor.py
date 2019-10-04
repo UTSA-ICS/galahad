@@ -2,10 +2,8 @@
 import psutil
 import json
 import subprocess
-from subprocess import call
 import datetime
 import threading
-import socket
 import logging
 from handlers import CMRESHandler
 import time
@@ -66,7 +64,7 @@ def get_cpu_times(args=None):
             continue
 
         procs = {}
-        #Get list of all running processes
+        # Get list of all running processes
         for p in psutil.process_iter():
             proc = {}
             with p.oneshot():
@@ -138,7 +136,6 @@ def get_ctx_switch_data(args=None):
 
                 procs[proc["pid"]] = proc
 
-
         elasticLog.info(str(procs))
 
         time.sleep(collection_rates[CTX_RATE])
@@ -179,7 +176,6 @@ def get_gids_data(args=None):
                     proc["cmdline"] = []
 
                 procs[proc["pid"]] = proc
-
 
         elasticLog.info(str(procs))
 
@@ -225,7 +221,6 @@ def get_iocount_data(args=None):
 
                 procs[proc["pid"]] = proc
 
-
         elasticLog.info(str(procs))
 
         time.sleep(collection_rates[IOCOUNT_RATE])
@@ -266,7 +261,6 @@ def get_ionice_data(args=None):
 
                 procs[proc["pid"]] = proc
 
-
         elasticLog.info(str(procs))
 
         time.sleep(collection_rates[IONICE_RATE])
@@ -287,7 +281,7 @@ def get_memory_full_data(args=None):
         for p in psutil.process_iter():
             proc = {}
             with p.oneshot():
-                #Values are in bytes
+                # Values are in bytes
                 memory_full_info = p.memory_full_info()
                 proc["memory_full_info"] = {}
                 proc["memory_full_info"]["rss"] = memory_full_info.rss
@@ -351,33 +345,32 @@ def get_nethogs_data(args=None):
                     proc["cmdline"] = []
 
                 proc["network_info"] = {"kb_sent": 0.0, "kb_received": 0.0}
-                #proc["environ"] = p.environ()
+                # proc["environ"] = p.environ()
                 procs[proc["pid"]] = proc
 
-
-        #Get the network info about each process if available (or active)
+        # Get the network info about each process if available (or active)
         proc = subprocess.Popen(["nethogs", "-t", "-d", "1", "-c", str(collection_rates[NET_RATE])], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         lines = out.split("\n")
         ref_found = False
         p = {}
 
-        #Parsing nethogs output
-        #Assuming that all output lines in nethogs contains 3 tokens (pname+id, sent, recv) once the "Refreshing" word is found
-        #EX: /opt/google/chrome/chrome/17558/1000 0.0128906 0.0128906
-        #EX: php-fpm: pool www/2187/33 35.2465 44.2551
+        # Parsing nethogs output
+        # Assuming that all output lines in nethogs contains 3 tokens (pname+id, sent, recv) once the "Refreshing" word is found
+        # EX: /opt/google/chrome/chrome/17558/1000 0.0128906 0.0128906
+        # EX: php-fpm: pool www/2187/33 35.2465 44.2551
         for line in lines:
             if ref_found:
                 words = line.split()
                 if words and words[0] != "unknown" and len(words) >= 3:
-                    #/opt/google/chrome/chrome/8532/1000 => pid = 8532
+                    # /opt/google/chrome/chrome/8532/1000 => pid = 8532
 
                     # Should check this condition
                     if len(words[-3].split("/")) < 2:
                         continue
                     pid = words[-3].split("/")[-2]
                     pid = int(pid.strip())
-                    #Unknown traffic (e.g. NFS mounted files)
+                    # Unknown traffic (e.g. NFS mounted files)
                     if pid == 0:
                         continue
                     if pid not in p:
@@ -385,7 +378,7 @@ def get_nethogs_data(args=None):
                     p[pid]["kb_sent"] += float(words[-2])
                     p[pid]["kb_received"] += float(words[-1])
                     p[pid]["cnt"] += 1
-                    #print procs[pid]
+                    # print procs[pid]
             if "Refreshing" in line:
                 ref_found = True
         for pid in p:
@@ -393,14 +386,13 @@ def get_nethogs_data(args=None):
                 procs[pid]["network_info"]["kb_sent"] = p[pid]["kb_sent"] / p[pid]["cnt"]
                 procs[pid]["network_info"]["kb_received"] = p[pid]["kb_received"] / p[pid]["cnt"]
 
-
         elasticLog.info(str(procs))
 
 
-#Get data about all processes
+# Get data about all processes
 def get_procs_data(coll_rate):
     procs = {}
-    #Get list of all running processes
+    # Get list of all running processes
     for p in psutil.process_iter():
         proc = {}
         with p.oneshot():
@@ -433,7 +425,7 @@ def get_procs_data(coll_rate):
             proc["io_counters"]["read_chars"] = io_counters.read_chars
             proc["io_counters"]["write_chars"] = io_counters.write_chars
 
-            #Values are in bytes
+            # Values are in bytes
             memory_full_info = p.memory_full_info()
             proc["memory_full_info"] = {}
             proc["memory_full_info"]["rss"] = memory_full_info.rss
@@ -472,32 +464,32 @@ def get_procs_data(coll_rate):
                 proc["cmdline"] = []
 
             proc["network_info"] = {"kb_sent": 0.0, "kb_received": 0.0}
-            #proc["environ"] = p.environ()
+            # proc["environ"] = p.environ()
             procs[proc["pid"]] = proc
 
-    #Get the network info about each process if available (or active)
+    # Get the network info about each process if available (or active)
     proc = subprocess.Popen(["nethogs", "-t", "-d", "1", "-c", str(coll_rate)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
     lines = out.split("\n")
     ref_found = False
     p = {}
 
-    #Parsing nethogs output
-    #Assuming that all output lines in nethogs contains 3 tokens (pname+id, sent, recv) once the "Refreshing" word is found
-    #EX: /opt/google/chrome/chrome/17558/1000 0.0128906 0.0128906
-    #EX: php-fpm: pool www/2187/33 35.2465 44.2551
+    # Parsing nethogs output
+    # Assuming that all output lines in nethogs contains 3 tokens (pname+id, sent, recv) once the "Refreshing" word is found
+    # EX: /opt/google/chrome/chrome/17558/1000 0.0128906 0.0128906
+    # EX: php-fpm: pool www/2187/33 35.2465 44.2551
     for line in lines:
         if ref_found:
             words = line.split()
             if words and words[0] != "unknown" and len(words) >= 3:
-                #/opt/google/chrome/chrome/8532/1000 => pid = 8532
+                # /opt/google/chrome/chrome/8532/1000 => pid = 8532
 
                 # Should check this condition
                 if len(words[-3].split("/")) < 2:
                     continue
                 pid = words[-3].split("/")[-2]
                 pid = int(pid.strip())
-                #Unknown traffic (e.g. NFS mounted files)
+                # Unknown traffic (e.g. NFS mounted files)
                 if pid == 0:
                     continue
                 if pid not in p:
@@ -505,7 +497,7 @@ def get_procs_data(coll_rate):
                 p[pid]["kb_sent"] += float(words[-2])
                 p[pid]["kb_received"] += float(words[-1])
                 p[pid]["cnt"] += 1
-                #print procs[pid]
+                # print procs[pid]
         if "Refreshing" in line:
             ref_found = True
     for pid in p:
@@ -513,6 +505,7 @@ def get_procs_data(coll_rate):
             procs[pid]["network_info"]["kb_sent"] = p[pid]["kb_sent"] / p[pid]["cnt"]
             procs[pid]["network_info"]["kb_received"] = p[pid]["kb_received"] / p[pid]["cnt"]
     return procs
+
 
 def main():
 
@@ -527,7 +520,7 @@ def main():
 
     # Wait for changes to ossensor-config file to update thread collection rates
     while True:
-        with open('/opt/ossensor/ossensor-config.json','r') as f:
+        with open('/opt/ossensor/ossensor-config.json', 'r') as f:
             # Acquire file lock
             while True:
                 try:
@@ -564,8 +557,9 @@ def main():
 
         time.sleep(5)
 
-    #f.write(json_str + "\n")
-    #elasticLog.info("OS Sensor: " + json_str)
+    # f.write(json_str + "\n")
+    # elasticLog.info("OS Sensor: " + json_str)
+
 
 if __name__ == "__main__":
 

@@ -10,6 +10,7 @@ import json
 # be run through the json formatter:
 always_string_values = ['username', 'id']
 
+
 def parse_ldap(data):
 
     parse_map = {

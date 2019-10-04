@@ -33,7 +33,6 @@ class ValorAPI:
 
         self.valor_manager = ValorManager()
 
-
     def valor_create(self):
 
         aws = AWS()
@@ -41,10 +40,8 @@ class ValorAPI:
         return self.valor_manager.create_valor(aws.get_subnet_id(),
                                                aws.get_sec_group().id)
 
-
     def valor_launch(self, valor_id):
         return self.valor_manager.launch_valor(valor_id)
-
 
     def valor_create_pool(self, number_of_valors):
 
@@ -55,18 +52,14 @@ class ValorAPI:
             aws.get_subnet_id(),
             aws.get_sec_group().id)
 
-
     def valor_stop(self, valor_id):
         return self.valor_manager.stop_valor(valor_id)
-
 
     def valor_destroy(self, valor_id):
         return self.valor_manager.destroy_valor(valor_id)
 
-
     def valor_list(self):
         return self.valor_manager.list_valors()
-
 
     def auto_migration_start(self, migration_interval=AUTO_MIGRATION_INTERVAL):
         if not self.is_auto_migration_on():
@@ -75,19 +68,15 @@ class ValorAPI:
                                                      args=(migration_interval,))
             auto_migration_thread.start()
 
-
     def auto_migration_stop(self):
         if self.is_auto_migration_on():
             self.valor_manager.auto_migration_stop()
 
-
     def auto_migration_status(self):
         return self.valor_manager.auto_migration_status()
 
-
     def is_auto_migration_on(self):
         return self.valor_manager.is_auto_migration_on()
-
 
     def auto_migration(self, migration_interval):
         while self.is_auto_migration_on():
@@ -97,7 +86,6 @@ class ValorAPI:
             # Now sleep for AUTO_MIGRATION_INTERVAL before starting another migration
             # run for ALL virtues
             time.sleep(migration_interval)
-
 
     def valor_migrate_virtue(self, virtue_id, destination_valor_id=None):
         # Get virtue's current valor
@@ -126,7 +114,6 @@ class Valor:
         self.client = None
         self.guestnet = None
 
-
     def connect_with_ssh(self):
 
         self.client = ssh_tool(
@@ -141,7 +128,6 @@ class Valor:
             raise Exception(
                 'ERROR: Failed to connect to valor with IP {} using SSH'.format(
                     self.aws_instance.private_ip_address))
-
 
     def setup(self, router_ip):
 
@@ -177,7 +163,6 @@ class Valor:
             # Ignore the error for now
             pass
 
-
     def verify_setup(self):
 
         # Verify the Valor Setup
@@ -211,7 +196,6 @@ class ValorManager:
         self.aws = AWS()
         self.rethinkdb_manager = RethinkDbManager()
 
-
     def get_stack_name(self):
 
         resource = boto3.resource('ec2')
@@ -224,7 +208,6 @@ class ValorManager:
         for tag in myinstance.tags:
             if 'aws:cloudformation:stack-name' in tag['Key']:
                 return tag['Value']
-
 
     def get_efs_mount(self):
 
@@ -264,7 +247,6 @@ class ValorManager:
                     (len(valor.get('virtues', [])) < MAX_VIRTUES_PER_VALOR) and
                     (valor['state'] == 'RUNNING') and
                     (valor['valor_id'] != migration_source_valor_id)]
-
 
     def get_empty_valors(self):
 
@@ -375,19 +357,18 @@ class ValorManager:
                   'r') as f:
             syslog_ng_setup_data = f.read()
 
-        user_data = base_setup_data + xenblanket_setup_data + \
-                    gaius_setup_data + syslog_ng_setup_data
+        user_data = base_setup_data + xenblanket_setup_data + gaius_setup_data + syslog_ng_setup_data
 
         valor_config = {
-            'image_id' : 'ami-0f9cf087c1f27d9b1',
-            'inst_type' : 't2.xlarge',
-            'subnet_id' : subnet,
-            'key_name' : 'starlab-virtue-te',
-            'tag_key' : 'Project',
-            'tag_value' : 'Virtue',
-            'sec_group' : sec_group,
-            'inst_profile_name' : '',
-            'inst_profile_arn' : '',
+            'image_id': 'ami-0f9cf087c1f27d9b1',
+            'inst_type': 't2.xlarge',
+            'subnet_id': subnet,
+            'key_name': 'starlab-virtue-te',
+            'tag_key': 'Project',
+            'tag_value': 'Virtue',
+            'sec_group': sec_group,
+            'inst_profile_name': '',
+            'inst_profile_arn': '',
             'user_data': user_data,
         }
 
@@ -396,7 +377,6 @@ class ValorManager:
         self.setup_valor(instance)
 
         return instance.id
-
 
     def setup_valor(self, instance):
 
@@ -423,7 +403,6 @@ class ValorManager:
 
         return instance.id
 
-
     def launch_valor(self, valor_id):
 
         instance = self.aws.instance_launch(valor_id)
@@ -443,7 +422,7 @@ class ValorManager:
             ret = subprocess.check_call("sudo sed -i '{}d' /etc/exports".format(line_num), shell=True)
             assert ret == 0
 
-            line+= " {}(rw,sync,no_subtree_check)".format(valor_ip)
+            line += " {}(rw,sync,no_subtree_check)".format(valor_ip)
             ret = subprocess.check_call('echo "{}" | sudo tee -a /etc/exports'.format(line), shell=True)
             assert ret == 0
 
@@ -454,7 +433,6 @@ class ValorManager:
             print("Failed to append to NFS exports with message: {}".format(e))
 
         return instance.id
-
 
     def verify_valor_running(self, valor_id):
 
@@ -483,7 +461,6 @@ class ValorManager:
             else:
                 Exception('ERROR: Unexpected Error condition encountered while getting a '
                           'valor')
-
 
     def create_valor_pool(
         self,
@@ -584,8 +561,8 @@ class ValorManager:
         virtue = self.rethinkdb_manager.get_virtue(virtue_id)
 
         current_valor = rethinkdb.db('transducers').table('galahad').filter({
-            'function' : 'valor',
-            'address' : virtue['address']}).run(self.rethinkdb_manager.connection).next()
+            'function': 'valor',
+            'address': virtue['address']}).run(self.rethinkdb_manager.connection).next()
 
         destination_valor = self.rethinkdb_manager.get_valor(destination_valor_id)
 
@@ -615,7 +592,6 @@ class ValorManager:
                      'transducer_id': 'introspection'}) \
             .update({"valor_id": destination_valor_id}).run(self.rethinkdb_manager.connection)
 
-
     def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create=False):
         self.create_standby_valors()
 
@@ -624,7 +600,6 @@ class ValorManager:
 
     def list_virtues(self):
         return self.rethinkdb_manager.list_virtues()
-
 
     def auto_migration_start(self, migration_interval):
         self.rethinkdb_manager.auto_migration_start(migration_interval)
@@ -638,6 +613,7 @@ class ValorManager:
     def is_auto_migration_on(self):
         return self.rethinkdb_manager.is_auto_migration_on()
 
+
 class RethinkDbManager:
 
     domain_name = 'rethinkdb.galahad.com'
@@ -646,16 +622,15 @@ class RethinkDbManager:
 
         try:
             self.connection = rethinkdb.connect(
-                host = self.domain_name,
-                port = 28015,
-                ssl = {
-                    'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
+                host=self.domain_name,
+                port=28015,
+                ssl={
+                    'ca_certs': '/var/private/ssl/rethinkdb_cert.pem',
                 })
 
         except Exception as error:
             print(error)
             raise Exception('ERROR: Failed to connect to RethinkDB: {}'.format(error))
-
 
     def get_valor(self, valor_id):
 
@@ -683,7 +658,7 @@ class RethinkDbManager:
     def list_valors(self):
 
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function' : 'valor'}).run(self.connection)
+            {'function': 'valor'}).run(self.connection)
 
         valors = list(response.items)
 
@@ -693,39 +668,28 @@ class RethinkDbManager:
 
         return valors
 
-
     def list_virtues(self):
-
         response = rethinkdb.db('transducers').table('galahad').filter(
-            {'function' : 'virtue'}).run(self.connection)
-
+            {'function': 'virtue'}).run(self.connection)
         virtues = list(response.items)
-
         return virtues
 
-
     def add_valor(self, valor):
-
         assert valor.guestnet == None
-
         lock.acquire()
-
         try:
             valor.guestnet = self.get_free_guestnet()
-
             record = {
                 'function': 'valor',
                 'guestnet': valor.guestnet,
                 'valor_id': valor.aws_instance.id,
-                'address' : valor.aws_instance.private_ip_address,
-                'state'   : 'CREATING'
+                'address': valor.aws_instance.private_ip_address,
+                'state': 'CREATING'
             }
-
             rethinkdb.db('transducers').table('galahad').insert([record]).run(
                 self.connection)
         finally:
             lock.release()
-
 
     def remove_valor(self, valor_id):
 
@@ -737,11 +701,8 @@ class RethinkDbManager:
         rethinkdb.db('transducers').table('galahad').filter(
             matching_valors[0]).delete().run(self.connection)
 
-
     def get_free_guestnet(self):
-
         guestnet = '10.91.0.{0}'
-
         for test_number in range(1, 256):
             results = rethinkdb.db('transducers').table('galahad').filter({
                 'guestnet': guestnet.format(test_number)}).run(self.connection)
@@ -753,7 +714,6 @@ class RethinkDbManager:
         assert '{0}' not in guestnet
 
         return guestnet
-
 
     def add_virtue(self, valor_address, valor_id, virtue_id, efs_path, role_create):
 
@@ -770,12 +730,12 @@ class RethinkDbManager:
             guestnet = self.get_free_guestnet()
 
             record = {
-                'function' : 'virtue',
+                'function': 'virtue',
                 'virtue_id': virtue_id,
-                'valor_id' : valor_id,
-                'address'  : valor_address,
-                'guestnet' : guestnet,
-                'img_path' : efs_path
+                'valor_id': valor_id,
+                'address': valor_address,
+                'guestnet': guestnet,
+                'img_path': efs_path
             }
             rethinkdb.db('transducers').table('galahad').insert([record]).run(
                 self.connection)
@@ -789,7 +749,7 @@ class RethinkDbManager:
                 trans_migration = rethinkdb.db('transducers').table('commands')\
                    .filter({'virtue_id': virtue_id, 'transducer_id': 'migration'}).run(self.connection).next()
             except:
-                trans_migration = {} 
+                trans_migration = {}
 
             try:
                 trans_introspection = rethinkdb.db('transducers').table('commands')\
@@ -810,7 +770,6 @@ class RethinkDbManager:
                 'transducer_id': 'introspection'}).update(trans_introspection).run(self.connection)
 
         return guestnet
-
 
     def get_virtue(self, virtue_id):
 
@@ -887,11 +846,9 @@ class RethinkDbManager:
 
         rethink_filter.update(update_dict).run(self.connection)
 
-
     def introspect_virtue_stop(self, virtue_id):
         rethinkdb.db('transducers').table('commands').filter({
             'transducer_id': 'introspection', 'virtue_id': virtue_id}).update({'enabled': False}).run(self.connection)
-
 
     def get_router(self):
 
@@ -925,7 +882,6 @@ class RouterManager:
             add_valor_command, output=True)
         print('[!] add_valor_command : stdout : ' + stdout)
 
-
     def connect_with_ssh(self):
 
         self.client = ssh_tool(
@@ -939,6 +895,7 @@ class RouterManager:
                 self.ip_address))
             raise Exception(
                 'ERROR: Failed to connect to valor with IP {} using SSH'.format(self.ip_address))
+
 
 class ResourceManager:
     def __init__(self, username, resource):

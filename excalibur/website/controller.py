@@ -39,6 +39,7 @@ USER_KEY_DIR = os.environ['HOME'] + '/user-keys'
 # AWS Account under which the Docker ECR is being hosted
 AWS_ECR_ACCOUNT_NUMBER = "703915126451"
 
+
 class StandbyVirtues:
 
     def __init__(self, role_id):
@@ -280,7 +281,7 @@ class CreateVirtueThread(threading.Thread):
                       'r') as rdb_cert_file:
                 rdb_cert = rdb_cert_file.read().strip()
 
-            with open('/tmp/networkRules-' + virtue['id'],'w+') as iprules_file:
+            with open('/tmp/networkRules-' + virtue['id'], 'w+') as iprules_file:
                 for rule in role['networkRules']:
                     iprules_file.write(rule + '\n')
 

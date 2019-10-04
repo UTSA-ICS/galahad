@@ -39,7 +39,7 @@ if (__name__ == '__main__'):
                       'http://canvas.com:3000/connect/excalibur/callback'.format(args.server)
 
     client_id = sso.get_app_client_id(args.appid)
-    if (client_id == None):
+    if (client_id is None):
         client_id = sso.create_app(args.appid, redirect_canvas)
         assert client_id
 

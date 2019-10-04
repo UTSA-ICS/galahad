@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -79,7 +80,7 @@ if (__name__ == '__main__'):
             logger.info('\n!!!!!!!!!\nList All Unit Tests\n!!!!!!!!!!')
 
             ssh_inst.ssh('cd galahad/tests/unit && pytest --setup-plan {} {}'
-                         '--html=unit-test-report.html --self-contained-html ' 
+                         '--html=unit-test-report.html --self-contained-html '
                          '--junit-xml=unit-test-report.xml'.format(verbose_tag, profile_tag))
 
         if args.run_test:

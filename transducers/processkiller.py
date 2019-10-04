@@ -6,7 +6,7 @@ import socket
 import subprocess
 import sys
 
-# This reads process names from a socket and kills those processes.  
+# This reads process names from a socket and kills those processes.
 # It also logs a successful kill to syslog.
 # The socket is written to by Merlin.
 
@@ -71,7 +71,8 @@ while True:
             if success:
                 log.info('Succeeded in killing: ' + str(all_data))
                 try:
-                    subprocess.check_call(['logger', 'LogType: Merlin TransducerId: proc_kill Action: ImmediatelyKilled Proc: "' + str(all_data) + '"'])
+                    subprocess.check_call(['logger',
+                                           'LogType: Merlin TransducerId: proc_kill Action: ImmediatelyKilled Proc: "' + str(all_data) + '"'])
                 except subprocess.CalledProcessError as e:
                     log.error('Failed to log kill success to syslog because: ' + str(e))
     except Exception as e:

@@ -13,6 +13,7 @@ from sso_login import sso_tool
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
+
 def setup_module():
 
     global settings

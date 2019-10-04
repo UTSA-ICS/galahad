@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -86,7 +87,7 @@ if (__name__ == '__main__'):
             virtue_id = args.virtue_id
         else:
             logger.warn(
-                '\nWarning: a new Virtue will be created\n')  
+                '\nWarning: a new Virtue will be created\n')
 
     ssh_inst = ssh_tool('ubuntu', EXCALIBUR_HOSTNAME, sshkey=args.sshkey)
 

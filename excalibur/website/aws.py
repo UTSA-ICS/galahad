@@ -100,7 +100,6 @@ class AWS:
 
         return res['Reservations'][0]['Instances'][0]['InstanceId']
 
-
     def instance_create(self, image_id,
                         inst_type,
                         subnet_id,

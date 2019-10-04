@@ -12,11 +12,11 @@ class CMRESHandlerTestCase(unittest.TestCase):
     DEFAULT_ES_PORT = 9200
 
     def getESHost(self):
-        return os.getenv('TEST_ES_SERVER',CMRESHandlerTestCase.DEFAULT_ES_SERVER)
+        return os.getenv('TEST_ES_SERVER', CMRESHandlerTestCase.DEFAULT_ES_SERVER)
 
     def getESPort(self):
         try:
-            return int(os.getenv('TEST_ES_PORT',CMRESHandlerTestCase.DEFAULT_ES_PORT))
+            return int(os.getenv('TEST_ES_PORT', CMRESHandlerTestCase.DEFAULT_ES_PORT))
         except ValueError:
             return CMRESHandlerTestCase.DEFAULT_ES_PORT
 
@@ -41,7 +41,6 @@ class CMRESHandlerTestCase(unittest.TestCase):
                                raise_on_indexing_exceptions=True)
         es_test_server_is_up = handler.test_es_source()
         self.assertEqual(True, es_test_server_is_up)
-
 
     def test_buffered_log_insertion_flushed_when_buffer_full(self):
         handler = CMRESHandler(hosts=[{'host': self.getESHost(), 'port': self.getESPort()}],

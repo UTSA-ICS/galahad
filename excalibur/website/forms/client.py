@@ -21,7 +21,7 @@ class OAuth2ClientWrapper(object):
         self.name = client.name
         self.website = client.website
         self.is_confidential = client.is_confidential
-        #self.redirect_uris = ''.join(client.redirect_uris)
+        # self.redirect_uris = ''.join(client.redirect_uris)
         self.redirect_uris = '\n'.join(client.redirect_uris)
         self.default_redirect_uri = client.default_redirect_uri
         self.allowed_scopes = client.allowed_scopes.split()
@@ -46,7 +46,7 @@ class Client2Form(BaseForm):
         client.is_confidential = self.is_confidential.data
         client.redirect_uris = self.redirect_uris.data.splitlines()
         client.token_endpoint_auth_method = 'none'
-        #client.default_redirect_uri = self.default_redirect_uri.data
+        # client.default_redirect_uri = self.default_redirect_uri.data
         print(self.redirect_uris.data)
         print(
             'WAT    : REDIRECT_URIS - update     : %s' % client.redirect_uris)

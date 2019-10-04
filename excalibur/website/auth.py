@@ -1,11 +1,10 @@
 # Copyright (c) 2019 by Star Lab Corp.
 
 from functools import wraps
-from authlib.flask.client import OAuth
 from werkzeug.local import LocalProxy
 from flask import g, session
 from flask import url_for, redirect, request
-from .models import User, cache
+from .models import User
 
 
 def login(user, permanent=True):

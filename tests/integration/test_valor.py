@@ -43,10 +43,10 @@ def get_rethinkdb_connection():
 
     try:
         connection = rethinkdb.connect(
-            host = 'rethinkdb.galahad.com',
-            port = 28015,
-            ssl = {
-                'ca_certs':'/var/private/ssl/rethinkdb_cert.pem',
+            host='rethinkdb.galahad.com',
+            port=28015,
+            ssl={
+                'ca_certs': '/var/private/ssl/rethinkdb_cert.pem',
             }).repl()
         return connection
 
@@ -157,12 +157,12 @@ def virtue_launch():
 
 def is_virtue_running(ip_address, virtue_id):
 
-        xl_list = subprocess.check_output(
+    xl_list = subprocess.check_output(
             ['ssh', '-i', key_path, 'ubuntu@' + ip_address,
              '-o', 'StrictHostKeyChecking=no',
              'sudo xl list'])
 
-        return virtue_id in xl_list
+    return virtue_id in xl_list
 
 
 def get_valor_ip(valor_id):
@@ -175,13 +175,12 @@ def get_valor_ip(valor_id):
     valor = list(response.items)[0]
 
     return valor['address']
-    
+
 
 @pytest.mark.usefixtures('initialize_valor_api')
 class Test_ValorAPI:
 
     valor_id = None
-
 
     def test_valor_create(self):
 
@@ -192,7 +191,6 @@ class Test_ValorAPI:
         assert is_valor_in_rethinkdb(valor_id)
         assert not is_valor_pingable(valor_id)
 
-
     def test_valor_launch(self):
 
         valor_id = Test_ValorAPI.valor_id
@@ -201,7 +199,6 @@ class Test_ValorAPI:
 
         assert is_valor_in_rethinkdb(valor_id)
         assert is_valor_pingable(valor_id)
-
 
     def test_valor_stop(self):
 
@@ -212,7 +209,6 @@ class Test_ValorAPI:
         assert is_valor_in_rethinkdb(valor_id)
         assert not is_valor_pingable(valor_id)
 
-
     def test_valor_destroy(self):
 
         valor_id = Test_ValorAPI.valor_id
@@ -221,7 +217,6 @@ class Test_ValorAPI:
 
         assert not is_valor_in_rethinkdb(valor_id)
         assert not is_valor_pingable(valor_id)
-
 
     def test_valor_create_pool(self):
 
@@ -235,7 +230,6 @@ class Test_ValorAPI:
             assert is_valor_pingable(valor_id)
 
             self.valor_api.valor_destroy(valor_id)
-
 
     def test_valor_migrate_virtue(self):
 

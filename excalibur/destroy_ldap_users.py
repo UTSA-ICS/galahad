@@ -27,7 +27,7 @@ if __name__ == "__main__":
     inst.conn.simple_bind_s(dn, 'Test123!')
 
     if args.delete_user:
-        msg = raw_input(
+        msg = input(
             "This is a permanent change and cannot be undone. Are you "
             "sure you want to continue?\n[Y/N]")
         if msg != "Y":
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         users = ldap_tools.parse_ldap_list(users)
 
         if args.delete_all_users:
-            msg = raw_input(
+            msg = input(
                 "This is a permanent change and cannot be undone. Are you "
                 "sure you want to continue?\n[Y/N]")
             if msg != "Y":

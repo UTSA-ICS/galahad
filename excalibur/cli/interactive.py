@@ -16,11 +16,13 @@ from endpoint import Endpoint
 import getpass
 import sys
 
+
 class InterpreterMode(Enum):
     BASE = 1
     USER = 2
     ADMIN = 3
     SECURITY = 4
+
 
 class MetaCompleter:
     def __init__(self):
@@ -50,6 +52,7 @@ class MetaCompleter:
             return self.admin_completer
         else:
             return self.base_completer
+
 
 class ExcaliburCmd:
     def __init__(self, ip=None):
@@ -91,8 +94,8 @@ class ExcaliburCmd:
         self.username = input('Email: ').strip()
         password = getpass.getpass('Password: ').strip()
         # ABJ: Uncomment this when it matters what the app name is
-        #app_name = input('OAuth APP name (Default name \'APP_1\' Press Enter): ').strip()
-        #if app_name == '':
+        # app_name = input('OAuth APP name (Default name \'APP_1\' Press Enter): ').strip()
+        # if app_name == '':
         #    app_name = 'APP_1'
         app_name = 'APP_1'
 
@@ -181,6 +184,7 @@ class ExcaliburCmd:
         else:
             print(self.get_current_ep().help())
 
+
 def main():
     server_address = '127.0.0.1'
     if len(sys.argv) is 2:
@@ -197,9 +201,9 @@ def main():
 
     session = PromptSession()
     while True:
-        try: 
+        try:
             text = session.prompt(
-                excalibur.prompt_msg, 
+                excalibur.prompt_msg,
                 completer=DynamicCompleter(excalibur.meta_completer.get_completer))
             excalibur.handle_cmd(text)
         except KeyboardInterrupt:
@@ -209,8 +213,9 @@ def main():
                 excalibur.set_mode(InterpreterMode.BASE)
         except EOFError:
             break
-        
+
     print('Goodbye!')
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()

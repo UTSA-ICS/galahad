@@ -13,7 +13,6 @@ import argparse
 import requests
 import copy
 import getpass
-import base64
 import itertools
 from urllib.parse import urlparse
 from enum import Enum
@@ -24,6 +23,7 @@ from sso_login import sso_tool
 DEFAULT_EXCALIBUR_PORT = 5002
 DEFAULT_APP_NAME = 'PKGR_APP_1'
 OAUTH_REDIRECT = 'https://{0}/virtue/test'
+
 
 class Packager():
 
@@ -65,7 +65,7 @@ class Packager():
     def get_virtue(self, virtue_id, username=None):
 
         if (username == None):
-            users =  self.session.get(self.base_url + '/admin/user/list').json()
+            users = self.session.get(self.base_url + '/admin/user/list').json()
         else:
             users = [{'username': username}]
 
@@ -325,7 +325,7 @@ class Packager():
             'user': {
                 'username': virtue['username']
             },
-            #'plugins': plugin_data
+            # 'plugins': plugin_data
         }
 
         print()
@@ -430,7 +430,7 @@ class Packager():
             == new_role['startingTransducerIds']):
 
             if (ask_boolean(('Matching role\n{0}\nalready exists.'
-                               ' Cancel import?').format(
+                             ' Cancel import?').format(
                                    json.dumps(
                                        matching_role,
                                        indent=4,
@@ -520,6 +520,7 @@ class Packager():
 
         if (role['state'] != 'CREATED'):
             print("role['state'] = " + role['state'])
+
 
 class FileInterface():
 
@@ -744,6 +745,7 @@ class FileInterface():
     def __exit__(self, thing1, thing2, thing3):
         self.close()
 
+
 def ask_boolean(question, default=True):
 
     if (default):
@@ -759,6 +761,7 @@ def ask_boolean(question, default=True):
         return False
 
     return default
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -834,6 +837,7 @@ def parse_args():
     arg = parser.parse_args()
 
     return arg
+
 
 if (__name__ == '__main__'):
 

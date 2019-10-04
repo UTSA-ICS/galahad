@@ -7,8 +7,6 @@ import subprocess
 import sys
 import time
 
-import pytest
-
 import requests
 
 file_path = os.path.realpath(__file__)
@@ -30,8 +28,8 @@ key_path = os.environ['HOME'] + '/user-keys/default-virtue-key.pem'
 
 EXCALIBUR_HOSTNAME = 'excalibur.galahad.com'
 AGGREGATOR_HOSTNAME = 'aggregator.galahad.com'
-ELASTIC_TIMEOUT = 120 # Timeout before assuming elasticsearch query tests are failures
-SLEEP_TIME = 10 # Time to sleep
+ELASTIC_TIMEOUT = 120  # Timeout before assuming elasticsearch query tests are failures
+SLEEP_TIME = 10  # Time to sleep
 
 ##
 # Functionality of these API commands is tested by unit/test_user_api.py.
@@ -56,10 +54,10 @@ def setup_module():
 
     aggregator_ip = AGGREGATOR_HOSTNAME
 
-    inst = LDAP( '', '' )
+    inst = LDAP('', '')
     dn = 'cn=admin,dc=canvas,dc=virtue,dc=com'
     inst.get_ldap_connection()
-    inst.conn.simple_bind_s( dn, 'Test123!' )
+    inst.conn.simple_bind_s(dn, 'Test123!')
 
     redirect = settings['redirect'].format(ip)
 
@@ -91,8 +89,10 @@ def setup_module():
 
     aggregator_ssh = ssh_tool('ubuntu', aggregator_ip, sshkey=key_path)
 
+
 def teardown_module():
     pass
+
 
 def __get_excalibur_index():
     # A new index is created every day
@@ -100,9 +100,10 @@ def __get_excalibur_index():
     index = now.strftime('excalibur-%Y.%m.%d')
     return index
 
+
 def __query_elasticsearch_excalibur(args):
-    assert aggregator_ssh.check_access() # This prevents the result from being "added to know host" result from failing tests
-    time.sleep(30) # Sleep to ensure logs make it to elasticsearch
+    assert aggregator_ssh.check_access()  # This prevents the result from being "added to know host" result from failing tests
+    time.sleep(30)  # Sleep to ensure logs make it to elasticsearch
     index = __get_excalibur_index()
     cmdargs = ''
     for (key, value) in args:
@@ -111,6 +112,7 @@ def __query_elasticsearch_excalibur(args):
     output = aggregator_ssh.ssh(cmd, output=True)
     return json.loads(output)
 
+
 def query_elasticsearch_with_timeout(args):
     elasped_time = 0
     while elasped_time < ELASTIC_TIMEOUT:
@@ -118,7 +120,8 @@ def query_elasticsearch_with_timeout(args):
         if 'hits' in result and 'total' in result['hits'] and result['hits']['total'] > 0:
             return result
         elasped_time += SLEEP_TIME
-    return result # Return last result, this will fail tests
+    return result  # Return last result, this will fail tests
+
 
 def test_application_get():
 
@@ -292,6 +295,7 @@ def test_virtue_launch():
                                 'TEST_VIRTUE_LAUNCH.img'),
                                '/mnt/efs/images/tests/8GB.img'])
         rethink_manager.remove_virtue('TEST_VIRTUE_LAUNCH')
+
 
 def test_virtue_stop():
 

@@ -4,7 +4,6 @@ import ast
 import json
 import os
 import sys
-import time
 
 file_path = os.path.realpath(__file__)
 base_excalibur_dir = os.path.dirname(

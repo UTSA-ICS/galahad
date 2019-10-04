@@ -12,12 +12,12 @@ class ssh_tool():
 
     def ssh(self, command, test=True, option=None, output=False):
 
-        if (self.sshkey == None):
+        if (self.sshkey is None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]
 
-        if option == None:
+        if option is None:
             call_list = ['ssh'] + keyls + [
                 '-o', 'StrictHostKeyChecking=no',
                 self.rem_username + '@' + self.ip, command
@@ -39,13 +39,13 @@ class ssh_tool():
                 ret = 0
             except subprocess.CalledProcessError as e:
                 ret = e.returncode
-                print e
-                print stdout
+                print(e)
+                print(stdout)
         else:
             ret = subprocess.call(call_list)
 
         if ret != 0:
-            print stdout
+            print(stdout)
 
         # By default, it is not ok to fail
         if (test):
@@ -58,7 +58,7 @@ class ssh_tool():
 
     def scp_to(self, file_path_local, file_path_remote='', test=True):
 
-        if (self.sshkey == None):
+        if (self.sshkey is None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]
@@ -91,7 +91,7 @@ class ssh_tool():
 
     def scp_from(self, file_path_local, file_path_remote='', test=True):
 
-        if (self.sshkey == None):
+        if (self.sshkey is None):
             keyls = []
         else:
             keyls = ['-i', self.sshkey]

@@ -3,7 +3,7 @@
 from flask import Blueprint
 from flask import jsonify
 from authlib.flask.oauth2 import current_token
-from ..models import db, User
+from ..models import User
 from ..services.oauth2 import require_oauth
 
 bp = Blueprint('api_2', __name__)
