@@ -98,10 +98,9 @@ Logging Control API.
 
 6. **Dynamic virtue protections** Dynamic protections include live
 migration, memory sanitization, and a stackable security policy
-model. Protections are adjusted through the Virtue Control API.
 
 7. **Legacy application** Unity includes a compatibility layer
-specifically designed to support support legacy Windows applications.
+specifically designed to support legacy Windows applications.
 
 8. **Information exchange** Galahad’s Virtue-Canvas API facilitates
 the secure exchange of presentation information and enables resource
